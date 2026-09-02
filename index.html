@@ -12,8 +12,8 @@
 :root{--bg:#f4f7fb;--card:#fff;--text:#172033;--muted:#697386;--accent:#4f46e5;--accent2:#7c3aed;--border:#e5e7eb}
 *{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--text)}
 header{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;padding:22px 18px}header h1{margin:0;font-size:27px}header p{margin:5px 0 0;opacity:.9}
-.container{max-width:1000px;margin:24px auto;padding:0 15px}.panel{background:#fff;border:1px solid var(--border);border-radius:18px;padding:20px;margin-bottom:16px;box-shadow:0 5px 18px rgba(20,30,55,.04)}
-.hidden{display:none!important}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}@media(max-width:700px){.grid{grid-template-columns:1fr}.panel{padding:16px}}
+.container{max-width:1000px;margin:24px auto;padding:0 15px}.systems{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}.systems .panel{margin-bottom:0}.panel{background:#fff;border:1px solid var(--border);border-radius:18px;padding:20px;margin-bottom:16px;box-shadow:0 5px 18px rgba(20,30,55,.04)}
+.hidden{display:none!important}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}@media(max-width:700px){.systems,.grid{grid-template-columns:1fr}.panel{padding:16px}}
 input,textarea,select{width:100%;padding:12px;border:1px solid var(--border);border-radius:10px;font:inherit}textarea{min-height:130px;resize:vertical}
 button{border:0;border-radius:10px;padding:11px 15px;background:var(--accent);color:#fff;font:inherit;font-weight:650;cursor:pointer}.secondary{background:#eef0ff;color:#3730a3}.danger{background:#fee2e2;color:#991b1b}.small{padding:7px 10px;font-size:13px}
 .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.muted{color:var(--muted);font-size:14px}
@@ -35,11 +35,11 @@ button{border:0;border-radius:10px;padding:11px 15px;background:var(--accent);co
 <div class="container">
 
 <div id="home">
+<div class="systems">
 <div class="panel">
 <h2>Responsibility Recall</h2>
 <p class="muted">Use these cards as mental triggers. Pause at each responsibility and ask yourself: <b>What might I be forgetting?</b></p>
 <div class="row"><label>Cards per session</label><input id="respCount" type="number" value="5" min="1" max="6" style="width:75px"><button onclick="startResponsibilities()">Start Responsibility Recall</button></div>
-<div id="responsibilities" class="list" style="margin-top:15px"></div>
 </div>
 
 <div class="panel">
@@ -59,12 +59,6 @@ button{border:0;border-radius:10px;padding:11px 15px;background:var(--accent);co
 <button onclick="start()">Start People Recall</button><button class="secondary" onclick="importPasted()">Add pasted names</button>
 </div>
 <div id="notice" class="notice hidden"></div>
-</div>
-
-<div class="panel">
-<div class="row" style="justify-content:space-between"><div><h2 style="margin:0">People database</h2><span class="muted">Stored on this device</span></div><div class="row"><button class="secondary small" onclick="exportData()">Export backup</button><button class="danger small" onclick="wipe()">Clear all</button></div></div>
-<div class="stats" style="margin-top:16px"><div class="stat"><span class="muted">People</span><b id="peopleN">0</b></div><div class="stat"><span class="muted">Recall notes</span><b id="recallN">0</b></div><div class="stat"><span class="muted">Never recalled</span><b id="neverN">0</b></div></div>
-<div id="people" class="list" style="margin-top:15px"></div>
 </div>
 </div>
 
@@ -114,7 +108,7 @@ function skip(){i++;show()}
 function finish(){$('session').classList.add('hidden');$('done').classList.remove('hidden');$('doneText').textContent=`Reviewed ${cards.length} ${mode==='responsibilities'?'responsibilities':'people'}. Saved ${saved} recall notes.`;render()}
 function home(){$('session').classList.add('hidden');$('done').classList.add('hidden');$('home').classList.remove('hidden');render()}
 function another(){home();mode==='responsibilities'?startResponsibilities():start()}
-function render(){let r=Object.keys(RESPONSIBILITIES).map(k=>({key:k,...db.responsibilities[k]}));$('responsibilities').innerHTML=r.map(x=>{let h=x.history.at(-1),ps=RESPONSIBILITIES[x.key].prompts.slice(0,3).join(' · ');return `<div class="person"><div><b>${esc(x.name)}</b><div class="muted">${esc(ps)}${RESPONSIBILITIES[x.key].prompts.length>3?' …':''}</div></div><span class="muted">${h?'Last recalled: '+new Date(h.date).toLocaleDateString():'Never recalled'}</span></div>`}).join('');let p=Object.values(db.people).sort((a,b)=>a.name.localeCompare(b.name));$('peopleN').textContent=p.length;$('recallN').textContent=p.reduce((a,x)=>a+x.history.length,0);$('neverN').textContent=p.filter(x=>!x.history.length).length;$('people').innerHTML=p.length?p.map(x=>{let h=x.history.at(-1);return `<div class="person"><b>${esc(x.name)}</b><span class="muted">${h?'Last recalled: '+new Date(h.date).toLocaleDateString():'Never recalled'}</span></div>`}).join(''):'<div class="person muted">No names imported yet.</div>'}
+function render(){}
 function wipe(){if(confirm('Delete all saved names and recall history? Responsibility cards will remain, but their history will be cleared.')){db={people:{},responsibilities:{}};Object.keys(RESPONSIBILITIES).forEach(k=>db.responsibilities[k]={name:RESPONSIBILITIES[k].name,history:[]});persist();render()}}
 function exportData(){let b=new Blob([JSON.stringify(db,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='name-recall-backup.json';a.click()}
 if('serviceWorker' in navigator)navigator.serviceWorker.register('./service-worker.js');
