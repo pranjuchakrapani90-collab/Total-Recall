@@ -45,18 +45,20 @@ button{border:0;border-radius:10px;padding:11px 15px;background:var(--accent);co
 <div class="panel">
 <h2>People Recall</h2>
 <p class="muted">Upload your CSV, select the Name column, and build your personal recall database.</p>
+<div class="row" style="margin-top:15px">
+<label>Cards per session</label><input id="count" type="number" value="5" min="1" style="width:75px">
+<button onclick="start()">Start People Recall</button><button class="secondary" onclick="togglePeopleTools()">Manage names</button>
+</div>
+<div id="peopleTools" class="hidden" style="margin-top:16px">
 <div class="grid">
 <div><b>Upload CSV / TXT</b><br><br><input id="file" type="file" accept=".csv,.txt"></div>
-<div><b>Or paste names</b><br><br><textarea id="paste" placeholder="One name per line"></textarea></div>
+<div><b>Or paste names</b><br><br><textarea id="paste" placeholder="One name per line"></textarea><div class="row" style="margin-top:10px"><button class="secondary" onclick="importPasted()">Add pasted names</button></div></div>
 </div>
 <div id="columnBox" class="hidden" style="margin-top:16px">
 <b>Which column contains the names?</b>
 <div class="row" style="margin-top:8px"><select id="nameColumn" style="max-width:300px"></select><button onclick="confirmImport()">Import selected column</button></div>
 <div id="preview" style="margin-top:12px"></div>
 </div>
-<div class="row" style="margin-top:15px">
-<label>Cards per session</label><input id="count" type="number" value="5" min="1" style="width:75px">
-<button onclick="start()">Start People Recall</button><button class="secondary" onclick="importPasted()">Add pasted names</button>
 </div>
 <div id="notice" class="notice hidden"></div>
 </div>
@@ -100,6 +102,7 @@ function parseCSV(text){let lines=text.trim().split(/\r?\n/);headers=parseLine(l
 function showPreview(){let col=$('nameColumn').value;$('preview').innerHTML='<b>Preview:</b><table><tr><th>Selected name</th></tr>'+parsedRows.slice(0,5).map(r=>`<tr><td>${esc(r[col])}</td></tr>`).join('')+'</table>'}
 function confirmImport(){let col=$('nameColumn').value,n=add(parsedRows.map(r=>r[col]));$('columnBox').classList.add('hidden');msg(`${n} new names imported from "${col}".`)}
 function importPasted(){let v=$('paste').value.trim();if(!v)return msg('Paste at least one name.');let n=add(v.split(/\r?\n/));$('paste').value='';msg(`${n} new names added.`)}
+function togglePeopleTools(){$('peopleTools').classList.toggle('hidden')}
 function start(){mode='people';let p=Object.values(db.people);if(!p.length)return msg('Import some names first.');let n=Math.min(Math.max(1,+$('count').value||5),p.length);cards=[...p].sort(()=>Math.random()-.5).slice(0,n);i=0;saved=0;$('home').classList.add('hidden');$('done').classList.add('hidden');$('session').classList.remove('hidden');show()}
 function startResponsibilities(){mode='responsibilities';let p=Object.keys(RESPONSIBILITIES).map(k=>({key:k,...db.responsibilities[k]}));let n=Math.min(Math.max(1,+$('respCount').value||5),p.length);cards=[...p].sort(()=>Math.random()-.5).slice(0,n);i=0;saved=0;$('home').classList.add('hidden');$('done').classList.add('hidden');$('session').classList.remove('hidden');show()}
 function show(){if(i>=cards.length)return finish();let p=cards[i];$('cardName').textContent=p.name;$('counter').textContent=`FLASHCARD ${i+1} OF ${cards.length}`;$('prog').textContent=`${i+1} / ${cards.length}`;$('note').value='';if(mode==='responsibilities'){let prompts=RESPONSIBILITIES[p.key].prompts.map(x=>`<span class="prompt">${esc(x)}</span>`).join('');$('promptTitle').innerHTML='What might you be forgetting under this responsibility?<div style="margin-top:10px">'+prompts+'</div>'}else $('promptTitle').textContent='What do you recall about this person?';let h=p.history||[];$('previous').classList.toggle('hidden',!h.length);$('hist').innerHTML=h.slice().reverse().slice(0,5).map(x=>`<div class="history"><div class="date">${new Date(x.date).toLocaleString()}</div>${esc(x.note)}</div>`).join('')}
