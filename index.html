@@ -98,7 +98,19 @@ function msg(t){$('notice').textContent=t;$('notice').classList.remove('hidden')
 function add(names){let n=0;names.forEach(x=>{x=String(x||'').trim().replace(/\s+/g,' ');if(!x||/^\d+$/.test(x))return;let k=x.toLowerCase();if(!db.people[k]){db.people[k]={name:x,history:[]};n++}});persist();render();return n}
 $('file').addEventListener('change',async e=>{let f=e.target.files[0];if(!f)return;let text=await f.text();parseCSV(text);e.target.value=''});
 function parseLine(line){let vals=[],cur='',q=false;for(let j=0;j<line.length;j++){let c=line[j];if(c=='"'){if(q&&line[j+1]=='"'){cur+='"';j++}else q=!q}else if(c==','&&!q){vals.push(cur);cur=''}else cur+=c}vals.push(cur);return vals}
-function parseCSV(text){let lines=text.trim().split(/\r?\n/);headers=parseLine(lines[0]).map(x=>x.trim());parsedRows=lines.slice(1).map(line=>{let vals=parseLine(line),o={};headers.forEach((h,j)=>o[h]=(vals[j]||'').trim());return o});let sel=$('nameColumn');sel.innerHTML=headers.map(h=>`<option value="${esc(h)}" ${/name/i.test(h)?'selected':''}>${esc(h)}</option>`).join('');$('columnBox').classList.remove('hidden');showPreview();sel.onchange=showPreview}
+function parseCSV(text){
+  let lines=text.replace(/^\uFEFF/,'').trim().split(/\r?\n/).filter(Boolean);
+  if(!lines.length)return msg('Choose a file containing at least one name.');
+  let first=parseLine(lines[0]).map(x=>x.trim());
+  let looksLikeHeader=first.length>1||/^(name|full ?name|first ?name|last ?name|employee|person|contact|member)$/i.test(first[0]||'');
+  if(!looksLikeHeader){
+    let n=add(lines.map(line=>parseLine(line)[0]));
+    return msg(`${n} new names imported.`);
+  }
+  headers=first;parsedRows=lines.slice(1).map(line=>{let vals=parseLine(line),o={};headers.forEach((h,j)=>o[h]=(vals[j]||'').trim());return o});
+  let sel=$('nameColumn');sel.innerHTML=headers.map(h=>`<option value="${esc(h)}" ${/name/i.test(h)?'selected':''}>${esc(h)}</option>`).join('');
+  $('columnBox').classList.remove('hidden');showPreview();sel.onchange=showPreview
+}
 function showPreview(){let col=$('nameColumn').value;$('preview').innerHTML='<b>Preview:</b><table><tr><th>Selected name</th></tr>'+parsedRows.slice(0,5).map(r=>`<tr><td>${esc(r[col])}</td></tr>`).join('')+'</table>'}
 function confirmImport(){let col=$('nameColumn').value,n=add(parsedRows.map(r=>r[col]));$('columnBox').classList.add('hidden');msg(`${n} new names imported from "${col}".`)}
 function importPasted(){let v=$('paste').value.trim();if(!v)return msg('Paste at least one name.');let n=add(v.split(/\r?\n/));$('paste').value='';msg(`${n} new names added.`)}
