@@ -38,9 +38,33 @@ function tomorrowInZone(timeZone) {
   return base.toISOString().slice(0,10);
 }
 
-async function tick(path, token) {
-  const r = await fetch(API + path, { headers: { Authorization: 'Bearer ' + token } });
-  if (!r.ok) throw new Error('TickTick API HTTP ' + r.status + ' for ' + path);
+function addDays(isoDate, days) {
+  const d = new Date(isoDate + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0,10);
+}
+
+function localIsoStart(date) {
+  return date + 'T00:00:00.000+0530';
+}
+
+function localIsoEnd(date) {
+  return date + 'T23:59:59.999+0530';
+}
+
+async function tick(path, token, options = {}) {
+  const r = await fetch(API + path, {
+    method: options.method || 'GET',
+    headers: {
+      Authorization: 'Bearer ' + token,
+      ...(options.body ? {'Content-Type':'application/json'} : {})
+    },
+    body: options.body ? JSON.stringify(options.body) : undefined
+  });
+  if (!r.ok) {
+    const text = await r.text();
+    throw new Error('TickTick API HTTP ' + r.status + ' for ' + path + ': ' + text.slice(0,300));
+  }
   return r.json();
 }
 
@@ -58,38 +82,46 @@ export default {
       const tz = env.TIME_ZONE || 'Asia/Kolkata';
       const target = tomorrowInZone(tz);
       const groups = Object.fromEntries(RESPONSIBILITIES.map(k => [k, []]));
-      const projects = await tick('/project', env.TICKTICK_ACCESS_TOKEN);
 
-      // TickTick's project task-list endpoint does not provide the complete task
-      // payload reliably. The project data endpoint returns the project's tasks,
-      // including dueDate and tags, which we need for Responsibility Recall.
-      for (const project of projects || []) {
-        if (!project || !project.id) continue;
-        let data;
-        try { data = await tick('/project/' + encodeURIComponent(project.id) + '/data', env.TICKTICK_ACCESS_TOKEN); }
-        catch (_) { continue; }
-        const tasks = Array.isArray(data) ? data : ((data && data.tasks) || []);
+      // Use TickTick's all-task filter endpoint rather than querying every project.
+      // This also includes Inbox tasks and returns full task objects with tags.
+      // The filter is intentionally a little wider than tomorrow because TickTick's
+      // filter dates are based on startDate; we then select by the task's dueDate.
+      const filterStart = addDays(target, -1);
+      const filterEnd = addDays(target, 1);
+      const result = await tick('/task/filter', env.TICKTICK_ACCESS_TOKEN, {
+        method: 'POST',
+        body: {
+          startDate: localIsoStart(filterStart),
+          endDate: localIsoEnd(filterEnd),
+          status: [0]
+        }
+      });
 
-        for (const task of tasks) {
-          const due = task && (task.dueDate || task.due || '');
-          if (!due || String(due).slice(0,10) !== target) continue;
-          const tags = taskTags(task);
-          const matches = RESPONSIBILITIES.filter(r => tags.indexOf(r) >= 0);
-          for (const responsibility of matches) {
-            groups[responsibility].push({
-              id: task.id || '',
-              title: task.title || '(Untitled TickTick task)',
-              due: String(due).slice(0,16),
-              project: project.name || '',
-              tags
-            });
-          }
+      const tasks = Array.isArray(result) ? result : ((result && result.tasks) || []);
+      for (const task of tasks) {
+        const due = task && (task.dueDate || task.due || '');
+        if (!due || String(due).slice(0,10) !== target) continue;
+        const tags = taskTags(task);
+        const matches = RESPONSIBILITIES.filter(r => tags.indexOf(r) >= 0);
+        for (const responsibility of matches) {
+          groups[responsibility].push({
+            id: task.id || '',
+            title: task.title || '(Untitled TickTick task)',
+            due: String(due).slice(0,16),
+            projectId: task.projectId || '',
+            tags
+          });
         }
       }
 
       for (const k of RESPONSIBILITIES) {
         const seen = new Set();
-        groups[k] = groups[k].filter(t => { if (seen.has(t.id)) return false; seen.add(t.id); return true; });
+        groups[k] = groups[k].filter(t => {
+          if (seen.has(t.id)) return false;
+          seen.add(t.id);
+          return true;
+        });
       }
 
       return new Response(JSON.stringify({ date: target, timeZone: tz, responsibilities: groups }), {
