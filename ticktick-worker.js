@@ -27,15 +27,13 @@ function taskTags(task) {
   return [];
 }
 
-function tomorrowInZone(timeZone) {
+function todayInZone(timeZone) {
   const now = new Date();
   const parts = new Intl.DateTimeFormat('en-CA', { timeZone, year:'numeric', month:'2-digit', day:'2-digit' }).formatToParts(now);
   const y = parts.find(p=>p.type==='year').value;
   const m = parts.find(p=>p.type==='month').value;
   const d = parts.find(p=>p.type==='day').value;
-  const base = new Date(Date.UTC(Number(y), Number(m)-1, Number(d)));
-  base.setUTCDate(base.getUTCDate()+1);
-  return base.toISOString().slice(0,10);
+  return `${y}-${m}-${d}`;
 }
 
 function addDays(isoDate, days) {
@@ -91,11 +89,10 @@ export default {
 
     try {
       const tz = env.TIME_ZONE || 'Asia/Kolkata';
-      const target = tomorrowInZone(tz);
+      const target = todayInZone(tz);
       const groups = Object.fromEntries(RESPONSIBILITIES.map(k => [k, []]));
 
-      // Search by due-date range rather than startDate. This matches the way
-      // Responsibility Recall needs to interpret "tomorrow".
+      // Search by due-date range for TODAY in the configured timezone.
       const dueFrom = localIsoStart(target);
       const dueTo = localIsoEnd(target);
       let result;
@@ -111,7 +108,7 @@ export default {
         result = await tick('/task/filter', env.TICKTICK_ACCESS_TOKEN, {
           method: 'POST',
           body: {
-            startDate: localIsoStart(addDays(target, -2)),
+            startDate: localIsoStart(addDays(target, -1)),
             endDate: localIsoEnd(addDays(target, 1)),
             status: [0]
           }
