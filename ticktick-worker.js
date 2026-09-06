@@ -1,5 +1,5 @@
 // Cloudflare Worker bridge for Total Recall.
-// Store your TickTick OAuth access token as a Worker secret named TICKTICK_ACCESS_TOKEN.
+// Store your TickTick access token as a Worker secret named TICKTICK_ACCESS_TOKEN.
 // Never put the token in index.html or this repository.
 
 const ALLOWED_ORIGIN = 'https://pranjuchakrapani90-collab.github.io';
@@ -8,7 +8,7 @@ const API = 'https://api.ticktick.com/open/v1';
 
 function corsHeaders(origin) {
   return {
-    'Access-Control-Allow-Origin': origin === ALLOWED_ORIGIN ? ALLOWED_ORIGIN : ALLOWED_ORIGIN,
+    'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Cache-Control': 'no-store'
@@ -16,7 +16,7 @@ function corsHeaders(origin) {
 }
 
 function normTag(t) {
-  return String(t || '').trim().toUpperCase().replace(/\s+/g, '-');
+  return String(t || '').trim().replace(/^#/, '').toUpperCase().replace(/\s+/g, '-');
 }
 
 function taskTags(task) {
@@ -52,6 +52,17 @@ function localIsoEnd(date) {
   return date + 'T23:59:59.999+0530';
 }
 
+function dateInZone(value, timeZone) {
+  if (!value) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return String(value).slice(0,10);
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone, year:'numeric', month:'2-digit', day:'2-digit' }).formatToParts(d);
+  const y = parts.find(p=>p.type==='year').value;
+  const m = parts.find(p=>p.type==='month').value;
+  const day = parts.find(p=>p.type==='day').value;
+  return `${y}-${m}-${day}`;
+}
+
 async function tick(path, token, options = {}) {
   const r = await fetch(API + path, {
     method: options.method || 'GET',
@@ -83,27 +94,41 @@ export default {
       const target = tomorrowInZone(tz);
       const groups = Object.fromEntries(RESPONSIBILITIES.map(k => [k, []]));
 
-      // Use TickTick's all-task filter endpoint rather than querying every project.
-      // This also includes Inbox tasks and returns full task objects with tags.
-      // The filter is intentionally a little wider than tomorrow because TickTick's
-      // filter dates are based on startDate; we then select by the task's dueDate.
-      const filterStart = addDays(target, -1);
-      const filterEnd = addDays(target, 1);
-      const result = await tick('/task/filter', env.TICKTICK_ACCESS_TOKEN, {
-        method: 'POST',
-        body: {
-          startDate: localIsoStart(filterStart),
-          endDate: localIsoEnd(filterEnd),
-          status: [0]
-        }
-      });
+      // Search by due-date range rather than startDate. This matches the way
+      // Responsibility Recall needs to interpret "tomorrow".
+      const dueFrom = localIsoStart(target);
+      const dueTo = localIsoEnd(target);
+      let result;
+      let source = 'search';
+      try {
+        result = await tick('/task/search', env.TICKTICK_ACCESS_TOKEN, {
+          method: 'POST',
+          body: { dueFrom, dueTo, status: [0] }
+        });
+      } catch (_) {
+        // Fallback for accounts/API versions where task search is unavailable.
+        source = 'filter';
+        result = await tick('/task/filter', env.TICKTICK_ACCESS_TOKEN, {
+          method: 'POST',
+          body: {
+            startDate: localIsoStart(addDays(target, -2)),
+            endDate: localIsoEnd(addDays(target, 1)),
+            status: [0]
+          }
+        });
+      }
 
       const tasks = Array.isArray(result) ? result : ((result && result.tasks) || []);
+      let dueMatches = 0;
+      let taggedMatches = 0;
+
       for (const task of tasks) {
         const due = task && (task.dueDate || task.due || '');
-        if (!due || String(due).slice(0,10) !== target) continue;
+        if (!due || dateInZone(due, tz) !== target) continue;
+        dueMatches++;
         const tags = taskTags(task);
         const matches = RESPONSIBILITIES.filter(r => tags.indexOf(r) >= 0);
+        if (matches.length) taggedMatches++;
         for (const responsibility of matches) {
           groups[responsibility].push({
             id: task.id || '',
@@ -124,7 +149,14 @@ export default {
         });
       }
 
-      return new Response(JSON.stringify({ date: target, timeZone: tz, responsibilities: groups }), {
+      const response = {
+        date: target,
+        timeZone: tz,
+        responsibilities: groups,
+        debug: { source, taskCount: tasks.length, dueMatches, taggedMatches }
+      };
+
+      return new Response(JSON.stringify(response), {
         status:200,
         headers:{...corsHeaders(origin),'Content-Type':'application/json'}
       });
