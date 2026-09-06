@@ -1,0 +1,49 @@
+name: Fix responsibility task history
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch index.html
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+          old = "var KEY='totalRecallPWA_v2',TICK_URL=window.TOTAL_RECALL_TICKTICK_URL||localStorage.getItem('totalRecallTickTickUrl')||'https://total-recall-ticktick.pranjuchakrapani90.workers.dev',RESP=['SDE-TECH','SDE-REV','SDE-ESTT','HOME-MANAGER','BROTHER','SON'],db={people:{},responsibilities:{}};"
+          new = "var KEY='totalRecallPWA_v2',TICK_URL=window.TOTAL_RECALL_TICKTICK_URL||localStorage.getItem('totalRecallTickTickUrl')||'https://total-recall-ticktick.pranjuchakani90.workers.dev',RESP=['SDE-TECH','SDE-REV','SDE-ESTT','HOME-MANAGER','BROTHER','SON'],db={people:{},responsibilities:{},responsibilityTasks:{}};"
+          # Correct the URL if the replacement above is ever used.
+          new = new.replace('pranjuchakani90','pranjuchakrapani90')
+          if old in s:
+              s=s.replace(old,new,1)
+          s=s.replace("db.people=db.people||{};db.responsibilities=db.responsibilities||{};RESP.forEach", "db.people=db.people||{};db.responsibilities=db.responsibilities||{};db.responsibilityTasks=db.responsibilityTasks||{};RESP.forEach",1)
+          marker="function draw(){if(idx>=cards.length){finish();return}"
+          if "function taskHistory(task)" not in s:
+              s=s.replace(marker,"function taskHistory(task){if(!task||!task.id)return[];return hist(db.responsibilityTasks[task.id])}\n"+marker,1)
+          oldhist="var h=mode==='resp'?hist(db.responsibilities[p.key]):hist(p);$('historyBox').classList.toggle('hidden',!h.length);"
+          newhist="var h=mode==='resp'?(sub?taskHistory((taskGroups[p.key]||[])[subIdx]):[]):hist(p);$('historyBox').classList.toggle('hidden',!h.length);"
+          if oldhist in s:
+              s=s.replace(oldhist,newhist,1)
+          oldadv="var t=mode==='resp'?db.responsibilities[p.key]:db.people[p.name.toLowerCase()];if(t){t.history=t.history||[];t.history.push({date:new Date().toISOString(),note:note||'Recalled — no comment added.'});save();saved++}"
+          newadv="var t;if(mode==='resp'){var a=taskGroups[p.key]||[];if(sub){var task=a[subIdx];if(task&&task.id){db.responsibilityTasks[task.id]=db.responsibilityTasks[task.id]||{name:task.title,history:[]};t=db.responsibilityTasks[task.id]}}}else{t=db.people[p.name.toLowerCase()]}if(t){t.history=t.history||[];t.history.push({date:new Date().toISOString(),note:note||'Recalled — no comment added.'});save();saved++}"
+          if oldadv in s:
+              s=s.replace(oldadv,newadv,1)
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commit patch and remove helper workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git rm .github/workflows/fix-task-history.yml
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "Store recall history per TickTick subflashcard"
+          git push
