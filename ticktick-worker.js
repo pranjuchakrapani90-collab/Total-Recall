@@ -60,13 +60,18 @@ export default {
       const groups = Object.fromEntries(RESPONSIBILITIES.map(k => [k, []]));
       const projects = await tick('/project', env.TICKTICK_ACCESS_TOKEN);
 
+      // TickTick's project task-list endpoint does not provide the complete task
+      // payload reliably. The project data endpoint returns the project's tasks,
+      // including dueDate and tags, which we need for Responsibility Recall.
       for (const project of projects || []) {
         if (!project || !project.id) continue;
-        let tasks = [];
-        try { tasks = await tick('/project/' + encodeURIComponent(project.id) + '/task', env.TICKTICK_ACCESS_TOKEN); }
+        let data;
+        try { data = await tick('/project/' + encodeURIComponent(project.id) + '/data', env.TICKTICK_ACCESS_TOKEN); }
         catch (_) { continue; }
-        for (const task of tasks || []) {
-          const due = task.dueDate || task.due || '';
+        const tasks = Array.isArray(data) ? data : ((data && data.tasks) || []);
+
+        for (const task of tasks) {
+          const due = task && (task.dueDate || task.due || '');
           if (!due || String(due).slice(0,10) !== target) continue;
           const tags = taskTags(task);
           const matches = RESPONSIBILITIES.filter(r => tags.indexOf(r) >= 0);
