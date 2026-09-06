@@ -1,0 +1,41 @@
+name: Set Responsibility Recall to Today
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch index.html
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+          replacements = [
+              ("Click it to open tomorrow's actual TickTick tasks for that responsibility.", "Click it to open today's actual TickTick tasks for that responsibility."),
+              ("Refreshing tomorrow’s TickTick tasks…", "Refreshing today’s TickTick tasks…"),
+              ("date=tomorrow", "date=today"),
+              ("for tomorrow. Synced", "for today. Synced"),
+              ("Tomorrow’s TickTick task", "Today's TickTick task"),
+              ("responsibility tomorrow", "responsibility today")
+          ]
+          for old, new in replacements:
+              s = s.replace(old, new)
+          p.write_text(s, encoding='utf-8')
+          PY
+      - name: Commit patch and remove helper workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git rm .github/workflows/set-today-recall.yml
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "Use today's TickTick tasks for responsibility recall"
+          git push
