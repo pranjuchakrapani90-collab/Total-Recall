@@ -1,0 +1,41 @@
+name: Fix today tasks and restore clicks
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch index.html and worker
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+          # Fix the JavaScript syntax error introduced by the apostrophe in Today's.
+          s = s.replace(":'Today's TickTick task'", ':"Today’s TickTick task"')
+          s = s.replace("today’s actual TickTick tasks", "today’s actual TickTick tasks")
+          p.write_text(s, encoding='utf-8')
+
+          w = Path('ticktick-worker.js')
+          s = w.read_text(encoding='utf-8')
+          # The Worker should return tasks due today in Asia/Kolkata, not tomorrow.
+          s = s.replace('const target = tomorrowInZone(tz);', "const now = new Date();\n      const parts = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit' }).formatToParts(now);\n      const target = parts.find(p=>p.type==='year').value + '-' + parts.find(p=>p.type==='month').value + '-' + parts.find(p=>p.type==='day').value;")
+          s = s.replace("Search by due-date range rather than startDate. This matches the way\n      // Responsibility Recall needs to interpret \"tomorrow\".", "Search by due-date range for today's local date.\n      // Responsibility Recall always uses the current day in Asia/Kolkata.")
+          w.write_text(s, encoding='utf-8')
+          PY
+      - name: Commit fixes and remove helper workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html ticktick-worker.js
+          git rm .github/workflows/fix-today-and-clicks.yml
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "Fix today task recall and restore click handlers"
+          git push
