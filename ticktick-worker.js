@@ -102,17 +102,14 @@ async function fetchTasksForRange(start, end, token) {
   }
 }
 
-async function fetchScheduledTasksForDay(day, token) {
-  // Include both open and completed occurrences. A recurring task may have
-  // been scheduled for the next day and already completed; it still means
-  // that the previous day's occurrence did NOT mark the series as finished.
+async function fetchOpenTasksForDay(day, token) {
   try {
     return { source:'search', result:await tick('/task/search', token, {
-      method:'POST', body:{ dueFrom:localIsoStart(day), dueTo:localIsoEnd(day), status:[0,2] }
+      method:'POST', body:{ dueFrom:localIsoStart(day), dueTo:localIsoEnd(day), status:[0] }
     }) };
   } catch (_) {
     return { source:'filter', result:await tick('/task/filter', token, {
-      method:'POST', body:{ startDate:localIsoStart(day), endDate:localIsoEnd(day), status:[0,2] }
+      method:'POST', body:{ startDate:localIsoStart(day), endDate:localIsoEnd(day), status:[0] }
     }) };
   }
 }
@@ -139,21 +136,32 @@ export default {
         const fetched = await fetchTasksForRange(start, end, env.TICKTICK_ACCESS_TOKEN);
         const raw = Array.isArray(fetched.result) ? fetched.result : ((fetched.result && fetched.result.tasks) || []);
 
-        // Build a day-by-day map of scheduled occurrences. We deliberately
-        // include status 0 AND 2: if a recurring occurrence was completed on
-        // the following day, it was still scheduled and therefore the prior
-        // day's completion must not be treated as the end of the task series.
+        // Build the historical schedule from completed occurrences we already
+        // fetched, plus currently open occurrences on each following day.
+        // This matches the user's rule: a completion is meaningful only when
+        // the task stops appearing in the next day's schedule.
         const scheduledByDay = new Map();
+        for (let day = start; day <= addDays(end,1); day = addDays(day,1)) scheduledByDay.set(day,new Set());
+
+        // Completed occurrences are historical scheduled occurrences too.
+        // This catches cases where the next occurrence has already been done.
+        for (const task of raw) {
+          const dueDate = dateInZone(task && (task.dueDate || task.due || ''), tz);
+          if (!dueDate || !scheduledByDay.has(dueDate)) continue;
+          scheduledByDay.get(dueDate).add(continuationKey(task));
+        }
+
+        // Also fetch currently open tasks. The prior implementation accidentally
+        // used the completed-only endpoint here, so an open next-day recurrence
+        // could never be detected.
         for (let day = addDays(start,1); day <= addDays(end,1); day = addDays(day,1)) {
-          const nextFetched = await fetchScheduledTasksForDay(day, env.TICKTICK_ACCESS_TOKEN);
+          const nextFetched = await fetchOpenTasksForDay(day, env.TICKTICK_ACCESS_TOKEN);
           const nextRaw = Array.isArray(nextFetched.result) ? nextFetched.result : ((nextFetched.result && nextFetched.result.tasks) || []);
-          const set = new Set();
           for (const task of nextRaw) {
             const dueDate = dateInZone(task && (task.dueDate || task.due || ''), tz);
             if (dueDate !== day) continue;
-            set.add(continuationKey(task));
+            scheduledByDay.get(day).add(continuationKey(task));
           }
-          scheduledByDay.set(day,set);
         }
 
         const byKey = new Map();
