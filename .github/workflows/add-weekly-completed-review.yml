@@ -1,0 +1,50 @@
+name: Add weekly completed task review
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add completed-task review UI and logic
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+
+          css_marker = '.person{padding:10px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;gap:10px}'
+          css_add = '.completedItem{padding:12px 0;border-bottom:1px solid var(--border)}.completedItem:last-child{border-bottom:0}.completedMeta{color:var(--muted);font-size:13px;margin-top:4px}'
+          if css_add not in s:
+              s = s.replace(css_marker, css_marker + css_add, 1)
+
+          panel_marker = '<div id="tickStatus" class="smart">TickTick tasks are loaded dynamically when you start.</div></div>\n<div class="panel"><h2>People Recall</h2>'
+          panel_add = '<div id="tickStatus" class="smart">TickTick tasks are loaded dynamically when you start.</div></div>\n<div class="panel"><h2>Completed Task Review</h2><p class="muted">Choose a week to review what you actually completed. Repeated daily entries are grouped into one unique task and its completion dates are shown together.</p><div class="row"><label>Week <input id="reviewWeek" type="week" style="width:170px"></label><button id="reviewCompletedBtn" class="secondary">Review completed tasks</button></div><div id="completedStatus" class="smart hidden"></div><div id="completedResults" style="margin-top:12px"></div></div>\n<div class="panel"><h2>People Recall</h2>'
+          if panel_marker not in s:
+              raise SystemExit('Could not find dashboard panel insertion point')
+          s = s.replace(panel_marker, panel_add, 1)
+
+          marker = 'function startPeople(){'
+          addition = r'''function isoWeekValue(date){var d=new Date(date);d.setHours(0,0,0,0);var day=(d.getDay()+6)%7;d.setDate(d.getDate()-day+3);var first=new Date(d.getFullYear(),0,4);var week=1+Math.round(((d-first)/86400000-3+((first.getDay()+6)%7))/7);return d.getFullYear()+'-W'+String(week).padStart(2,'0')}function weekRange(value){var m=/^(\d{4})-W(\d{2})$/.exec(value||'');if(!m)return null;var y=Number(m[1]),w=Number(m[2]);var jan4=new Date(y,0,4);var monday=new Date(jan4);monday.setDate(jan4.getDate()-((jan4.getDay()+6)%7)+(w-1)*7);function iso(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}var sunday=new Date(monday);sunday.setDate(monday.getDate()+6);return {start:iso(monday),end:iso(sunday)}}async function reviewCompletedTasks(){var range=weekRange($('reviewWeek').value);if(!range){alert('Please select a week first.');return}$('completedStatus').classList.remove('hidden');$('completedStatus').textContent='Loading completed TickTick tasks for '+range.start+' to '+range.end+'…';$('completedResults').innerHTML='';var u=TICK_URL+(TICK_URL.indexOf('?')>=0?'&':'?')+'mode=completed&start='+encodeURIComponent(range.start)+'&end='+encodeURIComponent(range.end);try{var r=await fetch(u,{cache:'no-store'});if(!r.ok)throw new Error('TickTick bridge returned HTTP '+r.status);var data=await r.json();if(data.error)throw new Error(data.error);var tasks=data.tasks||[];$('completedStatus').textContent=tasks.length+' unique completed task'+(tasks.length===1?'':'s')+' found for '+range.start+' to '+range.end+'. Repeated daily completions are grouped together.';if(!tasks.length){$('completedResults').innerHTML='<div class="muted">No completed tasks found for this week.</div>';return}$('completedResults').innerHTML=tasks.map(function(t){var dates=(t.completionDates||[]).map(function(d){return new Date(d+'T12:00:00').toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'})}).join(' • ');var reps=t.completionCount>1?'Completed '+t.completionCount+' times':'Completed once';return '<div class="completedItem"><b>'+esc(t.title)+'</b><div class="completedMeta">'+reps+(dates?' • '+dates:'')+(t.tags&&t.tags.length?' • '+esc(t.tags.join(', ')):'')+'</div></div>'}).join('')}catch(e){$('completedStatus').textContent='Could not load completed tasks: '+e.message;$('completedResults').innerHTML='<div class="warning">Check that the TickTick Worker is deployed and its access token is working.</div>'}}$('reviewWeek').value=isoWeekValue(new Date());$('reviewCompletedBtn').addEventListener('click',reviewCompletedTasks);
+'''
+          if addition not in s:
+              if marker not in s:
+                  raise SystemExit('Could not find JavaScript insertion point')
+              s = s.replace(marker, addition + marker, 1)
+
+          p.write_text(s, encoding='utf-8')
+          PY
+      - name: Commit patch and remove helper workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git rm .github/workflows/add-weekly-completed-review.yml
+          git commit -m "Add weekly unique completed task review"
+          git push
