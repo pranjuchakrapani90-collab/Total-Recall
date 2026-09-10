@@ -91,6 +91,18 @@ async function fetchTasksForRange(start, end, token) {
   }
 }
 
+async function fetchOpenTasksForRange(start, end, token) {
+  try {
+    return { source:'search', result:await tick('/task/search', token, {
+      method:'POST', body:{ dueFrom:localIsoStart(start), dueTo:localIsoEnd(end), status:[0] }
+    }) };
+  } catch (_) {
+    return { source:'filter', result:await tick('/task/filter', token, {
+      method:'POST', body:{ startDate:localIsoStart(start), endDate:localIsoEnd(end), status:[0] }
+    }) };
+  }
+}
+
 export default {
   async fetch(request, env) {
     const origin = request.headers.get('Origin') || '';
@@ -112,8 +124,25 @@ export default {
 
         const fetched = await fetchTasksForRange(start, end, env.TICKTICK_ACCESS_TOKEN);
         const raw = Array.isArray(fetched.result) ? fetched.result : ((fetched.result && fetched.result.tasks) || []);
+
+        // A task is only a meaningful completed item for our review if it disappears
+        // from the next day's schedule. This prevents recurring daily tasks such as
+        // "Major scale workout" from being reported as completed every single day.
+        const nextStart = addDays(start, 1);
+        const nextEnd = addDays(end, 1);
+        const nextFetched = await fetchOpenTasksForRange(nextStart, nextEnd, env.TICKTICK_ACCESS_TOKEN);
+        const nextRaw = Array.isArray(nextFetched.result) ? nextFetched.result : ((nextFetched.result && nextFetched.result.tasks) || []);
+        const nextDayOpen = new Set();
+        for (const task of nextRaw) {
+          const dueDate = dateInZone(task && (task.dueDate || task.due || ''), tz);
+          if (!dueDate || dueDate < nextStart || dueDate > nextEnd) continue;
+          const tags = taskTags(task);
+          nextDayOpen.add(dueDate + '|' + uniqueKey(task, tags));
+        }
+
         const byKey = new Map();
         let matched = 0;
+        let excludedContinuing = 0;
 
         for (const task of raw) {
           const tags = taskTags(task);
@@ -122,8 +151,15 @@ export default {
           const dueDate = dateInZone(task.dueDate || task.due || '', tz);
           const effectiveDate = completedDate || dueDate;
           if (!effectiveDate || effectiveDate < start || effectiveDate > end) continue;
-          matched++;
+
           const key = uniqueKey(task, tags);
+          const nextDate = addDays(effectiveDate, 1);
+          if (nextDayOpen.has(nextDate + '|' + key)) {
+            excludedContinuing++;
+            continue;
+          }
+
+          matched++;
           let item = byKey.get(key);
           if (!item) {
             item = { id:task.id||'', title:task.title||'(Untitled TickTick task)', projectId:task.projectId||'', tags, completionDates:[], completionCount:0 };
@@ -138,7 +174,7 @@ export default {
 
         const tasks = Array.from(byKey.values()).sort((a,b)=>a.title.localeCompare(b.title));
         tasks.forEach(t=>t.completionDates.sort());
-        return new Response(JSON.stringify({start,end,timeZone:tz,uniqueCount:tasks.length,rawCount:raw.length,matchedCount:matched,tasks}), {
+        return new Response(JSON.stringify({start,end,timeZone:tz,uniqueCount:tasks.length,rawCount:raw.length,matchedCount:matched,excludedContinuing,tasks}), {
           status:200, headers:{...corsHeaders(origin),'Content-Type':'application/json'}
         });
       }
