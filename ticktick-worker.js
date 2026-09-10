@@ -63,6 +63,17 @@ function uniqueKey(task, tags) {
   return title + '|' + project + '|' + resp;
 }
 
+// Fingerprint used only to decide whether a task occurrence continues into
+// the following day. TickTick creates separate task IDs for occurrences of
+// some recurring tasks, but those occurrences can share createdTime/content.
+function continuationKey(task) {
+  const title = String(task.title || '').trim().toLowerCase().replace(/\s+/g,' ');
+  const project = String(task.projectId || '');
+  const created = String(task.createdTime || '');
+  const content = String(task.content || '').trim().replace(/\s+/g,' ');
+  return created ? title + '|' + project + '|created:' + created : title + '|' + project + '|content:' + content;
+}
+
 async function tick(path, token, options = {}) {
   const r = await fetch(API + path, {
     method: options.method || 'GET',
@@ -91,14 +102,17 @@ async function fetchTasksForRange(start, end, token) {
   }
 }
 
-async function fetchOpenTasksForRange(start, end, token) {
+async function fetchScheduledTasksForDay(day, token) {
+  // Include both open and completed occurrences. A recurring task may have
+  // been scheduled for the next day and already completed; it still means
+  // that the previous day's occurrence did NOT mark the series as finished.
   try {
     return { source:'search', result:await tick('/task/search', token, {
-      method:'POST', body:{ dueFrom:localIsoStart(start), dueTo:localIsoEnd(end), status:[0] }
+      method:'POST', body:{ dueFrom:localIsoStart(day), dueTo:localIsoEnd(day), status:[0,2] }
     }) };
   } catch (_) {
     return { source:'filter', result:await tick('/task/filter', token, {
-      method:'POST', body:{ startDate:localIsoStart(start), endDate:localIsoEnd(end), status:[0] }
+      method:'POST', body:{ startDate:localIsoStart(day), endDate:localIsoEnd(day), status:[0,2] }
     }) };
   }
 }
@@ -107,11 +121,11 @@ export default {
   async fetch(request, env) {
     const origin = request.headers.get('Origin') || '';
     if (request.method === 'OPTIONS') return new Response('', { status:204, headers:corsHeaders(origin) });
-    if (request.method !== 'GET') return new Response('Method not allowed', { status:405, headers:corsHeaders(origin) });
+    if (request.method !== 'GET') return new Response('Method not allowed', {status:405,headers:corsHeaders(origin)});
 
     const url = new URL(request.url);
-    if (url.pathname !== '/' && url.pathname !== '/responsibility-tasks' && url.pathname !== '/completed-tasks') return new Response('Not found', { status:404, headers:corsHeaders(origin) });
-    if (!env.TICKTICK_ACCESS_TOKEN) return new Response(JSON.stringify({error:'TICKTICK_ACCESS_TOKEN secret is not configured'}), {status:500, headers:{...corsHeaders(origin),'Content-Type':'application/json'}});
+    if (url.pathname !== '/' && url.pathname !== '/responsibility-tasks' && url.pathname !== '/completed-tasks') return new Response('Not found', {status:404,headers:corsHeaders(origin)});
+    if (!env.TICKTICK_ACCESS_TOKEN) return new Response(JSON.stringify({error:'TICKTICK_ACCESS_TOKEN secret is not configured'}), {status:500,headers:{...corsHeaders(origin),'Content-Type':'application/json'}});
 
     try {
       const tz = env.TIME_ZONE || 'Asia/Kolkata';
@@ -125,19 +139,21 @@ export default {
         const fetched = await fetchTasksForRange(start, end, env.TICKTICK_ACCESS_TOKEN);
         const raw = Array.isArray(fetched.result) ? fetched.result : ((fetched.result && fetched.result.tasks) || []);
 
-        // A task is only a meaningful completed item for our review if it disappears
-        // from the next day's schedule. This prevents recurring daily tasks such as
-        // "Major scale workout" from being reported as completed every single day.
-        const nextStart = addDays(start, 1);
-        const nextEnd = addDays(end, 1);
-        const nextFetched = await fetchOpenTasksForRange(nextStart, nextEnd, env.TICKTICK_ACCESS_TOKEN);
-        const nextRaw = Array.isArray(nextFetched.result) ? nextFetched.result : ((nextFetched.result && nextFetched.result.tasks) || []);
-        const nextDayOpen = new Set();
-        for (const task of nextRaw) {
-          const dueDate = dateInZone(task && (task.dueDate || task.due || ''), tz);
-          if (!dueDate || dueDate < nextStart || dueDate > nextEnd) continue;
-          const tags = taskTags(task);
-          nextDayOpen.add(dueDate + '|' + uniqueKey(task, tags));
+        // Build a day-by-day map of scheduled occurrences. We deliberately
+        // include status 0 AND 2: if a recurring occurrence was completed on
+        // the following day, it was still scheduled and therefore the prior
+        // day's completion must not be treated as the end of the task series.
+        const scheduledByDay = new Map();
+        for (let day = addDays(start,1); day <= addDays(end,1); day = addDays(day,1)) {
+          const nextFetched = await fetchScheduledTasksForDay(day, env.TICKTICK_ACCESS_TOKEN);
+          const nextRaw = Array.isArray(nextFetched.result) ? nextFetched.result : ((nextFetched.result && nextFetched.result.tasks) || []);
+          const set = new Set();
+          for (const task of nextRaw) {
+            const dueDate = dateInZone(task && (task.dueDate || task.due || ''), tz);
+            if (dueDate !== day) continue;
+            set.add(continuationKey(task));
+          }
+          scheduledByDay.set(day,set);
         }
 
         const byKey = new Map();
@@ -152,14 +168,15 @@ export default {
           const effectiveDate = completedDate || dueDate;
           if (!effectiveDate || effectiveDate < start || effectiveDate > end) continue;
 
-          const key = uniqueKey(task, tags);
-          const nextDate = addDays(effectiveDate, 1);
-          if (nextDayOpen.has(nextDate + '|' + key)) {
+          const nextDate = addDays(effectiveDate,1);
+          const scheduledNextDay = scheduledByDay.get(nextDate);
+          if (scheduledNextDay && scheduledNextDay.has(continuationKey(task))) {
             excludedContinuing++;
             continue;
           }
 
           matched++;
+          const key = uniqueKey(task, tags);
           let item = byKey.get(key);
           if (!item) {
             item = { id:task.id||'', title:task.title||'(Untitled TickTick task)', projectId:task.projectId||'', tags, completionDates:[], completionCount:0 };
@@ -174,9 +191,7 @@ export default {
 
         const tasks = Array.from(byKey.values()).sort((a,b)=>a.title.localeCompare(b.title));
         tasks.forEach(t=>t.completionDates.sort());
-        return new Response(JSON.stringify({start,end,timeZone:tz,uniqueCount:tasks.length,rawCount:raw.length,matchedCount:matched,excludedContinuing,tasks}), {
-          status:200, headers:{...corsHeaders(origin),'Content-Type':'application/json'}
-        });
+        return new Response(JSON.stringify({start,end,timeZone:tz,uniqueCount:tasks.length,rawCount:raw.length,matchedCount:matched,excludedContinuing,tasks}), {status:200,headers:{...corsHeaders(origin),'Content-Type':'application/json'}});
       }
 
       const target = todayInZone(tz);
@@ -186,26 +201,26 @@ export default {
       let result;
       let source = 'search';
       try {
-        result = await tick('/task/search', env.TICKTICK_ACCESS_TOKEN, { method:'POST', body:{ dueFrom, dueTo, status:[0] } });
+        result = await tick('/task/search', env.TICKTICK_ACCESS_TOKEN, {method:'POST',body:{dueFrom,dueTo,status:[0]}});
       } catch (_) {
         source = 'filter';
-        result = await tick('/task/filter', env.TICKTICK_ACCESS_TOKEN, { method:'POST', body:{ startDate:localIsoStart(addDays(target,-1)), endDate:localIsoEnd(addDays(target,1)), status:[0] } });
+        result = await tick('/task/filter', env.TICKTICK_ACCESS_TOKEN, {method:'POST',body:{startDate:localIsoStart(addDays(target,-1)),endDate:localIsoEnd(addDays(target,1)),status:[0]}});
       }
 
       const tasks = Array.isArray(result) ? result : ((result && result.tasks) || []);
       let dueMatches = 0, taggedMatches = 0;
       for (const task of tasks) {
         const due = task && (task.dueDate || task.due || '');
-        if (!due || dateInZone(due, tz) !== target) continue;
+        if (!due || dateInZone(due,tz) !== target) continue;
         dueMatches++;
         const tags = taskTags(task);
-        const matches = RESPONSIBILITIES.filter(r => tags.indexOf(r) >= 0);
+        const matches = RESPONSIBILITIES.filter(r=>tags.indexOf(r)>=0);
         if (matches.length) taggedMatches++;
         for (const responsibility of matches) groups[responsibility].push({id:task.id||'',title:task.title||'(Untitled TickTick task)',due:String(due).slice(0,16),projectId:task.projectId||'',tags});
       }
       for (const k of RESPONSIBILITIES) {
         const seen = new Set();
-        groups[k] = groups[k].filter(t => { if (seen.has(t.id)) return false; seen.add(t.id); return true; });
+        groups[k] = groups[k].filter(t=>{if(seen.has(t.id)) return false; seen.add(t.id); return true;});
       }
       return new Response(JSON.stringify({date:target,timeZone:tz,responsibilities:groups,debug:{source,taskCount:tasks.length,dueMatches,taggedMatches}}), {status:200,headers:{...corsHeaders(origin),'Content-Type':'application/json'}});
     } catch (e) {
