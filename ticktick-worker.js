@@ -129,8 +129,10 @@ export default {
             item = { id:task.id||'', title:task.title||'(Untitled TickTick task)', projectId:task.projectId||'', tags, completionDates:[], completionCount:0 };
             byKey.set(key,item);
           }
-          if (item.completionDates.indexOf(effectiveDate)<0) item.completionDates.push(effectiveDate);
-          item.completionCount++;
+          if (item.completionDates.indexOf(effectiveDate)<0) {
+            item.completionDates.push(effectiveDate);
+            item.completionCount++;
+          }
           if (!item.id && task.id) item.id = task.id;
         }
 
