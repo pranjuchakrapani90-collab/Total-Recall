@@ -1,0 +1,42 @@
+name: Add completed task delete controls
+on:
+  workflow_dispatch:
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch index.html
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+          old="var KEY='totalRecallPWA_v2',TICK_URL="
+          if old not in s:
+              raise SystemExit('anchor not found')
+          s=s.replace(old,"var COMPLETED_SUPPRESS_KEY='totalRecallCompletedSuppressions_v1',COMPLETED_SUPPRESS=JSON.parse(localStorage.getItem(COMPLETED_SUPPRESS_KEY)||'{}'),KEY='totalRecallPWA_v2',TICK_URL=",1)
+          old2="var tasks=data.tasks||[];$('completedStatus').textContent="
+          new2="var tasks=(data.tasks||[]).filter(function(t){return !COMPLETED_SUPPRESS[String(t.title||'').trim().toLowerCase()]});$('completedStatus').textContent="
+          if old2 not in s: raise SystemExit('review anchor not found')
+          s=s.replace(old2,new2,1)
+          old3="return '<div class=\"completedItem\"><b>'+esc(t.title)+'</b><div class=\"completedMeta\">'+reps+(dates?' • '+dates:'')+(t.tags&&t.tags.length?' • '+esc(t.tags.join(', ')):'')+'</div></div>'"
+          new3="return '<div class=\"completedItem\"><div style=\"display:flex;justify-content:space-between;gap:12px;align-items:flex-start\"><div><b>'+esc(t.title)+'</b><div class=\"completedMeta\">'+reps+(dates?' • '+dates:'')+(t.tags&&t.tags.length?' • '+esc(t.tags.join(', ')):'')+'</div></div><button class=\"danger small\" data-completed-delete=\"'+encodeURIComponent(String(t.title||'').trim().toLowerCase())+'\">Delete</button></div></div>'"
+          if old3 not in s: raise SystemExit('render anchor not found')
+          s=s.replace(old3,new3,1)
+          anchor="$('reviewWeek').value=isoWeekValue(new Date());$('reviewCompletedBtn').addEventListener('click',reviewCompletedTasks);"
+          addition="$('reviewWeek').value=isoWeekValue(new Date());$('reviewCompletedBtn').addEventListener('click',reviewCompletedTasks);$('completedResults').addEventListener('click',function(e){var b=e.target.closest('[data-completed-delete]');if(!b)return;var k=decodeURIComponent(b.getAttribute('data-completed-delete')||'');if(!k)return;if(!confirm('Hide this task from Completed Task Review? It will remain in TickTick.'))return;COMPLETED_SUPPRESS[k]=true;localStorage.setItem(COMPLETED_SUPPRESS_KEY,JSON.stringify(COMPLETED_SUPPRESS));reviewCompletedTasks();});"
+          if anchor not in s: raise SystemExit('listener anchor not found')
+          s=s.replace(anchor,addition,1)
+          p.write_text(s)
+          PY
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git diff --cached --quiet || git commit -m "Add delete option to completed task review"
+          git push
