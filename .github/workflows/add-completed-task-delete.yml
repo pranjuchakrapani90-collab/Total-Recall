@@ -1,5 +1,7 @@
 name: Add completed task delete controls
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 jobs:
