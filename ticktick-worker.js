@@ -63,15 +63,15 @@ function uniqueKey(task, tags) {
   return title + '|' + project + '|' + resp;
 }
 
-// Fingerprint used only to decide whether a task occurrence continues into
-// the following day. TickTick creates separate task IDs for occurrences of
-// some recurring tasks, but those occurrences can share createdTime/content.
+// Used to recognize the same continuing task across TickTick occurrences.
+// Do NOT use task ID or createdTime: recurring occurrences can have different
+// IDs and search results for open occurrences may omit createdTime. The title,
+// project and tags are the stable schedule identity we need here.
 function continuationKey(task) {
   const title = String(task.title || '').trim().toLowerCase().replace(/\s+/g,' ');
   const project = String(task.projectId || '');
-  const created = String(task.createdTime || '');
-  const content = String(task.content || '').trim().replace(/\s+/g,' ');
-  return created ? title + '|' + project + '|created:' + created : title + '|' + project + '|content:' + content;
+  const tags = taskTags(task).sort().join('|');
+  return title + '|' + project + '|tags:' + tags;
 }
 
 async function tick(path, token, options = {}) {
@@ -136,24 +136,19 @@ export default {
         const fetched = await fetchTasksForRange(start, end, env.TICKTICK_ACCESS_TOKEN);
         const raw = Array.isArray(fetched.result) ? fetched.result : ((fetched.result && fetched.result.tasks) || []);
 
-        // Build the historical schedule from completed occurrences we already
-        // fetched, plus currently open occurrences on each following day.
-        // This matches the user's rule: a completion is meaningful only when
-        // the task stops appearing in the next day's schedule.
+        // Build a historical schedule from completed occurrences plus currently
+        // open occurrences. We need open occurrences because a recurring task
+        // can remain scheduled for tomorrow even though today's occurrence is
+        // already completed.
         const scheduledByDay = new Map();
         for (let day = start; day <= addDays(end,1); day = addDays(day,1)) scheduledByDay.set(day,new Set());
 
-        // Completed occurrences are historical scheduled occurrences too.
-        // This catches cases where the next occurrence has already been done.
         for (const task of raw) {
           const dueDate = dateInZone(task && (task.dueDate || task.due || ''), tz);
           if (!dueDate || !scheduledByDay.has(dueDate)) continue;
           scheduledByDay.get(dueDate).add(continuationKey(task));
         }
 
-        // Also fetch currently open tasks. The prior implementation accidentally
-        // used the completed-only endpoint here, so an open next-day recurrence
-        // could never be detected.
         for (let day = addDays(start,1); day <= addDays(end,1); day = addDays(day,1)) {
           const nextFetched = await fetchOpenTasksForDay(day, env.TICKTICK_ACCESS_TOKEN);
           const nextRaw = Array.isArray(nextFetched.result) ? nextFetched.result : ((nextFetched.result && nextFetched.result.tasks) || []);
