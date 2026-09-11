@@ -63,15 +63,23 @@ function uniqueKey(task, tags) {
   return title + '|' + project + '|' + resp;
 }
 
-// Used to recognize the same continuing task across TickTick occurrences.
-// Do NOT use task ID or createdTime: recurring occurrences can have different
-// IDs and search results for open occurrences may omit createdTime. The title,
-// project and tags are the stable schedule identity we need here.
-function continuationKey(task) {
-  const title = String(task.title || '').trim().toLowerCase().replace(/\s+/g,' ');
-  const project = String(task.projectId || '');
-  const tags = taskTags(task).sort().join('|');
-  return title + '|' + project + '|tags:' + tags;
+// Schedule identity for deciding whether a completed occurrence continues.
+// Recurring occurrences can have different IDs and inconsistent metadata.
+// The schedule itself is identified by normalized title. Project is used only
+// when both sides have one; this prevents metadata differences from defeating
+// the continuation test while still avoiding unrelated same-title tasks when
+// project information is available.
+function scheduleTitle(task) {
+  return String(task && task.title || '').trim().toLowerCase().replace(/\s+/g,' ');
+}
+
+function sameScheduledTask(a, b) {
+  const at = scheduleTitle(a);
+  const bt = scheduleTitle(b);
+  if (!at || !bt || at !== bt) return false;
+  const ap = String(a && a.projectId || '');
+  const bp = String(b && b.projectId || '');
+  return !ap || !bp || ap === bp;
 }
 
 async function tick(path, token, options = {}) {
@@ -136,32 +144,35 @@ export default {
         const fetched = await fetchTasksForRange(start, end, env.TICKTICK_ACCESS_TOKEN);
         const raw = Array.isArray(fetched.result) ? fetched.result : ((fetched.result && fetched.result.tasks) || []);
 
-        // Build a historical schedule from completed occurrences plus currently
-        // open occurrences. We need open occurrences because a recurring task
-        // can remain scheduled for tomorrow even though today's occurrence is
-        // already completed.
+        // Keep the actual scheduled task objects, not just fingerprints. This
+        // lets us compare recurring occurrences by title/project while ignoring
+        // changing TickTick IDs, createdTime and tags.
         const scheduledByDay = new Map();
-        for (let day = start; day <= addDays(end,1); day = addDays(day,1)) scheduledByDay.set(day,new Set());
+        for (let day = start; day <= addDays(end,1); day = addDays(day,1)) scheduledByDay.set(day,[]);
 
         for (const task of raw) {
           const dueDate = dateInZone(task && (task.dueDate || task.due || ''), tz);
           if (!dueDate || !scheduledByDay.has(dueDate)) continue;
-          scheduledByDay.get(dueDate).add(continuationKey(task));
+          scheduledByDay.get(dueDate).push(task);
         }
 
+        // Fetch OPEN tasks for every following day. This is the important part:
+        // a task that is completed today but remains scheduled tomorrow is a
+        // continuing task, not a finished task for Total Recall.
         for (let day = addDays(start,1); day <= addDays(end,1); day = addDays(day,1)) {
           const nextFetched = await fetchOpenTasksForDay(day, env.TICKTICK_ACCESS_TOKEN);
           const nextRaw = Array.isArray(nextFetched.result) ? nextFetched.result : ((nextFetched.result && nextFetched.result.tasks) || []);
           for (const task of nextRaw) {
             const dueDate = dateInZone(task && (task.dueDate || task.due || ''), tz);
             if (dueDate !== day) continue;
-            scheduledByDay.get(day).add(continuationKey(task));
+            scheduledByDay.get(day).push(task);
           }
         }
 
         const byKey = new Map();
         let matched = 0;
         let excludedContinuing = 0;
+        const diagnostics = [];
 
         for (const task of raw) {
           const tags = taskTags(task);
@@ -172,9 +183,21 @@ export default {
           if (!effectiveDate || effectiveDate < start || effectiveDate > end) continue;
 
           const nextDate = addDays(effectiveDate,1);
-          const scheduledNextDay = scheduledByDay.get(nextDate);
-          if (scheduledNextDay && scheduledNextDay.has(continuationKey(task))) {
+          const nextTasks = scheduledByDay.get(nextDate) || [];
+          const continuation = nextTasks.find(nextTask => sameScheduledTask(task,nextTask));
+
+          if (continuation) {
             excludedContinuing++;
+            diagnostics.push({
+              title: task.title || '',
+              completedDate: effectiveDate,
+              nextDate,
+              result:'EXCLUDED_CONTINUING',
+              completedId: task.id || '',
+              nextId: continuation.id || '',
+              completedProjectId: task.projectId || '',
+              nextProjectId: continuation.projectId || ''
+            });
             continue;
           }
 
@@ -190,11 +213,12 @@ export default {
             item.completionCount++;
           }
           if (!item.id && task.id) item.id = task.id;
+          diagnostics.push({title:task.title||'',completedDate:effectiveDate,nextDate,result:'INCLUDED_NO_NEXT_DAY_MATCH'});
         }
 
         const tasks = Array.from(byKey.values()).sort((a,b)=>a.title.localeCompare(b.title));
         tasks.forEach(t=>t.completionDates.sort());
-        return new Response(JSON.stringify({start,end,timeZone:tz,uniqueCount:tasks.length,rawCount:raw.length,matchedCount:matched,excludedContinuing,tasks}), {status:200,headers:{...corsHeaders(origin),'Content-Type':'application/json'}});
+        return new Response(JSON.stringify({start,end,timeZone:tz,uniqueCount:tasks.length,rawCount:raw.length,matchedCount:matched,excludedContinuing,tasks,diagnostics}), {status:200,headers:{...corsHeaders(origin),'Content-Type':'application/json'}});
       }
 
       const target = todayInZone(tz);
