@@ -107,14 +107,17 @@ async function fetchCompletedTasksForDay(day, token) {
   }
 }
 
+// Use /task/filter for open next-day occurrences. /task/search can return a
+// truncated result set when there are many tasks, which causes false
+// INCLUDED_NO_NEXT_DAY_MATCH results even when the recurring task exists.
 async function fetchOpenTasksForDay(day, token) {
   try {
-    return { source:'search', result:await tick('/task/search', token, {
-      method:'POST', body:{ dueFrom:localIsoStart(day), dueTo:localIsoEnd(day), status:[0] }
-    }) };
-  } catch (_) {
     return { source:'filter', result:await tick('/task/filter', token, {
       method:'POST', body:{ startDate:localIsoStart(day), endDate:localIsoEnd(day), status:[0] }
+    }) };
+  } catch (_) {
+    return { source:'search', result:await tick('/task/search', token, {
+      method:'POST', body:{ dueFrom:localIsoStart(day), dueTo:localIsoEnd(day), status:[0] }
     }) };
   }
 }
