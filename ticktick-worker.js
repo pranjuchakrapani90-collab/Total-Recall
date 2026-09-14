@@ -1,263 +1,58 @@
 // Cloudflare Worker bridge for Total Recall.
-// Store your TickTick access token as a Worker secret named TICKTICK_ACCESS_TOKEN.
-// Never put the token in index.html or this repository.
+// Secrets: TICKTICK_ACCESS_TOKEN for TickTick and OPENAI_API_KEY for Memory Lane AI.
+// Never put either token in index.html or this repository.
 
 const ALLOWED_ORIGIN = 'https://pranjuchakrapani90-collab.github.io';
 const RESPONSIBILITIES = ['SDE-TECH','SDE-REV','SDE-ESTT','HOME-MANAGER','BROTHER','SON'];
 const API = 'https://api.ticktick.com/open/v1';
+const OPENAI_API = 'https://api.openai.com/v1/responses';
 
 function corsHeaders(origin) {
   return {
     'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Cache-Control': 'no-store'
   };
 }
+function normTag(t) { return String(t || '').trim().replace(/^#/,'').toUpperCase().replace(/\s+/g,'-'); }
+function taskTags(task) { const raw=task&&task.tags; if(Array.isArray(raw))return raw.map(normTag); if(raw&&typeof raw==='object')return Object.keys(raw).map(normTag); if(typeof raw==='string')return raw.split(',').map(normTag); return []; }
+function todayInZone(timeZone){const now=new Date();const p=new Intl.DateTimeFormat('en-CA',{timeZone,year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(now);return `${p.find(x=>x.type==='year').value}-${p.find(x=>x.type==='month').value}-${p.find(x=>x.type==='day').value}`;}
+function addDays(isoDate,days){const d=new Date(isoDate+'T00:00:00Z');d.setUTCDate(d.getUTCDate()+days);return d.toISOString().slice(0,10);}
+function localIsoStart(date){return date+'T00:00:00.000+0530';}
+function localIsoEnd(date){return date+'T23:59:59.999+0530';}
+function dateInZone(value,timeZone){if(!value)return'';const d=new Date(value);if(Number.isNaN(d.getTime()))return String(value).slice(0,10);const p=new Intl.DateTimeFormat('en-CA',{timeZone,year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(d);return `${p.find(x=>x.type==='year').value}-${p.find(x=>x.type==='month').value}-${p.find(x=>x.type==='day').value}`;}
+function uniqueKey(task,tags){const title=String(task.title||'(Untitled TickTick task)').trim().toLowerCase().replace(/\s+/g,' ');const project=String(task.projectId||'');const resp=tags.filter(t=>RESPONSIBILITIES.indexOf(t)>=0).sort().join('|');return title+'|'+project+'|'+resp;}
+function scheduleTitle(task){return String(task&&task.title||'').trim().toLowerCase().replace(/\s+/g,' ');}
+function sameScheduledTask(a,b){const at=scheduleTitle(a),bt=scheduleTitle(b);if(!at||!bt||at!==bt)return false;const ap=String(a&&a.projectId||''),bp=String(b&&b.projectId||'');return !ap||!bp||ap===bp;}
+async function tick(path,token,options={}){const r=await fetch(API+path,{method:options.method||'GET',headers:{Authorization:'Bearer '+token,...(options.body?{'Content-Type':'application/json'}:{})},body:options.body?JSON.stringify(options.body):undefined});if(!r.ok){const text=await r.text();throw new Error('TickTick API HTTP '+r.status+' for '+path+': '+text.slice(0,300));}return r.json();}
+async function fetchCompletedTasksForDay(day,token){try{return{source:'search',result:await tick('/task/search',token,{method:'POST',body:{dueFrom:localIsoStart(day),dueTo:localIsoEnd(day),status:[2]}})}}catch(_){return{source:'filter',result:await tick('/task/filter',token,{method:'POST',body:{startDate:localIsoStart(day),endDate:localIsoEnd(day),status:[2]}})}}}
+async function fetchOpenTasksForDay(day,token){try{return{source:'filter',result:await tick('/task/filter',token,{method:'POST',body:{startDate:localIsoStart(day),endDate:localIsoEnd(day),status:[0]}})}}catch(_){return{source:'search',result:await tick('/task/search',token,{method:'POST',body:{dueFrom:localIsoStart(day),dueTo:localIsoEnd(day),status:[0]}})}}}
+function unwrapTasks(result){return Array.isArray(result)?result:((result&&result.tasks)||[]);}
 
-function normTag(t) {
-  return String(t || '').trim().replace(/^#/, '').toUpperCase().replace(/\s+/g, '-');
+const MEMORY_SCHEMA={type:'object',additionalProperties:false,properties:{episodes:{type:'array',items:{type:'object',additionalProperties:false,properties:{id:{type:'string'},type:{type:'string'},title:{type:'string'},startDate:{type:'string'},endDate:{type:'string'},summary:{type:'string'},people:{type:'array',items:{type:'string'}},topics:{type:'array',items:{type:'string'}},events:{type:'array',items:{type:'string'}},recallCue:{type:'string'},evidence:{type:'array',items:{type:'object',additionalProperties:false,properties:{messageId:{type:'string'},reason:{type:'string'}},required:['messageId','reason']}}},required:['id','type','title','startDate','endDate','summary','people','topics','events','recallCue','evidence']}}},people:{type:'array',items:{type:'object',additionalProperties:false,properties:{name:{type:'string'},aliases:{type:'array',items:{type:'string'}},role:{type:'string'},context:{type:'string'},confidence:{type:'string'}},required:['name','aliases','role','context','confidence']}}},required:['episodes','people']};
+
+async function memoryExtract(request,env){
+  if(!env.OPENAI_API_KEY)return new Response(JSON.stringify({error:'OPENAI_API_KEY secret is not configured on the Worker. Add it in Cloudflare Worker Secrets before running AI extraction.'}),{status:500,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
+  const body=await request.json();
+  if(!body||!Array.isArray(body.messages)||!body.messages.length)return new Response(JSON.stringify({error:'messages array is required'}),{status:400,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
+  if(body.messages.length>120)return new Response(JSON.stringify({error:'Maximum 120 messages per extraction batch'}),{status:413,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
+  const source=body.source||{};
+  const transcript=body.messages.map(m=>`[${m.id}] ${m.date} | ${m.sender}: ${m.body}`).join('\n');
+  const instructions=`You are the Memory Lane extraction engine for a private personal archive. Turn a chronological slice of WhatsApp messages into durable memory episodes and people context. Source truth is sacred: never invent a person, event, date, relationship, feeling, or fact that is not supported by the supplied messages. Prefer uncertainty over guessing. Do not treat automated notices, encryption notices, delivery receipts, or order-system boilerplate as meaningful interpersonal memories unless they are clearly useful context. An episode is a coherent memorable unit: a conversation beginning, decision, plan, visit, argument, celebration, work incident, relationship development, family moment, recurring theme, or other meaningful arc. Episodes may overlap slightly. Keep titles human and specific. Summary should read like a compact memory prompt, not a generic transcript summary. recallCue should ask the user to retrieve the memory before revealing it. Evidence must point only to supplied message IDs and briefly explain why each message matters. People are named participants or people clearly discussed in the slice; aliases should capture alternate spellings or names only when evidenced. The self-chat source is personal journal/context, not another person. This is source ${source.name||'unknown'}, batch ${Number(body.batchIndex||0)+1} of ${body.totalBatches||1}.`;
+  const payload={model:env.MEMORY_MODEL||'gpt-5.6-luna',store:false,instructions,input:`SOURCE METADATA: ${JSON.stringify({id:source.id,name:source.name,kind:source.kind})}\n\nMESSAGES:\n${transcript}`,text:{format:{type:'json_schema',name:'memory_lane_extraction',strict:true,schema:MEMORY_SCHEMA}}};
+  const r=await fetch(OPENAI_API,{method:'POST',headers:{Authorization:'Bearer '+env.OPENAI_API_KEY,'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  const raw=await r.text();if(!r.ok)return new Response(JSON.stringify({error:'OpenAI API HTTP '+r.status+': '+raw.slice(0,500)}),{status:502,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
+  const data=JSON.parse(raw);let text=data.output_text||'';if(!text&&Array.isArray(data.output)){for(const item of data.output){for(const c of (item.content||[])){if(c.type==='output_text')text+=c.text||'';}}}let parsed;try{parsed=JSON.parse(text)}catch(e){return new Response(JSON.stringify({error:'AI returned non-JSON output',raw:text.slice(0,2000)}),{status:502,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}})}
+  return new Response(JSON.stringify({...parsed,meta:{model:data.model||payload.model,responseId:data.id||'',batchIndex:body.batchIndex||0}}),{status:200,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
 }
 
-function taskTags(task) {
-  const raw = task && task.tags;
-  if (Array.isArray(raw)) return raw.map(normTag);
-  if (raw && typeof raw === 'object') return Object.keys(raw).map(normTag);
-  if (typeof raw === 'string') return raw.split(',').map(normTag);
-  return [];
-}
-
-function todayInZone(timeZone) {
-  const now = new Date();
-  const parts = new Intl.DateTimeFormat('en-CA', { timeZone, year:'numeric', month:'2-digit', day:'2-digit' }).formatToParts(now);
-  const y = parts.find(p=>p.type==='year').value;
-  const m = parts.find(p=>p.type==='month').value;
-  const d = parts.find(p=>p.type==='day').value;
-  return `${y}-${m}-${d}`;
-}
-
-function addDays(isoDate, days) {
-  const d = new Date(isoDate + 'T00:00:00Z');
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0,10);
-}
-
-function localIsoStart(date) { return date + 'T00:00:00.000+0530'; }
-function localIsoEnd(date) { return date + 'T23:59:59.999+0530'; }
-
-function dateInZone(value, timeZone) {
-  if (!value) return '';
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return String(value).slice(0,10);
-  const parts = new Intl.DateTimeFormat('en-CA', { timeZone, year:'numeric', month:'2-digit', day:'2-digit' }).formatToParts(d);
-  const y = parts.find(p=>p.type==='year').value;
-  const m = parts.find(p=>p.type==='month').value;
-  const day = parts.find(p=>p.type==='day').value;
-  return `${y}-${m}-${day}`;
-}
-
-function uniqueKey(task, tags) {
-  const title = String(task.title || '(Untitled TickTick task)').trim().toLowerCase().replace(/\s+/g,' ');
-  const project = String(task.projectId || '');
-  const resp = tags.filter(t=>RESPONSIBILITIES.indexOf(t)>=0).sort().join('|');
-  return title + '|' + project + '|' + resp;
-}
-
-// Schedule identity for deciding whether a completed occurrence continues.
-// Recurring occurrences can have different IDs and inconsistent metadata.
-// Compare normalized title, allowing project to be missing on either side.
-function scheduleTitle(task) {
-  return String(task && task.title || '').trim().toLowerCase().replace(/\s+/g,' ');
-}
-
-function sameScheduledTask(a, b) {
-  const at = scheduleTitle(a);
-  const bt = scheduleTitle(b);
-  if (!at || !bt || at !== bt) return false;
-  const ap = String(a && a.projectId || '');
-  const bp = String(b && b.projectId || '');
-  return !ap || !bp || ap === bp;
-}
-
-async function tick(path, token, options = {}) {
-  const r = await fetch(API + path, {
-    method: options.method || 'GET',
-    headers: {
-      Authorization: 'Bearer ' + token,
-      ...(options.body ? {'Content-Type':'application/json'} : {})
-    },
-    body: options.body ? JSON.stringify(options.body) : undefined
-  });
-  if (!r.ok) {
-    const text = await r.text();
-    throw new Error('TickTick API HTTP ' + r.status + ' for ' + path + ': ' + text.slice(0,300));
-  }
-  return r.json();
-}
-
-async function fetchCompletedTasksForDay(day, token) {
-  try {
-    return { source:'search', result:await tick('/task/search', token, {
-      method:'POST', body:{ dueFrom:localIsoStart(day), dueTo:localIsoEnd(day), status:[2] }
-    }) };
-  } catch (_) {
-    return { source:'filter', result:await tick('/task/filter', token, {
-      method:'POST', body:{ startDate:localIsoStart(day), endDate:localIsoEnd(day), status:[2] }
-    }) };
-  }
-}
-
-// Use /task/filter for open next-day occurrences. /task/search can return a
-// truncated result set when there are many tasks, which causes false
-// INCLUDED_NO_NEXT_DAY_MATCH results even when the recurring task exists.
-async function fetchOpenTasksForDay(day, token) {
-  try {
-    return { source:'filter', result:await tick('/task/filter', token, {
-      method:'POST', body:{ startDate:localIsoStart(day), endDate:localIsoEnd(day), status:[0] }
-    }) };
-  } catch (_) {
-    return { source:'search', result:await tick('/task/search', token, {
-      method:'POST', body:{ dueFrom:localIsoStart(day), dueTo:localIsoEnd(day), status:[0] }
-    }) };
-  }
-}
-
-function unwrapTasks(result) {
-  return Array.isArray(result) ? result : ((result && result.tasks) || []);
-}
-
-export default {
-  async fetch(request, env) {
-    const origin = request.headers.get('Origin') || '';
-    if (request.method === 'OPTIONS') return new Response('', { status:204, headers:corsHeaders(origin) });
-    if (request.method !== 'GET') return new Response('Method not allowed', {status:405,headers:corsHeaders(origin)});
-
-    const url = new URL(request.url);
-    if (url.pathname !== '/' && url.pathname !== '/responsibility-tasks' && url.pathname !== '/completed-tasks') return new Response('Not found', {status:404,headers:corsHeaders(origin)});
-    if (!env.TICKTICK_ACCESS_TOKEN) return new Response(JSON.stringify({error:'TICKTICK_ACCESS_TOKEN secret is not configured'}), {status:500,headers:{...corsHeaders(origin),'Content-Type':'application/json'}});
-
-    try {
-      const tz = env.TIME_ZONE || 'Asia/Kolkata';
-
-      if (url.pathname === '/completed-tasks' || url.searchParams.get('mode') === 'completed') {
-        const today = todayInZone(tz);
-        const start = url.searchParams.get('start') || addDays(today,-6);
-        const end = url.searchParams.get('end') || today;
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(end)) throw new Error('start and end must be YYYY-MM-DD');
-
-        // Query completed tasks one day at a time, including the day after the
-        // selected week. A single range search can omit historical recurring
-        // occurrences, which makes it impossible to know that a task continued.
-        const raw = [];
-        const seenRaw = new Set();
-        for (let day = start; day <= addDays(end,1); day = addDays(day,1)) {
-          const fetched = await fetchCompletedTasksForDay(day, env.TICKTICK_ACCESS_TOKEN);
-          for (const task of unwrapTasks(fetched.result)) {
-            const id = String(task.id || '') + '|' + String(task.completedTime || task.completedDate || task.completeTime || '') + '|' + String(task.dueDate || task.due || '');
-            if (!seenRaw.has(id)) {
-              seenRaw.add(id);
-              raw.push(task);
-            }
-          }
-        }
-
-        const scheduledByDay = new Map();
-        for (let day = start; day <= addDays(end,1); day = addDays(day,1)) scheduledByDay.set(day,[]);
-
-        // Completed occurrences are part of the historical schedule. Index both
-        // their due date and their completion date because TickTick can expose
-        // recurring occurrences with incomplete/moving due-date metadata.
-        for (const task of raw) {
-          const dueDate = dateInZone(task && (task.dueDate || task.due || ''), tz);
-          const completedDate = dateInZone(task && (task.completedTime || task.completedDate || task.completeTime || ''), tz);
-          if (dueDate && scheduledByDay.has(dueDate)) scheduledByDay.get(dueDate).push(task);
-          if (completedDate && scheduledByDay.has(completedDate) && completedDate !== dueDate) scheduledByDay.get(completedDate).push(task);
-        }
-
-        // Also include currently open occurrences. This catches the case where
-        // the next occurrence has not yet been completed.
-        for (let day = addDays(start,1); day <= addDays(end,1); day = addDays(day,1)) {
-          const nextFetched = await fetchOpenTasksForDay(day, env.TICKTICK_ACCESS_TOKEN);
-          for (const task of unwrapTasks(nextFetched.result)) {
-            const dueDate = dateInZone(task && (task.dueDate || task.due || ''), tz);
-            if (dueDate === day) scheduledByDay.get(day).push(task);
-          }
-        }
-
-        const byKey = new Map();
-        let matched = 0;
-        let excludedContinuing = 0;
-        const diagnostics = [];
-
-        for (const task of raw) {
-          const tags = taskTags(task);
-          const completedValue = task.completedTime || task.completedDate || task.completeTime || '';
-          const completedDate = dateInZone(completedValue, tz);
-          const dueDate = dateInZone(task.dueDate || task.due || '', tz);
-          const effectiveDate = completedDate || dueDate;
-          if (!effectiveDate || effectiveDate < start || effectiveDate > end) continue;
-
-          const nextDate = addDays(effectiveDate,1);
-          const nextTasks = scheduledByDay.get(nextDate) || [];
-          const continuation = nextTasks.find(nextTask => nextTask.id !== task.id && sameScheduledTask(task,nextTask));
-
-          if (continuation) {
-            excludedContinuing++;
-            diagnostics.push({title:task.title||'',completedDate:effectiveDate,nextDate,result:'EXCLUDED_CONTINUING',completedId:task.id||'',nextId:continuation.id||'',completedProjectId:task.projectId||'',nextProjectId:continuation.projectId||''});
-            continue;
-          }
-
-          matched++;
-          const key = uniqueKey(task, tags);
-          let item = byKey.get(key);
-          if (!item) {
-            item = { id:task.id||'', title:task.title||'(Untitled TickTick task)', projectId:task.projectId||'', tags, completionDates:[], completionCount:0 };
-            byKey.set(key,item);
-          }
-          if (item.completionDates.indexOf(effectiveDate)<0) {
-            item.completionDates.push(effectiveDate);
-            item.completionCount++;
-          }
-          if (!item.id && task.id) item.id = task.id;
-          diagnostics.push({title:task.title||'',completedDate:effectiveDate,nextDate,result:'INCLUDED_NO_NEXT_DAY_MATCH'});
-        }
-
-        const tasks = Array.from(byKey.values()).sort((a,b)=>a.title.localeCompare(b.title));
-        tasks.forEach(t=>t.completionDates.sort());
-        return new Response(JSON.stringify({start,end,timeZone:tz,uniqueCount:tasks.length,rawCount:raw.length,matchedCount:matched,excludedContinuing,tasks,diagnostics}), {status:200,headers:{...corsHeaders(origin),'Content-Type':'application/json'}});
-      }
-
-      const target = todayInZone(tz);
-      const groups = Object.fromEntries(RESPONSIBILITIES.map(k => [k, []]));
-      const dueFrom = localIsoStart(target);
-      const dueTo = localIsoEnd(target);
-      let result;
-      let source = 'search';
-      try {
-        result = await tick('/task/search', env.TICKTICK_ACCESS_TOKEN, {method:'POST',body:{dueFrom,dueTo,status:[0]}});
-      } catch (_) {
-        source = 'filter';
-        result = await tick('/task/filter', env.TICKTICK_ACCESS_TOKEN, {method:'POST',body:{startDate:localIsoStart(addDays(target,-1)),endDate:localIsoEnd(addDays(target,1)),status:[0]}});
-      }
-
-      const tasks = unwrapTasks(result);
-      let dueMatches = 0, taggedMatches = 0;
-      for (const task of tasks) {
-        const due = task && (task.dueDate || task.due || '');
-        if (!due || dateInZone(due,tz) !== target) continue;
-        dueMatches++;
-        const tags = taskTags(task);
-        const matches = RESPONSIBILITIES.filter(r=>tags.indexOf(r)>=0);
-        if (matches.length) taggedMatches++;
-        for (const responsibility of matches) groups[responsibility].push({id:task.id||'',title:task.title||'(Untitled TickTick task)',due:String(due).slice(0,16),projectId:task.projectId||'',tags});
-      }
-      for (const k of RESPONSIBILITIES) {
-        const seen = new Set();
-        groups[k] = groups[k].filter(t=>{if(seen.has(t.id)) return false; seen.add(t.id); return true;});
-      }
-      return new Response(JSON.stringify({date:target,timeZone:tz,responsibilities:groups,debug:{source,taskCount:tasks.length,dueMatches,taggedMatches}}), {status:200,headers:{...corsHeaders(origin),'Content-Type':'application/json'}});
-    } catch (e) {
-      return new Response(JSON.stringify({error:String(e && e.message || e)}), {status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}});
-    }
-  }
-};
+export default {async fetch(request,env){const origin=request.headers.get('Origin')||'';if(request.method==='OPTIONS')return new Response('',{status:204,headers:corsHeaders(origin)});const url=new URL(request.url);
+ if(url.pathname==='/memory-extract'){if(request.method!=='POST')return new Response('Method not allowed',{status:405,headers:corsHeaders(origin)});try{return await memoryExtract(request,env)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
+ if(request.method!=='GET')return new Response('Method not allowed',{status:405,headers:corsHeaders(origin)});
+ if(url.pathname!=='/'&&url.pathname!=='/responsibility-tasks'&&url.pathname!=='/completed-tasks')return new Response('Not found',{status:404,headers:corsHeaders(origin)});
+ if(!env.TICKTICK_ACCESS_TOKEN)return new Response(JSON.stringify({error:'TICKTICK_ACCESS_TOKEN secret is not configured'}),{status:500,headers:{...corsHeaders(origin),'Content-Type':'application/json'}});
+ try{const tz=env.TIME_ZONE||'Asia/Kolkata';
+  if(url.pathname==='/completed-tasks'||url.searchParams.get('mode')==='completed'){const today=todayInZone(tz);const start=url.searchParams.get('start')||addDays(today,-6);const end=url.searchParams.get('end')||today;if(!/^\d{4}-\d{2}-\d{2}$/.test(start)||!/^\d{4}-\d{2}-\d{2}$/.test(end))throw new Error('start and end must be YYYY-MM-DD');const raw=[],seenRaw=new Set();for(let day=start;day<=addDays(end,1);day=addDays(day,1)){const fetched=await fetchCompletedTasksForDay(day,env.TICKTICK_ACCESS_TOKEN);for(const task of unwrapTasks(fetched.result)){const id=String(task.id||'')+'|'+String(task.completedTime||task.completedDate||task.completeTime||'')+'|'+String(task.dueDate||task.due||'');if(!seenRaw.has(id)){seenRaw.add(id);raw.push(task)}}}const scheduledByDay=new Map();for(let day=start;day<=addDays(end,1);day=addDays(day,1))scheduledByDay.set(day,[]);for(const task of raw){const dueDate=dateInZone(task&&(task.dueDate||task.due||''),tz);const completedDate=dateInZone(task&&(task.completedTime||task.completedDate||task.completeTime||''),tz);if(dueDate&&scheduledByDay.has(dueDate))scheduledByDay.get(dueDate).push(task);if(completedDate&&scheduledByDay.has(completedDate)&&completedDate!==dueDate)scheduledByDay.get(completedDate).push(task)}for(let day=addDays(start,1);day<=addDays(end,1);day=addDays(day,1)){const nextFetched=await fetchOpenTasksForDay(day,env.TICKTICK_ACCESS_TOKEN);for(const task of unwrapTasks(nextFetched.result)){const dueDate=dateInZone(task&&(task.dueDate||task.due||''),tz);if(dueDate===day)scheduledByDay.get(day).push(task)}}const byKey=new Map();let matched=0,excludedContinuing=0;const diagnostics=[];for(const task of raw){const tags=taskTags(task);const completedValue=task.completedTime||task.completedDate||task.completeTime||'';const completedDate=dateInZone(completedValue,tz);const dueDate=dateInZone(task.dueDate||task.due||'',tz);const effectiveDate=completedDate||dueDate;if(!effectiveDate||effectiveDate<start||effectiveDate>end)continue;const nextDate=addDays(effectiveDate,1);const nextTasks=scheduledByDay.get(nextDate)||[];const continuation=nextTasks.find(nextTask=>nextTask.id!==task.id&&sameScheduledTask(task,nextTask));if(continuation){excludedContinuing++;diagnostics.push({title:task.title||'',completedDate:effectiveDate,nextDate,result:'EXCLUDED_CONTINUING',completedId:task.id||'',nextId:continuation.id||'',completedProjectId:task.projectId||'',nextProjectId:continuation.projectId||''});continue}matched++;const key=uniqueKey(task,tags);let item=byKey.get(key);if(!item){item={id:task.id||'',title:task.title||'(Untitled TickTick task)',projectId:task.projectId||'',tags,completionDates:[],completionCount:0};byKey.set(key,item)}if(item.completionDates.indexOf(effectiveDate)<0){item.completionDates.push(effectiveDate);item.completionCount++}diagnostics.push({title:task.title||'',completedDate:effectiveDate,nextDate,result:'INCLUDED_NO_NEXT_DAY_MATCH'})}const tasks=Array.from(byKey.values()).sort((a,b)=>a.title.localeCompare(b.title));tasks.forEach(t=>t.completionDates.sort());return new Response(JSON.stringify({start,end,timeZone:tz,uniqueCount:tasks.length,rawCount:raw.length,matchedCount:matched,excludedContinuing,tasks,diagnostics}),{status:200,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}
+  const target=todayInZone(tz),groups=Object.fromEntries(RESPONSIBILITIES.map(k=>[k,[]]));let result,source='search';try{result=await tick('/task/search',env.TICKTICK_ACCESS_TOKEN,{method:'POST',body:{dueFrom:localIsoStart(target),dueTo:localIsoEnd(target),status:[0]}})}catch(_){source='filter';result=await tick('/task/filter',env.TICKTICK_ACCESS_TOKEN,{method:'POST',body:{startDate:localIsoStart(addDays(target,-1)),endDate:localIsoEnd(addDays(target,1)),status:[0]}})}const tasks=unwrapTasks(result);let dueMatches=0,taggedMatches=0;for(const task of tasks){const due=task&&(task.dueDate||task.due||'');if(!due||dateInZone(due,tz)!==target)continue;dueMatches++;const tags=taskTags(task);const matches=RESPONSIBILITIES.filter(r=>tags.indexOf(r)>=0);if(matches.length)taggedMatches++;for(const responsibility of matches)groups[responsibility].push({id:task.id||'',title:task.title||'(Untitled TickTick task)',due:String(due).slice(0,16),projectId:task.projectId||'',tags})}for(const k of RESPONSIBILITIES){const seen=new Set();groups[k]=groups[k].filter(t=>{if(seen.has(t.id))return false;seen.add(t.id);return true})}return new Response(JSON.stringify({date:target,timeZone:tz,responsibilities:groups,debug:{source,taskCount:tasks.length,dueMatches,taggedMatches}}),{status:200,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})
+ }catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}};
