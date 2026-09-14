@@ -1,0 +1,49 @@
+/* Total Recall — Memory Lane AI extraction engine
+   Raw WhatsApp stays local in IndexedDB. AI extraction goes only through the private Worker.
+*/
+(function(){'use strict';
+const DB_NAME='totalRecallMemoryLaneDB';
+const DB_VERSION=1;
+const STORE_RAW='messages';
+const STORE_EPISODES='episodes';
+const STORE_SOURCES='sources';
+const STORE_PEOPLE='people';
+const STORE_META='meta';
+const WORKER_URL='https://total-recall-ticktick.pranjuchakrapani90.workers.dev';
+
+function openDB(){return new Promise((resolve,reject)=>{const r=indexedDB.open(DB_NAME,DB_VERSION);r.onupgradeneeded=()=>{const d=r.result;if(!d.objectStoreNames.contains(STORE_RAW))d.createObjectStore(STORE_RAW,{keyPath:'id'});if(!d.objectStoreNames.contains(STORE_EPISODES))d.createObjectStore(STORE_EPISODES,{keyPath:'id'});if(!d.objectStoreNames.contains(STORE_SOURCES))d.createObjectStore(STORE_SOURCES,{keyPath:'id'});if(!d.objectStoreNames.contains(STORE_PEOPLE))d.createObjectStore(STORE_PEOPLE,{keyPath:'id'});if(!d.objectStoreNames.contains(STORE_META))d.createObjectStore(STORE_META,{keyPath:'key'});};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});}
+function tx(db,store,mode){return db.transaction(store,mode).objectStore(store)}
+function put(db,store,v){return new Promise((res,rej)=>{const r=tx(db,store,'readwrite').put(v);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
+function getAll(db,store){return new Promise((res,rej)=>{const r=tx(db,store,'readonly').getAll();r.onsuccess=()=>res(r.result||[]);r.onerror=()=>rej(r.error)})}
+function count(db,store){return new Promise((res,rej)=>{const r=tx(db,store,'readonly').count();r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
+function clearStore(db,store){return new Promise((res,rej)=>{const r=tx(db,store,'readwrite').clear();r.onsuccess=()=>res();r.onerror=()=>rej(r.error)})}
+function esc(s){return String(s==null?'':s).replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]))}
+function setStatus(s,kind){const el=document.getElementById('importStatus');if(el){el.textContent=s;el.className=kind==='error'?'warning':kind==='ok'?'notice':'muted'};}
+function parseWhatsApp(text,sourceId){
+ const lines=text.split(/\r?\n/);const re=/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4}),?\s*([^\-]+?)\s-\s(.*)$/;const out=[];let current=null;
+ for(let i=0;i<lines.length;i++){const line=lines[i];const m=line.match(re);if(m){let [_,d,mo,y,rest,body]=m;y=y.length===2?'20'+y:y;const iso=`${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`;let sender=rest.trim();if(sender.includes('] '))sender=sender.split('] ').pop();current={id:`${sourceId}:${i}`,sourceId,line:i,date:iso,sender,body:body.trim()};out.push(current)}else if(current&&line.trim()){current.body+='\n'+line}}
+ return out;
+}
+function hash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h+= (h<<1)+(h<<4)+(h<<7)+(h<<8)+(h<<24)}return (h>>>0).toString(36)}
+async function unzipText(file){if(file.name.toLowerCase().endsWith('.txt'))return file.text();if(!window.JSZip)throw new Error('ZIP reader is still loading. Try again.');const z=await JSZip.loadAsync(await file.arrayBuffer());const names=Object.keys(z.files).filter(n=>/\.txt$/i.test(n)&&!z.files[n].dir);if(!names.length)throw new Error('No WhatsApp .txt transcript found in ZIP.');return z.file(names[0]).async('text')}
+function chunk(arr,n){const a=[];for(let i=0;i<arr.length;i+=n)a.push(arr.slice(i,i+n));return a}
+function batchText(messages){return messages.map(m=>`[${m.id}] ${m.date} | ${m.sender}: ${m.body}`).join('\n')}
+async function aiExtract(source,batch,index,total){
+ const r=await fetch(WORKER_URL+'/memory-extract',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({source:{id:source.id,name:source.name,kind:source.kind},batchIndex:index,totalBatches:total,messages:batch})});
+ if(!r.ok){let t=await r.text();throw new Error(t.slice(0,500))}return r.json();
+}
+async function importFile(file,kind){
+ const db=await openDB();const sourceId=hash(file.name);setStatus('Reading '+file.name+'…');const text=await unzipText(file);const messages=parseWhatsApp(text,sourceId);if(!messages.length)throw new Error('No WhatsApp messages could be parsed.');
+ const existing=await getAll(db,STORE_RAW);const existingIds=new Set(existing.filter(x=>x.sourceId===sourceId).map(x=>x.id));const fresh=messages.filter(x=>!existingIds.has(x.id));
+ const source={id:sourceId,name:file.name.replace(/\.zip$|\.txt$/i,''),kind:kind||guessKind(file.name),messageCount:messages.length,addedCount:fresh.length,startDate:messages[0].date,endDate:messages[messages.length-1].date,updatedAt:new Date().toISOString()};await put(db,STORE_SOURCES,source);
+ for(const m of fresh)await put(db,STORE_RAW,m);
+ if(!fresh.length){setStatus('No new messages in '+source.name+'. The archive is already up to date.','ok');await refresh();return}
+ const batches=chunk(fresh,90);let created=0;for(let i=0;i<batches.length;i++){setStatus(`AI extraction: batch ${i+1} of ${batches.length}…`);const result=await aiExtract(source,batches[i],i,batches.length);for(const e of (result.episodes||[])){const ep={...e,id:e.id||hash(sourceId+'|'+e.startDate+'|'+e.title+'|'+i),sourceId,sourceName:source.name,createdAt:new Date().toISOString(),evidence:e.evidence||[],ai:true};await put(db,STORE_EPISODES,ep);created++}for(const p of (result.people||[])){const person={...p,id:hash((p.name||'').toLowerCase()),updatedAt:new Date().toISOString()};await put(db,STORE_PEOPLE,person)}}
+ setStatus(`Imported ${fresh.length.toLocaleString()} new messages and extracted ${created} memory episodes from ${source.name}.`,'ok');await refresh();
+}
+function guessKind(n){n=n.toLowerCase();if(n.includes('our home'))return'family';if(n.includes('self')||n.includes('86383'))return'self';if(n.includes('joon'))return'individual';if(n.includes('electrical circle')||n.includes('ned-ii'))return'professional';return'conversation'}
+async function renderEpisodes(){const db=await openDB();let eps=await getAll(db,STORE_EPISODES);eps.sort((a,b)=>String(a.startDate).localeCompare(String(b.startDate)));const wrap=document.getElementById('episodeList');if(!eps.length){wrap.innerHTML='<div class="muted">No AI episodes yet. Import a WhatsApp export to build them.</div>';return}wrap.innerHTML=eps.map((e,i)=>`<article class="episode"><div class="badge">${esc(e.type||'MEMORY')}</div><h3>${esc(e.title||'Untitled memory')}</h3><div class="date">${esc(e.startDate||'')}${e.endDate&&e.endDate!==e.startDate?' → '+esc(e.endDate):''} · ${esc(e.sourceName||'')}</div><p>${esc(e.summary||'')}</p>${e.people?.length?'<div>'+e.people.map(p=>`<span class="badge">${esc(p)}</span>`).join('')+'</div>':''}<div class="cue"><b>Recall cue:</b> ${esc(e.recallCue||'What do you remember about this?')}</div><details><summary>Evidence</summary><div class="evidence">${(e.evidence||[]).map(x=>`<div>${esc(x.messageId||x.id||'')} — ${esc(x.reason||'source message')}</div>`).join('')}</div></details></article>`).join('')}
+async function refresh(){const db=await openDB();const [sources,episodes,people,messages]=await Promise.all([getAll(db,STORE_SOURCES),getAll(db,STORE_EPISODES),getAll(db,STORE_PEOPLE),getAll(db,STORE_RAW)]);document.getElementById('sourceCount').textContent=sources.length;document.getElementById('episodeCount').textContent=episodes.length;document.getElementById('peopleCount').textContent=people.length;document.getElementById('messageCount').textContent=messages.length;await renderEpisodes();}
+window.MemoryLane={importFile,refresh,openDB};
+window.addEventListener('DOMContentLoaded',()=>{document.getElementById('file').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;try{await importFile(f)}catch(err){console.error(err);setStatus('Import failed: '+err.message,'error')}});document.getElementById('clearArchive').addEventListener('click',async()=>{if(!confirm('Clear the local Memory Lane AI archive? The original WhatsApp files on your device are not affected.'))return;const db=await openDB();for(const s of [STORE_RAW,STORE_EPISODES,STORE_SOURCES,STORE_PEOPLE,STORE_META])await clearStore(db,s);setStatus('Local Memory Lane archive cleared.','ok');refresh()});refresh()});
+})();
