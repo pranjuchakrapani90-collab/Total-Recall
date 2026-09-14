@@ -1,0 +1,38 @@
+name: Add Memory Lane launcher
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/add-memory-lane-link.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add Memory Lane card and remove patch workflow
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+          marker = '<section id="home"><div class="systems">'
+          insert = '''<section class="panel" style="grid-column:1/-1;background:linear-gradient(135deg,#f5f3ff,#eef2ff);border:1px solid #d9d8ff"><div class="row" style="justify-content:space-between"><div><h2 style="margin:0 0 6px">🧠 Memory Lane</h2><p class="muted" style="margin:0">Walk back through your WhatsApp history, people, relationships and memorable moments.</p></div><a href="memory-lane.html" style="text-decoration:none"><button type="button">Enter Memory Lane →</button></a></div></section>'''
+          if 'href="memory-lane.html"' not in s:
+              if marker not in s:
+                  raise SystemExit('Main page marker not found')
+              s = s.replace(marker, marker + '\n' + insert, 1)
+              p.write_text(s, encoding='utf-8')
+          PY
+          rm -f .github/workflows/add-memory-lane-link.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html .github/workflows/add-memory-lane-link.yml
+          git diff --cached --quiet && exit 0 || true
+          git commit -m 'Add Memory Lane launcher to dashboard'
+          git push
