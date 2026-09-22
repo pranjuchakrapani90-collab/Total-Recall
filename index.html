@@ -59,7 +59,6 @@ function renderTickTextChunk(chunk,state){var text=String(chunk||'').trim();if(!
 function tickContentHtml(raw){
   var text=String(raw||'');
   text=text.split(String.fromCharCode(13)).join('').split(String.fromCharCode(160)).join(' ');
-  text=text.replace(/\\/g,'\\');
   var sections=text.split(/\s*---+\s*/),html='';
   sections.forEach(function(section,si){
     var lines=section.split(/\s+-\s+/);
