@@ -57,8 +57,30 @@ async function memoryExtract(request,env){
   return new Response(JSON.stringify({...parsed,meta:{model:data.model||payload.model,responseId:data.id||'',batchIndex:body.batchIndex||0}}),{status:200,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
 }
 
+
+async function handleSync(request,env){
+  if(!env.SYNC_KV)return new Response(JSON.stringify({error:'Cloud sync is not configured: SYNC_KV binding is missing on the Worker.'}),{status:503,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
+  const code=String(request.headers.get('X-Total-Recall-Sync')||'').trim();
+  if(code.length<8)return new Response(JSON.stringify({error:'A sync code of at least 8 characters is required.'}),{status:400,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
+  const hash=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(code));
+  const key='vault:'+Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  if(request.method==='POST'){
+    const body=await request.json();
+    if(!body||!body.state)return new Response(JSON.stringify({error:'state is required'}),{status:400,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
+    const blob=await env.SYNC_KV.get(key);
+    return new Response(JSON.stringify({blob:blob||null}),{status:200,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
+  }
+  if(request.method==='PUT'){
+    const blob=await request.text();
+    if(!blob)throw new Error('Encrypted sync payload is empty');
+    await env.SYNC_KV.put(key,blob);
+    return new Response(JSON.stringify({ok:true}),{status:200,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
+  }
+  return new Response(JSON.stringify({error:'Method not allowed'}),{status:405,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
+}
 export default {async fetch(request,env){const origin=request.headers.get('Origin')||'';if(request.method==='OPTIONS')return new Response('',{status:204,headers:corsHeaders(origin)});const url=new URL(request.url);
  if(url.pathname==='/memory-extract'){if(request.method!=='POST')return new Response('Method not allowed',{status:405,headers:corsHeaders(origin)});try{return await memoryExtract(request,env)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
+ if(url.pathname==='/sync'||url.searchParams.get('mode')==='sync'){try{return await handleSync(request,env)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(request.method!=='GET')return new Response('Method not allowed',{status:405,headers:corsHeaders(origin)});
  if(url.pathname!=='/'&&url.pathname!=='/responsibility-tasks'&&url.pathname!=='/completed-tasks'&&url.pathname!=='/task-detail')return new Response('Not found',{status:404,headers:corsHeaders(origin)});
  if(!env.TICKTICK_ACCESS_TOKEN)return new Response(JSON.stringify({error:'TICKTICK_ACCESS_TOKEN secret is not configured'}),{status:500,headers:{...corsHeaders(origin),'Content-Type':'application/json'}});
