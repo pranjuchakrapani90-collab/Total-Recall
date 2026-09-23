@@ -2,5 +2,8 @@
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "total-recall-ticktick",
   "main": "./ticktick-worker.js",
-  "compatibility_date": "2026-09-06"
+  "compatibility_date": "2026-09-06",
+  "kv_namespaces": [
+    { "binding": "SYNC_KV" }
+  ]
 }
