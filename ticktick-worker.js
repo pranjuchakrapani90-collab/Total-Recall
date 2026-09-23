@@ -8,10 +8,13 @@ const API = 'https://api.ticktick.com/open/v1';
 const OPENAI_API = 'https://api.openai.com/v1/responses';
 
 function corsHeaders(origin) {
+  const allowed=origin===ALLOWED_ORIGIN;
   return {
-    'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Origin': allowed?origin:ALLOWED_ORIGIN,
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, X-Total-Recall-Sync',
+    'Access-Control-Max-Age': '86400',
+    'Vary': 'Origin, Access-Control-Request-Method, Access-Control-Request-Headers',
     'Cache-Control': 'no-store'
   };
 }
@@ -78,7 +81,7 @@ async function handleSync(request,env){
   }
   return new Response(JSON.stringify({error:'Method not allowed'}),{status:405,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
 }
-export default {async fetch(request,env){const origin=request.headers.get('Origin')||'';if(request.method==='OPTIONS')return new Response('',{status:204,headers:corsHeaders(origin)});const url=new URL(request.url);
+export default {async fetch(request,env){const origin=request.headers.get('Origin')||'';if(request.method==='OPTIONS'){const h=corsHeaders(origin);const requested=request.headers.get('Access-Control-Request-Headers');if(requested)h['Access-Control-Allow-Headers']=requested;return new Response(null,{status:204,headers:h});}const url=new URL(request.url);
  if(url.pathname==='/memory-extract'){if(request.method!=='POST')return new Response('Method not allowed',{status:405,headers:corsHeaders(origin)});try{return await memoryExtract(request,env)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.pathname==='/sync'||url.searchParams.get('mode')==='sync'){try{return await handleSync(request,env)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(request.method!=='GET')return new Response('Method not allowed',{status:405,headers:corsHeaders(origin)});
