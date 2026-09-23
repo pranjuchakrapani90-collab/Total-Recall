@@ -65,7 +65,7 @@ function periodRange(key){
   if(key==='last-2-months')return {start:monthStart(2),end:monthEnd(1)};
   if(key==='last-6-months')return {start:monthStart(6),end:monthEnd(1)};
   if(key==='last-year')return {start:(y-1)+'-01-01',end:(y-1)+'-12-31'};
-  if(/^year-\\d{4}$/.test(key)){var yy=Number(key.slice(5));return {start:yy+'-01-01',end:yy+'-12-31'}}
+  if(/^year-\d{4}$/.test(key)){var yy=Number(key.slice(5));return {start:yy+'-01-01',end:yy+'-12-31'}}
   return null
 }
 function populateCompletedPeriods(){
