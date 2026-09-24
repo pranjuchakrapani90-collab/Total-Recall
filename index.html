@@ -1,19 +1,19 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#4f46e5"><link rel="manifest" href="manifest.webmanifest"><title>Total Recall</title><!-- TR_BUILD_2026-09-22_FORMAT_DEPLOY --><style>
 :root{--bg:#f4f7fb;--text:#172033;--muted:#697386;--accent:#4f46e5;--border:#e5e7eb}*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--text)}header{background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;padding:22px 18px}.container{max-width:1000px;margin:24px auto;padding:0 15px}.systems{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:stretch}.dashboard-card{min-width:0}.panel{background:#fff;border:1px solid var(--border);border-radius:18px;padding:20px;margin-bottom:16px;box-shadow:0 5px 18px #141e3710}.hidden{display:none!important}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}button{border:0;border-radius:10px;padding:11px 15px;background:var(--accent);color:#fff;font:inherit;font-weight:650;cursor:pointer}.secondary{background:#eef0ff;color:#3730a3}.danger{background:#fee2e2;color:#991b1b}.small{padding:7px 10px;font-size:13px}input,textarea,select{width:100%;padding:12px;border:1px solid var(--border);border-radius:10px;font:inherit}textarea{min-height:120px}.muted,.hint{color:var(--muted);font-size:14px}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px}.stat,.smart{padding:14px;border:1px solid var(--border);border-radius:12px;background:#fafaff}.stat b{display:block;font-size:25px}.stat span{font-size:12px;color:var(--muted)}.smart{margin-top:10px;background:#f5f3ff;color:#4c1d95;font-size:13px}.flash{height:min(400px,calc(100vh - 160px));min-height:320px;border:2px solid #e1e0ff;border-radius:20px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:25px;background:#fcfcff;cursor:pointer;position:relative;perspective:1200px;overflow:visible;box-sizing:border-box}.flashInner{width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform .5s ease}.flash.flipped .flashInner{transform:rotateY(180deg)}.flashFace{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;border-radius:16px;overflow:hidden}.flashBack{transform:rotateY(180deg);background:#fff;text-align:left;align-items:stretch;justify-content:flex-start;overflow:hidden;padding:0}.flashBack .taskReveal{width:100%;height:calc(100% - 36px);margin:0;border:0;box-shadow:none;border-radius:0;overflow:auto}.flashBack .taskReveal .taskBody{padding:14px 16px}.flashBackHint{font-size:12px;color:var(--muted);padding:10px 14px;border-top:1px solid #eceef1;background:#fafbfc;text-align:center;flex:0 0 36px;box-sizing:border-box}.flashBack .taskReveal.hidden{display:block!important;min-height:100%;visibility:hidden}.name{font-size:clamp(30px,8vw,58px);font-weight:750}.counter{font-size:13px;color:var(--muted);margin-bottom:14px}.source{position:absolute;top:12px;right:12px;max-width:48%;font-size:11px;color:#3730a3;background:#eef0ff;border:1px solid #d9d8ff;border-radius:999px;padding:5px 9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.history{border-left:3px solid var(--accent);padding:10px 13px;margin:9px 0;background:#fafaff}.notice{padding:10px 13px;background:#ecfdf5;color:#065f46;border-radius:9px;margin-top:12px}.warning{padding:12px 14px;background:#fff7ed;color:#9a3412;border-radius:10px;margin-top:12px}.person{padding:10px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;gap:10px}.completedItem{padding:12px 0;border-bottom:1px solid var(--border)}.completedItem:last-child{border-bottom:0}.completedMeta{color:var(--muted);font-size:13px;margin-top:4px}.taskReveal{margin-top:12px;padding:0;border:1px solid #dfe3e8;border-radius:16px;background:#fff;overflow:hidden;box-shadow:0 2px 10px #141e3708}.taskHead{padding:16px 16px 12px;border-bottom:1px solid #eceef1}.taskHead h4{margin:0 0 7px;font-size:18px;line-height:1.35}.taskOpenLink{display:inline-flex;align-items:center;padding:6px 9px;border:1px solid #c7d2fe;border-radius:8px;background:#eef2ff;color:#3730a3;text-decoration:none;font-size:12px;font-weight:700;white-space:nowrap}.taskOpenLink:hover{background:#e0e7ff}.taskMeta{display:flex;flex-wrap:wrap;gap:6px;font-size:12px;color:var(--muted)}.taskPill{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;background:#f1f3f5}.taskBody{padding:14px 16px}.taskContent{line-height:1.55;font-size:15px}.taskContent p{margin:0 0 18px}.taskContent p:last-child{margin-bottom:0}.taskContent ul{margin:0 0 18px;padding-left:24px}.taskContent li{margin:0 0 12px;padding-left:2px}.taskContent .tickList{margin:0 0 14px;padding-left:24px}.taskContent .tickList li{margin:0 0 10px}.taskContent li:last-child{margin-bottom:0}.taskContent hr{border:0;border-top:2px solid #e5e7eb;margin:18px 0}.taskContent blockquote{margin:12px 0 18px;padding:8px 12px;border-left:3px solid #c7d2fe;background:#f8f8ff}.taskContent .contentAttachment{margin:10px 0 18px}.taskContent a{color:#4f46e5;text-decoration:none}.taskContent a:hover{text-decoration:underline}.taskContent img{max-width:100%;height:auto;border-radius:10px}.taskSection{padding:0 16px 14px}.taskSectionTitle{font-size:13px;font-weight:700;color:#4b5563;margin-bottom:7px}.taskSubtask,.taskAttachment,.taskComment{padding:10px 11px;border:1px solid #eceef1;border-radius:10px;margin-top:7px;font-size:14px;background:#fafbfc}.taskSubtask.done{text-decoration:line-through;color:#8a929e;background:#f6f7f8}.taskAttachment{display:flex;align-items:center;gap:10px;background:#eef8f0;border-color:#d9eedc}.taskAttachmentIcon{width:32px;height:32px;border-radius:7px;background:#43a047;color:#fff;display:grid;place-items:center;font-weight:800;font-size:16px;flex:0 0 auto}.taskAttachmentName{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.taskAttachmentSize{font-size:12px;color:#8a929e;margin-top:2px}.taskComment{background:#fff}.taskComment small{color:var(--muted);display:block;margin-top:4px}.taskEmpty{color:var(--muted);font-size:13px;padding:2px 0}.taskFooter{padding:10px 16px;border-top:1px solid #eceef1;background:#fafbfc;font-size:12px;color:var(--muted)}.error{position:fixed;inset:0;background:#fff;padding:30px;z-index:9999;color:#991b1b;font-family:monospace;white-space:pre-wrap}.manage{margin-top:15px}@media(max-width:700px){.systems{grid-template-columns:1fr}.stats{grid-template-columns:1fr}}
-</style></head><body>
+.travelMap{height:62vh;min-height:420px;border:1px solid #dfe3e8;border-radius:16px;overflow:hidden;background:#eef2f7}.travelControls{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:end}.travelControl label{display:block;font-size:12px;font-weight:700;color:#4b5563;margin-bottom:5px}.travelStats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0}.travelStat{padding:10px 12px;border:1px solid #e5e7eb;border-radius:12px;background:#fafbff}.travelStat b{display:block;font-size:18px}.travelStat span{font-size:11px;color:var(--muted)}.travelNote{padding:10px 12px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;font-size:12px;color:#64748b;margin-top:10px}@media(max-width:700px){.travelControls{grid-template-columns:1fr 1fr}.travelStats{grid-template-columns:1fr 1fr}.travelMap{height:55vh;min-height:360px}}</style></head><body>
 <header><h1>Total Recall</h1><p>Recall people and responsibilities, one flashcard at a time.</p></header>
 <main class="container">
 <section id="home"><div class="systems"><div class="panel"><h2>Responsibility Recall</h2><p class="muted">Refresh TickTick, then choose a responsibility tag to review today's actual tasks.</p><button id="startResp">Refresh TickTick & Start Recall</button><div id="tickStatus" class="smart">TickTick tasks are loaded dynamically when you start.</div><div id="responsibilityTags" class="row" style="margin-top:10px"></div></div>
 <div class="panel"><h2>Completed Task Review</h2><p class="muted">Review what you actually completed over a selected period. Repeated daily entries are grouped into one unique task and their completion dates are shown together.</p><div class="row"><label>Period <select id="completedPeriod" style="width:210px"></select></label><button id="reviewCompletedBtn" class="secondary">Review completed tasks</button></div><div id="completedStatus" class="smart hidden"></div><div id="completedResults" style="margin-top:12px"></div></div>
 <div class="panel dashboard-card" style="background:linear-gradient(135deg,#ecfeff,#f0fdfa);border:1px solid #b6e3e3"><div class="row" style="justify-content:space-between"><div><h2 style="margin:0 0 6px">📚 Reference Review</h2><p class="muted" style="margin:0">Review items from your TickTick <b>Reference</b> section tag-wise — SDE Rev, SDE Tech, SDE Estt and other tags.</p></div><button id="startReference">Open Reference Review →</button></div><div id="referenceStatus" class="smart">Reference items are loaded from TickTick when you start.</div><div id="referenceTags" class="row" style="margin-top:10px"></div></div>
-<div class="panel"><h2>People Recall</h2><p class="muted">Unrecalled names are always prioritised. After the first pass, smart spaced re-recall begins.</p><div class="row"><label>Names per session <input id="count" type="number" value="10" min="1" style="width:80px"></label><button id="startPeople">Start People Recall</button><button id="manageBtn" class="secondary">Manage names</button><button id="syncBtn" class="secondary">☁ Sync devices</button><span id="syncStatus" class="muted">Device sync is local until enabled.</span></div>
+<div class="panel dashboard-card" style="background:linear-gradient(135deg,#eff6ff,#f5f3ff);border:1px solid #c7d2fe"><div class="row" style="justify-content:space-between"><div><h2 style="margin:0 0 6px">🗺️ Travel Trace</h2><p class="muted" style="margin:0">Trace your recorded Google Maps Timeline path on a thin Google Maps line — using the actual exported GPS points.</p></div><button id="startTravelTrace">Open Travel Trace →</button></div><div class="smart">Your Timeline JSON is processed in this browser. It is not uploaded to the Total Recall Worker.</div></div><div class="panel"><h2>People Recall</h2><p class="muted">Unrecalled names are always prioritised. After the first pass, smart spaced re-recall begins.</p><div class="row"><label>Names per session <input id="count" type="number" value="10" min="1" style="width:80px"></label><button id="startPeople">Start People Recall</button><button id="manageBtn" class="secondary">Manage names</button><button id="syncBtn" class="secondary">☁ Sync devices</button><span id="syncStatus" class="muted">Device sync is local until enabled.</span></div>
 <div class="stats"><div class="stat"><b id="total">0</b><span>Total unique names</span></div><div class="stat"><b id="recalled">0</b><span>Unique names recalled</span></div><div class="stat"><b id="remaining">0</b><span>Still to recall</span></div></div><div id="roundPlan" class="smart"></div><div id="smartPlan" class="smart"></div>
 <div id="tools" class="hidden manage"><b>Upload CSV / TXT</b><input id="file" type="file" accept=".csv,.txt"><br><b>Or paste names</b><textarea id="paste" placeholder="One name per line"></textarea><button id="pasteBtn" class="secondary">Add pasted names</button><div id="columnBox" class="hidden"><p><b>Which column contains the names?</b></p><select id="column"></select><button id="importBtn">Import selected column</button><div id="preview"></div></div><div id="peopleList"></div></div>
 </div></div</div></section></section>
 <section id="session" class="hidden"><div class="panel"><div class="row" style="justify-content:space-between"><button id="homeBtn" class="secondary small">← Dashboard</button><span id="progress" class="muted"></span></div><div id="flash" class="flash" style="margin-top:15px"><div class="flashInner"><div class="flashFace flashFront"><span id="source" class="source hidden"></span><div id="counter" class="counter"></div><div id="card" class="name"></div><div id="hint" class="hint"></div></div><div class="flashFace flashBack"><div id="taskReveal" class="taskReveal hidden"></div><div class="flashBackHint">Click to flip back</div></div></div></div><button id="deleteBtn" class="danger small hidden" style="margin-top:10px">Delete this name</button><div class="row" style="justify-content:space-between;margin-top:18px"><button id="back" class="secondary">← Back</button><button id="next">Next →</button></div></div></section>
 <section id="completedSession" class="hidden"><div class="panel"><div class="row" style="justify-content:space-between"><button id="completedHomeBtn" class="secondary small">← Dashboard</button><span id="completedProgress" class="muted"></span></div><div id="completedFlash" class="flash" style="margin-top:15px"><div class="flashInner"><div class="flashFace flashFront"><div id="completedCounter" class="counter"></div><div id="completedCard" class="name"></div><div id="completedHint" class="hint"></div></div><div class="flashFace flashBack"><div id="completedTaskReveal" class="taskReveal hidden"></div><div class="flashBackHint">Click to flip back</div></div></div></div><button id="completedDeleteBtn" class="danger small" style="margin-top:10px">Delete this task</button><div class="row" style="justify-content:space-between;margin-top:18px"><button id="completedBack" class="secondary">← Back</button><button id="completedNext">Next →</button></div></div></section>
-<section id="done" class="hidden"><div class="panel" style="text-align:center"><h2>🎉 Session complete</h2><p id="doneText" class="muted"></p><button id="doneHome">Dashboard</button></div></section>
+<section id="travelSession" class="hidden"><div class="panel"><div class="row" style="justify-content:space-between"><button id="travelHomeBtn" class="secondary small">← Dashboard</button><span id="travelStatus" class="muted">No Timeline data loaded.</span></div><h2 style="margin-top:18px">🗺️ Travel Trace</h2><p class="muted">Import your Google Maps Timeline export. The default view uses the recorded path points as-is, so Total Recall does not invent a route between sparse points.</p><div class="travelControls"><div class="travelControl"><label for="travelMapsKey">Google Maps API key</label><input id="travelMapsKey" type="password" placeholder="Paste your browser-restricted Maps API key"></div><div class="travelControl"><label for="travelFile">Timeline JSON</label><input id="travelFile" type="file" accept=".json,application/json"></div><div class="travelControl"><label for="travelDate">Day</label><select id="travelDate" disabled><option>No data</option></select></div><div class="travelControl"><label for="travelMode">Path display</label><select id="travelMode" disabled><option value="raw">Recorded GPS — exact</option><option value="roads">Follow roads — Google Roads</option></select></div></div><div class="row" style="margin-top:10px"><button id="travelLoadMap">Load Google Map</button><button id="travelFit" class="secondary" disabled>Fit path</button><button id="travelClear" class="secondary" disabled>Clear data</button></div><div id="travelKeyHint" class="travelNote">Google Maps JavaScript API requires an API key. Restrict the key to your GitHub Pages domain. Road-following additionally uses Google Roads API and can incur usage charges.</div><div class="travelStats"><div class="travelStat"><b id="travelPointCount">0</b><span>GPS points</span></div><div class="travelStat"><b id="travelDistance">0 km</b><span>Recorded distance</span></div><div class="travelStat"><b id="travelDuration">—</b><span>Recorded span</span></div><div class="travelStat"><b id="travelSegments">0</b><span>Path segments</span></div></div><div id="travelMap" class="travelMap"></div><div class="travelNote">Accuracy rule: raw mode keeps the Timeline coordinates and only connects consecutive recorded points within each Timeline path. Large time gaps are kept as separate segments instead of drawing a long artificial straight line.</div></div></section><section id="done" class="hidden"><div class="panel" style="text-align:center"><h2>🎉 Session complete</h2><p id="doneText" class="muted"></p><button id="doneHome">Dashboard</button></div></section>
 </main><div id="bootError" class="error hidden"></div>
 <script>
 (function(){'use strict';
@@ -243,5 +243,196 @@ function finish(){hide('session');show('done');$('doneText').textContent='Review
 $('flash').addEventListener('click',function(e){if(e.target.closest&&e.target.closest('.taskOpenLink, .taskAttachment'))return;if(e.target.closest&&e.target.closest('.flashBack'))return;if(mode==='resp'&&!sub){var p=cards[idx],arr=taskGroups[p.key]||[];if(arr.length){sub=true;subIdx=0;draw();return}}if(mode==='people')return;var flipped=$('flash').classList.toggle('flipped');if(flipped){var task=null;if(mode==='reference')task=referenceCards[referenceIdx];else if(mode==='resp'&&sub)task=(taskGroups[cards[idx].key]||[])[subIdx];revealTaskDetails(task,'taskReveal',null)}});$('flash').querySelector('.flashBack').addEventListener('click',function(e){if(e.target.closest&&e.target.closest('a,button'))return;$('flash').classList.remove('flipped')});
 $('completedFlash').addEventListener('click',function(e){if(e.target.closest&&e.target.closest('.flashBack'))return;var flipped=$('completedFlash').classList.toggle('flipped');if(flipped)revealTaskDetails(completedCards[completedIdx],'completedTaskReveal',null)});$('completedFlash').querySelector('.flashBack').addEventListener('click',function(e){if(e.target.closest&&e.target.closest('a,button'))return;$('completedFlash').classList.remove('flipped')});$('back').addEventListener('click',goBack);$('next').addEventListener('click',advance);$('startPeople').addEventListener('click',startPeople);$('startResp').addEventListener('click',startResp);$('responsibilityTags').addEventListener('click',function(e){var t=e.target.dataset.respTag;if(t)startResponsibilityTag(decodeURIComponent(t))});$('homeBtn').addEventListener('click',function(){hide('session');show('home');render()});$('doneHome').addEventListener('click',function(){hide('done');show('home');render()});$('manageBtn').addEventListener('click',function(){$('tools').classList.toggle('hidden')});$('syncBtn').addEventListener('click',function(){var current=localStorage.getItem(SYNC_KEY);var code=prompt(current?'Enter the sync code used on your other devices.\n\nLeave blank to keep the current code.':'Create or enter a sync code (8+ characters). Use this exact code on every device.');if(code===null)return;code=code.trim();if(!code&&current)return;if(code.length<8){alert('Use a sync code of at least 8 characters.');return}localStorage.setItem(SYNC_KEY,code);cloudSync(true)});$('pasteBtn').addEventListener('click',function(){var v=$('paste').value.trim();if(v){add(v.split(/\r?\n/),'Pasted names');$('paste').value=''}});$('peopleList').addEventListener('click',function(e){var k=e.target.dataset.del;if(k&&confirm('Delete this name and its recall history?')){delete db.people[decodeURIComponent(k)];save();render()}});$('deleteBtn').addEventListener('click',function(){var p=cards[idx];if(p&&confirm('Delete this name and its recall history?')){delete db.people[p.name.toLowerCase()];save();cards.splice(idx,1);if(idx>=cards.length)finish();else draw();render()}});
 var parsed=[],source='Uploaded file';$('file').addEventListener('change',function(e){var f=e.target.files[0];if(!f)return;source=f.name;var rd=new FileReader();rd.onload=function(){var lines=String(rd.result).replace(/^\uFEFF/,'').split(/\r?\n/).filter(Boolean);if(!lines.length)return;var delim=lines[0].indexOf('\t')>=0?'\t':lines[0].indexOf(';')>=0?';':',';function split(x){return x.split(delim).map(function(v){return v.trim().replace(/^"|"$/g,'')})}var heads=split(lines[0]);if(heads.length===1&&!/name|person|employee|member|contact/i.test(heads[0])){add(lines.map(function(x){return split(x)[0]}),source);return}parsed=lines.slice(1).map(split);$('column').innerHTML=heads.map(function(h,i){return '<option value="'+i+'">'+esc(h)+'</option>'}).join('');$('columnBox').classList.remove('hidden');$('preview').textContent=parsed.slice(0,5).map(function(x){return x[0]}).join(' • ')};rd.readAsText(f);e.target.value=''});$('importBtn').addEventListener('click',function(){var c=Number($('column').value);add(parsed.map(function(r){return r[c]}),source);hide('columnBox')});
+// Travel Trace — Google Maps Timeline viewer. Location data stays in this browser.
+var travelData=null,travelMap=null,travelPolylines=[],travelRawSegments=[],travelRoadSegments=null,travelMapsReady=false;
+function travelPointFromString(v){
+  var s=String(v||'').trim().replace(/^geo:/i,'').replace(/[°]/g,'');
+  var m=s.match(/(-?\\d+(?:\\.\\d+)?)\\s*,\\s*(-?\\d+(?:\\.\\d+)?)/);
+  if(!m)return null;
+  var lat=Number(m[1]),lng=Number(m[2]);
+  return isFinite(lat)&&isFinite(lng)&&Math.abs(lat)<=90&&Math.abs(lng)<=180?{lat:lat,lng:lng}:null
+}
+function travelTime(v){if(v===undefined||v===null||v==='')return null;var d=new Date(v);return isNaN(d.getTime())?null:d.toISOString()}
+function travelDateOf(t){return String(t||'').slice(0,10)||new Date().toISOString().slice(0,10)}
+function travelAddSegment(out,pts){
+  var clean=pts.filter(function(p){return p&&isFinite(p.lat)&&isFinite(p.lng)});
+  if(clean.length<2)return;
+  clean.sort(function(a,b){return (a.ms||0)-(b.ms||0)});
+  out.push(clean)
+}
+function parseTravelTimeline(data){
+  var out=[],locations=[];
+  function addLoc(o){
+    if(!o)return;
+    var lat=o.latitudeE7!==undefined?Number(o.latitudeE7)/1e7:(o.latitude!==undefined?Number(o.latitude):NaN);
+    var lng=o.longitudeE7!==undefined?Number(o.longitudeE7)/1e7:(o.longitude!==undefined?Number(o.longitude):NaN);
+    var tm=travelTime(o.timestamp||o.timestampMs||o.time);
+    if(isFinite(lat)&&isFinite(lng))locations.push({lat:lat,lng:lng,time:tm,ms:tm?new Date(tm).getTime():0})
+  }
+  function addPath(path,startTime){
+    if(!Array.isArray(path))return;
+    var pts=path.map(function(p){
+      var q=travelPointFromString(p&&p.point);
+      if(!q&&p&&p.latitude!==undefined)q={lat:Number(p.latitude),lng:Number(p.longitude)};
+      if(!q)return null;
+      var tm=p&&p.time?travelTime(p.time):null;
+      if(!tm&&p&&p.durationMinutesOffsetFromStartTime!==undefined&&startTime){
+        var base=new Date(startTime);var mins=Number(p.durationMinutesOffsetFromStartTime);
+        if(!isNaN(base.getTime())&&isFinite(mins))tm=new Date(base.getTime()+mins*60000).toISOString()
+      }
+      return {lat:q.lat,lng:q.lng,time:tm,ms:tm?new Date(tm).getTime():0}
+    }).filter(Boolean);
+    travelAddSegment(out,pts)
+  }
+  var root=Array.isArray(data)?{items:data}:data||{};
+  if(Array.isArray(root.locations))root.locations.forEach(addLoc);
+  var items=Array.isArray(root)?root:(Array.isArray(root.items)?root.items:(Array.isArray(root.timelineObjects)?root.timelineObjects:[]));
+  items.forEach(function(item){
+    if(item&&Array.isArray(item.timelinePath))addPath(item.timelinePath,item.startTime);
+    if(item&&item.activitySegment){
+      var a=item.activitySegment;
+      if(Array.isArray(a.timelinePath))addPath(a.timelinePath,a.startTime);
+      else{
+        var pts=[];
+        [a.startLocation,a.endLocation].forEach(function(x){
+          var q=travelPointFromString(x&&x.point||x&&x.geo||'');
+          if(!q&&x&&x.latitudeE7!==undefined)q={lat:Number(x.latitudeE7)/1e7,lng:Number(x.longitudeE7)/1e7};
+          if(q)pts.push({lat:q.lat,lng:q.lng,time:travelTime(a.startTime||a.endTime),ms:travelTime(a.startTime||a.endTime)?new Date(travelTime(a.startTime||a.endTime)).getTime():0})
+        });
+        travelAddSegment(out,pts)
+      }
+    }
+    if(item&&item.activity&&item.activity.start){
+      var a2=item.activity,start=travelPointFromString(a2.start&&a2.point||'');end=travelPointFromString(a2.end&&a2.point||'');
+      if(start&&end)travelAddSegment(out,[{lat:start.lat,lng:start.lng,time:travelTime(item.startTime),ms:item.startTime?new Date(item.startTime).getTime():0},{lat:end.lat,lng:end.lng,time:travelTime(item.endTime),ms:item.endTime?new Date(item.endTime).getTime():0}])
+    }
+    if(item&&item.visit&&item.visit.topCandidate&&item.visit.topCandidate.placeLocation){
+      var v=travelPointFromString(item.visit.topCandidate.placeLocation);if(v)locations.push({lat:v.lat,lng:v.lng,time:travelTime(item.startTime),ms:item.startTime?new Date(item.startTime).getTime():0})
+    }
+  });
+  if(!out.length&&locations.length){
+    locations.sort(function(a,b){return a.ms-b.ms});
+    var cur=[];
+    locations.forEach(function(p,i){
+      if(cur.length&&p.ms&&cur[cur.length-1].ms&&p.ms-cur[cur.length-1].ms>15*60000){travelAddSegment(out,cur);cur=[]}
+      cur.push(p)
+    });
+    travelAddSegment(out,cur)
+  }
+  var byDay={};
+  out.forEach(function(seg){seg.forEach(function(p){var d=travelDateOf(p.time);(byDay[d]||(byDay[d]=[])).push(p)})});
+  return {segments:out,byDay:byDay}
+}
+function travelHaversine(a,b){
+  var R=6371000,toRad=Math.PI/180,dLat=(b.lat-a.lat)*toRad,dLng=(b.lng-a.lng)*toRad;
+  var x=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(a.lat*toRad)*Math.cos(b.lat*toRad)*Math.sin(dLng/2)*Math.sin(dLng/2);
+  return 2*R*Math.atan2(Math.sqrt(x),Math.sqrt(1-x))
+}
+function travelSelectedSegments(){
+  var d=$('travelDate').value;
+  return (travelData&&travelData.byDay&&travelData.byDay[d]||[]).length? [travelData.byDay[d]]:[];
+}
+function travelClearMap(){
+  travelPolylines.forEach(function(p){p.setMap(null)});travelPolylines=[];travelRoadSegments=null
+}
+function travelDraw(segments){
+  if(!travelMap||!window.google||!google.maps)return;
+  travelClearMap();
+  var bounds=new google.maps.LatLngBounds(),count=0,distance=0,minMs=Infinity,maxMs=0;
+  segments.forEach(function(seg){
+    if(seg.length<2)return;
+    var path=seg.map(function(p){var q={lat:p.lat,lng:p.lng};bounds.extend(q);return q});
+    for(var i=1;i<seg.length;i++){distance+=travelHaversine(seg[i-1],seg[i]);count++;if(seg[i].ms){minMs=Math.min(minMs,seg[i].ms);maxMs=Math.max(maxMs,seg[i].ms)}}
+    var poly=new google.maps.Polyline({path:path,geodesic:false,strokeColor:'#4f46e5',strokeOpacity:.88,strokeWeight:2,clickable:false});
+    poly.setMap(travelMap);travelPolylines.push(poly)
+  });
+  if(!bounds.isEmpty())travelMap.fitBounds(bounds);
+  $('travelPointCount').textContent=segments.reduce(function(n,s){return n+s.length},0).toLocaleString();
+  $('travelDistance').textContent=(distance/1000).toFixed(distance<10000?2:1)+' km';
+  $('travelSegments').textContent=segments.filter(function(s){return s.length>1}).length;
+  $('travelDuration').textContent=minMs<Infinity&&maxMs?travelFormatDuration(maxMs-minMs):'—'
+}
+function travelFormatDuration(ms){
+  var mins=Math.max(0,Math.round(ms/60000)),h=Math.floor(mins/60),m=mins%60;
+  return h?h+'h '+m+'m':m+'m'
+}
+function travelPopulateDates(){
+  var dates=Object.keys(travelData.byDay||{}).sort().reverse(),sel=$('travelDate');
+  sel.innerHTML=dates.map(function(d){return '<option value="'+d+'">'+d+'</option>'}).join('');
+  sel.disabled=!dates.length;
+  if(dates.length)sel.value=dates[0];
+}
+async function loadTravelMaps(){
+  var key=String($('travelMapsKey').value||'').trim();
+  if(!key)throw new Error('Enter a Google Maps API key first.');
+  localStorage.setItem('totalRecallGoogleMapsKey_v1',key);
+  if(window.google&&window.google.maps){travelMapsReady=true;return}
+  await new Promise(function(resolve,reject){
+    var s=document.createElement('script');s.async=true;s.defer=true;s.src='https://maps.googleapis.com/maps/api/js?key='+encodeURIComponent(key)+'&loading=async&libraries=geometry';
+    s.onload=resolve;s.onerror=function(){reject(new Error('Google Maps could not be loaded. Check the API key, Maps JavaScript API, referrer restriction and billing settings.'))};
+    document.head.appendChild(s)
+  });
+  if(!window.google||!window.google.maps)throw new Error('Google Maps loaded but is unavailable.');
+  travelMapsReady=true
+}
+async function travelEnsureMap(){
+  await loadTravelMaps();
+  if(!travelMap){
+    var first=(travelData&&travelData.segments&&travelData.segments[0]&&travelData.segments[0][0])||{lat:0,lng:0};
+    travelMap=new google.maps.Map($('travelMap'),{center:{lat:first.lat,lng:first.lng},zoom:12,mapTypeControl:true,streetViewControl:false,fullscreenControl:true});
+  }
+}
+async function travelSnapToRoads(segments,key){
+  var all=[];
+  for(var si=0;si<segments.length;si++){
+    var seg=segments[si];if(seg.length<2){all.push(seg);continue}
+    var snapped=[];
+    for(var start=0;start<seg.length;start+=95){
+      var from=start?Math.max(0,start-5):0,to=Math.min(seg.length,from+100),chunk=seg.slice(from,to);
+      if(chunk.length<2){snapped.push.apply(snapped,chunk);continue}
+      var path=chunk.map(function(p){return p.lat.toFixed(7)+','+p.lng.toFixed(7)}).join('|');
+      var u='https://roads.googleapis.com/v1/snapToRoads?interpolate=true&path='+encodeURIComponent(path)+'&key='+encodeURIComponent(key);
+      var r=await fetch(u);if(!r.ok)throw new Error('Google Roads API returned HTTP '+r.status);
+      var d=await r.json();if(d.error)throw new Error(d.error.message||'Google Roads API error');
+      var pts=(d.snappedPoints||[]).map(function(x){return {lat:Number(x.location.latitude),lng:Number(x.location.longitude)}});
+      if(start)pts=pts.slice(Math.min(6,pts.length));snapped.push.apply(snapped,pts)
+    }
+    all.push(snapped)
+  }
+  return all
+}
+async function travelRender(){
+  if(!travelData)return;
+  await travelEnsureMap();
+  var segments=travelSelectedSegments();
+  if($('travelMode').value==='roads'){
+    var key=String($('travelMapsKey').value||'').trim();if(!key)throw new Error('Enter your Google Maps API key to use road-following mode.');
+    $('travelStatus').textContent='Snapping recorded points to roads…';
+    var road=await travelSnapToRoads(segments,key);travelRoadSegments=road;travelDraw(road);$('travelStatus').textContent='Road-following path displayed.';
+  }else{travelDraw(segments);$('travelStatus').textContent='Recorded GPS path displayed.'}
+}
+function travelReadFile(file){
+  var rd=new FileReader();rd.onload=function(){
+    try{
+      var data=JSON.parse(String(rd.result));travelData=parseTravelTimeline(data);
+      if(!travelData.segments.length)throw new Error('No usable Timeline path points were found in this JSON.');
+      travelPopulateDates();$('travelMode').disabled=false;$('travelFit').disabled=false;$('travelClear').disabled=false;
+      $('travelStatus').textContent='Loaded '+travelData.segments.length+' path segment'+(travelData.segments.length===1?'':'s')+'.';
+      travelRender().catch(function(e){$('travelStatus').textContent='Map not ready: '+e.message});
+    }catch(e){$('travelStatus').textContent='Could not read Timeline JSON: '+e.message}
+  };rd.readAsText(file)
+}
+function travelClearData(){
+  travelData=null;$('travelDate').innerHTML='<option>No data</option>';$('travelDate').disabled=true;$('travelMode').disabled=true;$('travelFit').disabled=true;$('travelClear').disabled=true;$('travelPointCount').textContent='0';$('travelDistance').textContent='0 km';$('travelDuration').textContent='—';$('travelSegments').textContent='0';$('travelStatus').textContent='No Timeline data loaded.';travelClearMap()
+}
+$('startTravelTrace').addEventListener('click',function(){hide('home');hide('session');hide('completedSession');hide('done');show('travelSession');var k=localStorage.getItem('totalRecallGoogleMapsKey_v1')||'';$('travelMapsKey').value=k});
+$('travelHomeBtn').addEventListener('click',function(){hide('travelSession');show('home')});
+$('travelFile').addEventListener('change',function(e){var f=e.target.files[0];if(f)travelReadFile(f);e.target.value=''});
+$('travelLoadMap').addEventListener('click',function(){travelEnsureMap().then(function(){if(travelData)travelRender()}).catch(function(e){$('travelStatus').textContent=e.message})});
+$('travelDate').addEventListener('change',function(){travelRender().catch(function(e){$('travelStatus').textContent=e.message})});
+$('travelMode').addEventListener('change',function(){travelRender().catch(function(e){$('travelStatus').textContent=e.message})});
+$('travelFit').addEventListener('click',function(){if(travelMap)travelRender().catch(function(){})});
+$('travelClear').addEventListener('click',travelClearData);
+
 })();
 </script></body></html>
