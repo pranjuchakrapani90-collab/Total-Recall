@@ -7,13 +7,13 @@
 <section id="home"><div class="systems"><div class="panel"><h2>Responsibility Recall</h2><p class="muted">Refresh TickTick, then choose a responsibility tag to review today's actual tasks.</p><button id="startResp">Refresh TickTick & Start Recall</button><div id="tickStatus" class="smart">TickTick tasks are loaded dynamically when you start.</div><div id="responsibilityTags" class="row" style="margin-top:10px"></div></div>
 <div class="panel"><h2>Completed Task Review</h2><p class="muted">Review what you actually completed over a selected period. Repeated daily entries are grouped into one unique task and their completion dates are shown together.</p><div class="row"><label>Period <select id="completedPeriod" style="width:210px"></select></label><button id="reviewCompletedBtn" class="secondary">Review completed tasks</button></div><div id="completedStatus" class="smart hidden"></div><div id="completedResults" style="margin-top:12px"></div></div>
 <div class="panel dashboard-card" style="background:linear-gradient(135deg,#ecfeff,#f0fdfa);border:1px solid #b6e3e3"><div class="row" style="justify-content:space-between"><div><h2 style="margin:0 0 6px">📚 Reference Review</h2><p class="muted" style="margin:0">Review items from your TickTick <b>Reference</b> section tag-wise — SDE Rev, SDE Tech, SDE Estt and other tags.</p></div><button id="startReference">Open Reference Review →</button></div><div id="referenceStatus" class="smart">Reference items are loaded from TickTick when you start.</div><div id="referenceTags" class="row" style="margin-top:10px"></div></div>
-<div class="panel dashboard-card" style="background:linear-gradient(135deg,#eff6ff,#f5f3ff);border:1px solid #c7d2fe"><div class="row" style="justify-content:space-between"><div><h2 style="margin:0 0 6px">🗺️ Travel Trace</h2><p class="muted" style="margin:0">Trace your recorded Google Maps Timeline path on a thin Google Maps line — using the actual exported GPS points.</p></div><button id="startTravelTrace">Open Travel Trace →</button></div><div class="smart">Your Timeline JSON is processed in this browser. It is not uploaded to the Total Recall Worker.</div></div><div class="panel"><h2>People Recall</h2><p class="muted">Unrecalled names are always prioritised. After the first pass, smart spaced re-recall begins.</p><div class="row"><label>Names per session <input id="count" type="number" value="10" min="1" style="width:80px"></label><button id="startPeople">Start People Recall</button><button id="manageBtn" class="secondary">Manage names</button><button id="syncBtn" class="secondary">☁ Sync devices</button><span id="syncStatus" class="muted">Device sync is local until enabled.</span></div>
+<div class="panel dashboard-card" style="background:linear-gradient(135deg,#eff6ff,#f5f3ff);border:1px solid #c7d2fe"><div class="row" style="justify-content:space-between"><div><h2 style="margin:0 0 6px">🗺️ Travel Trace</h2><p class="muted" style="margin:0">Trace your recorded Google Maps Timeline path on a thin Google Maps line — using the actual exported GPS points.</p></div><button id="startTravelTrace">Open Travel Trace →</button></div><div class="smart">Your GPX file is processed in this browser. It is not uploaded to the Total Recall Worker.</div></div><div class="panel"><h2>People Recall</h2><p class="muted">Unrecalled names are always prioritised. After the first pass, smart spaced re-recall begins.</p><div class="row"><label>Names per session <input id="count" type="number" value="10" min="1" style="width:80px"></label><button id="startPeople">Start People Recall</button><button id="manageBtn" class="secondary">Manage names</button><button id="syncBtn" class="secondary">☁ Sync devices</button><span id="syncStatus" class="muted">Device sync is local until enabled.</span></div>
 <div class="stats"><div class="stat"><b id="total">0</b><span>Total unique names</span></div><div class="stat"><b id="recalled">0</b><span>Unique names recalled</span></div><div class="stat"><b id="remaining">0</b><span>Still to recall</span></div></div><div id="roundPlan" class="smart"></div><div id="smartPlan" class="smart"></div>
 <div id="tools" class="hidden manage"><b>Upload CSV / TXT</b><input id="file" type="file" accept=".csv,.txt"><br><b>Or paste names</b><textarea id="paste" placeholder="One name per line"></textarea><button id="pasteBtn" class="secondary">Add pasted names</button><div id="columnBox" class="hidden"><p><b>Which column contains the names?</b></p><select id="column"></select><button id="importBtn">Import selected column</button><div id="preview"></div></div><div id="peopleList"></div></div>
 </div></div</div></section></section>
 <section id="session" class="hidden"><div class="panel"><div class="row" style="justify-content:space-between"><button id="homeBtn" class="secondary small">← Dashboard</button><span id="progress" class="muted"></span></div><div id="flash" class="flash" style="margin-top:15px"><div class="flashInner"><div class="flashFace flashFront"><span id="source" class="source hidden"></span><div id="counter" class="counter"></div><div id="card" class="name"></div><div id="hint" class="hint"></div></div><div class="flashFace flashBack"><div id="taskReveal" class="taskReveal hidden"></div><div class="flashBackHint">Click to flip back</div></div></div></div><button id="deleteBtn" class="danger small hidden" style="margin-top:10px">Delete this name</button><div class="row" style="justify-content:space-between;margin-top:18px"><button id="back" class="secondary">← Back</button><button id="next">Next →</button></div></div></section>
 <section id="completedSession" class="hidden"><div class="panel"><div class="row" style="justify-content:space-between"><button id="completedHomeBtn" class="secondary small">← Dashboard</button><span id="completedProgress" class="muted"></span></div><div id="completedFlash" class="flash" style="margin-top:15px"><div class="flashInner"><div class="flashFace flashFront"><div id="completedCounter" class="counter"></div><div id="completedCard" class="name"></div><div id="completedHint" class="hint"></div></div><div class="flashFace flashBack"><div id="completedTaskReveal" class="taskReveal hidden"></div><div class="flashBackHint">Click to flip back</div></div></div></div><button id="completedDeleteBtn" class="danger small" style="margin-top:10px">Delete this task</button><div class="row" style="justify-content:space-between;margin-top:18px"><button id="completedBack" class="secondary">← Back</button><button id="completedNext">Next →</button></div></div></section>
-<section id="travelSession" class="hidden"><div class="panel"><div class="row" style="justify-content:space-between"><button id="travelHomeBtn" class="secondary small">← Dashboard</button><span id="travelStatus" class="muted">No Timeline data loaded.</span></div><h2 style="margin-top:18px">🗺️ Travel Trace</h2><p class="muted">Import your Google Maps Timeline export. The default view uses the recorded path points as-is, so Total Recall does not invent a route between sparse points.</p><div class="travelControls"><div class="travelControl"><label for="travelMapsKey">Google Maps API key</label><input id="travelMapsKey" type="password" placeholder="Paste your browser-restricted Maps API key"></div><div class="travelControl"><label for="travelFile">Timeline JSON</label><input id="travelFile" type="file" accept=".json,application/json"></div><div class="travelControl"><label for="travelDate">Day</label><select id="travelDate" disabled><option>No data</option></select></div><div class="travelControl"><label for="travelMode">Path display</label><select id="travelMode" disabled><option value="raw">Recorded GPS — exact</option><option value="roads">Follow roads — Google Roads</option></select></div></div><div class="row" style="margin-top:10px"><button id="travelLoadMap">Load Google Map</button><button id="travelFit" class="secondary" disabled>Fit path</button><button id="travelIdentify" class="secondary" disabled>Identify places</button><button id="travelClear" class="secondary" disabled>Clear data</button></div><div id="travelKeyHint" class="travelNote">Google Maps JavaScript API requires an API key. Restrict the key to your GitHub Pages domain. Road-following uses Google Roads API to interpolate the road between nearby GPS points. Large GPS gaps are deliberately left unconnected rather than inventing a route.</div><div class="travelStats"><div class="travelStat"><b id="travelPointCount">0</b><span>GPS points</span></div><div class="travelStat"><b id="travelDistance">0 km</b><span>Recorded distance</span></div><div class="travelStat"><b id="travelDuration">—</b><span>Recorded span</span></div><div class="travelStat"><b id="travelSegments">0</b><span>Path segments</span></div></div><div id="travelMap" class="travelMap"></div><div id="travelGapNote" class="travelGapNote hidden"></div><div class="travelLegend"><span><i class="legendDot" style="background:#ef4444"></i>Recorded GPS point</span><span><i class="legendLine"></i>Road trace</span><span><i class="legendGap"></i>Uncertain gap</span></div><div class="travelNote">Accuracy rule: raw mode keeps the Timeline coordinates and only connects consecutive recorded points within each Timeline path. Large time gaps are kept as separate segments instead of drawing a long artificial straight line.</div><div class="travelJourney" id="travelJourney"><div class="travelJourneyHead"><h3>🧭 Journey</h3><div class="muted">Relive the day chronologically — where you started, where you went next, and the time of each movement or stop.</div></div><div id="travelJourneyList" class="travelJourneyList"><div class="journeyEmpty">Load a Timeline day to see your journey.</div></div></div></div></section><section id="done" class="hidden"><div class="panel" style="text-align:center"><h2>🎉 Session complete</h2><p id="doneText" class="muted"></p><button id="doneHome">Dashboard</button></div></section>
+<section id="travelSession" class="hidden"><div class="panel"><div class="row" style="justify-content:space-between"><button id="travelHomeBtn" class="secondary small">← Dashboard</button><span id="travelStatus" class="muted">No GPX data loaded.</span></div><h2 style="margin-top:18px">🗺️ Travel Trace</h2><p class="muted">Import a GPX track exported from GPS Logger. The default view uses the recorded path points as-is, so Total Recall does not invent a route between sparse points.</p><div class="travelControls"><div class="travelControl"><label for="travelMapsKey">Google Maps API key</label><input id="travelMapsKey" type="password" placeholder="Paste your browser-restricted Maps API key"></div><div class="travelControl"><label for="travelFile">GPX file</label><input id="travelFile" type="file" accept=".gpx,application/gpx+xml,.xml,text/xml"></div><div class="travelControl"><label for="travelDate">Day</label><select id="travelDate" disabled><option>No data</option></select></div><div class="travelControl"><label for="travelMode">Path display</label><select id="travelMode" disabled><option value="raw">Recorded GPS — exact</option><option value="roads">Follow roads — Google Roads</option></select></div></div><div class="row" style="margin-top:10px"><button id="travelLoadMap">Load Google Map</button><button id="travelFit" class="secondary" disabled>Fit path</button><button id="travelIdentify" class="secondary" disabled>Identify places</button><button id="travelClear" class="secondary" disabled>Clear data</button></div><div id="travelKeyHint" class="travelNote">Google Maps JavaScript API requires an API key. Restrict the key to your GitHub Pages domain. Road-following uses Google Roads API to interpolate the road between nearby GPS points. Large GPS gaps are deliberately left unconnected rather than inventing a route.</div><div class="travelStats"><div class="travelStat"><b id="travelPointCount">0</b><span>GPS points</span></div><div class="travelStat"><b id="travelDistance">0 km</b><span>Recorded distance</span></div><div class="travelStat"><b id="travelDuration">—</b><span>Recorded span</span></div><div class="travelStat"><b id="travelSegments">0</b><span>Path segments</span></div></div><div id="travelMap" class="travelMap"></div><div id="travelGapNote" class="travelGapNote hidden"></div><div class="travelLegend"><span><i class="legendDot" style="background:#ef4444"></i>Recorded GPS point</span><span><i class="legendLine"></i>Road trace</span><span><i class="legendGap"></i>Uncertain gap</span></div><div class="travelNote">Accuracy rule: raw mode keeps the Timeline coordinates and only connects consecutive recorded points within each Timeline path. Large time gaps are kept as separate segments instead of drawing a long artificial straight line.</div><div class="travelJourney" id="travelJourney"><div class="travelJourneyHead"><h3>🧭 Journey</h3><div class="muted">Relive the day chronologically — where you started, where you went next, and the time of each movement or stop.</div></div><div id="travelJourneyList" class="travelJourneyList"><div class="journeyEmpty">Load a GPX day to see your journey.</div></div></div></div></section><section id="done" class="hidden"><div class="panel" style="text-align:center"><h2>🎉 Session complete</h2><p id="doneText" class="muted"></p><button id="doneHome">Dashboard</button></div></section>
 </main><div id="bootError" class="error hidden"></div>
 <script>
 (function(){'use strict';
@@ -260,83 +260,49 @@ function travelAddSegment(out,pts){
   clean.sort(function(a,b){return (a.ms||0)-(b.ms||0)});
   out.push(clean)
 }
-function parseTravelTimeline(data){
-  var out=[],locations=[],journey=[];
-  function coord(x){
-    if(!x)return null;
-    var q=travelPointFromString(x.point||x.geo||'');
-    if(!q&&x.latitudeE7!==undefined)q={lat:Number(x.latitudeE7)/1e7,lng:Number(x.longitudeE7)/1e7};
-    if(!q&&x.latitude!==undefined&&x.longitude!==undefined)q={lat:Number(x.latitude),lng:Number(x.longitude)};
-    return q&&isFinite(q.lat)&&isFinite(q.lng)&&Math.abs(q.lat)<=90&&Math.abs(q.lng)<=180?q:null
+function parseTravelGPX(text){
+  var out=[],journey=[];
+  var xml=new DOMParser().parseFromString(String(text||''),'application/xml');
+  if(xml.querySelector('parsererror'))throw new Error('Invalid GPX XML.');
+  var tracks=Array.from(xml.querySelectorAll('trk'));
+  if(!tracks.length)throw new Error('No GPX track was found.');
+  function addSegment(points){
+    if(points.length>1)travelAddSegment(out,points);
+    else if(points.length===1)out.push(points);
   }
-  function addLoc(o){
-    var q=coord(o),tm=travelTime(o&& (o.timestamp||o.timestampMs||o.time));
-    if(q)locations.push({lat:q.lat,lng:q.lng,time:tm,ms:tm?new Date(tm).getTime():0})
-  }
-  function addJourney(type,startPoint,endPoint,startTime,endTime,label){
-    var a=coord(startPoint),b=coord(endPoint);if(!a&&!b)return;
-    journey.push({type:type||'Journey',start:a,end:b,startTime:travelTime(startTime),endTime:travelTime(endTime),label:label||''})
-  }
-  function addPath(path,startTime){
-    if(!Array.isArray(path))return;
-    var pts=path.map(function(p){
-      var q=coord(p);if(!q)return null;
-      var tm=p&&p.time?travelTime(p.time):null;
-      if(!tm&&p&&p.durationMinutesOffsetFromStartTime!==undefined&&startTime){
-        var base=new Date(startTime),mins=Number(p.durationMinutesOffsetFromStartTime);
-        if(!isNaN(base.getTime())&&isFinite(mins))tm=new Date(base.getTime()+mins*60000).toISOString()
+  tracks.forEach(function(trk,trackIndex){
+    var segs=Array.from(trk.querySelectorAll(':scope > trkseg'));
+    if(!segs.length)segs=[trk];
+    segs.forEach(function(seg,segIndex){
+      var pts=Array.from(seg.querySelectorAll(':scope > trkpt')).map(function(node){
+        var lat=Number(node.getAttribute('lat')),lng=Number(node.getAttribute('lon'));
+        var tnode=node.querySelector(':scope > time'),time=tnode?travelTime(tnode.textContent.trim()):null;
+        if(!isFinite(lat)||!isFinite(lng)||Math.abs(lat)>90||Math.abs(lng)>180)return null;
+        return {lat:lat,lng:lng,time:time,ms:time?new Date(time).getTime():0};
+      }).filter(Boolean);
+      if(!pts.length)return;
+      var cur=[];
+      pts.forEach(function(p){
+        if(cur.length&&p.ms&&cur[cur.length-1].ms&&p.ms-cur[cur.length-1].ms>15*60000){
+          addSegment(cur);cur=[];
+        }
+        cur.push(p);
+      });
+      addSegment(cur);
+      if(pts.length>1){
+        journey.push({type:'Travel',start:pts[0],end:pts[pts.length-1],startTime:pts[0].time,endTime:pts[pts.length-1].time,label:trk.getElementsByTagName('name')[0]?.textContent?.trim()||'Recorded GPS path'});
       }
-      return {lat:q.lat,lng:q.lng,time:tm,ms:tm?new Date(tm).getTime():0}
-    }).filter(Boolean);
-    travelAddSegment(out,pts)
-  }
-  var root=Array.isArray(data)?{items:data}:data||{};
-  if(Array.isArray(root.locations))root.locations.forEach(addLoc);
-  var items=Array.isArray(root)?root:(Array.isArray(root.items)?root.items:(Array.isArray(root.timelineObjects)?root.timelineObjects:(Array.isArray(root.semanticSegments)?root.semanticSegments:[])));
-  items.forEach(function(item){
-    if(item&&Array.isArray(item.timelinePath))addPath(item.timelinePath,item.startTime);
-    if(item&&item.activitySegment){
-      var a=item.activitySegment;
-      if(Array.isArray(a.timelinePath)){
-        addPath(a.timelinePath,a.startTime);
-        addJourney('Travel',a.timelinePath[0],a.timelinePath[a.timelinePath.length-1],a.startTime,a.endTime,a.activityType||'Travel')
-      }else{
-        addJourney('Travel',a.startLocation,a.endLocation,a.startTime,a.endTime,a.activityType||'Travel');
-        var pts=[];[a.startLocation,a.endLocation].forEach(function(x){var q=coord(x);if(q)pts.push({lat:q.lat,lng:q.lng,time:travelTime(a.startTime||a.endTime),ms:a.startTime?new Date(a.startTime).getTime():0})});travelAddSegment(out,pts)
-      }
-    }
-    if(item&&item.activity&&item.activity.start){
-      var a2=item.activity,start=coord(a2.start),endp=coord(a2.end);
-      if(start&&endp){
-        addJourney('Travel',a2.start,a2.end,item.startTime,item.endTime,a2.type||item.activity.type||'Travel');
-        travelAddSegment(out,[{lat:start.lat,lng:start.lng,time:travelTime(item.startTime),ms:item.startTime?new Date(item.startTime).getTime():0},{lat:endp.lat,lng:endp.lng,time:travelTime(item.endTime),ms:item.endTime?new Date(item.endTime).getTime():0}])
-      }
-    }
-    if(item&&item.visit&&item.visit.topCandidate&&item.visit.topCandidate.placeLocation){
-      var v=coord(item.visit.topCandidate.placeLocation),cand=item.visit.topCandidate;
-      if(v){locations.push({lat:v.lat,lng:v.lng,time:travelTime(item.startTime),ms:item.startTime?new Date(item.startTime).getTime():0});addJourney('Stop',v,v,item.startTime,item.endTime,cand.placeName||cand.semanticType||'Place')}
-    }
-  });
-  /* Always retain the raw Timeline location stream when available.
-     This gives the map many real GPS points instead of relying only on
-     semantic/activity segments, which may contain only a few endpoints. */
-  if(locations.length){
-    locations.sort(function(a,b){return a.ms-b.ms});
-    var rawCur=[];
-    locations.forEach(function(p){
-      if(rawCur.length&&p.ms&&rawCur[rawCur.length-1].ms&&p.ms-rawCur[rawCur.length-1].ms>15*60000){
-        travelAddSegment(out,rawCur);rawCur=[];
-      }
-      rawCur.push(p);
     });
-    travelAddSegment(out,rawCur);
-  }
-  if(!journey.length&&out.length)out.forEach(function(seg){if(seg.length>1)journey.push({type:'Travel',start:seg[0],end:seg[seg.length-1],startTime:seg[0].time,endTime:seg[seg.length-1].time,label:'Recorded GPS path'})});
-  journey.sort(function(x,y){return String(x.startTime||'').localeCompare(String(y.startTime||''))});
+  });
+  journey.sort(function(a,b){return String(a.startTime||'').localeCompare(String(b.startTime||''))});
   var byDay={},journeyByDay={};
-  out.forEach(function(seg){var grouped={};seg.forEach(function(p){var d=travelDateOf(p.time);(grouped[d]||(grouped[d]=[])).push(p)});Object.keys(grouped).forEach(function(d){if(grouped[d].length>1)(byDay[d]||(byDay[d]=[])).push(grouped[d])})});
+  out.forEach(function(seg){
+    var grouped={};
+    seg.forEach(function(p){var d=travelDateOf(p.time);(grouped[d]||(grouped[d]=[])).push(p)});
+    Object.keys(grouped).forEach(function(d){if(grouped[d].length>1)(byDay[d]||(byDay[d]=[])).push(grouped[d])});
+  });
   journey.forEach(function(e){var d=travelDateOf(e.startTime||e.endTime);(journeyByDay[d]||(journeyByDay[d]=[])).push(e)});
-  return {segments:out,byDay:byDay,journey:journey,journeyByDay:journeyByDay}
+  return {segments:out,byDay:byDay,journey:journey,journeyByDay:journeyByDay};
 }
 function travelHaversine(a,b){
   var R=6371000,toRad=Math.PI/180,dLat=(b.lat-a.lat)*toRad,dLng=(b.lng-a.lng)*toRad;
@@ -389,7 +355,7 @@ function travelDrawEvidence(rawSegments,roadSegments){
       }
     }
   }
-  if(gaps){$('travelGapNote').classList.remove('hidden');$('travelGapNote').textContent=gaps+' GPS gap'+(gaps===1?'':'s')+' exceed 280 m. These sections are marked as uncertain because the Timeline did not provide enough recorded points to prove the exact road taken.'}
+  if(gaps){$('travelGapNote').classList.remove('hidden');$('travelGapNote').textContent=gaps+' GPS gap'+(gaps===1?'':'s')+' exceed 280 m. These sections are marked as uncertain because the GPX track did not provide enough recorded points to prove the exact road taken.'}
   else{$('travelGapNote').classList.add('hidden');$('travelGapNote').textContent=''}
 }
 function travelFormatDuration(ms){
@@ -476,18 +442,22 @@ async function travelRender(){
   travelRenderJourney();
 }
 function travelReadFile(file){
-  var rd=new FileReader();rd.onload=function(){
+  var rd=new FileReader();
+  rd.onload=function(){
     try{
-      var data=JSON.parse(String(rd.result));travelData=parseTravelTimeline(data);
-      if(!travelData.segments.length)throw new Error('No usable Timeline path points were found in this JSON.');
-      travelPopulateDates();$('travelMode').disabled=false;$('travelFit').disabled=false;$('travelIdentify').disabled=false;$('travelClear').disabled=false;
+      var text=String(rd.result||'');
+      travelData=parseTravelGPX(text);
+      if(!travelData.segments.length)throw new Error('No usable GPS track points were found in this GPX file.');
+      travelPopulateDates();
+      $('travelMode').disabled=false;$('travelFit').disabled=false;$('travelIdentify').disabled=false;$('travelClear').disabled=false;
       $('travelStatus').textContent='Loaded '+travelData.segments.length+' path segment'+(travelData.segments.length===1?'':'s')+'.';
       travelRender().catch(function(e){$('travelStatus').textContent='Map not ready: '+e.message});
-    }catch(e){$('travelStatus').textContent='Could not read Timeline JSON: '+e.message}
-  };rd.readAsText(file)
+    }catch(e){$('travelStatus').textContent='Could not read GPX file: '+e.message}
+  };
+  rd.readAsText(file);
 }
 function travelClearData(){
-  travelData=null;$('travelDate').innerHTML='<option>No data</option>';$('travelDate').disabled=true;$('travelMode').disabled=true;$('travelFit').disabled=true;$('travelIdentify').disabled=true;$('travelClear').disabled=true;$('travelPointCount').textContent='0';$('travelDistance').textContent='0 km';$('travelDuration').textContent='—';$('travelSegments').textContent='0';$('travelStatus').textContent='No Timeline data loaded.';$('travelJourneyList').innerHTML='<div class="journeyEmpty">Load a Timeline day to see your journey.</div>';travelClearMap()
+  travelData=null;$('travelDate').innerHTML='<option>No data</option>';$('travelDate').disabled=true;$('travelMode').disabled=true;$('travelFit').disabled=true;$('travelIdentify').disabled=true;$('travelClear').disabled=true;$('travelPointCount').textContent='0';$('travelDistance').textContent='0 km';$('travelDuration').textContent='—';$('travelSegments').textContent='0';$('travelStatus').textContent='No GPX data loaded.';$('travelJourneyList').innerHTML='<div class="journeyEmpty">Load a GPX day to see your journey.</div>';travelClearMap()
 }
 $('startTravelTrace').addEventListener('click',function(){hide('home');hide('session');hide('completedSession');hide('done');show('travelSession');var k=localStorage.getItem('totalRecallGoogleMapsKey_v1')||'';$('travelMapsKey').value=k});
 $('travelHomeBtn').addEventListener('click',function(){hide('travelSession');show('home')});
