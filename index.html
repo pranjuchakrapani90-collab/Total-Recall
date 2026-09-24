@@ -317,9 +317,19 @@ function parseTravelTimeline(data){
       if(v){locations.push({lat:v.lat,lng:v.lng,time:travelTime(item.startTime),ms:item.startTime?new Date(item.startTime).getTime():0});addJourney('Stop',v,v,item.startTime,item.endTime,cand.placeName||cand.semanticType||'Place')}
     }
   });
-  if(!out.length&&locations.length){
-    locations.sort(function(a,b){return a.ms-b.ms});var cur=[];
-    locations.forEach(function(p){if(cur.length&&p.ms&&cur[cur.length-1].ms&&p.ms-cur[cur.length-1].ms>15*60000){travelAddSegment(out,cur);cur=[]}cur.push(p)});travelAddSegment(out,cur)
+  /* Always retain the raw Timeline location stream when available.
+     This gives the map many real GPS points instead of relying only on
+     semantic/activity segments, which may contain only a few endpoints. */
+  if(locations.length){
+    locations.sort(function(a,b){return a.ms-b.ms});
+    var rawCur=[];
+    locations.forEach(function(p){
+      if(rawCur.length&&p.ms&&rawCur[rawCur.length-1].ms&&p.ms-rawCur[rawCur.length-1].ms>15*60000){
+        travelAddSegment(out,rawCur);rawCur=[];
+      }
+      rawCur.push(p);
+    });
+    travelAddSegment(out,rawCur);
   }
   if(!journey.length&&out.length)out.forEach(function(seg){if(seg.length>1)journey.push({type:'Travel',start:seg[0],end:seg[seg.length-1],startTime:seg[0].time,endTime:seg[seg.length-1].time,label:'Recorded GPS path'})});
   journey.sort(function(x,y){return String(x.startTime||'').localeCompare(String(y.startTime||''))});
