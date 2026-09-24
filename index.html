@@ -247,7 +247,7 @@ var parsed=[],source='Uploaded file';$('file').addEventListener('change',functio
 var travelData=null,travelMap=null,travelPolylines=[],travelRawSegments=[],travelRoadSegments=null,travelMapsReady=false;
 function travelPointFromString(v){
   var s=String(v||'').trim().replace(/^geo:/i,'').replace(/[°]/g,'');
-  var m=s.match(/(-?\\d+(?:\\.\\d+)?)\\s*,\\s*(-?\\d+(?:\\.\\d+)?)/);
+  var m=s.match(/(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/);
   if(!m)return null;
   var lat=Number(m[1]),lng=Number(m[2]);
   return isFinite(lat)&&isFinite(lng)&&Math.abs(lat)<=90&&Math.abs(lng)<=180?{lat:lat,lng:lng}:null
