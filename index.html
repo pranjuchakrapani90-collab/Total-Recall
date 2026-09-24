@@ -303,7 +303,7 @@ function parseTravelTimeline(data){
       }
     }
     if(item&&item.activity&&item.activity.start){
-      var a2=item.activity,start=travelPointFromString(a2.start&&a2.point||'');end=travelPointFromString(a2.end&&a2.point||'');
+      var a2=item.activity;var start=travelPointFromString(a2.start&&a2.point||'');var end=travelPointFromString(a2.end&&a2.point||'');
       if(start&&end)travelAddSegment(out,[{lat:start.lat,lng:start.lng,time:travelTime(item.startTime),ms:item.startTime?new Date(item.startTime).getTime():0},{lat:end.lat,lng:end.lng,time:travelTime(item.endTime),ms:item.endTime?new Date(item.endTime).getTime():0}])
     }
     if(item&&item.visit&&item.visit.topCandidate&&item.visit.topCandidate.placeLocation){
