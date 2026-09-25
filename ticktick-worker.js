@@ -61,6 +61,30 @@ async function memoryExtract(request,env){
 }
 
 
+async function handleTravelFile(request,env){
+  if(!env.SYNC_KV)return new Response(JSON.stringify({error:'Cloud sync is not configured: SYNC_KV binding is missing on the Worker.'}),{status:503,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
+  const code=String(request.headers.get('X-Total-Recall-Sync')||'').trim();
+  if(code.length<8)return new Response(JSON.stringify({error:'A sync code of at least 8 characters is required.'}),{status:400,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
+  const fileId=String(new URL(request.url).searchParams.get('fileId')||'').trim();
+  if(!/^gpx-[a-f0-9]{64}$/.test(fileId))return new Response(JSON.stringify({error:'Invalid travel file id.'}),{status:400,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
+  const hash=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(code));
+  const codeHash=Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  const key='travel-file:'+codeHash+':'+fileId;
+  if(request.method==='GET'){
+    const blob=await env.SYNC_KV.get(key,{cacheTtl:30});
+    if(blob===null)return new Response(JSON.stringify({error:'Travel file not found.'}),{status:404,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
+    return new Response(blob,{status:200,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json','Cache-Control':'no-store'}});
+  }
+  if(request.method==='PUT'){
+    const blob=await request.text();
+    if(!blob)return new Response(JSON.stringify({error:'Encrypted travel file is empty.'}),{status:400,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
+    if(new TextEncoder().encode(blob).byteLength>25*1024*1024)return new Response(JSON.stringify({error:'Travel file exceeds the 25 MiB Workers KV value limit after encryption.'}),{status:413,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
+    await env.SYNC_KV.put(key,blob);
+    return new Response(JSON.stringify({ok:true}),{status:200,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
+  }
+  return new Response(JSON.stringify({error:'Method not allowed'}),{status:405,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
+}
+
 async function handleSync(request,env){
   if(!env.SYNC_KV)return new Response(JSON.stringify({error:'Cloud sync is not configured: SYNC_KV binding is missing on the Worker.'}),{status:503,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
   const code=String(request.headers.get('X-Total-Recall-Sync')||'').trim();
@@ -84,6 +108,7 @@ async function handleSync(request,env){
 export default {async fetch(request,env){const origin=request.headers.get('Origin')||'';if(request.method==='OPTIONS'){const h=corsHeaders(origin);const requested=request.headers.get('Access-Control-Request-Headers');if(requested)h['Access-Control-Allow-Headers']=requested;return new Response(null,{status:204,headers:h});}const url=new URL(request.url);
  if(url.pathname==='/memory-extract'){if(request.method!=='POST')return new Response('Method not allowed',{status:405,headers:corsHeaders(origin)});try{return await memoryExtract(request,env)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.pathname==='/sync'||url.searchParams.get('mode')==='sync'){try{return await handleSync(request,env)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
+ if(url.searchParams.get('mode')==='travel-file'){try{return await handleTravelFile(request,env)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(request.method!=='GET')return new Response('Method not allowed',{status:405,headers:corsHeaders(origin)});
  if(url.pathname!=='/'&&url.pathname!=='/responsibility-tasks'&&url.pathname!=='/completed-tasks'&&url.pathname!=='/task-detail')return new Response('Not found',{status:404,headers:corsHeaders(origin)});
  if(!env.TICKTICK_ACCESS_TOKEN)return new Response(JSON.stringify({error:'TICKTICK_ACCESS_TOKEN secret is not configured'}),{status:500,headers:{...corsHeaders(origin),'Content-Type':'application/json'}});
