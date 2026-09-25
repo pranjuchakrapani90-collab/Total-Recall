@@ -1,33 +1,33 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#4f46e5"><link rel="manifest" href="manifest.webmanifest"><title>Total Recall</title><!-- TR_BUILD_2026-09-22_FORMAT_DEPLOY --><style>
 :root{--bg:#f4f7fb;--text:#172033;--muted:#697386;--accent:#4f46e5;--border:#e5e7eb}*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--text)}header{background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;padding:22px 18px}.container{max-width:1000px;margin:24px auto;padding:0 15px}.systems{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:stretch}.dashboard-card{min-width:0}.panel{background:#fff;border:1px solid var(--border);border-radius:18px;padding:20px;margin-bottom:16px;box-shadow:0 5px 18px #141e3710}.hidden{display:none!important}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}button{border:0;border-radius:10px;padding:11px 15px;background:var(--accent);color:#fff;font:inherit;font-weight:650;cursor:pointer}.secondary{background:#eef0ff;color:#3730a3}.danger{background:#fee2e2;color:#991b1b}.small{padding:7px 10px;font-size:13px}input,textarea,select{width:100%;padding:12px;border:1px solid var(--border);border-radius:10px;font:inherit}textarea{min-height:120px}.muted,.hint{color:var(--muted);font-size:14px}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px}.stat,.smart{padding:14px;border:1px solid var(--border);border-radius:12px;background:#fafaff}.stat b{display:block;font-size:25px}.stat span{font-size:12px;color:var(--muted)}.smart{margin-top:10px;background:#f5f3ff;color:#4c1d95;font-size:13px}.flash{height:min(400px,calc(100vh - 160px));min-height:320px;border:2px solid #e1e0ff;border-radius:20px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:25px;background:#fcfcff;cursor:pointer;position:relative;perspective:1200px;overflow:visible;box-sizing:border-box}.flashInner{width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform .5s ease}.flash.flipped .flashInner{transform:rotateY(180deg)}.flashFace{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;border-radius:16px;overflow:hidden}.flashBack{transform:rotateY(180deg);background:#fff;text-align:left;align-items:stretch;justify-content:flex-start;overflow:hidden;padding:0}.flashBack .taskReveal{width:100%;height:calc(100% - 36px);margin:0;border:0;box-shadow:none;border-radius:0;overflow:auto}.flashBack .taskReveal .taskBody{padding:14px 16px}.flashBackHint{font-size:12px;color:var(--muted);padding:10px 14px;border-top:1px solid #eceef1;background:#fafbfc;text-align:center;flex:0 0 36px;box-sizing:border-box}.flashBack .taskReveal.hidden{display:block!important;min-height:100%;visibility:hidden}.name{font-size:clamp(30px,8vw,58px);font-weight:750}.counter{font-size:13px;color:var(--muted);margin-bottom:14px}.source{position:absolute;top:12px;right:12px;max-width:48%;font-size:11px;color:#3730a3;background:#eef0ff;border:1px solid #d9d8ff;border-radius:999px;padding:5px 9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.history{border-left:3px solid var(--accent);padding:10px 13px;margin:9px 0;background:#fafaff}.notice{padding:10px 13px;background:#ecfdf5;color:#065f46;border-radius:9px;margin-top:12px}.warning{padding:12px 14px;background:#fff7ed;color:#9a3412;border-radius:10px;margin-top:12px}.person{padding:10px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;gap:10px}.completedItem{padding:12px 0;border-bottom:1px solid var(--border)}.completedItem:last-child{border-bottom:0}.completedMeta{color:var(--muted);font-size:13px;margin-top:4px}.taskReveal{margin-top:12px;padding:0;border:1px solid #dfe3e8;border-radius:16px;background:#fff;overflow:hidden;box-shadow:0 2px 10px #141e3708}.taskHead{padding:16px 16px 12px;border-bottom:1px solid #eceef1}.taskHead h4{margin:0 0 7px;font-size:18px;line-height:1.35}.taskOpenLink{display:inline-flex;align-items:center;padding:6px 9px;border:1px solid #c7d2fe;border-radius:8px;background:#eef2ff;color:#3730a3;text-decoration:none;font-size:12px;font-weight:700;white-space:nowrap}.taskOpenLink:hover{background:#e0e7ff}.taskMeta{display:flex;flex-wrap:wrap;gap:6px;font-size:12px;color:var(--muted)}.taskPill{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;background:#f1f3f5}.taskBody{padding:14px 16px}.taskContent{line-height:1.55;font-size:15px}.taskContent p{margin:0 0 18px}.taskContent p:last-child{margin-bottom:0}.taskContent ul{margin:0 0 18px;padding-left:24px}.taskContent li{margin:0 0 12px;padding-left:2px}.taskContent .tickList{margin:0 0 14px;padding-left:24px}.taskContent .tickList li{margin:0 0 10px}.taskContent li:last-child{margin-bottom:0}.taskContent hr{border:0;border-top:2px solid #e5e7eb;margin:18px 0}.taskContent blockquote{margin:12px 0 18px;padding:8px 12px;border-left:3px solid #c7d2fe;background:#f8f8ff}.taskContent .contentAttachment{margin:10px 0 18px}.taskContent a{color:#4f46e5;text-decoration:none}.taskContent a:hover{text-decoration:underline}.taskContent img{max-width:100%;height:auto;border-radius:10px}.taskSection{padding:0 16px 14px}.taskSectionTitle{font-size:13px;font-weight:700;color:#4b5563;margin-bottom:7px}.taskSubtask,.taskAttachment,.taskComment{padding:10px 11px;border:1px solid #eceef1;border-radius:10px;margin-top:7px;font-size:14px;background:#fafbfc}.taskSubtask.done{text-decoration:line-through;color:#8a929e;background:#f6f7f8}.taskAttachment{display:flex;align-items:center;gap:10px;background:#eef8f0;border-color:#d9eedc}.taskAttachmentIcon{width:32px;height:32px;border-radius:7px;background:#43a047;color:#fff;display:grid;place-items:center;font-weight:800;font-size:16px;flex:0 0 auto}.taskAttachmentName{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.taskAttachmentSize{font-size:12px;color:#8a929e;margin-top:2px}.taskComment{background:#fff}.taskComment small{color:var(--muted);display:block;margin-top:4px}.taskEmpty{color:var(--muted);font-size:13px;padding:2px 0}.taskFooter{padding:10px 16px;border-top:1px solid #eceef1;background:#fafbfc;font-size:12px;color:var(--muted)}.error{position:fixed;inset:0;background:#fff;padding:30px;z-index:9999;color:#991b1b;font-family:monospace;white-space:pre-wrap}.manage{margin-top:15px}@media(max-width:700px){.systems{grid-template-columns:1fr}.stats{grid-template-columns:1fr}}
-.travelMap{height:62vh;min-height:420px;border:1px solid #dfe3e8;border-radius:16px;overflow:hidden;background:#eef2f7}.travelControls{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:end}.travelControl label{display:block;font-size:12px;font-weight:700;color:#4b5563;margin-bottom:5px}.travelStats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0}.travelStat{padding:10px 12px;border:1px solid #e5e7eb;border-radius:12px;background:#fafbff}.travelStat b{display:block;font-size:18px}.travelStat span{font-size:11px;color:var(--muted)}.travelNote{padding:10px 12px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;font-size:12px;color:#64748b;margin-top:10px}.travelJourney{margin-top:14px;border:1px solid #e5e7eb;border-radius:16px;background:#fff;overflow:hidden}.travelJourneyHead{padding:14px 16px;border-bottom:1px solid #eceef1}.travelJourneyHead h3{margin:0 0 4px;font-size:17px}.travelJourneyList{padding:6px 10px}.journeyItem{display:grid;grid-template-columns:82px 1fr auto;gap:10px;align-items:start;padding:12px 8px;border-bottom:1px solid #eef0f2}.journeyItem:last-child{border-bottom:0}.journeyTime{font-size:12px;font-weight:750;color:#3730a3;line-height:1.35}.journeyDot{width:9px;height:9px;border-radius:50%;background:#4f46e5;display:inline-block;margin-right:6px}.journeyType{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#64748b;font-weight:700;margin-bottom:3px}.journeyPlace{font-weight:700;line-height:1.35}.journeyMeta{font-size:12px;color:#64748b;margin-top:3px;line-height:1.4}.journeyActions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}.journeyActions button,.journeyActions a{padding:6px 8px;border:1px solid #c7d2fe;border-radius:8px;background:#eef2ff;color:#3730a3;text-decoration:none;font:inherit;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap}.journeyEmpty{padding:16px;color:#64748b;font-size:13px}.travelGapNote{padding:10px 12px;margin:10px 0;border:1px solid #f1d8a8;border-radius:10px;background:#fffaf0;color:#7c5a16;font-size:12px}.travelLegend{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;font-size:12px;color:#64748b}.travelLegend span{display:inline-flex;align-items:center;gap:6px}.legendDot{width:8px;height:8px;border-radius:50%;display:inline-block}.legendLine{width:22px;height:2px;display:inline-block;background:#4f46e5}.legendGap{width:22px;height:0;border-top:2px dashed #d97706}@media(max-width:700px){.journeyItem{grid-template-columns:64px 1fr}.journeyActions{grid-column:2;justify-content:flex-start}}@media(max-width:700px){.travelControls{grid-template-columns:1fr 1fr}.travelStats{grid-template-columns:1fr 1fr}.travelMap{height:55vh;min-height:360px}}.travelPlayback{margin:12px 0;padding:12px;border:1px solid #e5e7eb;border-radius:14px;background:#fafbff}.travelPlaybackRow{display:flex;gap:9px;align-items:center;flex-wrap:wrap}.travelPlaybackRow button{min-width:82px}.travelPlaybackTime{font-weight:750;color:#3730a3;min-width:150px}.travelPlayback input[type=range]{flex:1;min-width:180px}.travelPlayback select{width:auto;min-width:80px}.travelPlaybackHint{font-size:12px;color:#64748b;margin-top:7px}.travelReplayMarker{font-size:12px}</style></head><body>
+.travelMap{height:62vh;min-height:420px;border:1px solid #dfe3e8;border-radius:16px;overflow:hidden;background:#eef2f7}.travelControls{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:end}.travelControl label{display:block;font-size:12px;font-weight:700;color:#4b5563;margin-bottom:5px}.travelStats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0}.travelStat{padding:10px 12px;border:1px solid #e5e7eb;border-radius:12px;background:#fafbff}.travelStat b{display:block;font-size:18px}.travelStat span{font-size:11px;color:var(--muted)}.travelNote{padding:10px 12px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;font-size:12px;color:#64748b;margin-top:10px}.travelJourney{margin-top:14px;border:1px solid #e5e7eb;border-radius:16px;background:#fff;overflow:hidden}.travelJourneyHead{padding:14px 16px;border-bottom:1px solid #eceef1}.travelJourneyHead h3{margin:0 0 4px;font-size:17px}.travelJourneyList{padding:6px 10px}.journeyItem{display:grid;grid-template-columns:82px 1fr auto;gap:10px;align-items:start;padding:12px 8px;border-bottom:1px solid #eef0f2}.journeyItem:last-child{border-bottom:0}.journeyTime{font-size:12px;font-weight:750;color:#3730a3;line-height:1.35}.journeyDot{width:9px;height:9px;border-radius:50%;background:#4f46e5;display:inline-block;margin-right:6px}.journeyType{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#64748b;font-weight:700;margin-bottom:3px}.journeyPlace{font-weight:700;line-height:1.35}.journeyMeta{font-size:12px;color:#64748b;margin-top:3px;line-height:1.4}.journeyActions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}.journeyActions button,.journeyActions a{padding:6px 8px;border:1px solid #c7d2fe;border-radius:8px;background:#eef2ff;color:#3730a3;text-decoration:none;font:inherit;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap}.journeyEmpty{padding:16px;color:#64748b;font-size:13px}.travelGapNote{padding:10px 12px;margin:10px 0;border:1px solid #f1d8a8;border-radius:10px;background:#fffaf0;color:#7c5a16;font-size:12px}.travelLegend{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;font-size:12px;color:#64748b}.travelLegend span{display:inline-flex;align-items:center;gap:6px}.legendDot{width:8px;height:8px;border-radius:50%;display:inline-block}.legendLine{width:22px;height:2px;display:inline-block;background:#4f46e5}.legendGap{width:22px;height:0;border-top:2px dashed #d97706}@media(max-width:700px){.journeyItem{grid-template-columns:64px 1fr}.journeyActions{grid-column:2;justify-content:flex-start}}@media(max-width:700px){.travelControls{grid-template-columns:1fr 1fr}.travelStats{grid-template-columns:1fr 1fr}.travelMap{height:55vh;min-height:360px}}.travelPlayback{margin:12px 0;padding:12px;border:1px solid #e5e7eb;border-radius:14px;background:#fafbff}.travelPlaybackRow{display:flex;gap:9px;align-items:center;flex-wrap:wrap}.travelPlaybackRow button{min-width:82px}.travelPlaybackTime{font-weight:750;color:#3730a3;min-width:150px}.travelPlayback input[type=range]{flex:1;min-width:180px}.travelPlayback select{width:auto;min-width:80px}.travelPlaybackHint{font-size:12px;color:#64748b;margin-top:7px}.travelSyncBox{display:flex;align-items:center;gap:8px;min-height:44px}.travelSyncBox .muted{font-size:11px}.travelFilesForDate{margin-top:10px;padding:10px 12px;border:1px solid #e5e7eb;border-radius:12px;background:#fafbff}.travelFileItem{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:8px 2px;border-bottom:1px solid #eceef1;font-size:13px}.travelFileItem:last-child{border-bottom:0}.travelFileMeta{color:#64748b;font-size:11px;margin-top:2px}.travelFileBadge{font-size:10px;font-weight:700;padding:4px 7px;border-radius:999px;background:#ecfdf5;color:#047857;white-space:nowrap}.travelFileBadge.local{background:#fff7ed;color:#9a3412}.travelReplayMarker{font-size:12px}</style></head><body>
 <header><h1>Total Recall</h1><p>Recall people and responsibilities, one flashcard at a time.</p></header>
 <main class="container">
 <section id="home"><div class="systems"><div class="panel"><h2>Responsibility Recall</h2><p class="muted">Refresh TickTick, then choose a responsibility tag to review today's actual tasks.</p><button id="startResp">Refresh TickTick & Start Recall</button><div id="tickStatus" class="smart">TickTick tasks are loaded dynamically when you start.</div><div id="responsibilityTags" class="row" style="margin-top:10px"></div></div>
 <div class="panel"><h2>Completed Task Review</h2><p class="muted">Review what you actually completed over a selected period. Repeated daily entries are grouped into one unique task and their completion dates are shown together.</p><div class="row"><label>Period <select id="completedPeriod" style="width:210px"></select></label><button id="reviewCompletedBtn" class="secondary">Review completed tasks</button></div><div id="completedStatus" class="smart hidden"></div><div id="completedResults" style="margin-top:12px"></div></div>
 <div class="panel dashboard-card" style="background:linear-gradient(135deg,#ecfeff,#f0fdfa);border:1px solid #b6e3e3"><div class="row" style="justify-content:space-between"><div><h2 style="margin:0 0 6px">📚 Reference Review</h2><p class="muted" style="margin:0">Review items from your TickTick <b>Reference</b> section tag-wise — SDE Rev, SDE Tech, SDE Estt and other tags.</p></div><button id="startReference">Open Reference Review →</button></div><div id="referenceStatus" class="smart">Reference items are loaded from TickTick when you start.</div><div id="referenceTags" class="row" style="margin-top:10px"></div></div>
-<div class="panel dashboard-card" style="background:linear-gradient(135deg,#eff6ff,#f5f3ff);border:1px solid #c7d2fe"><div class="row" style="justify-content:space-between"><div><h2 style="margin:0 0 6px">🗺️ Travel Trace</h2><p class="muted" style="margin:0">Trace your recorded Google Maps Timeline path on a thin Google Maps line — using the actual exported GPS points.</p></div><button id="startTravelTrace">Open Travel Trace →</button></div><div class="smart">Your GPX file is processed in this browser. It is not uploaded to the Total Recall Worker.</div></div><div class="panel"><h2>People Recall</h2><p class="muted">Unrecalled names are always prioritised. After the first pass, smart spaced re-recall begins.</p><div class="row"><label>Names per session <input id="count" type="number" value="10" min="1" style="width:80px"></label><button id="startPeople">Start People Recall</button><button id="manageBtn" class="secondary">Manage names</button><button id="syncBtn" class="secondary">☁ Sync devices</button><span id="syncStatus" class="muted">Device sync is local until enabled.</span></div>
+<div class="panel dashboard-card" style="background:linear-gradient(135deg,#eff6ff,#f5f3ff);border:1px solid #c7d2fe"><div class="row" style="justify-content:space-between"><div><h2 style="margin:0 0 6px">🗺️ Travel Trace</h2><p class="muted" style="margin:0">Trace your recorded Google Maps Timeline path on a thin Google Maps line — using the actual exported GPS points.</p></div><button id="startTravelTrace">Open Travel Trace →</button></div><div class="smart">GPX files are indexed by their embedded GPS dates. When Device Sync is enabled, the original files are encrypted with your Total Recall sync code and synchronized across devices.</div></div><div class="panel"><h2>People Recall</h2><p class="muted">Unrecalled names are always prioritised. After the first pass, smart spaced re-recall begins.</p><div class="row"><label>Names per session <input id="count" type="number" value="10" min="1" style="width:80px"></label><button id="startPeople">Start People Recall</button><button id="manageBtn" class="secondary">Manage names</button><button id="syncBtn" class="secondary">☁ Sync devices</button><span id="syncStatus" class="muted">Device sync is local until enabled.</span></div>
 <div class="stats"><div class="stat"><b id="total">0</b><span>Total unique names</span></div><div class="stat"><b id="recalled">0</b><span>Unique names recalled</span></div><div class="stat"><b id="remaining">0</b><span>Still to recall</span></div></div><div id="roundPlan" class="smart"></div><div id="smartPlan" class="smart"></div>
 <div id="tools" class="hidden manage"><b>Upload CSV / TXT</b><input id="file" type="file" accept=".csv,.txt"><br><b>Or paste names</b><textarea id="paste" placeholder="One name per line"></textarea><button id="pasteBtn" class="secondary">Add pasted names</button><div id="columnBox" class="hidden"><p><b>Which column contains the names?</b></p><select id="column"></select><button id="importBtn">Import selected column</button><div id="preview"></div></div><div id="peopleList"></div></div>
 </div></div</div></section></section>
 <section id="session" class="hidden"><div class="panel"><div class="row" style="justify-content:space-between"><button id="homeBtn" class="secondary small">← Dashboard</button><span id="progress" class="muted"></span></div><div id="flash" class="flash" style="margin-top:15px"><div class="flashInner"><div class="flashFace flashFront"><span id="source" class="source hidden"></span><div id="counter" class="counter"></div><div id="card" class="name"></div><div id="hint" class="hint"></div></div><div class="flashFace flashBack"><div id="taskReveal" class="taskReveal hidden"></div><div class="flashBackHint">Click to flip back</div></div></div></div><button id="deleteBtn" class="danger small hidden" style="margin-top:10px">Delete this name</button><div class="row" style="justify-content:space-between;margin-top:18px"><button id="back" class="secondary">← Back</button><button id="next">Next →</button></div></div></section>
 <section id="completedSession" class="hidden"><div class="panel"><div class="row" style="justify-content:space-between"><button id="completedHomeBtn" class="secondary small">← Dashboard</button><span id="completedProgress" class="muted"></span></div><div id="completedFlash" class="flash" style="margin-top:15px"><div class="flashInner"><div class="flashFace flashFront"><div id="completedCounter" class="counter"></div><div id="completedCard" class="name"></div><div id="completedHint" class="hint"></div></div><div class="flashFace flashBack"><div id="completedTaskReveal" class="taskReveal hidden"></div><div class="flashBackHint">Click to flip back</div></div></div></div><button id="completedDeleteBtn" class="danger small" style="margin-top:10px">Delete this task</button><div class="row" style="justify-content:space-between;margin-top:18px"><button id="completedBack" class="secondary">← Back</button><button id="completedNext">Next →</button></div></div></section>
-<section id="travelSession" class="hidden"><div class="panel"><div class="row" style="justify-content:space-between"><button id="travelHomeBtn" class="secondary small">← Dashboard</button><span id="travelStatus" class="muted">No GPX data loaded.</span></div><h2 style="margin-top:18px">🗺️ Travel Trace</h2><p class="muted">Import a GPX track exported from GPS Logger. The default view uses the recorded path points as-is, so Total Recall does not invent a route between sparse points.</p><div class="travelControls"><div class="travelControl"><label for="travelMapsKey">Google Maps API key</label><input id="travelMapsKey" type="password" placeholder="Paste your browser-restricted Maps API key"></div><div class="travelControl"><label for="travelFile">GPX file</label><input id="travelFile" type="file" accept=".gpx,application/gpx+xml,.xml,text/xml"></div><div class="travelControl"><label for="travelDate">Day</label><select id="travelDate" disabled><option>No data</option></select></div><div class="travelControl"><label for="travelMode">Path display</label><select id="travelMode" disabled><option value="raw">Recorded GPS — exact</option></select></div></div><div class="row" style="margin-top:10px"><button id="travelLoadMap">Load Google Map</button><button id="travelFit" class="secondary" disabled>Fit path</button><button id="travelIdentify" class="secondary" disabled>Identify places</button><button id="travelClear" class="secondary" disabled>Clear data</button></div><div id="travelKeyHint" class="travelNote">Google Maps JavaScript API requires an API key. Restrict the key to your GitHub Pages domain. Road-following uses Google Roads API to interpolate the road between nearby GPS points. Large GPS gaps are deliberately left unconnected rather than inventing a route.</div><div class="travelStats"><div class="travelStat"><b id="travelPointCount">0</b><span>GPS points</span></div><div class="travelStat"><b id="travelDistance">0 km</b><span>Recorded distance</span></div><div class="travelStat"><b id="travelDuration">—</b><span>Recorded span</span></div><div class="travelStat"><b id="travelSegments">0</b><span>Path segments</span></div></div><div id="travelMap" class="travelMap"></div><div id="travelGapNote" class="travelGapNote hidden"></div><div class="travelLegend"><span><i class="legendDot" style="background:#ef4444"></i>Recorded GPS point</span><span><i class="legendLine"></i>Road trace</span><span><i class="legendGap"></i>Uncertain gap</span></div><div class="travelPlayback">
+<section id="travelSession" class="hidden"><div class="panel"><div class="row" style="justify-content:space-between"><button id="travelHomeBtn" class="secondary small">← Dashboard</button><span id="travelStatus" class="muted">No travel traces saved yet.</span></div><h2 style="margin-top:18px">🗺️ Travel Trace</h2><p class="muted">Upload GPX tracks from GPS Logger. Each upload is saved using the dates embedded in its GPS timestamps — not the date you upload it. Multiple GPX files can belong to the same day.</p><div class="travelControls"><div class="travelControl"><label for="travelMapsKey">Google Maps API key</label><input id="travelMapsKey" type="password" placeholder="Paste your browser-restricted Maps API key"></div><div class="travelControl"><label for="travelFile">Add GPX file</label><input id="travelFile" type="file" accept=".gpx,application/gpx+xml,.xml,text/xml"></div><div class="travelControl"><label for="travelDate">Travel date</label><select id="travelDate" disabled><option>No saved dates</option></select></div><div class="travelControl"><label>Device sync</label><div class="travelSyncBox"><button id="travelSyncBtn" class="secondary small">☁ Sync devices</button><span id="travelSyncStatus" class="muted">Uses the same Total Recall sync code as People Recall.</span></div></div></div><div id="travelFilesForDate" class="travelFilesForDate"></div><div class="row" style="margin-top:10px"><button id="travelLoadMap">Load Google Map</button><button id="travelFit" class="secondary" disabled>Fit path</button><button id="travelIdentify" class="secondary" disabled>Identify places</button><button id="travelClear" class="secondary" disabled>Clear view</button></div><div id="travelKeyHint" class="travelNote">GPX timestamps are the source of the travel date. The original GPX file is kept locally in browser storage and, when device sync is enabled, encrypted with your Total Recall sync code before being stored in the cloud sync bridge.</div><div class="travelStats"><div class="travelStat"><b id="travelPointCount">0</b><span>GPS points</span></div><div class="travelStat"><b id="travelDistance">0 km</b><span>Recorded distance</span></div><div class="travelStat"><b id="travelDuration">—</b><span>Recorded span</span></div><div class="travelStat"><b id="travelSegments">0</b><span>Path segments</span></div></div><div id="travelMap" class="travelMap"></div><div id="travelGapNote" class="travelGapNote hidden"></div><div class="travelLegend"><span><i class="legendDot" style="background:#ef4444"></i>Recorded GPS point</span><span><i class="legendLine"></i>Recorded trace</span><span><i class="legendGap"></i>Uncertain gap</span></div><div class="travelPlayback">
 <div class="travelPlaybackRow">
 <button id="travelPlay" disabled>▶ Play</button><button id="travelReset" class="secondary" disabled>↺ Reset</button>
 <span id="travelPlaybackTime" class="travelPlaybackTime">Playback ready</span>
 <select id="travelPlaybackSpeed" title="Playback speed"><option value="1">1×</option><option value="5">5×</option><option value="20" selected>20×</option><option value="60">60×</option><option value="120">120×</option></select>
 <input id="travelPlaybackSeek" type="range" min="0" max="0" value="0" disabled>
-</div><div id="travelPlaybackHint" class="travelPlaybackHint">Play the selected day to watch the recorded GPS position move inside the map.</div>
-</div><div class="travelNote">Accuracy rule: raw mode keeps the Timeline coordinates and only connects consecutive recorded points within each Timeline path. Large time gaps are kept as separate segments instead of drawing a long artificial straight line.</div><div class="travelJourney" id="travelJourney"><div class="travelJourneyHead"><h3>🧭 Journey</h3><div class="muted">Relive the day chronologically — where you started, where you went next, and the time of each movement or stop.</div></div><div id="travelJourneyList" class="travelJourneyList"><div class="journeyEmpty">Load a GPX day to see your journey.</div></div></div></div></section><section id="done" class="hidden"><div class="panel" style="text-align:center"><h2>🎉 Session complete</h2><p id="doneText" class="muted"></p><button id="doneHome">Dashboard</button></div></section>
+</div><div id="travelPlaybackHint" class="travelPlaybackHint">Play the selected date to watch the recorded GPS position move inside the map.</div>
+</div><div class="travelNote">Accuracy rule: the displayed line uses only recorded GPS points. Large gaps are kept separate rather than inventing a route between them.</div><div class="travelJourney" id="travelJourney"><div class="travelJourneyHead"><h3>🧭 Journey</h3><div class="muted">Relive the selected date chronologically — across all GPX files saved for that date.</div></div><div id="travelJourneyList" class="travelJourneyList"><div class="journeyEmpty">Select a saved travel date.</div></div></div></div></section><section id="done" class="hidden"><div class="panel" style="text-align:center"><h2>🎉 Session complete</h2><p id="doneText" class="muted"></p><button id="doneHome">Dashboard</button></div></section>
 </main><div id="bootError" class="error hidden"></div>
 <script>
 (function(){'use strict';
 window.addEventListener('error',function(e){var b=document.getElementById('bootError');if(b){b.textContent='Total Recall JavaScript error:\n'+(e.message||e.error||'Unknown error');b.classList.remove('hidden')}});
 if('serviceWorker' in navigator)window.addEventListener('load',function(){navigator.serviceWorker.getRegistrations().then(function(rs){return Promise.all(rs.map(function(r){return r.unregister()}))}).catch(function(){})});
-var COMPLETED_SUPPRESS_KEY='totalRecallCompletedSuppressions_v1',COMPLETED_SUPPRESS=JSON.parse(localStorage.getItem(COMPLETED_SUPPRESS_KEY)||'{}'),KEY='totalRecallPWA_v2',SYNC_KEY='totalRecallSyncCode_v1',TICK_URL=window.TOTAL_RECALL_TICKTICK_URL||localStorage.getItem('totalRecallTickTickUrl')||'https://total-recall-ticktick.pranjuchakrapani90.workers.dev',RESP=['SDE-TECH','SDE-REV','SDE-ESTT','HOME-MANAGER','BROTHER','SON'],db={people:{},responsibilities:{},responsibilityTasks:{}};try{db=JSON.parse(localStorage.getItem(KEY))||db}catch(e){}db.people=db.people||{};db.responsibilities=db.responsibilities||{};db.responsibilityTasks=db.responsibilityTasks||{};RESP.forEach(function(k){if(!db.responsibilities[k])db.responsibilities[k]={name:k,history:[]}});
-function $(id){return document.getElementById(id)}function save(){localStorage.setItem(KEY,JSON.stringify(db));queueCloudSync()}function mergeHist(a,b){var out=[],seen={};[a,b].forEach(function(arr){(Array.isArray(arr)?arr:[]).forEach(function(x){var k=String(x&&x.date||'')+'|'+String(x&&x.note||'');if(!seen[k]){seen[k]=1;out.push(x)}})});out.sort(function(x,y){return String(x&&x.date||'').localeCompare(String(y&&y.date||''))});return out}function mergeDb(local,remote){var out=local||{people:{},responsibilities:{},responsibilityTasks:{},referenceItems:{}};remote=remote||{};['people','responsibilities','responsibilityTasks','referenceItems'].forEach(function(group){out[group]=out[group]||{};var rm=remote[group]||{};Object.keys(rm).forEach(function(k){if(!out[group][k])out[group][k]=JSON.parse(JSON.stringify(rm[k]));else{var a=out[group][k],b=rm[k];if(b.name&&!a.name)a.name=b.name;if(Array.isArray(b.sources)){a.sources=a.sources||[];b.sources.forEach(function(s){if(a.sources.indexOf(s)<0)a.sources.push(s)})}a.history=mergeHist(a.history,b.history)}})});return out}function b64(buf){var bytes=new Uint8Array(buf),out='',step=0x8000;for(var i=0;i<bytes.length;i+=step)out+=String.fromCharCode.apply(null,bytes.subarray(i,i+step));return btoa(out)}function unb64(s){var raw=atob(s),bytes=new Uint8Array(raw.length);for(var i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);return bytes}async function syncKey(code){var hash=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(code));return crypto.subtle.importKey('raw',hash,{name:'AES-GCM'},false,['encrypt','decrypt'])}async function encryptSync(state,code){var iv=crypto.getRandomValues(new Uint8Array(12)),key=await syncKey(code),plain=new TextEncoder().encode(JSON.stringify(state)),cipher=await crypto.subtle.encrypt({name:'AES-GCM',iv:iv},key,plain);return JSON.stringify({v:1,iv:b64(iv),data:b64(cipher)})}async function decryptSync(blob,code){var x=JSON.parse(blob||'{}'),key=await syncKey(code),plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(x.iv)},key,unb64(x.data));return JSON.parse(new TextDecoder().decode(plain))}var cloudSyncTimer=0,cloudSyncBusy=false,cloudSyncAgain=false;async function cloudSync(force){var code=localStorage.getItem(SYNC_KEY);if(!code){if(force){code=prompt('Enter your Total Recall sync code. Use the same code on every device.\n\nLeave blank to cancel.');if(!code)return;code=code.trim();if(code.length<8){alert('Use a sync code of at least 8 characters.');return}localStorage.setItem(SYNC_KEY,code)}else return}if(!TICK_URL)return;try{cloudSyncBusy=true;if($('syncStatus'))$('syncStatus').textContent='☁ Syncing…';var headers={'Content-Type':'application/json','X-Total-Recall-Sync':code};var r=await fetch(TICK_URL+(TICK_URL.indexOf('?')>=0?'&':'?')+'mode=sync',{method:'POST',headers:headers,body:JSON.stringify({state:db}),cache:'no-store'});if(!r.ok)throw new Error('Sync bridge returned HTTP '+r.status);var data=await r.json();if(data.error)throw new Error(data.error);if(data.blob){var remote=await decryptSync(data.blob,code);db=mergeDb(db,remote);db.people=db.people||{};db.responsibilities=db.responsibilities||{};db.responsibilityTasks=db.responsibilityTasks||{};db.referenceItems=db.referenceItems||{};RESP.forEach(function(k){if(!db.responsibilities[k])db.responsibilities[k]={name:k,history:[]}});localStorage.setItem(KEY,JSON.stringify(db));render()}var payload=await encryptSync(db,code);var r2=await fetch(TICK_URL+(TICK_URL.indexOf('?')>=0?'&':'?')+'mode=sync',{method:'PUT',headers:headers,body:payload,cache:'no-store'});if(!r2.ok)throw new Error('Sync save returned HTTP '+r2.status);var d2=await r2.json();if(d2.error)throw new Error(d2.error);if($('syncStatus'))$('syncStatus').textContent='☁ Synced '+new Date().toLocaleTimeString();}catch(e){if($('syncStatus'))$('syncStatus').textContent='☁ Sync unavailable: '+e.message}finally{cloudSyncBusy=false;if(cloudSyncAgain){cloudSyncAgain=false;cloudSync(false)}}}function queueCloudSync(){if(!localStorage.getItem(SYNC_KEY))return;if(cloudSyncBusy){cloudSyncAgain=true;return}clearTimeout(cloudSyncTimer);cloudSyncTimer=setTimeout(function(){cloudSync(false)},300)}function hist(p){return p&&Array.isArray(p.history)?p.history:[]}function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}function show(id){$(id).classList.remove('hidden')}function hide(id){$(id).classList.add('hidden')}function shuffle(a){for(var j=a.length-1;j>0;j--){var k=Math.floor(Math.random()*(j+1)),t=a[j];a[j]=a[k];a[k]=t}return a}
+var COMPLETED_SUPPRESS_KEY='totalRecallCompletedSuppressions_v1',COMPLETED_SUPPRESS=JSON.parse(localStorage.getItem(COMPLETED_SUPPRESS_KEY)||'{}'),KEY='totalRecallPWA_v2',SYNC_KEY='totalRecallSyncCode_v1',TICK_URL=window.TOTAL_RECALL_TICKTICK_URL||localStorage.getItem('totalRecallTickTickUrl')||'https://total-recall-ticktick.pranjuchakrapani90.workers.dev',RESP=['SDE-TECH','SDE-REV','SDE-ESTT','HOME-MANAGER','BROTHER','SON'],db={people:{},responsibilities:{},responsibilityTasks:{},travelFiles:{}};try{db=JSON.parse(localStorage.getItem(KEY))||db}catch(e){}db.people=db.people||{};db.responsibilities=db.responsibilities||{};db.responsibilityTasks=db.responsibilityTasks||{};db.travelFiles=db.travelFiles||{};RESP.forEach(function(k){if(!db.responsibilities[k])db.responsibilities[k]={name:k,history:[]}});
+function $(id){return document.getElementById(id)}function save(){localStorage.setItem(KEY,JSON.stringify(db));queueCloudSync()}function mergeHist(a,b){var out=[],seen={};[a,b].forEach(function(arr){(Array.isArray(arr)?arr:[]).forEach(function(x){var k=String(x&&x.date||'')+'|'+String(x&&x.note||'');if(!seen[k]){seen[k]=1;out.push(x)}})});out.sort(function(x,y){return String(x&&x.date||'').localeCompare(String(y&&y.date||''))});return out}function mergeDb(local,remote){var out=local||{people:{},responsibilities:{},responsibilityTasks:{},referenceItems:{}};remote=remote||{};['people','responsibilities','responsibilityTasks','referenceItems','travelFiles'].forEach(function(group){out[group]=out[group]||{};var rm=remote[group]||{};Object.keys(rm).forEach(function(k){if(!out[group][k])out[group][k]=JSON.parse(JSON.stringify(rm[k]));else{var a=out[group][k],b=rm[k];if(b.name&&!a.name)a.name=b.name;if(Array.isArray(b.sources)){a.sources=a.sources||[];b.sources.forEach(function(s){if(a.sources.indexOf(s)<0)a.sources.push(s)})}a.history=mergeHist(a.history,b.history)}})});return out}function b64(buf){var bytes=new Uint8Array(buf),out='',step=0x8000;for(var i=0;i<bytes.length;i+=step)out+=String.fromCharCode.apply(null,bytes.subarray(i,i+step));return btoa(out)}function unb64(s){var raw=atob(s),bytes=new Uint8Array(raw.length);for(var i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);return bytes}async function syncKey(code){var hash=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(code));return crypto.subtle.importKey('raw',hash,{name:'AES-GCM'},false,['encrypt','decrypt'])}async function encryptSync(state,code){var iv=crypto.getRandomValues(new Uint8Array(12)),key=await syncKey(code),plain=new TextEncoder().encode(JSON.stringify(state)),cipher=await crypto.subtle.encrypt({name:'AES-GCM',iv:iv},key,plain);return JSON.stringify({v:1,iv:b64(iv),data:b64(cipher)})}async function decryptSync(blob,code){var x=JSON.parse(blob||'{}'),key=await syncKey(code),plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(x.iv)},key,unb64(x.data));return JSON.parse(new TextDecoder().decode(plain))}var cloudSyncTimer=0,cloudSyncBusy=false,cloudSyncAgain=false;async function cloudSync(force){var code=localStorage.getItem(SYNC_KEY);if(!code){if(force){code=prompt('Enter your Total Recall sync code. Use the same code on every device.\n\nLeave blank to cancel.');if(!code)return;code=code.trim();if(code.length<8){alert('Use a sync code of at least 8 characters.');return}localStorage.setItem(SYNC_KEY,code)}else return}if(!TICK_URL)return;try{cloudSyncBusy=true;if($('syncStatus'))$('syncStatus').textContent='☁ Syncing…';var headers={'Content-Type':'application/json','X-Total-Recall-Sync':code};var r=await fetch(TICK_URL+(TICK_URL.indexOf('?')>=0?'&':'?')+'mode=sync',{method:'POST',headers:headers,body:JSON.stringify({state:db}),cache:'no-store'});if(!r.ok)throw new Error('Sync bridge returned HTTP '+r.status);var data=await r.json();if(data.error)throw new Error(data.error);if(data.blob){var remote=await decryptSync(data.blob,code);db=mergeDb(db,remote);db.people=db.people||{};db.responsibilities=db.responsibilities||{};db.responsibilityTasks=db.responsibilityTasks||{};db.referenceItems=db.referenceItems||{};db.travelFiles=db.travelFiles||{};RESP.forEach(function(k){if(!db.responsibilities[k])db.responsibilities[k]={name:k,history:[]}});localStorage.setItem(KEY,JSON.stringify(db));render()}if(typeof travelSyncPendingFiles==='function'){try{await travelSyncPendingFiles(code)}catch(e){console.warn('Travel file sync failed',e)}}var payload=await encryptSync(db,code);var r2=await fetch(TICK_URL+(TICK_URL.indexOf('?')>=0?'&':'?')+'mode=sync',{method:'PUT',headers:headers,body:payload,cache:'no-store'});if(!r2.ok)throw new Error('Sync save returned HTTP '+r2.status);var d2=await r2.json();if(d2.error)throw new Error(d2.error);if($('syncStatus'))$('syncStatus').textContent='☁ Synced '+new Date().toLocaleTimeString();}catch(e){if($('syncStatus'))$('syncStatus').textContent='☁ Sync unavailable: '+e.message}finally{cloudSyncBusy=false;if(cloudSyncAgain){cloudSyncAgain=false;cloudSync(false)}}}function queueCloudSync(){if(!localStorage.getItem(SYNC_KEY))return;if(cloudSyncBusy){cloudSyncAgain=true;return}clearTimeout(cloudSyncTimer);cloudSyncTimer=setTimeout(function(){cloudSync(false)},300)}function hist(p){return p&&Array.isArray(p.history)?p.history:[]}function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}function show(id){$(id).classList.remove('hidden')}function hide(id){$(id).classList.add('hidden')}function shuffle(a){for(var j=a.length-1;j>0;j--){var k=Math.floor(Math.random()*(j+1)),t=a[j];a[j]=a[k];a[k]=t}return a}
 function add(names,source){source=source||'Pasted names';names.forEach(function(x){x=String(x||'').trim().replace(/\s+/g,' ');if(!x||/^\d+$/.test(x))return;var k=x.toLowerCase();if(!db.people[k])db.people[k]={name:x,history:[],sources:[]};db.people[k].sources=db.people[k].sources||[];if(db.people[k].sources.indexOf(source)<0)db.people[k].sources.push(source)});save();render()}
 function interval(p){return [1,3,7,14,30,60,120,180][Math.min(Math.max(hist(p).length-1,0),7)]}function due(p){var h=hist(p);return h.length&&((Date.now()-new Date(h[h.length-1].date).getTime())/86400000>=interval(p))}
 function render(){var a=Object.values(db.people),rec=a.filter(function(p){return hist(p).length}).length,rem=a.length-rec;$('total').textContent=a.length;$('recalled').textContent=rec;$('remaining').textContent=rem;$('roundPlan').textContent=!a.length?'Import your names.':rem?'First-pass completion: '+Math.ceil(rem/10)+' more session'+(Math.ceil(rem/10)==1?'':'s')+' of 10 names needed for '+rem+' unrecalled names.':'🎉 First pass complete. Smart re-recall is now active.';var d=a.filter(due).length;$('smartPlan').textContent=d?'Smart re-recall: '+d+' name'+(d==1?' is':'s are')+' due now. New names still get priority.':'Smart re-recall: no names are due. Intervals grow: 1, 3, 7, 14, 30, 60, 120, 180 days.';var list=a.slice().sort(function(x,y){return x.name.localeCompare(y.name)});$('peopleList').innerHTML=list.map(function(p){return '<div class="person"><span>'+esc(p.name)+'</span><button class="danger small" data-del="'+encodeURIComponent(p.name.toLowerCase())+'">Delete</button></div>'}).join('')}
@@ -250,8 +250,42 @@ function finish(){hide('session');show('done');$('doneText').textContent='Review
 $('flash').addEventListener('click',function(e){if(e.target.closest&&e.target.closest('.taskOpenLink, .taskAttachment'))return;if(e.target.closest&&e.target.closest('.flashBack'))return;if(mode==='resp'&&!sub){var p=cards[idx],arr=taskGroups[p.key]||[];if(arr.length){sub=true;subIdx=0;draw();return}}if(mode==='people')return;var flipped=$('flash').classList.toggle('flipped');if(flipped){var task=null;if(mode==='reference')task=referenceCards[referenceIdx];else if(mode==='resp'&&sub)task=(taskGroups[cards[idx].key]||[])[subIdx];revealTaskDetails(task,'taskReveal',null)}});$('flash').querySelector('.flashBack').addEventListener('click',function(e){if(e.target.closest&&e.target.closest('a,button'))return;$('flash').classList.remove('flipped')});
 $('completedFlash').addEventListener('click',function(e){if(e.target.closest&&e.target.closest('.flashBack'))return;var flipped=$('completedFlash').classList.toggle('flipped');if(flipped)revealTaskDetails(completedCards[completedIdx],'completedTaskReveal',null)});$('completedFlash').querySelector('.flashBack').addEventListener('click',function(e){if(e.target.closest&&e.target.closest('a,button'))return;$('completedFlash').classList.remove('flipped')});$('back').addEventListener('click',goBack);$('next').addEventListener('click',advance);$('startPeople').addEventListener('click',startPeople);$('startResp').addEventListener('click',startResp);$('responsibilityTags').addEventListener('click',function(e){var t=e.target.dataset.respTag;if(t)startResponsibilityTag(decodeURIComponent(t))});$('homeBtn').addEventListener('click',function(){hide('session');show('home');render()});$('doneHome').addEventListener('click',function(){hide('done');show('home');render()});$('manageBtn').addEventListener('click',function(){$('tools').classList.toggle('hidden')});$('syncBtn').addEventListener('click',function(){var current=localStorage.getItem(SYNC_KEY);var code=prompt(current?'Enter the sync code used on your other devices.\n\nLeave blank to keep the current code.':'Create or enter a sync code (8+ characters). Use this exact code on every device.');if(code===null)return;code=code.trim();if(!code&&current)return;if(code.length<8){alert('Use a sync code of at least 8 characters.');return}localStorage.setItem(SYNC_KEY,code);cloudSync(true)});$('pasteBtn').addEventListener('click',function(){var v=$('paste').value.trim();if(v){add(v.split(/\r?\n/),'Pasted names');$('paste').value=''}});$('peopleList').addEventListener('click',function(e){var k=e.target.dataset.del;if(k&&confirm('Delete this name and its recall history?')){delete db.people[decodeURIComponent(k)];save();render()}});$('deleteBtn').addEventListener('click',function(){var p=cards[idx];if(p&&confirm('Delete this name and its recall history?')){delete db.people[p.name.toLowerCase()];save();cards.splice(idx,1);if(idx>=cards.length)finish();else draw();render()}});
 var parsed=[],source='Uploaded file';$('file').addEventListener('change',function(e){var f=e.target.files[0];if(!f)return;source=f.name;var rd=new FileReader();rd.onload=function(){var lines=String(rd.result).replace(/^\uFEFF/,'').split(/\r?\n/).filter(Boolean);if(!lines.length)return;var delim=lines[0].indexOf('\t')>=0?'\t':lines[0].indexOf(';')>=0?';':',';function split(x){return x.split(delim).map(function(v){return v.trim().replace(/^"|"$/g,'')})}var heads=split(lines[0]);if(heads.length===1&&!/name|person|employee|member|contact/i.test(heads[0])){add(lines.map(function(x){return split(x)[0]}),source);return}parsed=lines.slice(1).map(split);$('column').innerHTML=heads.map(function(h,i){return '<option value="'+i+'">'+esc(h)+'</option>'}).join('');$('columnBox').classList.remove('hidden');$('preview').textContent=parsed.slice(0,5).map(function(x){return x[0]}).join(' • ')};rd.readAsText(f);e.target.value=''});$('importBtn').addEventListener('click',function(){var c=Number($('column').value);add(parsed.map(function(r){return r[c]}),source);hide('columnBox')});
-// Travel Trace — Google Maps Timeline viewer. Location data stays in this browser.
-var travelData=null,travelMap=null,travelPolylines=[],travelMarkers=[],travelGpsMarkers=[],travelGapLines=[],travelRawSegments=[],travelRoadSegments=null,travelMapsReady=false,travelGeocoder=null,travelAddressCache={};var travelPlaybackTimer=null,travelPlaybackPoints=[],travelPlaybackIndex=0,travelPlaybackRunning=false,travelPlaybackMarker=null,travelPlaybackInfo=null;
+// Travel Trace — persistent, date-indexed GPX archive.
+var travelData=null,travelMap=null,travelPolylines=[],travelMarkers=[],travelGpsMarkers=[],travelGapLines=[],travelMapsReady=false,travelGeocoder=null,travelAddressCache={};
+var travelPlaybackTimer=null,travelPlaybackPoints=[],travelPlaybackIndex=0,travelPlaybackRunning=false,travelPlaybackMarker=null,travelPlaybackInfo=null,travelParsedCache={};
+var TRAVEL_IDB_NAME='TotalRecallTravelFiles_v1',TRAVEL_IDB_STORE='files',travelDbPromise=null;
+
+function travelDbOpen(){
+  if(travelDbPromise)return travelDbPromise;
+  travelDbPromise=new Promise(function(resolve,reject){
+    if(!window.indexedDB){reject(new Error('This browser does not support IndexedDB storage.'));return}
+    var req=indexedDB.open(TRAVEL_IDB_NAME,1);
+    req.onupgradeneeded=function(){var dbi=req.result;if(!dbi.objectStoreNames.contains(TRAVEL_IDB_STORE))dbi.createObjectStore(TRAVEL_IDB_STORE,{keyPath:'id'})};
+    req.onsuccess=function(){resolve(req.result)};
+    req.onerror=function(){reject(req.error||new Error('Could not open travel storage.'))};
+  });
+  return travelDbPromise
+}
+function travelDbPut(id,text){
+  return travelDbOpen().then(function(dbi){return new Promise(function(resolve,reject){
+    var tx=dbi.transaction(TRAVEL_IDB_STORE,'readwrite');tx.objectStore(TRAVEL_IDB_STORE).put({id:id,gpx:text,savedAt:new Date().toISOString()});
+    tx.oncomplete=function(){resolve()};tx.onerror=function(){reject(tx.error||new Error('Could not save GPX locally.'))}
+  })})
+}
+function travelDbGet(id){
+  return travelDbOpen().then(function(dbi){return new Promise(function(resolve,reject){
+    var tx=dbi.transaction(TRAVEL_IDB_STORE,'readonly'),req=tx.objectStore(TRAVEL_IDB_STORE).get(id);
+    req.onsuccess=function(){resolve(req.result?req.result.gpx:null)};req.onerror=function(){reject(req.error||new Error('Could not read local GPX.'))}
+  })})
+}
+function travelDbDelete(id){
+  return travelDbOpen().then(function(dbi){return new Promise(function(resolve,reject){
+    var tx=dbi.transaction(TRAVEL_IDB_STORE,'readwrite');tx.objectStore(TRAVEL_IDB_STORE).delete(id);
+    tx.oncomplete=function(){resolve()};tx.onerror=function(){reject(tx.error||new Error('Could not delete local GPX.'))}
+  })})
+}
+function travelHex(buf){var a=new Uint8Array(buf),s='';for(var i=0;i<a.length;i++)s+=(a[i]<16?'0':'')+a[i].toString(16);return s}
+async function travelFileId(text){return 'gpx-'+travelHex(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text)))}
 function travelPointFromString(v){
   var s=String(v||'').trim().replace(/^geo:/i,'').replace(/[°]/g,'');
   var m=s.match(/(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/);
@@ -260,7 +294,13 @@ function travelPointFromString(v){
   return isFinite(lat)&&isFinite(lng)&&Math.abs(lat)<=90&&Math.abs(lng)<=180?{lat:lat,lng:lng}:null
 }
 function travelTime(v){if(v===undefined||v===null||v==='')return null;var d=new Date(v);return isNaN(d.getTime())?null:d.toISOString()}
-function travelDateOf(t){return String(t||'').slice(0,10)||new Date().toISOString().slice(0,10)}
+function travelDateOf(t){
+  if(!t)return new Date().toISOString().slice(0,10);
+  var d=new Date(t);
+  if(isNaN(d.getTime()))return String(t).slice(0,10)||new Date().toISOString().slice(0,10);
+  var parts=new Intl.DateTimeFormat('en-CA',{year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(d);
+  return parts.find(function(x){return x.type==='year'}).value+'-'+parts.find(function(x){return x.type==='month'}).value+'-'+parts.find(function(x){return x.type==='day'}).value
+}
 function travelAddSegment(out,pts){
   var clean=pts.filter(function(p){return p&&isFinite(p.lat)&&isFinite(p.lng)});
   if(clean.length<2)return;
@@ -273,96 +313,176 @@ function parseTravelGPX(text){
   if(xml.querySelector('parsererror'))throw new Error('Invalid GPX XML.');
   var tracks=Array.from(xml.querySelectorAll('trk'));
   if(!tracks.length)throw new Error('No GPX track was found.');
-  function addSegment(points){
-    if(points.length>1)travelAddSegment(out,points);
-    else if(points.length===1)out.push(points);
-  }
-  tracks.forEach(function(trk,trackIndex){
-    var segs=Array.from(trk.querySelectorAll(':scope > trkseg'));
-    if(!segs.length)segs=[trk];
-    segs.forEach(function(seg,segIndex){
+  function addSegment(points){if(points.length>1)travelAddSegment(out,points);else if(points.length===1)out.push(points)}
+  tracks.forEach(function(trk){
+    var segs=Array.from(trk.querySelectorAll(':scope > trkseg'));if(!segs.length)segs=[trk];
+    segs.forEach(function(seg){
       var pts=Array.from(seg.querySelectorAll(':scope > trkpt')).map(function(node){
         var lat=Number(node.getAttribute('lat')),lng=Number(node.getAttribute('lon'));
         var tnode=node.querySelector(':scope > time'),time=tnode?travelTime(tnode.textContent.trim()):null;
         if(!isFinite(lat)||!isFinite(lng)||Math.abs(lat)>90||Math.abs(lng)>180)return null;
-        return {lat:lat,lng:lng,time:time,ms:time?new Date(time).getTime():0};
+        return {lat:lat,lng:lng,time:time,ms:time?new Date(time).getTime():0}
       }).filter(Boolean);
       if(!pts.length)return;
       var cur=[];
       pts.forEach(function(p){
-        if(cur.length&&p.ms&&cur[cur.length-1].ms&&p.ms-cur[cur.length-1].ms>15*60000){
-          addSegment(cur);cur=[];
-        }
-        cur.push(p);
+        if(cur.length&&p.ms&&cur[cur.length-1].ms&&p.ms-cur[cur.length-1].ms>15*60000){addSegment(cur);cur=[]}
+        cur.push(p)
       });
       addSegment(cur);
       if(pts.length>1){
-        journey.push({type:'Travel',start:pts[0],end:pts[pts.length-1],startTime:pts[0].time,endTime:pts[pts.length-1].time,label:trk.getElementsByTagName('name')[0]?.textContent?.trim()||'Recorded GPS path'});
+        var nm=trk.getElementsByTagName('name')[0];
+        journey.push({type:'Travel',start:pts[0],end:pts[pts.length-1],startTime:pts[0].time,endTime:pts[pts.length-1].time,label:nm&&nm.textContent.trim()?nm.textContent.trim():'Recorded GPS path'})
       }
-    });
+    })
   });
   journey.sort(function(a,b){return String(a.startTime||'').localeCompare(String(b.startTime||''))});
   var byDay={},journeyByDay={};
   out.forEach(function(seg){
     var grouped={};
     seg.forEach(function(p){var d=travelDateOf(p.time);(grouped[d]||(grouped[d]=[])).push(p)});
-    Object.keys(grouped).forEach(function(d){if(grouped[d].length>1)(byDay[d]||(byDay[d]=[])).push(grouped[d])});
+    Object.keys(grouped).forEach(function(d){if(grouped[d].length>1)(byDay[d]||(byDay[d]=[])).push(grouped[d])})
   });
-  journey.forEach(function(e){var d=travelDateOf(e.startTime||e.endTime);(journeyByDay[d]||(journeyByDay[d]=[])).push(e)});
-  return {segments:out,byDay:byDay,journey:journey,journeyByDay:journeyByDay};
+  journey.forEach(function(e){
+    var d=travelDateOf(e.startTime||e.endTime);
+    (journeyByDay[d]||(journeyByDay[d]=[])).push(e)
+  });
+  return {segments:out,byDay:byDay,journey:journey,journeyByDay:journeyByDay}
 }
 function travelHaversine(a,b){
   var R=6371000,toRad=Math.PI/180,dLat=(b.lat-a.lat)*toRad,dLng=(b.lng-a.lng)*toRad;
   var x=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(a.lat*toRad)*Math.cos(b.lat*toRad)*Math.sin(dLng/2)*Math.sin(dLng/2);
   return 2*R*Math.atan2(Math.sqrt(x),Math.sqrt(1-x))
 }
-function travelSelectedSegments(){
-  var d=$('travelDate').value;
-  return travelData&&travelData.byDay&&travelData.byDay[d]?travelData.byDay[d]:[];
-}function travelPlaybackBuild(){
+function travelMeta(){return Object.values(db.travelFiles||{}).sort(function(a,b){return String(b.startTime||'').localeCompare(String(a.startTime||''))})}
+function travelDates(){
+  var out={};
+  travelMeta().forEach(function(f){(f.dates||[]).forEach(function(d){out[d]=1})});
+  return Object.keys(out).sort().reverse()
+}
+function travelFilesForDate(date){return travelMeta().filter(function(f){return Array.isArray(f.dates)&&f.dates.indexOf(date)>=0})}
+function travelPopulateDates(preferred){
+  var dates=travelDates(),sel=$('travelDate');
+  sel.innerHTML=dates.length?dates.map(function(d){return '<option value="'+esc(d)+'">'+esc(d)+'</option>'}).join(''):'<option>No saved dates</option>';
+  sel.disabled=!dates.length;
+  if(dates.length){var target=preferred&&dates.indexOf(preferred)>=0?preferred:dates[0];sel.value=target}
+  travelRenderFileList()
+}
+function travelRenderFileList(){
+  var box=$('travelFilesForDate'),date=$('travelDate').value,files=travelFilesForDate(date);
+  if(!files.length){box.innerHTML='<div class="muted">No GPX files saved for this date.</div>';return}
+  box.innerHTML='<div class="muted" style="margin-bottom:5px"><b>'+files.length+'</b> GPX file'+(files.length===1?'':'s')+' contribute to <b>'+esc(date)+'</b>. They are combined in the map and playback.</div>'+
+    files.map(function(f){return '<div class="travelFileItem"><div><b>'+esc(f.name||'Unnamed GPX')+'</b><div class="travelFileMeta">'+(f.pointCount||0).toLocaleString()+' points · '+(f.dates||[]).length+' date'+((f.dates||[]).length===1?'':'s')+' · uploaded '+esc(travelFormatDateTime(f.uploadedAt))+'</div></div><span class="travelFileBadge '+(f.cloudUploaded?'':'local')+'">'+(f.cloudUploaded?'☁ Synced':'Local only')+'</span></div>'}).join('')
+}
+function travelFormatDateTime(v){if(!v)return 'unknown';var d=new Date(v);return isNaN(d.getTime())?'unknown':d.toLocaleString([],{year:'numeric',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}
+async function travelCloudPut(id,text,code){
+  var blob=await encryptSync({gpx:text},code);
+  var u=TICK_URL+(TICK_URL.indexOf('?')>=0?'&':'?')+'mode=travel-file&fileId='+encodeURIComponent(id);
+  var r=await fetch(u,{method:'PUT',headers:{'Content-Type':'application/json','X-Total-Recall-Sync':code},body:blob,cache:'no-store'});
+  if(!r.ok){var msg='Travel file upload failed (HTTP '+r.status+')';try{var d=await r.json();if(d.error)msg=d.error}catch(_){}throw new Error(msg)}
+}
+async function travelCloudGet(id,code){
+  var u=TICK_URL+(TICK_URL.indexOf('?')>=0?'&':'?')+'mode=travel-file&fileId='+encodeURIComponent(id);
+  var r=await fetch(u,{method:'GET',headers:{'X-Total-Recall-Sync':code},cache:'no-store'});
+  if(r.status===404)return null;
+  if(!r.ok)throw new Error('Travel file download failed (HTTP '+r.status+')');
+  return decryptSync(await r.text(),code).then(function(x){return x&&x.gpx?x.gpx:null})
+}
+async function travelSyncPendingFiles(code){
+  var metas=travelMeta();
+  for(var i=0;i<metas.length;i++){
+    var f=metas[i];
+    if(f.cloudUploaded)continue;
+    var text=await travelDbGet(f.id);
+    if(text===null)continue;
+    await travelCloudPut(f.id,text,code);
+    f.cloudUploaded=true;
+  }
+  localStorage.setItem(KEY,JSON.stringify(db));
+  travelRenderFileList()
+}
+async function travelEnsureLocalFile(meta){
+  var local=await travelDbGet(meta.id);
+  if(local!==null)return local;
+  var code=localStorage.getItem(SYNC_KEY);
+  if(!code)throw new Error('This GPX file is synced to another device. Enable Device Sync using the same sync code to download it.');
+  var text=await travelCloudGet(meta.id,code);
+  if(text===null)throw new Error('The synced GPX file is not available yet. Try Sync devices again in a moment.');
+  await travelDbPut(meta.id,text);
+  return text
+}
+function travelAggregateForDate(date,items){
+  var all={segments:[],byDay:{},journey:[],journeyByDay:{}};
+  items.forEach(function(item){
+    var parsed=travelParsedCache[item.id];
+    if(!parsed)return;
+    (parsed.byDay[date]||[]).forEach(function(seg){all.segments.push(seg)});
+    (parsed.journeyByDay[date]||[]).forEach(function(e){e.fileName=item.name;all.journey.push(e)})
+  });
+  all.journey.sort(function(a,b){return String(a.startTime||'').localeCompare(String(b.startTime||''))});
+  all.byDay[date]=all.segments;
+  all.journeyByDay[date]=all.journey;
+  return all
+}
+async function travelLoadSelectedDate(){
+  var date=$('travelDate').value,items=travelFilesForDate(date);
+  travelRenderFileList();
+  if(!date||!items.length){travelData=null;travelResetView();return}
+  $('travelStatus').textContent='Loading '+items.length+' GPX file'+(items.length===1?'':'s')+' for '+date+'…';
+  for(var i=0;i<items.length;i++){
+    try{
+      var text=await travelEnsureLocalFile(items[i]);
+      if(!travelParsedCache[items[i].id])travelParsedCache[items[i].id]=parseTravelGPX(text)
+    }catch(e){
+      $('travelStatus').textContent='Could not load '+items[i].name+': '+e.message;
+      travelData=null;travelResetView();return
+    }
+  }
+  travelData=travelAggregateForDate(date,items);
+  $('travelMode').disabled=false;$('travelFit').disabled=false;$('travelIdentify').disabled=false;$('travelClear').disabled=false;
+  await travelRender()
+}
+function travelSelectedSegments(){var d=$('travelDate').value;return travelData&&travelData.byDay&&travelData.byDay[d]?travelData.byDay[d]:[]}
+function travelSelectedJourney(){var d=$('travelDate').value;return travelData&&travelData.journeyByDay&&travelData.journeyByDay[d]?travelData.journeyByDay[d]:[]}
+function travelPlaybackBuild(){
   var segs=travelSelectedSegments(),pts=[];
   segs.forEach(function(seg){seg.forEach(function(p){if(p&&p.time&&isFinite(p.ms))pts.push(p)})});
   pts.sort(function(a,b){return a.ms-b.ms});
   travelPlaybackPoints=pts;travelPlaybackIndex=0;travelPlaybackStop();
   $('travelPlaybackSeek').max=Math.max(0,pts.length-1);$('travelPlaybackSeek').value=0;
   $('travelPlay').disabled=pts.length<2;$('travelReset').disabled=!pts.length;$('travelPlaybackSeek').disabled=!pts.length;
-  if(pts.length)travelPlaybackShow(0);else{$('travelPlaybackTime').textContent='No timed GPS points';$('travelPlaybackHint').textContent='This day has no usable GPX timestamps for playback.'}
+  if(pts.length)travelPlaybackShow(0);else{$('travelPlaybackTime').textContent='No timed GPS points';$('travelPlaybackHint').textContent='This date has no usable GPX timestamps for playback.'}
 }
 function travelPlaybackShow(i){
   if(!travelPlaybackPoints.length||!travelMap)return;
   i=Math.max(0,Math.min(i,travelPlaybackPoints.length-1));travelPlaybackIndex=i;
-  var p=travelPlaybackPoints[i],place='';
-  var best=Infinity,items=travelSelectedJourney();
+  var p=travelPlaybackPoints[i],place='',best=Infinity,items=travelSelectedJourney();
   items.forEach(function(e){var q=e.end||e.start;if(!q)return;var d=travelHaversine(p,q);if(d<best){best=d;place=travelPlaceText(e)}});
   if(best>1000)place='';
   if(!travelPlaybackMarker)travelPlaybackMarker=new google.maps.Marker({map:travelMap,position:{lat:p.lat,lng:p.lng},title:'Recorded GPS position'});
   else{travelPlaybackMarker.setMap(travelMap);travelPlaybackMarker.setPosition({lat:p.lat,lng:p.lng})}
   var d=new Date(p.ms),stamp=isNaN(d.getTime())?'Unknown time':d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit',second:'2-digit'});
-  $('travelPlaybackTime').textContent=stamp+(place?' — '+place:'');
-  $('travelPlaybackSeek').value=i;
+  $('travelPlaybackTime').textContent=stamp+(place?' — '+place:'');$('travelPlaybackSeek').value=i;
   $('travelPlaybackHint').textContent='Point '+(i+1).toLocaleString()+' of '+travelPlaybackPoints.length.toLocaleString()+' · '+p.lat.toFixed(6)+', '+p.lng.toFixed(6);
-  travelPlaybackInfo={point:p,time:stamp,place:place};
+  travelPlaybackInfo={point:p,time:stamp,place:place}
 }
-function travelPlaybackStop(){
-  travelPlaybackRunning=false;if(travelPlaybackTimer){clearTimeout(travelPlaybackTimer);travelPlaybackTimer=null}
-  if($('travelPlay'))$('travelPlay').textContent='▶ Play';
-}
+function travelPlaybackStop(){travelPlaybackRunning=false;if(travelPlaybackTimer){clearTimeout(travelPlaybackTimer);travelPlaybackTimer=null}if($('travelPlay'))$('travelPlay').textContent='▶ Play'}
 function travelPlaybackStep(){
   if(!travelPlaybackRunning)return;
-  var next=travelPlaybackIndex+1;
-  if(next>=travelPlaybackPoints.length){travelPlaybackStop();return}
+  var next=travelPlaybackIndex+1;if(next>=travelPlaybackPoints.length){travelPlaybackStop();return}
   travelPlaybackShow(next);
   var speed=Number($('travelPlaybackSpeed').value)||20,diff=Math.max(100,travelPlaybackPoints[next].ms-travelPlaybackPoints[next-1].ms);
-  travelPlaybackTimer=setTimeout(travelPlaybackStep,Math.min(5000,diff/speed));
+  travelPlaybackTimer=setTimeout(travelPlaybackStep,Math.min(5000,diff/speed))
 }
-function travelPlaybackStart(){
-  if(travelPlaybackPoints.length<2)return;
-  if(travelPlaybackIndex>=travelPlaybackPoints.length-1)travelPlaybackShow(0);
-  travelPlaybackRunning=true;$('travelPlay').textContent='❚❚ Pause';travelPlaybackStep();
-}
-
+function travelPlaybackStart(){if(travelPlaybackPoints.length<2)return;if(travelPlaybackIndex>=travelPlaybackPoints.length-1)travelPlaybackShow(0);travelPlaybackRunning=true;$('travelPlay').textContent='❚❚ Pause';travelPlaybackStep()}
 function travelClearMap(){
-  travelPolylines.forEach(function(p){p.setMap(null)});travelPolylines=[];travelMarkers.forEach(function(m){m.setMap(null)});travelMarkers=[];travelGpsMarkers.forEach(function(m){m.setMap(null)});travelGpsMarkers=[];travelGapLines.forEach(function(p){p.setMap(null)});travelGapLines=[];travelRoadSegments=null
+  travelPolylines.forEach(function(p){p.setMap(null)});travelPolylines=[];
+  travelMarkers.forEach(function(m){m.setMap(null)});travelMarkers=[];
+  travelGpsMarkers.forEach(function(m){m.setMap(null)});travelGpsMarkers=[];
+  travelGapLines.forEach(function(p){p.setMap(null)});travelGapLines=[];
+}
+function travelResetView(){
+  travelPlaybackStop();travelClearMap();$('travelPointCount').textContent='0';$('travelDistance').textContent='0 km';$('travelDuration').textContent='—';$('travelSegments').textContent='0';$('travelGapNote').classList.add('hidden');$('travelJourneyList').innerHTML='<div class="journeyEmpty">Select a saved travel date.</div>';travelPlaybackPoints=[];$('travelPlaybackSeek').max=0;$('travelPlaybackSeek').value=0;$('travelPlaybackSeek').disabled=true;$('travelPlay').disabled=true;$('travelReset').disabled=true
 }
 function travelDraw(segments){
   if(!travelMap||!window.google||!google.maps)return;
@@ -374,7 +494,7 @@ function travelDraw(segments){
     for(var i=1;i<seg.length;i++){distance+=travelHaversine(seg[i-1],seg[i]);if(seg[i].ms){minMs=Math.min(minMs,seg[i].ms);maxMs=Math.max(maxMs,seg[i].ms)}}
     if(seg.length>1){
       var poly=new google.maps.Polyline({path:seg.map(function(p){return {lat:p.lat,lng:p.lng}}),geodesic:false,strokeColor:'#4f46e5',strokeOpacity:.88,strokeWeight:2,clickable:false});
-      poly.setMap(travelMap);travelPolylines.push(poly);
+      poly.setMap(travelMap);travelPolylines.push(poly)
     }
   });
   if(!bounds.isEmpty())travelMap.fitBounds(bounds);
@@ -383,39 +503,27 @@ function travelDraw(segments){
   $('travelSegments').textContent=segments.filter(function(s){return s.length>1}).length;
   $('travelDuration').textContent=minMs<Infinity&&maxMs?travelFormatDuration(maxMs-minMs):'—'
 }
-function travelDrawEvidence(rawSegments,roadSegments){
+function travelDrawEvidence(rawSegments){
   if(!travelMap)return;
+  var gaps=0;
   rawSegments.forEach(function(seg){
     seg.forEach(function(p){
       var m=new google.maps.Marker({position:{lat:p.lat,lng:p.lng},map:travelMap,icon:{path:google.maps.SymbolPath.CIRCLE,scale:3,fillColor:'#ef4444',fillOpacity:.95,strokeColor:'#fff',strokeWeight:1}});
-      travelGpsMarkers.push(m);
+      travelGpsMarkers.push(m)
     });
-  });
-  var gaps=0;
-  for(var i=0;i<rawSegments.length;i++){
-    var seg=rawSegments[i];
     for(var j=1;j<seg.length;j++){
       var d=travelHaversine(seg[j-1],seg[j]);
       if(d>280){
         gaps++;
         var line=new google.maps.Polyline({path:[{lat:seg[j-1].lat,lng:seg[j-1].lng},{lat:seg[j].lat,lng:seg[j].lng}],geodesic:false,strokeColor:'#d97706',strokeOpacity:.9,strokeWeight:2,icons:[{icon:{path:'M 0,-1 0,1',strokeOpacity:1,scale:3},offset:'0',repeat:'10px'}],clickable:false});
-        line.setMap(travelMap);travelGapLines.push(line);
+        line.setMap(travelMap);travelGapLines.push(line)
       }
     }
-  }
-  if(gaps){$('travelGapNote').classList.remove('hidden');$('travelGapNote').textContent=gaps+' GPS gap'+(gaps===1?'':'s')+' exceed 280 m. These sections are marked as uncertain because the GPX track did not provide enough recorded points to prove the exact road taken.'}
+  });
+  if(gaps){$('travelGapNote').classList.remove('hidden');$('travelGapNote').textContent=gaps+' GPS gap'+(gaps===1?'':'s')+' exceed 280 m. These sections are marked as uncertain because the GPX track did not provide enough recorded points to prove the exact path.'}
   else{$('travelGapNote').classList.add('hidden');$('travelGapNote').textContent=''}
 }
-function travelFormatDuration(ms){
-  var mins=Math.max(0,Math.round(ms/60000)),h=Math.floor(mins/60),m=mins%60;
-  return h?h+'h '+m+'m':m+'m'
-}
-function travelPopulateDates(){
-  var dates=Object.keys(travelData.byDay||{}).sort().reverse(),sel=$('travelDate');
-  sel.innerHTML=dates.map(function(d){return '<option value="'+d+'">'+d+'</option>'}).join('');
-  sel.disabled=!dates.length;
-  if(dates.length)sel.value=dates[0];
-}
+function travelFormatDuration(ms){var mins=Math.max(0,Math.round(ms/60000)),h=Math.floor(mins/60),m=mins%60;return h?h+'h '+m+'m':m+'m'}
 async function loadTravelMaps(){
   var key=String($('travelMapsKey').value||'').trim();
   if(!key)throw new Error('Enter a Google Maps API key first.');
@@ -434,89 +542,81 @@ async function travelEnsureMap(){
   await loadTravelMaps();
   if(!travelMap){
     var first=(travelData&&travelData.segments&&travelData.segments[0]&&travelData.segments[0][0])||{lat:0,lng:0};
-    travelMap=new google.maps.Map($('travelMap'),{center:{lat:first.lat,lng:first.lng},zoom:12,mapTypeControl:true,streetViewControl:false,fullscreenControl:true});
+    travelMap=new google.maps.Map($('travelMap'),{center:{lat:first.lat,lng:first.lng},zoom:12,mapTypeControl:true,streetViewControl:false,fullscreenControl:true})
   }
-}
-async function travelSnapToRoads(segments,key){
-  var all=[];
-  for(var si=0;si<segments.length;si++){
-    var seg=segments[si];if(seg.length<2){all.push(seg);continue}
-    /* Roads Snap-to-Roads is reliable only when consecutive source points
-       are reasonably close. Never ask Google to bridge a huge GPS gap,
-       because that would turn missing data into an invented straight/road path. */
-    var pieces=[],piece=[];
-    for(var gi=0;gi<seg.length;gi++){
-      if(piece.length&&travelHaversine(piece[piece.length-1],seg[gi])>280){
-        if(piece.length>1)pieces.push(piece);piece=[];
-      }
-      piece.push(seg[gi]);
-    }
-    if(piece.length>1)pieces.push(piece);
-    var snappedPieces=[];
-    for(var pi=0;pi<pieces.length;pi++){
-      var piece=pieces[pi];
-      for(var start=0;start<piece.length;start+=95){
-        var from=start?Math.max(0,start-5):0,to=Math.min(piece.length,from+100),chunk=piece.slice(from,to);
-        if(chunk.length<2){snappedPieces.push(chunk);continue}
-        var path=chunk.map(function(p){return p.lat.toFixed(7)+','+p.lng.toFixed(7)}).join('|');
-        var u='https://roads.googleapis.com/v1/snapToRoads?interpolate=true&path='+encodeURIComponent(path)+'&key='+encodeURIComponent(key);
-        var rr=await fetch(u);if(!rr.ok)throw new Error('Google Roads API returned HTTP '+rr.status);
-        var d=await rr.json();if(d.error)throw new Error(d.error.message||'Google Roads API error');
-        var pts=(d.snappedPoints||[]).map(function(x){return {lat:Number(x.location.latitude),lng:Number(x.location.longitude)}});
-        if(start)pts=pts.slice(Math.min(6,pts.length));snappedPieces.push(pts)
-      }
-    }
-    all.push([].concat.apply([],snappedPieces))
-  }
-  return all
 }
 function travelFormatClock(v){if(!v)return 'Unknown time';var d=new Date(v);return isNaN(d.getTime())?'Unknown time':d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}
 function travelMapsUrl(p){return p?'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(p.lat+','+p.lng):'#'}
-function travelSelectedJourney(){var d=$('travelDate').value;return travelData&&travelData.journeyByDay&&travelData.journeyByDay[d]?travelData.journeyByDay[d]:[]}
 function travelPlaceText(e){return e.address||e.label||(e.end?e.end.lat.toFixed(5)+', '+e.end.lng.toFixed(5):e.start?e.start.lat.toFixed(5)+', '+e.start.lng.toFixed(5):'Unknown place')}
 async function travelGeocodePoint(p){if(!p)return '';var k=p.lat.toFixed(6)+','+p.lng.toFixed(6);if(travelAddressCache[k])return travelAddressCache[k];if(!travelGeocoder)travelGeocoder=new google.maps.Geocoder();var res=await travelGeocoder.geocode({location:{lat:p.lat,lng:p.lng}});var address=res&&res.results&&res.results[0]?res.results[0].formatted_address:'';travelAddressCache[k]=address||'';return address||''}
-async function travelIdentifyPlaces(){var items=travelSelectedJourney();if(!items.length){$('travelStatus').textContent='No journey events for this day.';return}await travelEnsureMap();$('travelStatus').textContent='Identifying places…';var n=0;for(var i=0;i<items.length;i++){var e=items[i],p=e.end||e.start;if(p&&!e.address){try{e.address=await travelGeocodePoint(p);if(e.address)n++}catch(_){}}}travelRenderJourney();$('travelStatus').textContent=n?'Identified '+n+' location'+(n===1?'':'s')+'.':'Place names were not available.'}
-function travelRenderJourney(){var box=$('travelJourneyList'),items=travelSelectedJourney();if(!box)return;if(!items.length){box.innerHTML='<div class="journeyEmpty">No chronological journey events were found for this day. The map still shows the recorded GPS path.</div>';return}box.innerHTML=items.map(function(e,i){var p=e.end||e.start,range=travelFormatClock(e.startTime)+(e.endTime?' → '+travelFormatClock(e.endTime):''),title=travelPlaceText(e),meta=e.label||((e.start&&e.end&&Math.abs(e.start.lat-e.end.lat)+Math.abs(e.start.lng-e.end.lng)>0.00001)?'Movement between recorded points':'Recorded location');return '<div class="journeyItem"><div class="journeyTime">'+esc(range)+'</div><div><div class="journeyType"><span class="journeyDot"></span>'+esc(e.type||'Journey')+'</div><div class="journeyPlace">'+esc(title)+'</div><div class="journeyMeta">'+esc(meta)+'</div></div><div class="journeyActions">'+(p?'<button type="button" data-journey-index="'+i+'">Show on map</button><a href="'+travelMapsUrl(p)+'" target="_blank" rel="noopener">Maps ↗</a>':'')+'</div></div>'}).join('')}
-function travelShowJourneyIndex(i){var e=travelSelectedJourney()[Number(i)];if(!e||!travelMap)return;var p=e.end||e.start;if(!p)return;travelMap.panTo({lat:p.lat,lng:p.lng});travelMap.setZoom(Math.max(travelMap.getZoom()||14,15));travelMarkers.forEach(function(m){m.setMap(null)});travelMarkers=[];travelMarkers.push(new google.maps.Marker({position:{lat:p.lat,lng:p.lng},map:travelMap,title:travelPlaceText(e)}))}
+async function travelIdentifyPlaces(){
+  var items=travelSelectedJourney();if(!items.length){$('travelStatus').textContent='No journey events for this date.';return}
+  await travelEnsureMap();$('travelStatus').textContent='Identifying places…';var n=0;
+  for(var i=0;i<items.length;i++){var e=items[i],p=e.end||e.start;if(p&&!e.address){try{e.address=await travelGeocodePoint(p);if(e.address)n++}catch(_){}}}
+  travelRenderJourney();$('travelStatus').textContent=n?'Identified '+n+' location'+(n===1?'':'s')+'.':'Place names were not available.'
+}
+function travelRenderJourney(){
+  var box=$('travelJourneyList'),items=travelSelectedJourney();if(!box)return;
+  if(!items.length){box.innerHTML='<div class="journeyEmpty">No chronological journey events were found for this date.</div>';return}
+  box.innerHTML=items.map(function(e,i){
+    var p=e.end||e.start,range=travelFormatClock(e.startTime)+(e.endTime?' → '+travelFormatClock(e.endTime):''),title=travelPlaceText(e),meta=(e.fileName?e.fileName+' · ':'')+(e.label||'Recorded GPS path');
+    return '<div class="journeyItem"><div class="journeyTime">'+esc(range)+'</div><div><div class="journeyType"><span class="journeyDot"></span>'+esc(e.type||'Journey')+'</div><div class="journeyPlace">'+esc(title)+'</div><div class="journeyMeta">'+esc(meta)+'</div></div><div class="journeyActions">'+(p?'<button type="button" data-journey-index="'+i+'">Show on map</button><a href="'+travelMapsUrl(p)+'" target="_blank" rel="noopener">Maps ↗</a>':'')+'</div></div>'
+  }).join('')
+}
+function travelShowJourneyIndex(i){
+  var e=travelSelectedJourney()[Number(i)];if(!e||!travelMap)return;var p=e.end||e.start;if(!p)return;
+  travelMap.panTo({lat:p.lat,lng:p.lng});travelMap.setZoom(Math.max(travelMap.getZoom()||14,15));
+  travelMarkers.forEach(function(m){m.setMap(null)});travelMarkers=[];travelMarkers.push(new google.maps.Marker({position:{lat:p.lat,lng:p.lng},map:travelMap,title:travelPlaceText(e)}))
+}
 async function travelRender(){
   if(!travelData)return;
   await travelEnsureMap();
   var segments=travelSelectedSegments();
-  travelDraw(segments);
-  $('travelGapNote').classList.add('hidden');
-  $('travelStatus').textContent='Recorded GPS path displayed.';
-  travelRenderJourney();
-  travelPlaybackBuild();
+  travelDraw(segments);travelDrawEvidence(segments);travelRenderJourney();travelPlaybackBuild();
+  $('travelStatus').textContent='Showing '+travelFilesForDate($('travelDate').value).length+' saved GPX file'+(travelFilesForDate($('travelDate').value).length===1?'':'s')+' for '+$('travelDate').value+'.'
 }
-function travelReadFile(file){
-  var rd=new FileReader();
-  rd.onload=function(){
-    try{
-      var text=String(rd.result||'');
-      travelData=parseTravelGPX(text);
-      if(!travelData.segments.length)throw new Error('No usable GPS track points were found in this GPX file.');
-      travelPopulateDates();
-      $('travelMode').disabled=false;$('travelFit').disabled=false;$('travelIdentify').disabled=false;$('travelClear').disabled=false;
-      $('travelStatus').textContent='Loaded '+travelData.segments.length+' path segment'+(travelData.segments.length===1?'':'s')+'.';
-      travelRender().catch(function(e){$('travelStatus').textContent='Map not ready: '+e.message});
-    }catch(e){$('travelStatus').textContent='Could not read GPX file: '+e.message}
-  };
-  rd.readAsText(file);
+async function travelReadFile(file){
+  try{
+    var text=await file.text();
+    var parsed=parseTravelGPX(text),dates=Object.keys(parsed.byDay||{});
+    if(!dates.length)throw new Error('No dated GPS points were found in this GPX file.');
+    var id=await travelFileId(text);
+    await travelDbPut(id,text);
+    var code=localStorage.getItem(SYNC_KEY),cloudUploaded=false;
+    if(code){
+      $('travelStatus').textContent='Saving '+file.name+' to device sync…';
+      try{await travelCloudPut(id,text,code);cloudUploaded=true}catch(e){$('travelStatus').textContent='Saved locally; cloud sync will retry: '+e.message}
+    }
+    db.travelFiles[id]={id:id,name:file.name,dates:dates.sort(),startTime:parsed.segments.flat()[0]&&parsed.segments.flat()[0].time||null,endTime:parsed.segments.flat().slice(-1)[0]&&parsed.segments.flat().slice(-1)[0].time||null,pointCount:parsed.segments.reduce(function(n,x){return n+x.length},0),size:file.size||text.length,uploadedAt:new Date().toISOString(),cloudUploaded:cloudUploaded};
+    travelParsedCache[id]=parsed;localStorage.setItem(KEY,JSON.stringify(db));queueCloudSync();
+    travelPopulateDates(dates.slice().sort().reverse()[0]);
+    await travelLoadSelectedDate();
+    $('travelStatus').textContent='Saved '+file.name+' to '+dates.length+' travel date'+(dates.length===1?'':'s')+'.'
+  }catch(e){$('travelStatus').textContent='Could not save GPX file: '+e.message}
 }
-function travelClearData(){
-  travelData=null;$('travelDate').innerHTML='<option>No data</option>';$('travelDate').disabled=true;$('travelMode').disabled=true;$('travelFit').disabled=true;$('travelIdentify').disabled=true;$('travelClear').disabled=true;$('travelPointCount').textContent='0';$('travelDistance').textContent='0 km';$('travelDuration').textContent='—';$('travelSegments').textContent='0';$('travelStatus').textContent='No GPX data loaded.';$('travelJourneyList').innerHTML='<div class="journeyEmpty">Load a GPX day to see your journey.</div>';travelClearMap()
-}
-$('startTravelTrace').addEventListener('click',function(){hide('home');hide('session');hide('completedSession');hide('done');show('travelSession');var k=localStorage.getItem('totalRecallGoogleMapsKey_v1')||'';$('travelMapsKey').value=k});
+function travelClearData(){travelData=null;travelResetView();$('travelStatus').textContent='View cleared. Your saved GPX files remain available by date.'}
+$('startTravelTrace').addEventListener('click',function(){
+  hide('home');hide('session');hide('completedSession');hide('done');show('travelSession');
+  var k=localStorage.getItem('totalRecallGoogleMapsKey_v1')||'';$('travelMapsKey').value=k;
+  db.travelFiles=db.travelFiles||{};travelPopulateDates($('travelDate').value);
+  if(travelDates().length)travelLoadSelectedDate().catch(function(e){$('travelStatus').textContent=e.message})
+});
 $('travelHomeBtn').addEventListener('click',function(){hide('travelSession');show('home')});
 $('travelFile').addEventListener('change',function(e){var f=e.target.files[0];if(f)travelReadFile(f);e.target.value=''});
 $('travelLoadMap').addEventListener('click',function(){travelEnsureMap().then(function(){if(travelData)travelRender()}).catch(function(e){$('travelStatus').textContent=e.message})});
-$('travelDate').addEventListener('change',function(){travelRender().catch(function(e){$('travelStatus').textContent=e.message})});
-
-$('travelFit').addEventListener('click',function(){if(travelMap)travelRender().catch(function(){})});$('travelIdentify').addEventListener('click',function(){travelIdentifyPlaces().catch(function(e){$('travelStatus').textContent=e.message})});$('travelJourneyList').addEventListener('click',function(e){var i=e.target&&e.target.dataset?e.target.dataset.journeyIndex:null;if(i!==null&&i!==undefined)travelShowJourneyIndex(i)});
-$('travelClear').addEventListener('click',travelClearData);$('travelPlay').addEventListener('click',function(){travelPlaybackRunning?travelPlaybackStop():travelPlaybackStart()});
-$('travelReset').addEventListener('click',function(){travelPlaybackStop();travelPlaybackShow(0)});
+$('travelDate').addEventListener('change',function(){travelLoadSelectedDate().catch(function(e){$('travelStatus').textContent=e.message})});
+$('travelFit').addEventListener('click',function(){if(travelMap)travelRender().catch(function(){})});
+$('travelIdentify').addEventListener('click',function(){travelIdentifyPlaces().catch(function(e){$('travelStatus').textContent=e.message})});
+$('travelJourneyList').addEventListener('click',function(e){var i=e.target&&e.target.dataset?e.target.dataset.journeyIndex:null;if(i!==null&&i!==undefined)travelShowJourneyIndex(i)});
+$('travelClear').addEventListener('click',travelClearData);
+$('travelPlay').addEventListener('click',function(){travelPlaybackRunning?travelPlaybackStop():travelPlaybackStart()});
+$('travelReset').addEventListener('click',function(){travelPlaybackStop();if(travelPlaybackPoints.length)travelPlaybackShow(0)});
 $('travelPlaybackSeek').addEventListener('input',function(){travelPlaybackStop();travelPlaybackShow(Number(this.value))});
 $('travelPlaybackSpeed').addEventListener('change',function(){if(travelPlaybackRunning){travelPlaybackStop();travelPlaybackStart()}});
-
+$('travelSyncBtn').addEventListener('click',async function(){
+  $('travelSyncStatus').textContent='☁ Syncing people data and travel files…';
+  try{await cloudSync(true);travelPopulateDates($('travelDate').value);if(travelDates().length)await travelLoadSelectedDate();$('travelSyncStatus').textContent='☁ Synced '+new Date().toLocaleTimeString()}catch(e){$('travelSyncStatus').textContent='☁ Sync unavailable: '+e.message}
+});
+travelPopulateDates();
 })();
 </script></body></html>
