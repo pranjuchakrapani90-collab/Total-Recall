@@ -410,16 +410,22 @@ async function travelCloudGet(id,code){
 }
 async function travelSyncPendingFiles(code){
   var metas=travelMeta();
+  var uploaded=0;
   for(var i=0;i<metas.length;i++){
     var f=metas[i];
-    if(f.cloudUploaded)continue;
     var text=await travelDbGet(f.id);
     if(text===null)continue;
-    await travelCloudPut(f.id,text,code);
-    f.cloudUploaded=true;
+    try{
+      await travelCloudPut(f.id,text,code);
+      f.cloudUploaded=true;
+      uploaded++;
+    }catch(e){
+      console.warn('Travel file sync failed for '+f.name,e);
+    }
   }
   localStorage.setItem(KEY,JSON.stringify(db));
-  travelRenderFileList()
+  travelRenderFileList();
+  return uploaded
 }
 async function travelEnsureLocalFile(meta){
   var local=await travelDbGet(meta.id);
