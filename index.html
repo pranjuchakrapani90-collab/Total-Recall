@@ -404,9 +404,9 @@ async function travelCloudPut(id,text,code){
 async function travelCloudGet(id,code){
   var u=TICK_URL+(TICK_URL.indexOf('?')>=0?'&':'?')+'mode=travel-file&fileId='+encodeURIComponent(id);
   var r=await fetch(u,{method:'GET',headers:{'X-Total-Recall-Sync':code},cache:'no-store'});
-  if(r.status===404)return null;
+  if(r.status===404)return {missing:true};
   if(!r.ok)throw new Error('Travel file download failed (HTTP '+r.status+')');
-  return decryptSync(await r.text(),code).then(function(x){return x&&x.gpx?x.gpx:null})
+  try{var x=await decryptSync(await r.text(),code);return x&&x.gpx?{gpx:x.gpx}:{missing:true}}catch(e){throw new Error('The GPX exists in cloud sync, but this device is using a different sync code.')}
 }
 async function travelSyncPendingFiles(code){
   var metas=travelMeta();
@@ -426,8 +426,9 @@ async function travelEnsureLocalFile(meta){
   if(local!==null)return local;
   var code=localStorage.getItem(SYNC_KEY);
   if(!code)throw new Error('This GPX file is synced to another device. Enable Device Sync using the same sync code to download it.');
-  var text=await travelCloudGet(meta.id,code);
-  if(text===null)throw new Error('The synced GPX file is not available yet. Try Sync devices again in a moment.');
+  var result=await travelCloudGet(meta.id,code);
+  if(result&&result.missing)throw new Error('This GPX is not stored in the cloud under this sync code. On the device that still has the original GPX, open Travel Trace and tap Sync devices again.');
+  var text=result.gpx;
   await travelDbPut(meta.id,text);
   return text
 }
