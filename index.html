@@ -439,7 +439,7 @@ async function travelLoadSelectedDate(){
     }
   }
   travelData=travelAggregateForDate(date,items);
-  $('travelMode').disabled=false;$('travelFit').disabled=false;$('travelIdentify').disabled=false;$('travelClear').disabled=false;
+  $('travelFit').disabled=false;$('travelIdentify').disabled=false;$('travelClear').disabled=false;
   await travelRender()
 }
 function travelSelectedSegments(){var d=$('travelDate').value;return travelData&&travelData.byDay&&travelData.byDay[d]?travelData.byDay[d]:[]}
