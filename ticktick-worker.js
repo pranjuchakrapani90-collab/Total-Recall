@@ -71,7 +71,7 @@ async function handleTravelFile(request,env){
   const codeHash=Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('');
   const key='travel-file:'+codeHash+':'+fileId;
   if(request.method==='GET'){
-    const blob=await env.SYNC_KV.get(key,{cacheTtl:30});
+    const blob=await env.SYNC_KV.get(key);
     if(blob===null)return new Response(JSON.stringify({error:'Travel file not found.'}),{status:404,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
     return new Response(blob,{status:200,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json','Cache-Control':'no-store'}});
   }
