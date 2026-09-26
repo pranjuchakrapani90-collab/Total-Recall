@@ -5,7 +5,7 @@
 <header><h1>Total Recall</h1><p>Recall people and responsibilities, one flashcard at a time.</p></header>
 <main class="container">
 <section id="home"><div class="systems"><div class="panel"><h2>Responsibility Recall</h2><p class="muted">Refresh TickTick, then choose a responsibility tag to review today's actual tasks.</p><button id="startResp">Refresh TickTick & Start Recall</button><div id="tickStatus" class="smart">TickTick tasks are loaded dynamically when you start.</div><div id="responsibilityTags" class="row" style="margin-top:10px"></div></div>
-<div class="panel"><h2>Completed Task Review</h2><p class="muted">Review what you actually completed over a selected period. Repeated daily entries are grouped into one unique task and their completion dates are shown together.</p><div class="row"><label>Period <select id="completedPeriod" style="width:210px"></select></label><button id="reviewCompletedBtn" class="secondary">Review completed tasks</button></div><div id="completedStatus" class="smart hidden"></div><div id="completedResults" style="margin-top:12px"></div></div>
+<div class="panel"><h2>Completed Task Review</h2><p class="muted">Review what you actually completed over a selected period. Repeated daily entries are grouped into one unique task and their completion dates are shown together.</p><div class="row"><label>Period <select id="completedPeriod" style="width:210px"></select></label><button id="reviewCompletedBtn" class="secondary">Review completed tasks</button></div><div id="completedStatus" class="smart hidden"></div><div id="completedTags" class="row" style="margin-top:10px"></div><div id="completedResults" style="margin-top:12px"></div></div>
 <div class="panel dashboard-card" style="background:linear-gradient(135deg,#ecfeff,#f0fdfa);border:1px solid #b6e3e3"><div class="row" style="justify-content:space-between"><div><h2 style="margin:0 0 6px">📚 Reference Review</h2><p class="muted" style="margin:0">Review items from your TickTick <b>Reference</b> section tag-wise — SDE Rev, SDE Tech, SDE Estt and other tags.</p></div><button id="startReference">Open Reference Review →</button></div><div id="referenceStatus" class="smart">Reference items are loaded from TickTick when you start.</div><div id="referenceTags" class="row" style="margin-top:10px"></div></div>
 <div class="panel dashboard-card" style="background:linear-gradient(135deg,#eff6ff,#f5f3ff);border:1px solid #c7d2fe"><div class="row" style="justify-content:space-between"><div><h2 style="margin:0 0 6px">🗺️ Travel Trace</h2><p class="muted" style="margin:0">Trace your recorded Google Maps Timeline path on a thin Google Maps line — using the actual exported GPS points.</p></div><button id="startTravelTrace">Open Travel Trace →</button></div><div class="smart">GPX files are indexed by their embedded GPS dates. When Device Sync is enabled, the original files are encrypted with your Total Recall sync code and synchronized across devices.</div></div><div class="panel"><h2>People Recall</h2><p class="muted">Unrecalled names are always prioritised. After the first pass, smart spaced re-recall begins.</p><div class="row"><label>Names per session <input id="count" type="number" value="10" min="1" style="width:80px"></label><button id="startPeople">Start People Recall</button><button id="manageBtn" class="secondary">Manage names</button><button id="syncBtn" class="secondary">☁ Sync devices</button><span id="syncStatus" class="muted">Device sync is local until enabled.</span></div>
 <div class="stats"><div class="stat"><b id="total">0</b><span>Total unique names</span></div><div class="stat"><b id="recalled">0</b><span>Unique names recalled</span></div><div class="stat"><b id="remaining">0</b><span>Still to recall</span></div></div><div id="roundPlan" class="smart"></div><div id="smartPlan" class="smart"></div>
@@ -81,24 +81,44 @@ function populateCompletedPeriods(){
   for(var yy=y-2;yy>=2022;yy--)html+='<option value="year-'+yy+'">'+yy+'</option>';
   el.innerHTML=html;
 }
-var completedCards=[],completedIdx=0;
+var completedCards=[],completedIdx=0,completedGroups={};
+function renderCompletedTags(){
+  var box=$('completedTags');if(!box)return;
+  var keys=Object.keys(completedGroups||{}).sort();
+  box.innerHTML=keys.length?keys.map(function(k){
+    return '<button class="secondary small" data-completed-tag="'+encodeURIComponent(k)+'">'+esc(k)+' • '+(completedGroups[k]||[]).length+'</button>'
+  }).join(''):'<span class="muted">No tags found in the completed tasks.</span>'
+}
+function startCompletedTag(tag){
+  var arr=(completedGroups[tag]||[]).slice();
+  if(!arr.length){alert('No completed tasks tagged '+tag+' were found for this period.');return}
+  completedCards=arr;completedIdx=0;
+  hide('home');hide('session');hide('done');show('completedSession');drawCompletedCard()
+}
 async function reviewCompletedTasks(){
   var key=$('completedPeriod').value,range=periodRange(key);
   if(!range){alert('Please select a review period first.');return}
   $('completedStatus').classList.remove('hidden');
   $('completedStatus').textContent='Loading completed TickTick tasks for '+range.start+' to '+range.end+'…';
+  $('completedTags').innerHTML='';
   $('completedResults').innerHTML='';
   var u=TICK_URL+(TICK_URL.indexOf('?')>=0?'&':'?')+'mode=completed&start='+encodeURIComponent(range.start)+'&end='+encodeURIComponent(range.end);
   try{
     var r=await fetch(u,{cache:'no-store'});if(!r.ok)throw new Error('TickTick bridge returned HTTP '+r.status);
     var data=await r.json();if(data.error)throw new Error(data.error);
     var tasks=(data.tasks||[]).filter(function(t){return !COMPLETED_SUPPRESS[String(t.title||'').trim().toLowerCase()]});
-    $('completedStatus').textContent=tasks.length+' unique completed task'+(tasks.length===1?'':'s')+' found for '+range.start+' to '+range.end+'.';
-    if(!tasks.length){$('completedResults').innerHTML='<div class="muted">No completed tasks found for this period.</div>';return}
-    completedCards=tasks;completedIdx=0;$('completedResults').innerHTML='';
-    hide('home');hide('session');hide('done');show('completedSession');drawCompletedCard()
+    completedGroups={};
+    tasks.forEach(function(t){
+      var tags=Array.isArray(t.tags)?t.tags.filter(Boolean):[];
+      if(!tags.length)tags=['UNTAGGED'];
+      tags.forEach(function(tag){completedGroups[tag]=completedGroups[tag]||[];completedGroups[tag].push(t)})
+    });
+    $('completedStatus').textContent=tasks.length+' unique completed task'+(tasks.length===1?'':'s')+' found for '+range.start+' to '+range.end+'. Choose a tag to begin review.';
+    if(!tasks.length){$('completedTags').innerHTML='<div class="muted">No completed tasks found for this period.</div>';return}
+    renderCompletedTags();
   }catch(e){
     $('completedStatus').textContent='Could not load completed tasks: '+e.message;
+    $('completedTags').innerHTML='';
     $('completedResults').innerHTML='<div class="warning">Check that the TickTick Worker is deployed and its access token is working.</div>'
   }
 }
@@ -114,7 +134,7 @@ function drawCompletedCard(){
   $('completedBack').disabled=completedIdx===0;
 }
 function finishCompletedReview(){completedCards=[];completedIdx=0;hide('completedSession');show('home');render()}
-$('reviewCompletedBtn').addEventListener('click',reviewCompletedTasks);$('completedBack').addEventListener('click',function(){if(completedIdx>0){completedIdx--;drawCompletedCard()}});$('completedNext').addEventListener('click',function(){if(!completedCards.length)return;completedIdx++;if(completedIdx>=completedCards.length){finishCompletedReview();return}drawCompletedCard()});$('completedDeleteBtn').addEventListener('click',function(){if(!completedCards.length)return;var t=completedCards[completedIdx]||{},k=String(t.title||'').trim().toLowerCase();if(!k)return;if(!confirm('Hide this task from Completed Task Review? It will remain in TickTick.'))return;COMPLETED_SUPPRESS[k]=true;localStorage.setItem(COMPLETED_SUPPRESS_KEY,JSON.stringify(COMPLETED_SUPPRESS));completedCards.splice(completedIdx,1);if(completedIdx>=completedCards.length){finishCompletedReview();return}drawCompletedCard()});$('completedHomeBtn').addEventListener('click',finishCompletedReview);populateCompletedPeriods();
+$('reviewCompletedBtn').addEventListener('click',reviewCompletedTasks);$('completedTags').addEventListener('click',function(e){var tag=e.target&&e.target.dataset?e.target.dataset.completedTag:null;if(tag!==null&&tag!==undefined)startCompletedTag(decodeURIComponent(tag))});$('completedBack').addEventListener('click',function(){if(completedIdx>0){completedIdx--;drawCompletedCard()}});$('completedNext').addEventListener('click',function(){if(!completedCards.length)return;completedIdx++;if(completedIdx>=completedCards.length){finishCompletedReview();return}drawCompletedCard()});$('completedDeleteBtn').addEventListener('click',function(){if(!completedCards.length)return;var t=completedCards[completedIdx]||{},k=String(t.title||'').trim().toLowerCase();if(!k)return;if(!confirm('Hide this task from Completed Task Review? It will remain in TickTick.'))return;COMPLETED_SUPPRESS[k]=true;localStorage.setItem(COMPLETED_SUPPRESS_KEY,JSON.stringify(COMPLETED_SUPPRESS));completedCards.splice(completedIdx,1);if(completedIdx>=completedCards.length){finishCompletedReview();return}drawCompletedCard()});$('completedHomeBtn').addEventListener('click',finishCompletedReview);populateCompletedPeriods();
 function startPeople(){var a=Object.values(db.people);if(!a.length){alert('Import some names first.');return}var n=Math.min(Math.max(1,Number($('count').value)||10),a.length),u=a.filter(function(p){return !hist(p).length}),d=a.filter(due),r=a.filter(function(p){return hist(p).length&&!due(p)});cards=shuffle(u).concat(shuffle(d),shuffle(r)).slice(0,n);mode='people';idx=0;saved=0;hide('home');hide('done');show('session');draw()}
 async function startResp(){try{await loadTickTasks()}catch(e){alert(e.message);return}renderResponsibilityTags();$('tickStatus').textContent='Choose a responsibility tag to begin recall.'}
 function renderResponsibilityTags(){var box=$('responsibilityTags');if(!box)return;var keys=Object.keys(taskGroups||{}).sort();box.innerHTML=keys.length?keys.map(function(k){return '<button class="secondary small" data-resp-tag="'+encodeURIComponent(k)+'">'+esc(k)+' • '+(taskGroups[k]||[]).length+'</button>'}).join(''):'<span class="muted">No tagged tasks found for today.</span>'}
