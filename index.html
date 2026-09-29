@@ -408,6 +408,15 @@ function parseTravelGPX(text){
   });
   return {segments:out,byDay:byDay,journey:journey,journeyByDay:journeyByDay}
 }
+function travelParseAsync(text,isKml){
+  return new Promise(function(resolve,reject){
+    var src="self.onmessage=function(e){try{var text=e.data.text,isKml=e.data.isKml;"+travelTime.toString()+";"+travelDateOf.toString()+";"+travelAddSegment.toString()+";"+parseTravelGPX.toString()+";"+parseTravelKML.toString()+";var result=(isKml?parseTravelKML(text):parseTravelGPX(text));self.postMessage({ok:true,result:result})}catch(err){self.postMessage({ok:false,error:err&&err.message?err.message:String(err)})}}";
+    var blob=new Blob([src],{type:'application/javascript'}),url=URL.createObjectURL(blob),worker=new Worker(url);
+    worker.onmessage=function(e){worker.terminate();URL.revokeObjectURL(url);if(e.data&&e.data.ok)resolve(e.data.result);else reject(new Error(e.data&&e.data.error||'Could not parse travel file.'))};
+    worker.onerror=function(e){worker.terminate();URL.revokeObjectURL(url);reject(new Error(e.message||'Travel parser worker failed.'))};
+    worker.postMessage({text:text,isKml:!!isKml});
+  })
+}
 function travelHaversine(a,b){
   var R=6371000,toRad=Math.PI/180,dLat=(b.lat-a.lat)*toRad,dLng=(b.lng-a.lng)*toRad;
   var x=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(a.lat*toRad)*Math.cos(b.lat*toRad)*Math.sin(dLng/2)*Math.sin(dLng/2);
@@ -498,7 +507,7 @@ async function travelLoadSelectedDate(){
   for(var i=0;i<items.length;i++){
     try{
       var text=await travelEnsureLocalFile(items[i]);
-      if(!travelParsedCache[items[i].id])travelParsedCache[items[i].id]=parseTravelGPX(text)
+      if(!travelParsedCache[items[i].id]){var isKml=/\.kml$/i.test(items[i].name)||/<(?:kml|gx:Track)\b/i.test(text);travelParsedCache[items[i].id]=await travelParseAsync(text,isKml)}
     }catch(e){
       $('travelStatus').textContent='Could not load '+items[i].name+': '+e.message;
       travelData=null;travelResetView();return
@@ -709,7 +718,7 @@ async function travelReadFile(file){
   try{
     var text=await file.text();
     var isKml=/\.kml$/i.test(file.name)||/<(?:kml|gx:Track)\b/i.test(text);
-    var parsed=isKml?parseTravelKML(text):parseTravelGPX(text),dates=Object.keys(parsed.byDay||{});
+    var parsed=await travelParseAsync(text,isKml),dates=Object.keys(parsed.byDay||{});
     if(!dates.length)throw new Error('No dated GPS points were found in this GPX/KML file.');
     var id=await travelFileId(text);
     await travelDbPut(id,text);
