@@ -796,9 +796,15 @@ async function travelReadFile(file){
     }
     db.travelFiles[id]={id:id,name:file.name,dates:dates.sort(),startTime:parsed.segments.flat()[0]&&parsed.segments.flat()[0].time||null,endTime:parsed.segments.flat().slice(-1)[0]&&parsed.segments.flat().slice(-1)[0].time||null,pointCount:parsed.segments.reduce(function(n,x){return n+x.length},0),size:file.size||text.length,uploadedAt:new Date().toISOString(),cloudUploaded:cloudUploaded};
     travelParsedCache[id]=parsed;localStorage.setItem(KEY,JSON.stringify(db));queueCloudSync();
-    travelPopulateDates(dates.slice().sort().reverse()[0]);
-    await travelLoadSelectedDate();
-    $('travelStatus').textContent='Saved '+file.name+' to '+dates.length+' travel date'+(dates.length===1?'':'s')+'.'
+    var targetDate=dates.slice().sort().reverse()[0];
+    travelPopulateDates(targetDate);
+    $('travelDate').value=targetDate;
+    try{
+      await travelLoadSelectedDate();
+      $('travelStatus').textContent='Saved '+file.name+' to '+dates.length+' travel date'+(dates.length===1?'':'s')+'. Showing '+targetDate+'.'
+    }catch(loadErr){
+      $('travelStatus').textContent='Saved '+file.name+' successfully, but could not load '+targetDate+': '+loadErr.message
+    }
   }catch(e){$('travelStatus').textContent='Could not save GPX/KML file: '+e.message}
 }
 function travelClearData(){travelData=null;travelResetView();$('travelStatus').textContent='View cleared. Your saved GPX files remain available by date.'}
