@@ -409,41 +409,40 @@ function parseTravelGPX(text){
   return {segments:out,byDay:byDay,journey:journey,journeyByDay:journeyByDay}
 }
 function travelParseGPXWorker(text){
-  var out=[],journey=[],s=String(text||'').replace(/<!--[\s\S]*?-->/g,'');
-  var trackRe=/<trk\b[^>]*>([\s\S]*?)<\/trk>/gi,m,trackFound=false;
-  while((m=trackRe.exec(s))){
-    trackFound=true;
-    var body=m[1],nm=(body.match(/<name\b[^>]*>([\s\S]*?)<\/name>/i)||[])[1]||'';
-    var segRe=/<trkseg\b[^>]*>([\s\S]*?)<\/trkseg>/gi,sm,hadSeg=false;
-    while((sm=segRe.exec(body))){
-      hadSeg=true;var pts=[],ptRe=/<trkpt\b([^>]*)>([\s\S]*?)<\/trkpt>/gi,pm;
-      while((pm=ptRe.exec(sm[1]))){
-        var attrs=pm[1],latM=attrs.match(/\blat\s*=\s*["']([^"']+)["']/i),lonM=attrs.match(/\blon\s*=\s*["']([^"']+)["']/i);
-        var lat=latM?Number(latM[1]):NaN,lng=lonM?Number(lonM[1]):NaN;
-        if(!isFinite(lat)||!isFinite(lng)||Math.abs(lat)>90||Math.abs(lng)>180)continue;
-        var tm=(pm[2].match(/<time\b[^>]*>([\s\S]*?)<\/time>/i)||[])[1],time=tm?travelTime(tm.replace(/<[^>]+>/g,'').trim()):null;
-        pts.push({lat:lat,lng:lng,time:time,ms:time?new Date(time).getTime():0});
-      }
-      if(!pts.length)continue;
-      var cur=[];
-      pts.forEach(function(p){if(cur.length&&p.ms&&cur[cur.length-1].ms&&p.ms-cur[cur.length-1].ms>15*60000){travelAddSegment(out,cur);cur=[]}cur.push(p)});
-      if(cur.length>1)travelAddSegment(out,cur);else if(cur.length===1)out.push(cur);
-      if(pts.length>1)journey.push({type:'Travel',start:pts[0],end:pts[pts.length-1],startTime:pts[0].time,endTime:pts[pts.length-1].time,label:nm.replace(/<[^>]+>/g,'').trim()||'Recorded GPS path'});
-    }
-    if(!hadSeg){
-      var pts=[],ptRe=/<trkpt\b([^>]*)>([\s\S]*?)<\/trkpt>/gi,pm;
-      while((pm=ptRe.exec(body))){
-        var attrs=pm[1],latM=attrs.match(/\blat\s*=\s*["']([^"']+)["']/i),lonM=attrs.match(/\blon\s*=\s*["']([^"']+)["']/i),lat=latM?Number(latM[1]):NaN,lng=lonM?Number(lonM[1]):NaN;
-        if(!isFinite(lat)||!isFinite(lng)||Math.abs(lat)>90||Math.abs(lng)>180)continue;
-        var tm=(pm[2].match(/<time\b[^>]*>([\s\S]*?)<\/time>/i)||[])[1],time=tm?travelTime(tm.replace(/<[^>]+>/g,'').trim()):null;
-        pts.push({lat:lat,lng:lng,time:time,ms:time?new Date(time).getTime():0});
-      }
-      if(pts.length>1){var cur=[];pts.forEach(function(p){if(cur.length&&p.ms&&cur[cur.length-1].ms&&p.ms-cur[cur.length-1].ms>15*60000){travelAddSegment(out,cur);cur=[]}cur.push(p)});if(cur.length>1)travelAddSegment(out,cur);else if(cur.length===1)out.push(cur);journey.push({type:'Travel',start:pts[0],end:pts[pts.length-1],startTime:pts[0].time,endTime:pts[pts.length-1].time,label:nm.replace(/<[^>]+>/g,'').trim()||'Recorded GPS path'})}
-    }
+  var out=[],journey=[],s=String(text||'').replace(/<!--[\\s\\S]*?-->/g,'');
+  var ptRe=/<trkpt\\b([^>]*)>([\\s\\S]*?)<\\/trkpt>/gi,pm,pts=[],m;
+  while((pm=ptRe.exec(s))){
+    var attrs=pm[1],latM=attrs.match(/\\blat\\s*=\\s*["']([^"']+)["']/i),lonM=attrs.match(/\\blon\\s*=\\s*["']([^"']+)["']/i);
+    var lat=latM?Number(latM[1]):NaN,lng=lonM?Number(lonM[1]):NaN;
+    if(!isFinite(lat)||!isFinite(lng)||Math.abs(lat)>90||Math.abs(lng)>180)continue;
+    var tm=(pm[2].match(/<time\\b[^>]*>([\\s\\S]*?)<\\/time>/i)||[])[1];
+    var time=tm?travelTime(tm.replace(/<[^>]+>/g,'').trim()):null;
+    if(!time)continue;
+    pts.push({lat:lat,lng:lng,time:time,ms:new Date(time).getTime()});
   }
-  if(!trackFound)throw new Error('No GPX track was found.');
+  if(!pts.length)throw new Error('No dated GPX track points were found.');
+  pts.sort(function(a,b){return a.ms-b.ms});
+  var cur=[];
+  function flush(){
+    if(cur.length>1)travelAddSegment(out,cur);
+    else if(cur.length===1)out.push(cur.slice());
+    cur=[];
+  }
+  pts.forEach(function(p){
+    if(cur.length&&p.ms-cur[cur.length-1].ms>15*60000)flush();
+    cur.push(p);
+  });
+  flush();
+  if(pts.length>1){
+    var nm=(s.match(/<trk>\\s*<!--[\\s\\S]*?-->\\s*<name\\b[^>]*>([\\s\\S]*?)<\\/name>/i)||s.match(/<trk>[\\s\\S]*?<name\\b[^>]*>([\\s\\S]*?)<\\/name>/i)||[])[1]||'Recorded GPS path';
+    journey.push({type:'Travel',start:pts[0],end:pts[pts.length-1],startTime:pts[0].time,endTime:pts[pts.length-1].time,label:nm.replace(/<[^>]+>/g,'').trim()||'Recorded GPS path'});
+  }
   var byDay={},journeyByDay={};
-  out.forEach(function(seg){var grouped={};seg.forEach(function(p){var d=travelDateOf(p.time);(grouped[d]||(grouped[d]=[])).push(p)});Object.keys(grouped).forEach(function(d){if(grouped[d].length>1)(byDay[d]||(byDay[d]=[])).push(grouped[d])})});
+  out.forEach(function(seg){
+    var grouped={};
+    seg.forEach(function(p){var d=travelDateOf(p.time);(grouped[d]||(grouped[d]=[])).push(p)});
+    Object.keys(grouped).forEach(function(d){if(grouped[d].length>1)(byDay[d]||(byDay[d]=[])).push(grouped[d])});
+  });
   journey.forEach(function(e){var d=travelDateOf(e.startTime||e.endTime);(journeyByDay[d]||(journeyByDay[d]=[])).push(e)});
   return {segments:out,byDay:byDay,journey:journey,journeyByDay:journeyByDay}
 }
