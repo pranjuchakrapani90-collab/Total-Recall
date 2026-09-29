@@ -410,7 +410,7 @@ function parseTravelGPX(text){
 }
 function travelParseAsync(text,isKml){
   return new Promise(function(resolve,reject){
-    var src="self.onmessage=function(e){try{var text=e.data.text,isKml=e.data.isKml;"+travelTime.toString()+";"+travelDateOf.toString()+";"+travelAddSegment.toString()+";"+parseTravelGPX.toString()+";"+parseTravelKML.toString()+";var result=(isKml?parseTravelKML(text):parseTravelGPX(text));self.postMessage({ok:true,result:result})}catch(err){self.postMessage({ok:false,error:err&&err.message?err.message:String(err)})}}";
+    var src="self.onmessage=function(e){try{var text=e.data.text,isKml=e.data.isKml;"+travelTime.toString()+";"+travelDateOf.toString()+";"+travelPointFromString.toString()+";"+travelAddSegment.toString()+";"+parseTravelGPX.toString()+";"+parseTravelKML.toString()+";var result=(isKml?parseTravelKML(text):parseTravelGPX(text));self.postMessage({ok:true,result:result})}catch(err){self.postMessage({ok:false,error:err&&err.message?err.message:String(err)})}}";
     var blob=new Blob([src],{type:'application/javascript'}),url=URL.createObjectURL(blob),worker=new Worker(url);
     worker.onmessage=function(e){worker.terminate();URL.revokeObjectURL(url);if(e.data&&e.data.ok)resolve(e.data.result);else reject(new Error(e.data&&e.data.error||'Could not parse travel file.'))};
     worker.onerror=function(e){worker.terminate();URL.revokeObjectURL(url);reject(new Error(e.message||'Travel parser worker failed.'))};
