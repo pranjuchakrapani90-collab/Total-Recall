@@ -708,7 +708,8 @@ async function travelRender(){
 async function travelReadFile(file){
   try{
     var text=await file.text();
-    var isKml=/\\.kml$/i.test(file.name)||/<(?:kml|gx:Track)\\b/i.test(text);\n    var parsed=isKml?parseTravelKML(text):parseTravelGPX(text),dates=Object.keys(parsed.byDay||{});
+    var isKml=/\.kml$/i.test(file.name)||/<(?:kml|gx:Track)\b/i.test(text);
+    var parsed=isKml?parseTravelKML(text):parseTravelGPX(text),dates=Object.keys(parsed.byDay||{});
     if(!dates.length)throw new Error('No dated GPS points were found in this GPX/KML file.');
     var id=await travelFileId(text);
     await travelDbPut(id,text);
