@@ -13,7 +13,7 @@
 </div></div</div></section></section>
 <section id="session" class="hidden"><div class="panel"><div class="row" style="justify-content:space-between"><button id="homeBtn" class="secondary small">← Dashboard</button><span id="progress" class="muted"></span></div><div id="flash" class="flash" style="margin-top:15px"><div class="flashInner"><div class="flashFace flashFront"><span id="source" class="source hidden"></span><div id="counter" class="counter"></div><div id="card" class="name"></div><div id="hint" class="hint"></div></div><div class="flashFace flashBack"><div id="taskReveal" class="taskReveal hidden"></div><div class="flashBackHint">Click to flip back</div></div></div></div><button id="deleteBtn" class="danger small hidden" style="margin-top:10px">Delete this name</button><div class="row" style="justify-content:space-between;margin-top:18px"><button id="back" class="secondary">← Back</button><button id="next">Next →</button></div></div></section>
 <section id="completedSession" class="hidden"><div class="panel"><div class="row" style="justify-content:space-between"><button id="completedHomeBtn" class="secondary small">← Dashboard</button><span id="completedProgress" class="muted"></span></div><div id="completedFlash" class="flash" style="margin-top:15px"><div class="flashInner"><div class="flashFace flashFront"><div id="completedCounter" class="counter"></div><div id="completedCard" class="name"></div><div id="completedHint" class="hint"></div></div><div class="flashFace flashBack"><div id="completedTaskReveal" class="taskReveal hidden"></div><div class="flashBackHint">Click to flip back</div></div></div></div><button id="completedDeleteBtn" class="danger small" style="margin-top:10px">Delete this task</button><div class="row" style="justify-content:space-between;margin-top:18px"><button id="completedBack" class="secondary">← Back</button><button id="completedNext">Next →</button></div></div></section>
-<section id="travelSession" class="hidden"><div class="panel"><div class="row" style="justify-content:space-between"><button id="travelHomeBtn" class="secondary small">← Dashboard</button><span id="travelStatus" class="muted">No travel traces saved yet.</span></div><h2 style="margin-top:18px">🗺️ Travel Trace</h2><p class="muted">Upload GPX tracks from GPS Logger. Each upload is saved using the dates embedded in its GPS timestamps — not the date you upload it. Multiple GPX files can belong to the same day.</p><div class="travelControls"><div class="travelControl"><label for="travelMapsKey">Google Maps API key</label><input id="travelMapsKey" type="password" placeholder="Paste your browser-restricted Maps API key"></div><div class="travelControl"><label for="travelFile">Add GPX file</label><input id="travelFile" type="file" accept=".gpx,application/gpx+xml,.xml,text/xml"></div><div class="travelControl"><label for="travelDate">Travel date</label><select id="travelDate" disabled><option>No saved dates</option></select></div><div class="travelControl"><label>Device sync</label><div class="travelSyncBox"><button id="travelSyncBtn" class="secondary small">☁ Sync devices</button><span id="travelSyncStatus" class="muted">Uses the same Total Recall sync code as People Recall.</span></div></div></div><div id="travelFilesForDate" class="travelFilesForDate"></div><div class="row" style="margin-top:10px"><button id="travelLoadMap">Load Google Map</button><button id="travelFit" class="secondary" disabled>Fit path</button><button id="travelIdentify" class="secondary" disabled>Identify places</button><button id="travelClear" class="secondary" disabled>Clear view</button></div><div id="travelKeyHint" class="travelNote">GPX timestamps are the source of the travel date. The original GPX file is kept locally in browser storage and, when device sync is enabled, encrypted with your Total Recall sync code before being stored in the cloud sync bridge.</div><div class="travelStats"><div class="travelStat"><b id="travelPointCount">0</b><span>GPS points</span></div><div class="travelStat"><b id="travelDistance">0 km</b><span>Recorded distance</span></div><div class="travelStat"><b id="travelDuration">—</b><span>Recorded span</span></div><div class="travelStat"><b id="travelSegments">0</b><span>Path segments</span></div></div><div id="travelMap" class="travelMap"></div><div id="travelGapNote" class="travelGapNote hidden"></div><div class="travelLegend"><span><i class="legendLine"></i>Recorded trace</span><span><i class="legendGap"></i>Uncertain gap</span><span><i class="legendStop"></i>Stop &gt;5 min</span></div><div class="travelPlayback">
+<section id="travelSession" class="hidden"><div class="panel"><div class="row" style="justify-content:space-between"><button id="travelHomeBtn" class="secondary small">← Dashboard</button><span id="travelStatus" class="muted">No travel traces saved yet.</span></div><h2 style="margin-top:18px">🗺️ Travel Trace</h2><p class="muted">Upload GPX or KML tracks from GPS Logger or Google Maps Timeline. Each upload is saved using the dates embedded in its GPS timestamps — not the date you upload it. Multiple GPX files can belong to the same day.</p><div class="travelControls"><div class="travelControl"><label for="travelMapsKey">Google Maps API key</label><input id="travelMapsKey" type="password" placeholder="Paste your browser-restricted Maps API key"></div><div class="travelControl"><label for="travelFile">Add GPX / KML file</label><input id="travelFile" type="file" accept=".gpx,.kml,application/gpx+xml,application/vnd.google-earth.kml+xml,.xml,text/xml"></div><div class="travelControl"><label for="travelDate">Travel date</label><select id="travelDate" disabled><option>No saved dates</option></select></div><div class="travelControl"><label>Device sync</label><div class="travelSyncBox"><button id="travelSyncBtn" class="secondary small">☁ Sync devices</button><span id="travelSyncStatus" class="muted">Uses the same Total Recall sync code as People Recall.</span></div></div></div><div id="travelFilesForDate" class="travelFilesForDate"></div><div class="row" style="margin-top:10px"><button id="travelLoadMap">Load Google Map</button><button id="travelFit" class="secondary" disabled>Fit path</button><button id="travelIdentify" class="secondary" disabled>Identify places</button><button id="travelClear" class="secondary" disabled>Clear view</button></div><div id="travelKeyHint" class="travelNote">GPX/KML timestamps are the source of the travel date. The original GPX file is kept locally in browser storage and, when device sync is enabled, encrypted with your Total Recall sync code before being stored in the cloud sync bridge.</div><div class="travelStats"><div class="travelStat"><b id="travelPointCount">0</b><span>GPS points</span></div><div class="travelStat"><b id="travelDistance">0 km</b><span>Recorded distance</span></div><div class="travelStat"><b id="travelDuration">—</b><span>Recorded span</span></div><div class="travelStat"><b id="travelSegments">0</b><span>Path segments</span></div></div><div id="travelMap" class="travelMap"></div><div id="travelGapNote" class="travelGapNote hidden"></div><div class="travelLegend"><span><i class="legendLine"></i>Recorded trace</span><span><i class="legendGap"></i>Uncertain gap</span><span><i class="legendStop"></i>Stop &gt;5 min</span></div><div class="travelPlayback">
 <div class="travelPlaybackRow">
 <button id="travelPlay" disabled>▶ Play</button><button id="travelReset" class="secondary" disabled>↺ Reset</button>
 <span id="travelPlaybackTime" class="travelPlaybackTime">Playback ready</span>
@@ -327,6 +327,44 @@ function travelAddSegment(out,pts){
   if(clean.length<2)return;
   clean.sort(function(a,b){return (a.ms||0)-(b.ms||0)});
   out.push(clean)
+}
+function parseTravelKML(text){
+  var out=[],journey=[],xml=new DOMParser().parseFromString(String(text||''),'application/xml');
+  if(xml.querySelector('parsererror'))throw new Error('Invalid KML XML.');
+  var tracks=Array.from(xml.querySelectorAll('gx\\:Track,Track'));
+  function point(lat,lng,time){return {lat:lat,lng:lng,time:time,ms:time?new Date(time).getTime():0}}
+  tracks.forEach(function(track){
+    var whens=Array.from(track.getElementsByTagNameNS('http://www.opengis.net/kml/2.2','when')).map(function(n){return travelTime(n.textContent.trim())});
+    var coords=Array.from(track.getElementsByTagNameNS('http://www.google.com/kml/ext/2.2','coord'));
+    if(!coords.length)coords=Array.from(track.querySelectorAll('coord'));
+    var pts=coords.map(function(n,i){
+      var v=String(n.textContent||'').trim().split(/\\s+/),lng=Number(v[0]),lat=Number(v[1]),time=whens[i]||null;
+      return isFinite(lat)&&isFinite(lng)&&Math.abs(lat)<=90&&Math.abs(lng)<=180?point(lat,lng,time):null
+    }).filter(Boolean);
+    if(pts.length<2)return;
+    var cur=[];
+    pts.forEach(function(p){if(cur.length&&p.ms&&cur[cur.length-1].ms&&p.ms-cur[cur.length-1].ms>15*60000){travelAddSegment(out,cur);cur=[]}cur.push(p)});
+    travelAddSegment(out,cur);
+    journey.push({type:'Travel',start:pts[0],end:pts[pts.length-1],startTime:pts[0].time,endTime:pts[pts.length-1].time,label:'KML GPS path'})
+  });
+  var placemarks=Array.from(xml.querySelectorAll('Placemark'));
+  placemarks.forEach(function(pm){
+    if(pm.querySelector('gx\\:Track,Track'))return;
+    var coord=pm.querySelector('Point coordinates,coordinates');
+    var txt=coord&&coord.textContent?coord.textContent.trim():'';
+    if(!txt)return;
+    var p=travelPointFromString(txt);
+    if(!p)return;
+    var when=pm.querySelector('when,TimeStamp when');
+    p.time=when?travelTime(when.textContent.trim()):null;p.ms=p.time?new Date(p.time).getTime():0;
+    if(!p.time)return;
+    out.push([p]);
+    journey.push({type:'Location',start:p,end:p,startTime:p.time,endTime:p.time,label:(pm.querySelector('name')||{}).textContent||'KML location'})
+  });
+  var byDay={},journeyByDay={};
+  out.forEach(function(seg){var grouped={};seg.forEach(function(p){var d=travelDateOf(p.time);(grouped[d]||(grouped[d]=[])).push(p)});Object.keys(grouped).forEach(function(d){if(grouped[d].length>1)(byDay[d]||(byDay[d]=[])).push(grouped[d])})});
+  journey.forEach(function(e){var d=travelDateOf(e.startTime||e.endTime);(journeyByDay[d]||(journeyByDay[d]=[])).push(e)});
+  return {segments:out,byDay:byDay,journey:journey,journeyByDay:journeyByDay}
 }
 function parseTravelGPX(text){
   var out=[],journey=[];
@@ -670,8 +708,8 @@ async function travelRender(){
 async function travelReadFile(file){
   try{
     var text=await file.text();
-    var parsed=parseTravelGPX(text),dates=Object.keys(parsed.byDay||{});
-    if(!dates.length)throw new Error('No dated GPS points were found in this GPX file.');
+    var isKml=/\\.kml$/i.test(file.name)||/<(?:kml|gx:Track)\\b/i.test(text);\n    var parsed=isKml?parseTravelKML(text):parseTravelGPX(text),dates=Object.keys(parsed.byDay||{});
+    if(!dates.length)throw new Error('No dated GPS points were found in this GPX/KML file.');
     var id=await travelFileId(text);
     await travelDbPut(id,text);
     var code=localStorage.getItem(SYNC_KEY),cloudUploaded=false;
@@ -684,7 +722,7 @@ async function travelReadFile(file){
     travelPopulateDates(dates.slice().sort().reverse()[0]);
     await travelLoadSelectedDate();
     $('travelStatus').textContent='Saved '+file.name+' to '+dates.length+' travel date'+(dates.length===1?'':'s')+'.'
-  }catch(e){$('travelStatus').textContent='Could not save GPX file: '+e.message}
+  }catch(e){$('travelStatus').textContent='Could not save GPX/KML file: '+e.message}
 }
 function travelClearData(){travelData=null;travelResetView();$('travelStatus').textContent='View cleared. Your saved GPX files remain available by date.'}
 $('startTravelTrace').addEventListener('click',function(){
