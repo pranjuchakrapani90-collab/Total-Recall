@@ -446,42 +446,70 @@ function travelParseGPXWorker(text){
   journey.forEach(function(e){var d=travelDateOf(e.startTime||e.endTime);(journeyByDay[d]||(journeyByDay[d]=[])).push(e)});
   return {segments:out,byDay:byDay,journey:journey,journeyByDay:journeyByDay}
 }
-function travelParseKMLWorker(text){
-  var out=[],journey=[],s=String(text||'').replace(/<!--[\s\S]*?-->/g,'');
-  var trackRe=/<(?:gx:)?Track\b[^>]*>([\s\S]*?)<\/(?:gx:)?Track>/gi,m;
-  while((m=trackRe.exec(s))){
-    var body=m[1],whens=[],wm,wre=/<when\b[^>]*>([\s\S]*?)<\/when>/gi;
-    while((wm=wre.exec(body)))whens.push(travelTime(wm[1].replace(/<[^>]+>/g,'').trim()));
-    var coords=[],cm,cre=/<(?:gx:)?coord\b[^>]*>([\s\S]*?)<\/(?:gx:)?coord>/gi;
-    while((cm=cre.exec(body)))coords.push(cm[1].replace(/<[^>]+>/g,'').trim());
-    if(!coords.length){var c2=/<coordinates\b[^>]*>([\s\S]*?)<\/coordinates>/i.exec(body);if(c2)coords= c2[1].trim().split(/\s+/)}
-    var pts=[];
-    coords.forEach(function(raw,i){var v=String(raw).trim().split(/[,\s]+/),lng=Number(v[0]),lat=Number(v[1]),time=whens[i]||null;if(isFinite(lat)&&isFinite(lng)&&Math.abs(lat)<=90&&Math.abs(lng)<=180)pts.push({lat:lat,lng:lng,time:time,ms:time?new Date(time).getTime():0})});
-    if(pts.length<2)continue;
-    var cur=[];pts.forEach(function(p){if(cur.length&&p.ms&&cur[cur.length-1].ms&&p.ms-cur[cur.length-1].ms>15*60000){travelAddSegment(out,cur);cur=[]}cur.push(p)});if(cur.length>1)travelAddSegment(out,cur);
-    journey.push({type:'Travel',start:pts[0],end:pts[pts.length-1],startTime:pts[0].time,endTime:pts[pts.length-1].time,label:'KML GPS path'});
+function travelParseKMLWorker(text,fileName){
+  var out=[],journey=[],s=String(text||'').replace(/<!--[\\s\\S]*?-->/g,'');
+  var startMatch=s.match(/GPS Logger\\s+(\\d{8})-(\\d{6})/i)||s.match(/Track\\s+(\\d{8})-(\\d{6})/i);
+  if(!startMatch&&fileName)startMatch=String(fileName).match(/(\\d{8})-(\\d{6})/);
+  var startMs=null;
+  if(startMatch){
+    var ds=startMatch[1],ts=startMatch[2];
+    startMs=Date.UTC(Number(ds.slice(0,4)),Number(ds.slice(4,6))-1,Number(ds.slice(6,8)),Number(ts.slice(0,2)),Number(ts.slice(2,4)),Number(ts.slice(4,6)));
   }
-  var pmRe=/<Placemark\b[^>]*>([\s\S]*?)<\/Placemark>/gi,pm;
-  while((pm=pmRe.exec(s))){
-    var body=pm[1];if(/<(?:gx:)?Track\b/i.test(body))continue;
-    var cm=/<coordinates\b[^>]*>([\s\S]*?)<\/coordinates>/i.exec(body);if(!cm)continue;
-    var v=cm[1].trim().split(/[,\s]+/),lng=Number(v[0]),lat=Number(v[1]);if(!isFinite(lat)||!isFinite(lng)||Math.abs(lat)>90||Math.abs(lng)>180)continue;
-    var wm=/<when\b[^>]*>([\s\S]*?)<\/when>/i.exec(body),time=wm?travelTime(wm[1].replace(/<[^>]+>/g,'').trim()):null;if(!time)continue;
-    var p={lat:lat,lng:lng,time:time,ms:new Date(time).getTime()};out.push([p]);
-    var nm=(body.match(/<name\b[^>]*>([\s\S]*?)<\/name>/i)||[])[1]||'KML location';journey.push({type:'Location',start:p,end:p,startTime:p.time,endTime:p.time,label:nm.replace(/<[^>]+>/g,'').trim()});
+  var durM=s.match(/Duration\\s*=\\s*(\\d+):(\\d{2}):(\\d{2})/i),durationMs=durM?(Number(durM[1])*3600+Number(durM[2])*60+Number(durM[3]))*1000:0;
+  var coordsBlock=null,cm;
+  var lineRe=/<LineString\\b[^>]*>[\\s\\S]*?<coordinates\\b[^>]*>([\\s\\S]*?)<\\/coordinates>[\\s\\S]*?<\\/LineString>/i;
+  cm=lineRe.exec(s);
+  if(cm)coordsBlock=cm[1];
+  if(coordsBlock){
+    var raw=coordsBlock.trim().split(/\\s+/),pts=[];
+    raw.forEach(function(item){
+      var v=String(item).trim().split(','),lng=Number(v[0]),lat=Number(v[1]);
+      if(!isFinite(lat)||!isFinite(lng)||Math.abs(lat)>90||Math.abs(lng)>180)return;
+      pts.push({lat:lat,lng:lng});
+    });
+    if(pts.length){
+      var span=durationMs&&pts.length>1?durationMs/(pts.length-1):0;
+      pts.forEach(function(p,i){
+        if(startMs!==null){
+          p.ms=startMs+i*span;
+          p.time=new Date(p.ms).toISOString();
+        }else{
+          p.ms=0;p.time=null;
+        }
+      });
+      var cur=[];
+      function flush(){if(cur.length>1)travelAddSegment(out,cur);else if(cur.length===1)out.push(cur.slice());cur=[]}
+      pts.forEach(function(p){if(cur.length&&p.ms&&cur[cur.length-1].ms&&p.ms-cur[cur.length-1].ms>15*60000)flush();cur.push(p)});
+      flush();
+      var label=(s.match(/<Placemark\\b[\\s\\S]*?<name\\b[^>]*>([\\s\\S]*?)<\\/name>/i)||[])[1]||'KML GPS path';
+      journey.push({type:'Travel',start:pts[0],end:pts[pts.length-1],startTime:pts[0].time,endTime:pts[pts.length-1].time,label:label.replace(/<[^>]+>/g,'').trim()||'KML GPS path'});
+    }
   }
+  if(!out.length){
+    var trackRe=/<(?:gx:)?Track\\b[^>]*>([\\s\\S]*?)<\\/(?:gx:)?Track>/gi,m;
+    while((m=trackRe.exec(s))){
+      var body=m[1],whens=[],wm,wre=/<when\\b[^>]*>([\\s\\S]*?)<\\/when>/gi;
+      while((wm=wre.exec(body)))whens.push(travelTime(wm[1].replace(/<[^>]+>/g,'').trim()));
+      var coords=[],cm2,cre=/<(?:gx:)?coord\\b[^>]*>([\\s\\S]*?)<\\/(?:gx:)?coord>/gi;
+      while((cm2=cre.exec(body)))coords.push(cm2[1].replace(/<[^>]+>/g,'').trim());
+      var pts2=[];
+      coords.forEach(function(raw,i){var v=String(raw).trim().split(/[,\\s]+/),lng=Number(v[0]),lat=Number(v[1]),time=whens[i]||null;if(isFinite(lat)&&isFinite(lng)&&Math.abs(lat)<=90&&Math.abs(lng)<=180)pts2.push({lat:lat,lng:lng,time:time,ms:time?new Date(time).getTime():0})});
+      if(pts2.length>1){travelAddSegment(out,pts2);journey.push({type:'Travel',start:pts2[0],end:pts2[pts2.length-1],startTime:pts2[0].time,endTime:pts2[pts2.length-1].time,label:'KML GPS path'})}
+    }
+  }
+  if(!out.length)throw new Error('No GPS coordinates were found in this KML file.');
   var byDay={},journeyByDay={};
   out.forEach(function(seg){var grouped={};seg.forEach(function(p){var d=travelDateOf(p.time);(grouped[d]||(grouped[d]=[])).push(p)});Object.keys(grouped).forEach(function(d){if(grouped[d].length>1)(byDay[d]||(byDay[d]=[])).push(grouped[d])})});
   journey.forEach(function(e){var d=travelDateOf(e.startTime||e.endTime);(journeyByDay[d]||(journeyByDay[d]=[])).push(e)});
   return {segments:out,byDay:byDay,journey:journey,journeyByDay:journeyByDay}
 }
-function travelParseAsync(text,isKml){
+function travelParseAsync(text,isKml,fileName){
   return new Promise(function(resolve,reject){
-    var src="self.onmessage=function(e){try{var text=e.data.text,isKml=e.data.isKml;"+travelTime.toString()+";"+travelDateOf.toString()+";"+travelPointFromString.toString()+";"+travelAddSegment.toString()+";"+travelParseGPXWorker.toString()+";"+travelParseKMLWorker.toString()+";var result=(isKml?travelParseKMLWorker(text):travelParseGPXWorker(text));self.postMessage({ok:true,result:result})}catch(err){self.postMessage({ok:false,error:err&&err.message?err.message:String(err)})}}";
+    var src="self.onmessage=function(e){try{var text=e.data.text,isKml=e.data.isKml,fileName=e.data.fileName||'';"+travelTime.toString()+";"+travelDateOf.toString()+";"+travelPointFromString.toString()+";"+travelAddSegment.toString()+";"+travelParseGPXWorker.toString()+";"+travelParseKMLWorker.toString()+";var result=(isKml?travelParseKMLWorker(text):travelParseGPXWorker(text));self.postMessage({ok:true,result:result})}catch(err){self.postMessage({ok:false,error:err&&err.message?err.message:String(err)})}}";
     var blob=new Blob([src],{type:'application/javascript'}),url=URL.createObjectURL(blob),worker=new Worker(url);
     worker.onmessage=function(e){worker.terminate();URL.revokeObjectURL(url);if(e.data&&e.data.ok)resolve(e.data.result);else reject(new Error(e.data&&e.data.error||'Could not parse travel file.'))};
     worker.onerror=function(e){worker.terminate();URL.revokeObjectURL(url);reject(new Error(e.message||'Travel parser worker failed.'))};
-    worker.postMessage({text:text,isKml:!!isKml});
+    worker.postMessage({text:text,isKml:!!isKml,fileName:fileName||''});
   })
 }
 function travelHaversine(a,b){
@@ -574,7 +602,7 @@ async function travelLoadSelectedDate(){
   for(var i=0;i<items.length;i++){
     try{
       var text=await travelEnsureLocalFile(items[i]);
-      if(!travelParsedCache[items[i].id]){var isKml=/\.kml$/i.test(items[i].name)||/<(?:kml|gx:Track)\b/i.test(text);travelParsedCache[items[i].id]=await travelParseAsync(text,isKml)}
+      if(!travelParsedCache[items[i].id]){var isKml=/\.kml$/i.test(items[i].name)||/<(?:kml|gx:Track)\b/i.test(text);travelParsedCache[items[i].id]=await travelParseAsync(text,isKml,items[i].name)}
     }catch(e){
       $('travelStatus').textContent='Could not load '+items[i].name+': '+e.message;
       travelData=null;travelResetView();return
@@ -785,7 +813,7 @@ async function travelReadFile(file){
   try{
     var text=await file.text();
     var isKml=/\.kml$/i.test(file.name)||/<(?:kml|gx:Track)\b/i.test(text);
-    var parsed=await travelParseAsync(text,isKml),dates=Object.keys(parsed.byDay||{});
+    var parsed=await travelParseAsync(text,isKml,file.name),dates=Object.keys(parsed.byDay||{});
     if(!dates.length)throw new Error('No dated GPS points were found in this GPX/KML file.');
     var id=await travelFileId(text);
     await travelDbPut(id,text);
