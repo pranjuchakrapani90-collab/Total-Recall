@@ -481,13 +481,26 @@ async function travelEnsureLocalFile(meta){
   await travelDbPut(meta.id,text);
   return text
 }
+function travelFileDateFromName(name){
+  var m=String(name||'').match(/(?:^|[^0-9])(20\\d{2})(\\d{2})(\\d{2})(?:[^0-9]|$)/);
+  return m?m[1]+'-'+m[2]+'-'+m[3]:null
+}
+function travelIndexParsedForDate(parsed,date){
+  var out={segments:parsed&&parsed.segments||[],byDay:{},journey:parsed&&parsed.journey||[],journeyByDay:{}};
+  if(date){
+    out.byDay[date]=out.segments.filter(function(seg){return seg&&seg.length>1});
+    out.journeyByDay[date]=out.journey.slice();
+  }
+  return out
+}
 function travelAggregateForDate(date,items){
   var all={segments:[],byDay:{},journey:[],journeyByDay:{}};
   items.forEach(function(item){
     var parsed=travelParsedCache[item.id];
     if(!parsed)return;
-    (parsed.byDay[date]||[]).forEach(function(seg){all.segments.push(seg)});
-    (parsed.journeyByDay[date]||[]).forEach(function(e){e.fileName=item.name;all.journey.push(e)})
+    var indexed=parsed.__travelIndexedDate?parsed:travelIndexParsedForDate(parsed,(item.dates&&item.dates[0])||travelFileDateFromName(item.name));
+    (indexed.byDay[date]||[]).forEach(function(seg){all.segments.push(seg)});
+    (indexed.journeyByDay[date]||[]).forEach(function(e){e.fileName=item.name;all.journey.push(e)})
   });
   all.journey.sort(function(a,b){return String(a.startTime||'').localeCompare(String(b.startTime||''))});
   all.byDay[date]=all.segments;
@@ -502,7 +515,11 @@ async function travelLoadSelectedDate(){
   for(var i=0;i<items.length;i++){
     try{
       var text=await travelEnsureLocalFile(items[i]);
-      if(!travelParsedCache[items[i].id]){travelParsedCache[items[i].id]=await travelParseAsync(text)}
+      if(!travelParsedCache[items[i].id]){
+        var parsed=await travelParseAsync(text);
+        travelParsedCache[items[i].id]=travelIndexParsedForDate(parsed,(items[i].dates&&items[i].dates[0])||travelFileDateFromName(items[i].name)||Object.keys(parsed.byDay||{})[0]);
+        travelParsedCache[items[i].id].__travelIndexedDate=true;
+      }
     }catch(e){
       $('travelStatus').textContent='Could not load '+items[i].name+': '+e.message;
       travelData=null;travelResetView();return
@@ -744,8 +761,12 @@ async function travelRender(){
 async function travelReadFile(file){
   try{
     var text=await file.text();
-    var parsed=await travelParseAsync(text),dates=Object.keys(parsed.byDay||{});
-    if(!dates.length)throw new Error('No dated GPS points were found in this GPX file.');
+    var parsed=await travelParseAsync(text);
+    var fileDate=travelFileDateFromName(file.name)||Object.keys(parsed.byDay||{})[0];
+    if(!fileDate||!parsed.segments.length)throw new Error('No dated GPS points were found in this GPX file.');
+    parsed=travelIndexParsedForDate(parsed,fileDate);
+    parsed.__travelIndexedDate=true;
+    var dates=[fileDate];
     var id=await travelFileId(text);
     await travelDbPut(id,text);
     var code=localStorage.getItem(SYNC_KEY),cloudUploaded=false;
