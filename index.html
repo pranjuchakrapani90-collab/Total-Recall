@@ -328,44 +328,6 @@ function travelAddSegment(out,pts){
   clean.sort(function(a,b){return (a.ms||0)-(b.ms||0)});
   out.push(clean)
 }
-function parseTravelKML(text){
-  var out=[],journey=[],xml=new DOMParser().parseFromString(String(text||''),'application/xml');
-  if(xml.querySelector('parsererror'))throw new Error('Invalid KML XML.');
-  var tracks=Array.from(xml.querySelectorAll('gx\\:Track,Track'));
-  function point(lat,lng,time){return {lat:lat,lng:lng,time:time,ms:time?new Date(time).getTime():0}}
-  tracks.forEach(function(track){
-    var whens=Array.from(track.getElementsByTagNameNS('http://www.opengis.net/kml/2.2','when')).map(function(n){return travelTime(n.textContent.trim())});
-    var coords=Array.from(track.getElementsByTagNameNS('http://www.google.com/kml/ext/2.2','coord'));
-    if(!coords.length)coords=Array.from(track.querySelectorAll('coord'));
-    var pts=coords.map(function(n,i){
-      var v=String(n.textContent||'').trim().split(/\\s+/),lng=Number(v[0]),lat=Number(v[1]),time=whens[i]||null;
-      return isFinite(lat)&&isFinite(lng)&&Math.abs(lat)<=90&&Math.abs(lng)<=180?point(lat,lng,time):null
-    }).filter(Boolean);
-    if(pts.length<2)return;
-    var cur=[];
-    pts.forEach(function(p){if(cur.length&&p.ms&&cur[cur.length-1].ms&&p.ms-cur[cur.length-1].ms>15*60000){travelAddSegment(out,cur);cur=[]}cur.push(p)});
-    travelAddSegment(out,cur);
-    journey.push({type:'Travel',start:pts[0],end:pts[pts.length-1],startTime:pts[0].time,endTime:pts[pts.length-1].time,label:'KML GPS path'})
-  });
-  var placemarks=Array.from(xml.querySelectorAll('Placemark'));
-  placemarks.forEach(function(pm){
-    if(pm.querySelector('gx\\:Track,Track'))return;
-    var coord=pm.querySelector('Point coordinates,coordinates');
-    var txt=coord&&coord.textContent?coord.textContent.trim():'';
-    if(!txt)return;
-    var p=travelPointFromString(txt);
-    if(!p)return;
-    var when=pm.querySelector('when,TimeStamp when');
-    p.time=when?travelTime(when.textContent.trim()):null;p.ms=p.time?new Date(p.time).getTime():0;
-    if(!p.time)return;
-    out.push([p]);
-    journey.push({type:'Location',start:p,end:p,startTime:p.time,endTime:p.time,label:(pm.querySelector('name')||{}).textContent||'KML location'})
-  });
-  var byDay={},journeyByDay={};
-  out.forEach(function(seg){var grouped={};seg.forEach(function(p){var d=travelDateOf(p.time);(grouped[d]||(grouped[d]=[])).push(p)});Object.keys(grouped).forEach(function(d){if(grouped[d].length>1)(byDay[d]||(byDay[d]=[])).push(grouped[d])})});
-  journey.forEach(function(e){var d=travelDateOf(e.startTime||e.endTime);(journeyByDay[d]||(journeyByDay[d]=[])).push(e)});
-  return {segments:out,byDay:byDay,journey:journey,journeyByDay:journeyByDay}
-}
 function parseTravelGPX(text){
   var out=[],journey=[];
   var xml=new DOMParser().parseFromString(String(text||''),'application/xml');
@@ -540,7 +502,7 @@ async function travelLoadSelectedDate(){
   for(var i=0;i<items.length;i++){
     try{
       var text=await travelEnsureLocalFile(items[i]);
-      if(!travelParsedCache[items[i].id]){var isKml=/\.kml$/i.test(items[i].name)||/<(?:kml|gx:Track)\b/i.test(text);travelParsedCache[items[i].id]=await travelParseAsync(text,isKml,items[i].name)}
+      if(!travelParsedCache[items[i].id]){travelParsedCache[items[i].id]=await travelParseAsync(text)}
     }catch(e){
       $('travelStatus').textContent='Could not load '+items[i].name+': '+e.message;
       travelData=null;travelResetView();return
@@ -782,8 +744,7 @@ async function travelRender(){
 async function travelReadFile(file){
   try{
     var text=await file.text();
-    var isKml=/\.kml$/i.test(file.name)||/<(?:kml|gx:Track)\b/i.test(text);
-    var parsed=await travelParseAsync(text,isKml,file.name),dates=Object.keys(parsed.byDay||{});
+    var parsed=await travelParseAsync(text),dates=Object.keys(parsed.byDay||{});
     if(!dates.length)throw new Error('No dated GPS points were found in this GPX file.');
     var id=await travelFileId(text);
     await travelDbPut(id,text);
