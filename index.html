@@ -482,7 +482,7 @@ async function travelEnsureLocalFile(meta){
   return text
 }
 function travelFileDateFromName(name){
-  var m=String(name||'').match(/(?:^|[^0-9])(20\\d{2})(\\d{2})(\\d{2})(?:[^0-9]|$)/);
+  var m=String(name||'').match(/(?:^|[^0-9])(20\d{2})(\d{2})(\d{2})(?:[^0-9]|$)/);
   return m?m[1]+'-'+m[2]+'-'+m[3]:null
 }
 function travelIndexParsedForDate(parsed,date){
