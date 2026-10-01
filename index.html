@@ -716,19 +716,23 @@ async function travelEnsureMap(){
     travelMap.addListener('dragstart',function(){if(travelPlaybackFollow){travelPlaybackFollow=false;travelPlaybackCameraReady=false;if($('travelCameraFollow'))$('travelCameraFollow').textContent='🎥 Follow camera: Off';if($('travelCameraStatus'))$('travelCameraStatus').textContent='Manual map view — playback will not recenter the camera.'}})
   }
 }
-var travelNotePoint=null,travelNoteEditing=null,travelNoteMarkers=[];
+var travelNotePoint=null,travelNoteEditing=null,travelNoteMarkers=[],travelNoteDraftMarker=null;
+function travelClearNoteDraftMarker(){if(travelNoteDraftMarker){travelNoteDraftMarker.setMap(null);travelNoteDraftMarker=null}}
+function travelShowNoteDraftMarker(p){travelClearNoteDraftMarker();if(travelMap&&window.google&&google.maps)travelNoteDraftMarker=new google.maps.Marker({map:travelMap,position:{lat:Number(p.lat),lng:Number(p.lng)},title:'Selected memory location'});}
 function travelNotesForDate(){
   var d=$('travelDate').value;
   return Object.keys(db.travelNotes||{}).map(function(id){return db.travelNotes[id]}).filter(function(n){return n&&!n.deleted&&n.date===d}).sort(function(a,b){return String(a.createdAt||'').localeCompare(String(b.createdAt||''))})
 }
 function travelChooseNotePoint(p,id){
   travelNotePoint={lat:Number(p.lat),lng:Number(p.lng)};
+  travelShowNoteDraftMarker(travelNotePoint);
   travelNoteEditing=id||null;
   $('travelNoteLocation').textContent='📍 '+travelNotePoint.lat.toFixed(6)+', '+travelNotePoint.lng.toFixed(6)+' · '+$('travelDate').value;
   $('travelNoteText').value=id&&db.travelNotes[id]?db.travelNotes[id].text:'';
   $('travelNoteSave').disabled=false;$('travelNoteSave').textContent=id?'Update memory':'Save memory';
 }
 function travelClearNoteEditor(){
+  travelClearNoteDraftMarker();
   travelNotePoint=null;travelNoteEditing=null;
   $('travelNoteText').value='';$('travelNoteLocation').textContent='Tap the map to choose a location.';
   $('travelNoteSave').disabled=true;$('travelNoteSave').textContent='Save memory'
