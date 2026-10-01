@@ -444,6 +444,11 @@ function travelParseAsync(text){
     }catch(e){reject(e)}
   })
 }
+function travelHaversine(a,b){
+  var R=6371000,toRad=Math.PI/180,dLat=(b.lat-a.lat)*toRad,dLng=(b.lng-a.lng)*toRad;
+  var x=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(a.lat*toRad)*Math.cos(b.lat*toRad)*Math.sin(dLng/2)*Math.sin(dLng/2);
+  return 2*R*Math.atan2(Math.sqrt(x),Math.sqrt(1-x))
+}
 function travelMeta(){return Object.values(db.travelFiles||{}).sort(function(a,b){return String(b.startTime||'').localeCompare(String(a.startTime||''))})}
 function travelDates(){
   var out={};
