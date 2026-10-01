@@ -306,14 +306,6 @@ function travelDbDelete(id){
     tx.oncomplete=function(){resolve()};tx.onerror=function(){reject(tx.error||new Error('Could not delete local GPX.'))}
   })})
 }
-async function travelPurgeLegacyKml(){
-  var ids=Object.keys(db.travelFiles||{}).filter(function(id){return travelIsLegacyKml(db.travelFiles[id])});
-  if(!ids.length)return false;
-  ids.forEach(function(id){delete db.travelFiles[id];delete travelParsedCache[id]});
-  for(var i=0;i<ids.length;i++){try{await travelDbDelete(ids[i])}catch(e){console.warn('Could not delete legacy KML local file',e)}}
-  localStorage.setItem(KEY,JSON.stringify(db));
-  return true
-}
 function travelHex(buf){var a=new Uint8Array(buf),s='';for(var i=0;i<a.length;i++)s+=(a[i]<16?'0':'')+a[i].toString(16);return s}
 async function travelFileId(text){return 'gpx-'+travelHex(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text)))}
 function travelPointFromString(v){
@@ -847,17 +839,6 @@ $('travelSyncBtn').addEventListener('click',async function(){
   $('travelSyncStatus').textContent='☁ Syncing people data and travel files…';
   try{await cloudSync(true);travelPopulateDates($('travelDate').value);if(travelDates().length)await travelLoadSelectedDate();$('travelSyncStatus').textContent='☁ Synced '+new Date().toLocaleTimeString()}catch(e){$('travelSyncStatus').textContent='☁ Sync unavailable: '+e.message}
 });
-travelPurgeLegacyKml().then(function(removed){
-  if(removed){
-    travelPopulateDates();
-    queueCloudSync();
-    $('travelStatus').textContent='Removed legacy KML travel file. Ready for a fresh GPX upload.';
-  }else{
-    travelPopulateDates();
-  }
-}).catch(function(e){
-  console.warn('Legacy travel cleanup failed',e);
-  travelPopulateDates();
-});
+travelPopulateDates();
 })();
 </script></body></html>
