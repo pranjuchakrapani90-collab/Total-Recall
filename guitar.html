@@ -314,6 +314,10 @@ select,input[type=range],input[type=checkbox]{accent-color:var(--accent)}
 .nbinfo b{font-family:var(--mono)}
 
 #nbResume{background:#fff7ed;color:#9a3412}
+
+.wiz{border:2px solid #c7d2fe;background:#fafaff;border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.wiz p{margin:0}
+.wiz pre{white-space:pre-wrap;word-break:break-word;font:12px/1.4 var(--mono);background:#fff;border:1px solid var(--line);border-radius:8px;padding:8px;margin:8px 0}
 </style>
 
 <header class="top"><div class="hin">
@@ -493,7 +497,7 @@ function buildSeq(c,alt,N){
 }
 
 /* ===================== State ===================== */
-const S={keyPc:7,tempo:72,click:true,loop:true,countin:true,chords:true,labels:"fingers",listen:true,pass:100,latency:null,micId:"",guide:false,hearNotes:true};
+const S={keyPc:7,tempo:72,click:true,loop:true,countin:true,chords:true,labels:"fingers",listen:true,pass:100,latency:null,micId:"",guide:false,hearNotes:true,audioMode:"keep"};
 let sessions={},today=null,posData=null,store=null,extra=null;
 const pad=n=>String(n).padStart(2,"0");
 const dkey=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
@@ -792,8 +796,8 @@ function listenPanel(){
     <div class="lrow"><button type="button" data-calibrate="1">Calibrate earphones</button><span class="tnote">Delay: <b id="latV">${S.latency!=null?Math.round(S.latency*1000)+" ms":"not calibrated yet"}</b></span></div>
     <p class="tnote" id="calStatus">With your earphones on, tap Calibrate: listen to 4 clicks, then pluck one note on each of the next 8. Do this once per pair of earphones.</p>
     <label class="chk" for="hearNotes"><input type="checkbox" id="hearNotes"${S.hearNotes?" checked":""}> Play the notes (and backing chords) during Play &amp; score, so you hear them in your earphone while you play</label>
-    <div class="lrow"><button type="button" data-soundcheck="1">🔊 Sound check with the microphone on</button></div>
-    <p class="tnote" id="scStatus">Use this if Play &amp; score is silent on your phone.</p>
+    <div class="lrow"><button type="button" data-wiz="start">🔊 Fix silent Play &amp; score</button><span class="tnote">Sound route: <b>${{keep:"standard",restart:"restart sound",element:"media player"}[S.audioMode]||"standard"}</b></span></div>
+    <div id="wiz" class="wiz" hidden></div>
   </div>`;
 }
 function testBtn(id){return S.listen?`<button type="button" class="tbtn" data-test="${id}">🎤 Play &amp; score</button>`:"";}
@@ -981,20 +985,20 @@ function pace(){ // exercises marked Done per day, over the last 14 days
 }
 /* ===================== Audio ===================== */
 let ctx=null;const cache={};
-function pluckBuf(m){if(cache[m])return cache[m];
+function pluckBuf(m){const ck=m+"@"+ctx.sampleRate;if(cache[ck])return cache[ck];
   const sr=ctx.sampleRate,len=Math.floor(sr*1.8),buf=ctx.createBuffer(1,len,sr),d=buf.getChannelData(0);
   const N=Math.max(2,Math.round(sr/(440*Math.pow(2,(m-69)/12)))),dl=new Float32Array(N);
   let p=0;for(let i=0;i<N;i++){const r=Math.random()*2-1;dl[i]=.6*r+.4*p;p=dl[i];}
   let x=0;for(let i=0;i<len;i++){const v=dl[x],nx=dl[(x+1)%N];dl[x]=.997*.5*(v+nx);d[i]=v;x=(x+1)%N;}
-  return cache[m]=buf;}
+  return cache[ck]=buf;}
 function note(m,t,dur,gain=.55){const s=ctx.createBufferSource();s.buffer=pluckBuf(m);const g=ctx.createGain();
-  g.gain.setValueAtTime(gain,t);g.gain.setTargetAtTime(0,t+Math.max(dur*.95,.05),.04);s.connect(g).connect(ctx.destination);s.start(t);s.stop(t+dur+.4);}
+  g.gain.setValueAtTime(gain,t);g.gain.setTargetAtTime(0,t+Math.max(dur*.95,.05),.04);s.connect(g).connect(outNode());s.start(t);s.stop(t+dur+.4);}
 function click(t,a){const o=ctx.createOscillator(),g=ctx.createGain();o.frequency.value=a?1800:1200;
-  g.gain.setValueAtTime(a?.22:.12,t);g.gain.exponentialRampToValueAtTime(.0001,t+.05);o.connect(g).connect(ctx.destination);o.start(t);o.stop(t+.06);}
+  g.gain.setValueAtTime(a?.22:.12,t);g.gain.exponentialRampToValueAtTime(.0001,t+.05);o.connect(g).connect(outNode());o.start(t);o.stop(t+.06);}
 function chord(root,q,t,dur){
   const pc=(S.keyPc+root)%12,out=ctx.createGain(),lp=ctx.createBiquadFilter();lp.type="lowpass";lp.frequency.value=1400;
   out.gain.setValueAtTime(0,t);out.gain.linearRampToValueAtTime(1,t+.04);out.gain.setTargetAtTime(0,t+dur-.08,.06);
-  lp.connect(out).connect(ctx.destination);
+  lp.connect(out).connect(outNode());
   const mids=QINT[q].map(i=>{let m=48+((pc+i)%12);if(m<52)m+=12;return m;}),bass=36+pc;
   [...mids.map(m=>[m,.045]),[bass,.09]].forEach(([m,g])=>{const o=ctx.createOscillator(),gg=ctx.createGain();o.type="triangle";
     o.frequency.value=440*Math.pow(2,(m-69)/12);gg.gain.value=g;o.connect(gg).connect(lp);o.start(t);o.stop(t+dur+.3);});
@@ -1098,11 +1102,23 @@ function audioCtx(){
   if(!ctx){ctx=new (window.AudioContext||window.webkitAudioContext)({latencyHint:"interactive"});
     ctx.onstatechange=()=>{const b=document.getElementById("nbResume");if(b)b.hidden=ctx.state==="running";if(ctx.state!=="running"&&play)ctx.resume().catch(()=>{});};}
   ctx.resume().catch(()=>{});return ctx;}
+let OUTD=null,outEl=null,outFor=null;
+function outNode(){ // "element" route plays the sound through a media player instead of straight to the speaker
+  if(S.audioMode==="element"){
+    if(outFor!==ctx){OUTD=ctx.createMediaStreamDestination();outFor=ctx;
+      if(!outEl){outEl=document.createElement("audio");outEl.setAttribute("playsinline","");outEl.autoplay=true;document.body.appendChild(outEl);}
+      outEl.srcObject=OUTD.stream;}
+    if(outEl.paused)outEl.play().catch(()=>{});return OUTD;}
+  return ctx.destination;
+}
+function restartOut(){if(play)return;try{if(ctx)ctx.close();}catch(e){}ctx=null;outFor=null;audioCtx();}
+function micCtx(){if(!L.ctx||L.ctx.state==="closed"){L.ctx=new (window.AudioContext||window.webkitAudioContext)({latencyHint:"interactive"});L.workletReady=false;}L.ctx.resume().catch(()=>{});return L.ctx;}
+function syncClocks(){L.toOut=(ctx&&L.ctx)?ctx.currentTime-L.ctx.currentTime:0;} // the mic has its own audio clock
 async function listDevices(){try{const d=await navigator.mediaDevices.enumerateDevices();L.devices=d.filter(x=>x.kind==="audioinput");}catch(e){L.devices=[];}return L.devices;}
 async function ensureListening(){
   if(L.stream&&L.stream.active)return true;
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){L.error="This browser can't use the microphone. Open the page in Chrome.";return false;}
-  const c=audioCtx();
+  audioCtx();const c=micCtx();
   const audio={echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:1};
   if(S.micId)audio.deviceId={exact:S.micId};
   try{L.stream=await navigator.mediaDevices.getUserMedia({audio});}
@@ -1111,7 +1127,7 @@ async function ensureListening(){
   L.error="";L.sr=c.sampleRate;
   const tr=L.stream.getAudioTracks()[0];L.label=tr?tr.label:"";
   await listDevices();
-  L.src=c.createMediaStreamSource(L.stream);const mute=c.createGain();mute.gain.value=0;mute.connect(c.destination);L.proc=-1;
+  L.src=c.createMediaStreamSource(L.stream);const mute=c.createGain();mute.gain.value=0;mute.connect(c.destination);L.proc=-1;L.pending=[];L.lastOnset=-1;L.cur=null;L.lastDb=[-100,-100,-100,-100];L.lastHf=null;L.floor=-70;
   try{ // AudioWorklet gives exact sample times; fall back to ScriptProcessor where it isn't available
     if(!L.workletReady){const url=URL.createObjectURL(new Blob([WORKLET],{type:"application/javascript"}));await c.audioWorklet.addModule(url);L.workletReady=true;}
     L.node=new AudioWorkletNode(c,"tap");L.node.port.onmessage=e=>feed(e.data.f,e.data.d);
@@ -1120,9 +1136,12 @@ async function ensureListening(){
     L.node.onaudioprocess=ev=>{const d=new Float32Array(ev.inputBuffer.getChannelData(0));feed(Math.max(0,Math.round(ev.playbackTime*L.sr)-2048),d);};
   }
   L.src.connect(L.node);L.node.connect(mute);
+  if(S.audioMode==="restart")restartOut();
+  syncClocks();
   return true;
 }
-function stopListening(){try{if(L.stream)L.stream.getTracks().forEach(t=>t.stop());}catch(e){}try{L.src&&L.src.disconnect();L.node&&L.node.disconnect();}catch(e){}L.stream=null;}
+function stopListening(){const was=!!L.stream;try{if(L.stream)L.stream.getTracks().forEach(t=>t.stop());}catch(e){}try{L.src&&L.src.disconnect();L.node&&L.node.disconnect();}catch(e){}L.stream=null;
+  try{if(L.ctx)L.ctx.close();}catch(e){}L.ctx=null;L.workletReady=false;if(was&&S.audioMode==="restart")restartOut();}
 function feed(f,d){
   for(let i=0;i<d.length;i++)L.ring[(f+i)%RS]=d[i];
   L.head=f+d.length;if(L.proc<0)L.proc=f;
@@ -1132,7 +1151,7 @@ function feed(f,d){
 function hop(f0){
   // loudness for the noise gate, and "attack" energy (sample-to-sample change) to spot a new pluck even while another note rings
   let s=0,hf=0,pv=L.ring[(f0-1+RS)%RS];for(let i=0;i<L.hop;i++){const v=L.ring[(f0+i)%RS],d=v-pv;s+=v*v;hf+=d*d;pv=v;}
-  const db=10*Math.log10(s/L.hop+1e-12),hdb=10*Math.log10(hf/L.hop+1e-12),t=f0/L.sr;
+  const db=10*Math.log10(s/L.hop+1e-12),hdb=10*Math.log10(hf/L.hop+1e-12),t=f0/L.sr+(L.toOut||0);
   if(db<L.floor)L.floor=db;else L.floor+=(db-L.floor)*0.0008;
   L.lastHf=L.lastHf||[-100,-100,-100,-100];
   const ref=Math.min(...L.lastDb),href=Math.min(...L.lastHf);L.lastHf.shift();L.lastHf.push(hdb);
@@ -1188,7 +1207,7 @@ function testExpected(p){ // absolute time, pitch and fret of every note you mus
 }
 function toneHit(ct){ // is one of our click tones (1200 or 1800 Hz) clearly present in the mic within 0.5 s after it played?
   const sr=L.sr,N=Math.round(0.02*sr),step=Math.round(0.005*sr),x=k=>L.ring[((k%RS)+RS)%RS];let best=0;
-  for(let st=Math.round(ct*sr);st<Math.round((ct+0.5)*sr);st+=step){
+  const c0=ct-(L.toOut||0);for(let st=Math.round(c0*sr);st<Math.round((c0+0.5)*sr);st+=step){
     let e=0;for(let k=0;k<N;k++){const v=x(st+k);e+=v*v;}
     if(10*Math.log10(e/N+1e-12)<L.floor+10)continue;
     for(const f of [1200,1800]){const cw=2*Math.cos(2*Math.PI*f/sr);let s1=0,s2=0;
@@ -1226,7 +1245,7 @@ function liveUpdate(p){
   }
   for(let i=0;i<X.length;i++){if(!lv.st[i]&&now>X[i].t+lv.off+winOf(X[i],wide)+0.15){lv.st[i]="miss";mark(p,i,"miss");}}
   // does the microphone hear our own count-in clicks? Then the speaker is playing into it, and the notes must stay muted
-  lv.ci=lv.ci||{};(p.ci||[]).forEach(ct=>{if(lv.ci[ct]==null&&L.head/L.sr>ct+0.56)lv.ci[ct]=toneHit(ct);});
+  lv.ci=lv.ci||{};(p.ci||[]).forEach(ct=>{if(lv.ci[ct]==null&&L.head/L.sr+(L.toOut||0)>ct+0.56)lv.ci[ct]=toneHit(ct);});
   const nci=(p.ci||[]).length,done=Object.keys(lv.ci).length;
   if(!lv.leakDone&&nci&&(done>=nci||now>X[0].t+0.3)){lv.leakDone=true;
     const hits=Object.values(lv.ci).filter(Boolean).length;
@@ -1272,7 +1291,7 @@ async function startTest(id){
   if(!await ensureListening()){render();const r=document.getElementById("res-"+id);if(r)r.innerHTML=`<p class="warn">${L.error||"The microphone isn't available."}</p>`;return;}
   if(fresh)await new Promise(r=>setTimeout(r,700)); // Android switches its audio route when the mic opens
   try{await ctx.resume();}catch(e){}
-  L.notes=[];L.onsets=[];
+  syncClocks();L.notes=[];L.onsets=[];
   start(id,false,true);
 }
 function releaseMic(){if(!tunerTimer)stopListening();} // closing the mic gives the phone its normal media sound back
@@ -1307,7 +1326,7 @@ function paintResult(id,r,scroll){
 async function calibrate(){
   const st=document.getElementById("calStatus");const say=t=>{if(st)st.textContent=t;};
   if(!await ensureListening()){say(L.error);return;}
-  stop();const c=audioCtx(),sp=60/90,t0=c.currentTime+0.4,clicks=[];
+  stop();const c=audioCtx();try{await c.resume();}catch(e){}syncClocks();const sp=60/90,t0=c.currentTime+0.4,clicks=[];
   for(let i=0;i<12;i++){const t=t0+i*sp;click(t,i%4===0);if(i>=4)clicks.push(t);}
   L.onsets=[];say("Listen to 4 clicks, then pluck any single note exactly on each of the next 8 clicks…");
   await new Promise(r=>setTimeout(r,(12*sp+1)*1000));
@@ -1319,14 +1338,44 @@ async function calibrate(){
   say(`Done: your earphones and microphone add ${Math.round(med*1000)} ms. Scores now allow for that.${spread>0.12?" Your plucks varied quite a bit; calibrate again if scores feel off.":""}`);
   const lv=document.getElementById("latV");if(lv)lv.textContent=Math.round(med*1000)+" ms";
 }
-async function soundCheck(){
-  const st=document.getElementById("scStatus"),say=t=>{if(st)st.innerHTML=t;};
-  if(!await ensureListening()){say(L.error);return;}
-  await new Promise(r=>setTimeout(r,700));try{await ctx.resume();}catch(e){}
-  say(`Playing a click and three notes with the microphone on (mic: <b>${(L.label||"default").replace(/</g,"&lt;")}</b>)…`);
-  const t=ctx.currentTime+0.15,base=48+S.keyPc;
-  click(t,true);[0,4,7].forEach((iv,i)=>note(base+12+iv,t+0.5+i*0.45,0.5,0.7));
-  setTimeout(()=>{say(`Did you hear a click and three notes? If not: <b>press your phone's volume-up button while something plays</b>. With the microphone on, Android uses the <i>call</i> volume, which is often turned right down. If it's still silent, choose a different microphone above, or try wired earphones.`);releaseMic();},2600);
+/* Sound-route finder: some phones go silent while the microphone is on. Try each way of playing sound and keep the one you can hear. */
+const W={step:0,res:{}};
+const WSTEPS=[
+  {k:"nomic",t:"Step 1 of 4 · microphone off",d:"First, a check that the page can make sound at all."},
+  {k:"keep",t:"Step 2 of 4 · microphone on, standard sound",d:"The microphone is now on, the way Play & score uses it."},
+  {k:"restart",t:"Step 3 of 4 · microphone on, sound restarted",d:"Same again, but the page restarts its sound after the microphone opens."},
+  {k:"element",t:"Step 4 of 4 · microphone on, through a media player",d:"Same again, but the sound goes through the browser's media player."},
+];
+async function wizSound(){
+  const st=WSTEPS[W.step];
+  if(st.k==="nomic"){if(L.stream)stopListening();S.audioMode="keep";}
+  else{S.audioMode=st.k;if(st.k==="restart")restartOut();if(!await ensureListening()){wizShow(L.error);return;}await new Promise(r=>setTimeout(r,700));}
+  audioCtx();try{await ctx.resume();}catch(e){}
+  const t=ctx.currentTime+0.2,base=48+S.keyPc;click(t,true);[0,4,7].forEach((iv,i)=>note(base+12+iv,t+0.5+i*0.45,0.55,0.8));
+}
+function diagText(){return ["UA: "+navigator.userAgent,"sound: "+(ctx?`${ctx.state} ${ctx.sampleRate}Hz base ${(ctx.baseLatency||0).toFixed(3)} out ${(ctx.outputLatency||0).toFixed(3)}`:"none"),
+  "mic: "+(L.stream?"on":"off")+" "+(L.label||"-")+(L.ctx?" "+L.ctx.sampleRate+"Hz":""),"mics: "+L.devices.map(d=>d.label||"?").join(" | "),
+  "steps: "+Object.entries(W.res).map(([k,v])=>k+"="+v).join(", "),"route: "+S.audioMode].join("\n");}
+function wizShow(msg,final){
+  const el=document.getElementById("wiz");if(!el)return;el.hidden=false;
+  if(final){el.innerHTML=`<p>${msg}</p><details><summary>Details for Claude</summary><pre id="diag">${diagText().replace(/</g,"&lt;")}</pre><button type="button" data-copydiag="1">Copy details</button></details>`;return;}
+  const st=WSTEPS[W.step];
+  el.innerHTML=`<div class="num">${st.t}</div><p>${st.d} You should hear a click and three rising notes.</p>${msg?`<p class="warn">${msg}</p>`:""}
+    <div class="lrow"><button type="button" data-wiz="again">▶ Play it again</button><button type="button" class="play" data-wiz="yes">✓ I heard it</button><button type="button" class="tbtn" data-wiz="no">✗ Silent</button></div>`;
+}
+async function wiz(cmd){
+  if(cmd==="start"){W.step=0;W.res={};wizShow("");await wizSound();return;}
+  if(cmd==="again"){await wizSound();return;}
+  const st=WSTEPS[W.step];W.res[st.k]=cmd==="yes"?"heard":"silent";
+  if(st.k==="nomic"&&cmd==="no"){S.audioMode="keep";persistSettings();
+    wizShow("The page isn't making any sound even with the microphone off. Check the phone's <b>media volume</b>, that the earbud is connected, and that the phone isn't on silent; then run this again.",true);return;}
+  if(st.k!=="nomic"&&cmd==="yes"){persistSettings();const name={keep:"standard",restart:"restart sound",element:"media player"}[st.k];
+    stopListening();
+    wizShow(`Found a working route: <b>${name}</b>. Play &amp; score will use it on this phone from now on. Try Play &amp; score again.`,true);
+    const r=document.querySelector(".listen .lrow .tnote b");if(r)r.textContent=name;return;}
+  if(W.step<WSTEPS.length-1){W.step++;wizShow("");await wizSound();return;}
+  S.audioMode="keep";persistSettings();stopListening();
+  wizShow(`Your phone wouldn't play the page's sound in any of the three ways while the microphone was on. Two more things to try: choose a different <b>Microphone</b> above (for example the phone's own mic instead of the earbud) and run this again, or use wired earphones. Copy the details below and paste them to me in Claude so I can look at your phone's setup.`,true);
 }
 let tunerTimer=null;
 async function toggleTuner(){
@@ -1345,7 +1394,7 @@ async function toggleTuner(){
 
 /* ===================== Device sync (shares Total Recall's sync code and encrypted cloud bridge) ===================== */
 const SYNC_KEY="totalRecallSyncCode_v1",SYNC_URL=localStorage.getItem("totalRecallTickTickUrl")||"https://total-recall-ticktick.pranjuchakrapani90.workers.dev";
-const LOCAL_ONLY=["micId","latency"]; // microphone and earphone delay belong to each device
+const LOCAL_ONLY=["micId","latency","audioMode"]; // microphone and earphone delay belong to each device
 const SY={busy:false,again:false,timer:0,state:"off",msg:"",last:null};
 const b64=a=>{let s="";new Uint8Array(a).forEach(x=>s+=String.fromCharCode(x));return btoa(s);};
 const unb64=s=>{const r=atob(s),u=new Uint8Array(r.length);for(let i=0;i<r.length;i++)u[i]=r.charCodeAt(i);return u;};
@@ -1426,7 +1475,8 @@ document.addEventListener("click",e=>{
   const g=e.target.closest("[data-go]");if(g){const v=g.dataset.go;go(/^\d$/.test(v)?Number(v):v);return;}
   if(e.target.closest("[data-nbstop]")){stop();return;}
   if(e.target.closest("[data-resume]")){if(ctx)ctx.resume().catch(()=>{});return;}
-  if(e.target.closest("[data-soundcheck]")){soundCheck();return;}
+  const wz=e.target.closest("[data-wiz]");if(wz){wiz(wz.dataset.wiz);return;}
+  if(e.target.closest("[data-copydiag]")){const t=diagText();(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>{e.target.textContent="Copied";}).catch(()=>{const r=document.createRange(),pre=document.getElementById("diag");if(pre){r.selectNodeContents(pre);const sel=getSelection();sel.removeAllRanges();sel.addRange(r);}});return;}
   const tb=e.target.closest("[data-test]");if(tb){const id=tb.dataset.test;if(play&&play.test&&play.id===id)stop();else startTest(id);return;}
   if(e.target.closest("[data-tuner]")){toggleTuner();return;}
   if(e.target.closest("[data-syncnow]")){cloudSync();return;}
