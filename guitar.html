@@ -312,6 +312,8 @@ select,input[type=range],input[type=checkbox]{accent-color:var(--accent)}
   padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));background:#fff;border-top:1px solid var(--line);box-shadow:0 -6px 18px #141e3714;font-size:14px}
 .nbinfo{min-width:0;color:var(--ink)}
 .nbinfo b{font-family:var(--mono)}
+
+#nbResume{background:#fff7ed;color:#9a3412}
 </style>
 
 <header class="top"><div class="hin">
@@ -329,7 +331,7 @@ select,input[type=range],input[type=checkbox]{accent-color:var(--accent)}
 <div class="wrap">
 <nav class="stepper" id="stepper" aria-label="Session steps"></nav>
 <div class="ctx" id="ctx" hidden></div>
-<div id="nowbar" class="nowbar" hidden><span id="nbInfo" class="nbinfo">Playing</span><button type="button" class="play" data-nbstop="1">■ Stop</button></div>
+<div id="nowbar" class="nowbar" hidden><span id="nbInfo" class="nbinfo">Playing</span><button type="button" id="nbResume" data-resume="1" hidden>🔈 Restore sound</button><button type="button" class="play" data-nbstop="1">■ Stop</button></div>
 <main id="view"><div class="loading">Loading your session…</div></main>
 <p class="note" id="syncNote"></p>
 </div>
@@ -491,7 +493,7 @@ function buildSeq(c,alt,N){
 }
 
 /* ===================== State ===================== */
-const S={keyPc:7,tempo:72,click:true,loop:true,countin:true,chords:true,labels:"fingers",listen:true,pass:100,latency:null,micId:"",guide:false};
+const S={keyPc:7,tempo:72,click:true,loop:true,countin:true,chords:true,labels:"fingers",listen:true,pass:100,latency:null,micId:"",guide:false,hearNotes:true};
 let sessions={},today=null,posData=null,store=null,extra=null;
 const pad=n=>String(n).padStart(2,"0");
 const dkey=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
@@ -789,13 +791,15 @@ function listenPanel(){
     <div class="lrow"><button type="button" id="tunerBtn" data-tuner="1">Check the microphone</button><span id="tuner" class="tuner"></span></div>
     <div class="lrow"><button type="button" data-calibrate="1">Calibrate earphones</button><span class="tnote">Delay: <b id="latV">${S.latency!=null?Math.round(S.latency*1000)+" ms":"not calibrated yet"}</b></span></div>
     <p class="tnote" id="calStatus">With your earphones on, tap Calibrate: listen to 4 clicks, then pluck one note on each of the next 8. Do this once per pair of earphones.</p>
-    <label class="chk" for="guide"><input type="checkbox" id="guide"${S.guide?" checked":""}> During scoring, also play the notes and backing chords (only with earphones, or the microphone hears them too)</label>
+    <label class="chk" for="hearNotes"><input type="checkbox" id="hearNotes"${S.hearNotes?" checked":""}> Play the notes (and backing chords) during Play &amp; score, so you hear them in your earphone while you play</label>
+    <div class="lrow"><button type="button" data-soundcheck="1">🔊 Sound check with the microphone on</button></div>
+    <p class="tnote" id="scStatus">Use this if Play &amp; score is silent on your phone.</p>
   </div>`;
 }
 function testBtn(id){return S.listen?`<button type="button" class="tbtn" data-test="${id}">🎤 Play &amp; score</button>`:"";}
 function testPanel(id,key){
   const sc=today.scores&&today.scores[key];
-  return `<p class="howto"><b>▶ Listen</b>: the trainer plays it for you. Play along to learn it; nothing is scored.${S.listen?` <b>🎤 Play &amp; score</b>: the trainer goes quiet except for the click. After the count-in you play it, and every note is checked as you go.${sc?` <span class="best">Best so far: ${sc.best}%${sc.passed?" ✓ passed":""}</span>`:""}`:""}</p>
+  return `<p class="howto"><b>▶ Listen</b>: the trainer plays it for you. Play along to learn it; nothing is scored.${S.listen?` <b>🎤 Play &amp; score</b>: after a count-in you play it while the microphone checks every note${S.hearNotes?"; the trainer plays it in your earphone at the same time":"; you hear only the click"}.${sc?` <span class="best">Best so far: ${sc.best}%${sc.passed?" ✓ passed":""}</span>`:""}`:""}</p>
   <div class="tpanel" id="tp-${id}" hidden></div><div class="res" id="res-${id}"></div>`;
 }
 const gateOk=key=>!S.listen||!!(today.scores&&today.scores[key]&&today.scores[key].passed);
@@ -1027,13 +1031,13 @@ function schedule(){
     const tH=play.chi<play.ch.length?b2t(off+play.ch[play.chi].b):Infinity;
     const tC=b2t(play.clickBeat),t=Math.min(tN,tH,tC);
     if(t>hz)break;
-    if(tH===t){const c=play.ch[play.chi++];if(S.chords&&(!play.test||S.guide))chord(c.root,c.q,tH,c.d*spb());continue;}
-    if(tC===t){if(play.clickBeat<0||S.click)click(tC,((play.clickBeat%play.bpb)+play.bpb)%play.bpb===0);play.clickBeat++;
+    if(tH===t){const c=play.ch[play.chi++];if(S.chords&&(!play.test||(S.hearNotes&&!play.mute)))chord(c.root,c.q,tH,c.d*spb());continue;}
+    if(tC===t){if(play.test&&play.clickBeat<0)(play.ci=play.ci||[]).push(tC);if(play.clickBeat<0||S.click)click(tC,((play.clickBeat%play.bpb)+play.bpb)%play.bpb===0);play.clickBeat++;
       if(play.clickBeat>=off+play.total&&play.evi>=play.ev.length){
         if(play.test){play.clickBeat=Infinity;play.evi=Infinity;play.chi=Infinity;}else if(S.loop){play.cycle++;play.evi=0;play.chi=0;}else{const p=play;setTimeout(()=>{if(play===p)stop();},Math.max(0,(tC-now)*1000+300));play.clickBeat=Infinity;play.evi=Infinity;play.chi=Infinity;}}
       continue;}
     const e=play.ev[play.evi];if(!e.rest){const m=e.m!=null?e.m:posData.notes[e.n].m;
-      if(!play.test||S.guide)note(m,tN,e.d*spb()*(e.last?1.6:1),e.a===2?.8:e.a?.66:.5);}
+      if(!play.test||(S.hearNotes&&!play.mute))note(m,tN,e.d*spb()*(e.last?1.6:1),e.a===2?.8:e.a?.66:.5);}
     play.vis.push([tN,play.evi,play.evi===play.ev.length-1]);play.evi++;
   }
 }
@@ -1090,7 +1094,10 @@ const WORKLET=`class Tap extends AudioWorkletProcessor{constructor(){super();thi
 process(i){const c=i[0]&&i[0][0];if(c){if(this.n===0)this.s=currentFrame;this.b.set(c,this.n);this.n+=c.length;if(this.n>=1024){this.port.postMessage({f:this.s,d:this.b.slice(0,this.n)});this.n=0;}}return true;}}
 registerProcessor("tap",Tap);`;
 const BT_RE=/bluetooth|hands-?free|headset|airpods|buds|earphone|wireless/i;
-function audioCtx(){if(!ctx)ctx=new (window.AudioContext||window.webkitAudioContext)({latencyHint:"interactive"});ctx.resume();return ctx;}
+function audioCtx(){
+  if(!ctx){ctx=new (window.AudioContext||window.webkitAudioContext)({latencyHint:"interactive"});
+    ctx.onstatechange=()=>{const b=document.getElementById("nbResume");if(b)b.hidden=ctx.state==="running";if(ctx.state!=="running"&&play)ctx.resume().catch(()=>{});};}
+  ctx.resume().catch(()=>{});return ctx;}
 async function listDevices(){try{const d=await navigator.mediaDevices.enumerateDevices();L.devices=d.filter(x=>x.kind==="audioinput");}catch(e){L.devices=[];}return L.devices;}
 async function ensureListening(){
   if(L.stream&&L.stream.active)return true;
@@ -1179,6 +1186,17 @@ function testExpected(p){ // absolute time, pitch and fret of every note you mus
   out.forEach((e,i)=>{const a=i>0?e.t-out[i-1].t:1,b=i+1<out.length?out[i+1].t-e.t:1;e.gap=Math.min(a,b);});
   return out;
 }
+function toneHit(ct){ // is one of our click tones (1200 or 1800 Hz) clearly present in the mic within 0.5 s after it played?
+  const sr=L.sr,N=Math.round(0.02*sr),step=Math.round(0.005*sr),x=k=>L.ring[((k%RS)+RS)%RS];let best=0;
+  for(let st=Math.round(ct*sr);st<Math.round((ct+0.5)*sr);st+=step){
+    let e=0;for(let k=0;k<N;k++){const v=x(st+k);e+=v*v;}
+    if(10*Math.log10(e/N+1e-12)<L.floor+10)continue;
+    for(const f of [1200,1800]){const cw=2*Math.cos(2*Math.PI*f/sr);let s1=0,s2=0;
+      for(let k=0;k<N;k++){const s0=x(st+k)+cw*s1-s2;s2=s1;s1=s0;}
+      const r=(s1*s1+s2*s2-cw*s1*s2)*2/N/(e+1e-12);if(r>best)best=r;}
+  }
+  return best>0.4;
+}
 function liveInit(p){
   p.exp=testExpected(p);L.fmin=440*Math.pow(2,(Math.min(...p.exp.map(e=>e.m))-3-69)/12);
   p.live={st:new Array(p.exp.length).fill(null),seen:new Set(),offs:[],off:S.latency!=null?S.latency:0.18,heard:null,ui:0};
@@ -1207,13 +1225,21 @@ function liveUpdate(p){
     else if(now-d.t>0.6){lv.seen.add(d);lv.heard={m:d.midi,ok:false,extra:true};}
   }
   for(let i=0;i<X.length;i++){if(!lv.st[i]&&now>X[i].t+lv.off+winOf(X[i],wide)+0.15){lv.st[i]="miss";mark(p,i,"miss");}}
+  // does the microphone hear our own count-in clicks? Then the speaker is playing into it, and the notes must stay muted
+  lv.ci=lv.ci||{};(p.ci||[]).forEach(ct=>{if(lv.ci[ct]==null&&L.head/L.sr>ct+0.56)lv.ci[ct]=toneHit(ct);});
+  const nci=(p.ci||[]).length,done=Object.keys(lv.ci).length;
+  if(!lv.leakDone&&nci&&(done>=nci||now>X[0].t+0.3)){lv.leakDone=true;
+    const hits=Object.values(lv.ci).filter(Boolean).length;
+    if(hits>=2&&hits>=done-1&&S.hearNotes){p.mute=true;lv.leak=true;}}
   if(now-lv.ui>0.1){lv.ui=now;
     const g=id=>document.getElementById(id+"-"+p.id);
     const next=X.find((e,i)=>!lv.st[i]&&e.t+lv.off>now-0.1);
     const ok=lv.st.filter(x=>x==="ok").length,bad=lv.st.filter(x=>x==="bad").length,miss=lv.st.filter(x=>x==="miss").length;
     const heardAny=L.notes.some(d=>d.t>=p.testStart);
     if(g("lvMsg"))g("lvMsg").textContent=now<X[0].t?`Count-in: start in ${Math.max(1,Math.ceil((X[0].t-now)/spb()))}…`
-      :(!heardAny&&now>X[0].t+2.5)?"I can't hear your guitar yet. Play louder, or check the microphone on the first card.":"Play along with the click";
+      :(!heardAny&&now>X[0].t+2.5)?"I can't hear your guitar yet. Play louder, or check the microphone on the first card."
+      :lv.leak?"The microphone hears the phone's speaker, so the notes are muted. Use your earbud to hear them."
+      :S.hearNotes?"Play along with the notes":"Play along with the click";
     if(g("lvNext"))g("lvNext").innerHTML=next?`fret ${next.f} <small>on tab line ${next.s} (${["","top","2nd","3rd","4th","5th","bottom"][next.s]} line) · ${midiName(next.m)}</small>`:"Finishing…";
     if(g("lvHeard"))g("lvHeard").innerHTML=lv.heard?`<span class="${lv.heard.ok?"hok":"hbad"}">${midiName(lv.heard.m)} ${lv.heard.ok?"✓":lv.heard.extra?"(extra)":"✗ wanted "+midiName(lv.heard.want)}</span>`:"–";
     if(g("lvMeter"))g("lvMeter").style.width=Math.round(Math.max(0,Math.min(1,((L.level||-100)+70)/55))*100)+"%";
@@ -1242,22 +1268,29 @@ function finalScore(p){
     avgDt:dts.length?Math.round(dts.reduce((a,b)=>a+b,0)/dts.length*1000):0,res:best.res,at:new Date().toISOString()};
 }
 async function startTest(id){
+  const fresh=!(L.stream&&L.stream.active);
   if(!await ensureListening()){render();const r=document.getElementById("res-"+id);if(r)r.innerHTML=`<p class="warn">${L.error||"The microphone isn't available."}</p>`;return;}
+  if(fresh)await new Promise(r=>setTimeout(r,700)); // Android switches its audio route when the mic opens
+  try{await ctx.resume();}catch(e){}
   L.notes=[];L.onsets=[];
   start(id,false,true);
 }
+function releaseMic(){if(!tunerTimer)stopListening();} // closing the mic gives the phone its normal media sound back
 function finishTest(p){
   const r=finalScore(p),key=p.id==="pos"?"box":keyOf(today.items[Number(p.id.slice(1))]);
   today.scores=today.scores||{};const prev=today.scores[key];
   today.scores[key]={best:Math.max(r.score,prev?prev.best:0),last:r.score,tries:(prev?prev.tries:0)+1,passed:!!(prev&&prev.passed)||r.score>=S.pass};
   persistDay();lastResult[p.id]=r;render();paintResult(p.id,r,true);
+  if(p.mute)noteMuted(p.id);releaseMic();
 }
 function stoppedEarly(p){
   const lv=p.live;if(!lv)return;const done=lv.st.filter(Boolean).length,ok=lv.st.filter(x=>x==="ok").length;
   const el=document.getElementById("res-"+p.id);
   if(el)el.innerHTML=`<div class="score fail"><b>–</b><div><div class="sh">Stopped before the end</div><div class="sd">${done} of ${p.exp.length} notes checked, ${ok} right. Play to the end to get a score.</div></div></div>`;
   const tp=document.getElementById("tp-"+p.id);if(tp)tp.hidden=true;
+  releaseMic();
 }
+function noteMuted(id){const el=document.getElementById("res-"+id);if(el)el.insertAdjacentHTML("beforeend",`<p class="warn">The microphone could hear the phone's speaker, so the notes were muted while scoring. Put your earbud in to hear them.</p>`);}
 const lastResult={};
 function paintResult(id,r,scroll){
   if(!r)return;
@@ -1282,13 +1315,23 @@ async function calibrate(){
   if(offs.length<5){say(`Only ${offs.length} of 8 plucks were heard. Play a little louder, keep the room quiet, and try again.`);return;}
   const med=offs[Math.floor(offs.length/2)],spread=offs[offs.length-1]-offs[0];
   S.latency=Math.round(med*1000)/1000;persistSettings();
+  releaseMic();
   say(`Done: your earphones and microphone add ${Math.round(med*1000)} ms. Scores now allow for that.${spread>0.12?" Your plucks varied quite a bit; calibrate again if scores feel off.":""}`);
   const lv=document.getElementById("latV");if(lv)lv.textContent=Math.round(med*1000)+" ms";
+}
+async function soundCheck(){
+  const st=document.getElementById("scStatus"),say=t=>{if(st)st.innerHTML=t;};
+  if(!await ensureListening()){say(L.error);return;}
+  await new Promise(r=>setTimeout(r,700));try{await ctx.resume();}catch(e){}
+  say(`Playing a click and three notes with the microphone on (mic: <b>${(L.label||"default").replace(/</g,"&lt;")}</b>)…`);
+  const t=ctx.currentTime+0.15,base=48+S.keyPc;
+  click(t,true);[0,4,7].forEach((iv,i)=>note(base+12+iv,t+0.5+i*0.45,0.5,0.7));
+  setTimeout(()=>{say(`Did you hear a click and three notes? If not: <b>press your phone's volume-up button while something plays</b>. With the microphone on, Android uses the <i>call</i> volume, which is often turned right down. If it's still silent, choose a different microphone above, or try wired earphones.`);releaseMic();},2600);
 }
 let tunerTimer=null;
 async function toggleTuner(){
   const out=document.getElementById("tuner"),btn=document.getElementById("tunerBtn");
-  if(tunerTimer){clearInterval(tunerTimer);tunerTimer=null;if(btn)btn.textContent="Check the microphone";if(out)out.textContent="";return;}
+  if(tunerTimer){clearInterval(tunerTimer);tunerTimer=null;if(btn)btn.textContent="Check the microphone";if(out)out.textContent="";stopListening();return;}
   if(!await ensureListening()){if(out)out.textContent=L.error;return;}
   render();
   const o=()=>document.getElementById("tuner"),b=()=>document.getElementById("tunerBtn");if(b())b().textContent="Stop the check";
@@ -1382,6 +1425,8 @@ document.addEventListener("click",e=>{
     (play&&play.id===id&&play.ro===ro)?stop():start(id,ro);return;}
   const g=e.target.closest("[data-go]");if(g){const v=g.dataset.go;go(/^\d$/.test(v)?Number(v):v);return;}
   if(e.target.closest("[data-nbstop]")){stop();return;}
+  if(e.target.closest("[data-resume]")){if(ctx)ctx.resume().catch(()=>{});return;}
+  if(e.target.closest("[data-soundcheck]")){soundCheck();return;}
   const tb=e.target.closest("[data-test]");if(tb){const id=tb.dataset.test;if(play&&play.test&&play.id===id)stop();else startTest(id);return;}
   if(e.target.closest("[data-tuner]")){toggleTuner();return;}
   if(e.target.closest("[data-syncnow]")){cloudSync();return;}
@@ -1398,7 +1443,7 @@ document.addEventListener("click",e=>{
 document.addEventListener("change",e=>{
   const t=e.target;
   if(t.id==="key"){S.keyPc=Number(t.value);persistSettings();render();}
-  else if(["click","loop","countin","chords","guide"].includes(t.id)){S[t.id]=t.checked;persistSettings();}
+  else if(["click","loop","countin","chords","guide","hearNotes"].includes(t.id)){S[t.id]=t.checked;persistSettings();}
   else if(t.id==="listen"){S.listen=t.checked;persistSettings();render();}
   else if(t.id==="pass"){S.pass=Number(t.value);persistSettings();}
   else if(t.id==="mic"){S.micId=t.value;persistSettings();stopListening();ensureListening().then(render);}
