@@ -1,0 +1,1170 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Guitar Melody Trainer · Total Recall</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: header with today's date + progress; sticky settings bar; today's position card; five exercise sheets; history + extra builder */
+:root{
+  --bg:#eceef1; --paper:#fbfbfc; --ink:#18202c; --muted:#5d6676; --line:#b9c0cb;
+  --brass:#a8681a; --brass-soft:#f3e3c8; --steel:#1f6a74; --steel-soft:#d5ebee; --root:#a8681a; --good:#2f7a3d; --good-soft:#dcefdf; --bad:#b3372f;
+  --display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --body:"IBM Plex Sans",ui-sans-serif,system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#12161d; --paper:#1a2029; --ink:#e7eaef; --muted:#9aa3b2; --line:#465062;
+  --brass:#e2a453; --brass-soft:#3d2e19; --steel:#6cc3cd; --steel-soft:#163a40; --root:#e2a453; --good:#7fd08c; --good-soft:#1b3a22; --bad:#ff8a80; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12161d; --paper:#1a2029; --ink:#e7eaef; --muted:#9aa3b2; --line:#465062;
+  --brass:#e2a453; --brass-soft:#3d2e19; --steel:#6cc3cd; --steel-soft:#163a40; --root:#e2a453; --good:#7fd08c; --good-soft:#1b3a22; --bad:#ff8a80; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.55 var(--body)}
+.wrap{max-width:980px;margin:0 auto;padding-inline:16px;padding-block:20px 60px}
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap}
+header > div{min-width:0}
+header h1{font:800 clamp(28px,5vw,44px)/1.05 var(--display);margin:6px 0 6px;text-wrap:balance;letter-spacing:-.01em}
+.eyebrow{font:600 11px/1 var(--body);letter-spacing:.14em;text-transform:uppercase;color:var(--brass)}
+header p{max-width:62ch;color:var(--muted);margin:0}
+.stats{display:flex;gap:16px;flex-wrap:wrap}
+.stat{text-align:right}
+.stat b{display:block;font:700 26px/1 var(--mono);font-variant-numeric:tabular-nums}
+.stat span{font-size:12px;color:var(--muted)}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;margin:18px 0;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:10px 14px;display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center}
+.ctl{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.ctl b{color:var(--ink);font:700 15px var(--mono);min-width:3.2ch;display:inline-block;font-variant-numeric:tabular-nums}
+select,input[type=range],input[type=checkbox]{accent-color:var(--steel)}
+select,input[type=text]{font:500 14px var(--body);background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:6px 8px}
+.chk{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer}
+button{font:600 13px var(--body);cursor:pointer;border-radius:999px;border:1px solid var(--line);background:var(--bg);color:var(--ink);padding:6px 12px}
+button:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--steel);outline-offset:2px}
+
+.progress{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:12px}
+.progress i{display:block;height:100%;background:var(--good);width:0;transition:width .3s}
+
+.pos{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:20px;align-items:center;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:18px}
+@media (max-width:720px){.pos{grid-template-columns:1fr}}
+.pos h2,.ex h2,.panel h2{font:600 22px/1.2 var(--display);margin:0 0 6px;text-wrap:balance}
+.pos p{margin:0 0 8px;color:var(--muted)}
+.pos svg{width:100%;height:auto;display:block}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--muted);flex-wrap:wrap}
+.legend span{display:flex;align-items:center;gap:6px}
+.dot{width:12px;height:12px;border-radius:50%;display:inline-block}
+
+.list{display:flex;flex-direction:column;gap:16px}
+.ex{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:18px}
+.ex.playing{border-color:var(--steel);box-shadow:0 0 0 1px var(--steel)}
+.ex.done{border-left:5px solid var(--good)}
+.exhead{display:flex;gap:14px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+.exhead > div{min-width:0;flex:1 1 300px}
+.num{font:500 12px var(--mono);color:var(--muted)}
+.meta{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 10px}
+.chip{font:600 11px/1 var(--body);letter-spacing:.06em;text-transform:uppercase;padding:5px 8px;border-radius:999px;background:var(--steel-soft);color:var(--steel)}
+.chip.t{background:var(--brass-soft);color:var(--brass)}
+.chip.m{background:var(--bg);color:var(--ink);font-family:var(--mono);letter-spacing:0;text-transform:none;font-size:12px}
+.ex p{margin:0;max-width:66ch;color:var(--muted)}
+.btns{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.play{background:var(--ink);color:var(--paper);border-color:var(--ink);padding:9px 18px;font-size:14px;white-space:nowrap}
+.play.on{background:var(--brass);border-color:var(--brass);color:var(--paper)}
+.donebtn[aria-pressed="true"]{background:var(--good-soft);border-color:var(--good);color:var(--good)}
+.tabscroll{margin-top:16px;overflow-x:auto}
+.tab{display:flex;flex-wrap:wrap;row-gap:4px;font:500 13px var(--mono);font-variant-numeric:tabular-nums}
+.strings{display:grid;grid-template-rows:repeat(6,18px) 16px;color:var(--muted);font-weight:700;padding-right:6px;font-size:12px;margin-bottom:16px}
+.strings span{line-height:18px}
+.tbar{display:flex;padding-left:6px;padding-right:4px;margin-bottom:16px;position:relative}
+.tbar::before,.tbar::after{content:"";position:absolute;top:9px;height:90px;border-left:2px solid var(--line)}
+.tbar::before{left:0}.tbar::after{right:0}
+.beat{display:flex;margin-right:8px}
+.col{display:grid;grid-template-rows:repeat(6,18px) 16px;border-radius:4px;flex:none}
+.c{position:relative;text-align:center;line-height:18px}
+.c::before{content:"";position:absolute;left:-1px;right:-1px;top:50%;border-top:1px solid var(--line)}
+.c i{position:relative;font-style:normal;background:var(--paper);padding:0 2px;color:var(--ink);font-weight:700}
+.c i.r{color:var(--root)}
+.c i.acc{text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:3px}
+.cnt.acc{color:var(--ink);font-weight:700}
+.col.rest .cnt{font-style:italic}
+.rhy{margin-top:14px;padding:12px 14px;border-radius:10px;background:var(--brass-soft);display:flex;flex-direction:column;gap:6px}
+.rhy p{color:var(--ink);margin:0;max-width:70ch}
+.rtop{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.rtop b{font:600 17px var(--display)}
+.rlab{font:600 11px var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--brass)}
+.rtag{font-size:12px;color:var(--muted)}
+.rfoot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.rcount{font-size:13px;color:var(--muted)}
+.grid{display:inline-flex;flex-wrap:wrap;gap:2px;font:500 13px var(--mono)}
+.g{min-width:2.4ch;text-align:center;padding:3px 3px;border-radius:4px;color:var(--muted);opacity:.55}
+.g.bt{margin-left:8px}
+.g.h{opacity:1;color:var(--ink);background:var(--paper);font-weight:700}
+.g.h.a{color:var(--brass);box-shadow:inset 0 -2px 0 var(--brass)}
+.gnote{font-size:12px;color:var(--muted);margin-left:6px}
+.rbtn{background:var(--paper)}
+.rhy p.glegend{font-size:12px;color:var(--muted)}
+.rbtn.on{background:var(--brass);border-color:var(--brass);color:var(--paper)}
+.cnt{font:500 10px/16px var(--mono);text-align:center;color:var(--muted)}
+.col.on{background:var(--steel-soft)}
+.col.on .c i{background:var(--steel-soft);color:var(--steel)}
+
+.lower{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;margin-top:20px}
+@media (max-width:720px){.lower{grid-template-columns:1fr}}
+.panel{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:18px;min-width:0}
+.panel p{margin:0 0 10px;color:var(--muted)}
+.hist{width:100%;border-collapse:collapse;font-size:13px}
+.hist th{text-align:left;font:600 11px var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:4px 6px;border-bottom:1px solid var(--line)}
+.hist td{padding:6px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+.hist td.n{font-family:var(--mono)}
+.pill{display:inline-block;font:600 11px var(--mono);padding:2px 7px;border-radius:999px;background:var(--bg);color:var(--muted)}
+.pill.full{background:var(--good-soft);color:var(--good)}
+.build{display:flex;gap:8px;flex-wrap:wrap}
+.build input{flex:1 1 180px;font-family:var(--mono)}
+.hint{font-size:13px;color:var(--muted);margin-top:8px}
+.hint code{font-family:var(--mono);color:var(--ink)}
+.err{color:var(--bad);font-size:13px;margin-top:6px;min-height:1em}
+.note{font-size:12px;color:var(--muted);margin-top:14px}
+.next{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin-top:16px;background:var(--good-soft);border:1px solid var(--good);border-radius:12px;padding:16px 18px}
+.next h2{font:600 20px/1.2 var(--display);margin:0 0 4px;color:var(--good)}
+.next p{margin:0;color:var(--ink);max-width:60ch}
+.next.partial{background:var(--paper);border-color:var(--line)}
+.next.partial h2{color:var(--ink)}
+.tbar{padding-top:16px}
+.strings{margin-top:16px}
+.chd{position:absolute;top:0;left:6px;font:700 12px var(--body);color:var(--brass)}
+.vbox{background:var(--steel-soft)}
+.vbox .rlab{color:var(--steel)}
+.vbox .rtop b{font:600 15px var(--body)}
+.prog{font-family:var(--mono);font-weight:700}
+.ex.voc{border-top:3px solid var(--steel)}
+.stage{margin-top:18px;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:14px}
+.stHead{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:flex-start}
+.stHead > div:first-child{min-width:0;flex:1 1 300px}
+.stage h2{font:600 22px/1.2 var(--display);margin:0 0 4px}
+.stage p{margin:0;color:var(--muted);max-width:66ch}
+.stTempo{text-align:right}
+.stTempo b{display:block;font:700 34px/1 var(--mono);color:var(--brass);font-variant-numeric:tabular-nums}
+.stTempo span{font-size:12px;color:var(--muted)}
+.ladder{display:flex;flex-wrap:wrap;gap:4px}
+.lstep{font:600 11px/1 var(--mono);padding:5px 6px;border-radius:5px;background:var(--bg);color:var(--muted);min-width:3.2ch;text-align:center;font-variant-numeric:tabular-nums}
+.lstep.done{background:var(--good-soft);color:var(--good)}
+.lstep.cur{background:var(--brass);color:var(--paper)}
+.cover{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+@media (max-width:600px){.cover{grid-template-columns:1fr}}
+.cvl{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:4px}
+.cvl b{color:var(--ink);font:600 13px var(--mono);font-variant-numeric:tabular-nums}
+.bar2{height:6px;background:var(--bg);border-radius:3px;overflow:hidden}
+.bar2 i{display:block;height:100%;background:var(--steel);width:0}
+.fc{margin:0;font-size:14px;color:var(--ink);background:var(--bg);border-radius:8px;padding:10px 12px}
+.fc b{font-family:var(--mono);color:var(--brass)}
+.tnote{font-size:12px;color:var(--muted)}
+.posbtn{margin-top:12px}
+#posWhy{color:var(--ink)}
+.dot.ring{background:transparent;border:2px dashed var(--muted)}
+.dt circle,.dt rect{stroke-width:2}
+.dt.sd circle,.dt.sd rect{fill:var(--steel)}.dt.rt circle,.dt.rt rect{fill:var(--root)}.dt.sd text,.dt.rt text{fill:var(--paper)}
+.dt.ex circle{fill:var(--paper);stroke:var(--muted);stroke-dasharray:3 2}.dt.ex text{fill:var(--muted)}
+.dt.on rect,.dt.on circle{fill:var(--ink);stroke:var(--brass);stroke-width:4;stroke-dasharray:none}.dt.on text{fill:var(--paper)}
+.top{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap}
+.top > div{min-width:0}
+.stepper{display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin:18px 0 10px}
+.stp{min-width:38px;padding:7px 10px;font:600 12px var(--mono);border-radius:999px;background:var(--paper);border:1px solid var(--line);color:var(--muted)}
+.stp.ok{background:var(--good-soft);border-color:var(--good);color:var(--good)}
+.stp.cur{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.stp:disabled{opacity:.45;cursor:not-allowed}
+.sep{width:10px;height:2px;background:var(--line);display:inline-block}
+.ctx{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:8px 14px;margin-bottom:12px;font-size:13px;color:var(--muted)}
+.ctx b{color:var(--brass);font-family:var(--mono)}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:14px}
+.card.ex{display:block}
+.card.ex > * + *{margin-top:14px}
+.card h2{font:700 26px/1.15 var(--display);margin:0;text-wrap:balance}
+.card h3,.stage h3{font:600 17px/1.2 var(--display);margin:0 0 8px}
+.lead{margin:0;color:var(--muted);max-width:66ch}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px}
+@media (max-width:720px){.two{grid-template-columns:1fr}}
+.plan{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.plan li{display:flex;gap:10px;align-items:baseline;padding:8px 10px;border-radius:8px;background:var(--bg)}
+.plan li.ok{background:var(--good-soft)}
+.plan .pk{font:700 12px var(--mono);color:var(--muted);min-width:3ch}
+.plan .pn{flex:1;min-width:0}
+.plan .pn em{display:block;font-style:normal;font-size:12px;color:var(--muted)}
+.plan .pd{color:var(--good);font-weight:700}
+.settings{display:flex;flex-direction:column;gap:10px}
+.settings .tempo input{flex:1;min-width:0}
+.settings .tempo{flex-wrap:wrap}
+.tnote{margin:-4px 0 0;font-size:12px;color:var(--muted)}
+.navf{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:14px;margin-top:6px}
+.navf > :last-child{margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.play.big{padding:12px 22px;font-size:15px}
+.donego{background:var(--good);border-color:var(--good)}
+.ghost{background:transparent}
+.linkb{background:none;border:none;padding:0;color:var(--steel);text-decoration:underline;font-weight:500;cursor:pointer}
+.undo{font-size:13px}
+.board svg{width:100%;max-width:560px;height:auto;display:block}
+.ptime{font-size:13px;color:var(--muted);margin:0}
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:600px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.tile{background:var(--bg);border-radius:10px;padding:12px}
+.tile b{display:block;font:700 26px/1 var(--mono);color:var(--ink);font-variant-numeric:tabular-nums}
+.tile span{font-size:12px;color:var(--muted)}
+.sub{font-size:12px;color:var(--muted)}
+.nextp{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;background:var(--good-soft);border:1px solid var(--good);border-radius:12px;padding:14px 16px}
+.nextp b{font-size:16px}
+details.more{border-top:1px solid var(--line);padding-top:10px}
+details.more summary{cursor:pointer;font:600 15px var(--display)}
+details.more[open] > * + *{margin-top:10px}
+.stage{margin-top:0}
+.tbar{padding-left:2px}
+.tbar::before,.tbar::after{top:25px}
+.tbar::before{left:16px}
+.chd{left:20px}
+.sl{display:grid;grid-template-rows:repeat(6,18px) 16px;width:12px;margin-right:6px;font:700 10px/18px var(--mono);color:var(--muted);flex:none}
+.dot.sq{border-radius:3px}
+.dot.mrk{border-radius:3px;background:transparent;border:2px dashed var(--brass)}
+.mr{fill:none;stroke:var(--brass);stroke-width:2.5;stroke-dasharray:5 3}
+.lblsw{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
+.seg{padding:5px 12px;font-size:12px}
+.seg[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.backlink{display:inline-block;margin-bottom:10px;font-size:13px;color:var(--steel);text-decoration:none}
+.listen{border-top:1px solid var(--line);padding-top:14px;display:flex;flex-direction:column;gap:10px}
+.lrow{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.warn{margin:0;font-size:13px;color:var(--bad)}
+.tuner{font-size:14px}
+.meter{display:inline-block;width:90px;height:8px;border-radius:4px;background:var(--bg);overflow:hidden;vertical-align:middle;margin-right:6px}
+.meter i{display:block;height:100%;background:var(--good)}
+.testrow{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.tbtn{background:var(--brass-soft);border-color:var(--brass);color:var(--ink);padding:9px 16px;font-size:14px}
+.tbtn.on{background:var(--bad);border-color:var(--bad);color:var(--paper)}
+.donego:disabled{opacity:.4;cursor:not-allowed}
+.score{display:flex;gap:14px;align-items:center;padding:12px 14px;border-radius:10px;border:1px solid var(--line)}
+.score > b{font:700 30px/1 var(--mono)}
+.score.pass{background:var(--good-soft);border-color:var(--good)}.score.pass > b{color:var(--good)}
+.score.fail{background:var(--bg)}.score.fail > b{color:var(--bad)}
+.sh{font-weight:600}.sd{font-size:13px;color:var(--muted)}
+.col.r-ok{background:var(--good-soft)}.col.r-bad{background:#f8d7d3}.col.r-miss{background:var(--bg);outline:1px dashed var(--line)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .col.r-bad{background:#4a2420}}
+.loading{padding:30px 18px;text-align:center;color:var(--muted);background:var(--paper);border:1px dashed var(--line);border-radius:12px}
+@media (prefers-reduced-motion:reduce){.progress i{transition:none}}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div>
+    <a class="backlink" href="./">← Total Recall</a>
+    <div class="eyebrow">Guitar · Melody practice</div>
+    <h1>Guitar Melody Trainer</h1>
+  </div>
+  <div class="stats" aria-label="Your practice so far">
+    <div class="stat"><b id="hStreak">0</b><span>day streak</span></div>
+    <div class="stat"><b id="hSessions">0</b><span>sessions done</span></div>
+    <div class="stat"><b id="hTime">0m</b><span>practice time</span></div>
+  </div>
+</header>
+<nav class="stepper" id="stepper" aria-label="Session steps"></nav>
+<div class="ctx" id="ctx" hidden></div>
+<main id="view"><div class="loading">Loading your session…</div></main>
+<p class="note" id="syncNote"></p>
+</div>
+
+<script>
+/* ===================== Music data ===================== */
+const OPEN={1:64,2:59,3:55,4:50,5:45,6:40};
+const SNAME={1:"e",2:"B",3:"G",4:"D",5:"A",6:"E"};
+const NOTE=["C","D♭","D","E♭","E","F","F♯","G","A♭","A","B♭","B"];
+const KEYS=NOTE.map((n,i)=>[n,i]);
+const SCALES={
+  major:{name:"major",short:"Major",ints:[0,2,4,5,7,9,11],lab:["1","2","3","4","5","6","7"],npos:5,pos:"Shape"},
+  majpent:{name:"major pentatonic",short:"Major pent.",ints:[0,2,4,7,9],lab:["1","2","3","5","6"],npos:5,pos:"Shape"},
+  minpent:{name:"minor pentatonic",short:"Minor pent.",ints:[0,3,5,7,10],lab:["1","♭3","4","5","♭7"],npos:5,pos:"Shape"},
+};
+const SCALE_CYCLE=["major","minpent","major","majpent"];
+/* Tempo stages: each climbs two steps up, one step back (20, 25, 20, 25, 30, 25 ...) */
+const STAGES=[
+  {n:"I",name:"Foundation",from:20,to:60,step:5},
+  {n:"II",name:"Fluency",from:60,to:120,step:5},
+  {n:"III",name:"Speed",from:120,to:160,step:5},
+];
+function ladder(st){const S_=STAGES[st],out=[];for(let x=S_.from;x<S_.to;x+=S_.step)out.push(x,x+S_.step,x);out.push(S_.to);return out;}
+const stageOf=d=>d.stage==null?0:d.stage;
+function coverage(st){ // what has been done within one stage
+  const seq=new Set(),voc=new Set(),rh=new Set();
+  Object.values(sessions).filter(d=>stageOf(d)===st).forEach(d=>d.done.forEach(k=>{
+    if(k[0]==="v")voc.add(k);else{seq.add(k);const it=d.items.find(x=>keyOf(x)===k);if(it&&it.rh!=null)rh.add(it.rh);}}));
+  return {seq:seq.size,voc:voc.size,rh:rh.size,full:seq.size>=EX.length&&voc.size>=VOC.length&&rh.size>=RHY.length};
+}
+
+/* ----- Sequences (cells moved through the position) ----- */
+function perms(a){if(a.length<2)return[a];const r=[];a.forEach((x,i)=>perms([...a.slice(0,i),...a.slice(i+1)]).forEach(p=>r.push([x,...p])));return r;}
+const lab=c=>c.map(o=>o+1).join("-");
+const CATS=[];function cat(name,desc,scales,items){CATS.push({name,desc,scales,items});}
+const ALL=["major","majpent","minpent"],MAJ=["major"];
+cat("Steps in threes","Three adjacent scale notes. Accent the first of each group.",ALL,perms([0,1,2]).map(c=>({c})));
+cat("Steps in fours","Four adjacent scale notes. Keep every note even.",ALL,perms([0,1,2,3]).map(c=>({c})));
+cat("Runs and turns","Longer stepwise cells that run and turn back.",ALL,[[0,1,2,3,4],[0,1,2,3,4,5],[0,1,2,1],[0,1,2,3,2,1],[0,1,2,3,4,3,2,1],[4,3,2,1,0],[0,1,0,-1],[0,1,2,3,4,5,6,7]].map(c=>({c})));
+const IV=[["thirds",2],["fourths",3],["fifths",4],["sixths",5],["sevenths",6],["octaves",7]];
+cat("Intervals","Two-note cells. Mute the strings you skip.",MAJ,IV.flatMap(([n,k])=>[{c:[0,k],t:`Diatonic ${n}, up`},{c:[k,0],t:`Diatonic ${n}, down`},{c:[0,k],alt:1,t:`Diatonic ${n}, alternating`}]));
+cat("Neighbour and approach notes","Cells that circle a target note from above and below.",ALL,[[1,-1,0],[-1,1,0],[0,1,-1,0],[0,-1,1,0],[2,1,-1,0],[0,2,1,-1]].map(c=>({c})));
+cat("Triad arpeggios","1-3-5 of each chord in the key. Hear the chord change each group.",MAJ,perms([0,2,4]).map(c=>({c})));
+cat("Seventh arpeggios","1-3-5-7 of each diatonic seventh chord.",MAJ,perms([0,2,4,6]).map(c=>({c})));
+cat("Leaps and runs","A jump followed by steps, or steps then a jump.",ALL,[[0,2,3,4],[0,2,1,0],[0,4,3,2],[0,4,3,2,1],[0,3,2,1],[0,1,2,4],[0,2,4,3],[0,4,2,3]].map(c=>({c})));
+const EX=[];CATS.forEach((ct,ci)=>ct.items.forEach(it=>EX.push({...it,cat:ci,t:it.t||lab(it.c)})));
+
+/* ----- Rhythms for sequences ----- */
+const N_=(d,a=0)=>({d,a}),R_=d=>({d,r:1});
+const RHY=[
+ {n:"Straight eighths",tag:"Pop, rock, folk",p:[N_(.5,1),N_(.5)],d:"Two even notes per beat. The plain baseline that every other feel is measured against."},
+ {n:"Sixteenth notes",tag:"Fast rock and fusion runs",p:[N_(.25,1),N_(.25),N_(.25),N_(.25)],d:"Four even notes per beat, counted 1 e & a. The rhythm of fast, flowing runs."},
+ {n:"Triplets",tag:"Blues, ballads, film songs",p:[N_(1/3,1),N_(1/3),N_(1/3)],d:"Three even notes per beat, counted 1-tri-let. A rolling feel that softens a line."},
+ {n:"Swing eighths",tag:"Jazz, blues",swing:1,p:[N_(2/3,1),N_(1/3)],d:"Long-short pairs: the first note takes two thirds of the beat. This lilt is the sound of blues and jazz solos."},
+ {n:"Dotted eighth and sixteenth",tag:"Rock riffs, anthems, marches",p:[N_(.75,1),N_(.25)],d:"A sharp long-short: a long note, then a quick pickup that throws you into the next beat."},
+ {n:"Short-long snap",tag:"Pop vocals, folk",p:[N_(.25,1),N_(.75)],d:"A quick note on the beat, then a held one. Many modern pop vocal lines use this little hiccup."},
+ {n:"Tresillo 3+3+2",tag:"Latin, reggaeton, pop, Bollywood",p:[N_(.75,1),N_(.75,1),N_(.5,1)],d:"Two beats split into 3+3+2 sixteenths. One of the most widespread rhythms in popular music; it makes a melody sway."},
+ {n:"Gallop",tag:"Metal, Western themes",p:[N_(.5,1),N_(.25),N_(.25)],d:"An eighth then two sixteenths in every beat: da, da-da. Driving and urgent."},
+ {n:"Reverse gallop",tag:"Rock and funk lines",p:[N_(.25,1),N_(.25),N_(.5)],d:"Two sixteenths then an eighth: da-da, da. Leans the line toward the next beat."},
+ {n:"Off-beat push",tag:"Funk, R&B, pop vocals",p:[N_(.5,1),N_(1,1),N_(.5)],d:"A note lands on the & and is held across the beat. That push off the beat is syncopation, the heart of groove in a melody."},
+ {n:"Long, short-short",tag:"Folk songs, vocal melodies",p:[N_(1,1),N_(.5),N_(.5)],d:"A held note, then two quick ones. A natural singing rhythm, like the words 'taa, ti-ti'."},
+ {n:"Phrase and breathe",tag:"Vocal phrasing",p:[N_(.5,1),N_(.5),N_(.5,1),N_(.5),N_(.5,1),N_(.5),R_(1)],d:"Three beats of melody, then one beat of silence. Singers phrase this way to breathe; solos that leave space sound more musical."},
+ {n:"Call and response",tag:"Blues, gospel, folk",p:[N_(.25,1),N_(.25),N_(.25),N_(.25),N_(.25,1),N_(.25),N_(.25),N_(.25),R_(2)],d:"Play for two beats, rest for two. Hear the rest as the answer you'll fill in later when you improvise."},
+ {n:"Threes over fours",tag:"Rock and fusion solos",p:[N_(.25,2),N_(.25),N_(.25)],d:"Sixteenth notes accented in groups of three, so the accent drifts across the beat and lines up again every three beats."},
+ {n:"6/8 sway",tag:"Ballads, Dadra feel, Celtic",bpb:2,compound:1,p:[N_(1/3,2),N_(1/3),N_(1/3),N_(1/3,1),N_(1/3),N_(1/3)],d:"Six eighth notes per bar, felt as two groups of three. The swaying feel of many ballads, close to Dadra taal. The click marks the two big beats."},
+ {n:"Son clave 3-2",tag:"Salsa, Afro-Cuban, pop",p:[N_(1.5,1),N_(1.5,1),N_(1,1),R_(1),N_(1,1),N_(2,1)],d:"A two-bar pattern: three notes, then two. Many Latin melodies are built around it. Expect long notes, so this one moves slowly."},
+];
+const cycLen=R=>R.p.reduce((s,x)=>s+x.d,0);
+
+/* ----- Melodic vocabulary: original example phrases of common devices.
+   Phrase notation: "step:beats" with steps counted in the scale from the root (0 = root, 7 = octave in major,
+   5 = octave in pentatonic, negative = below), "r:beats" is a rest, "!" marks an accent. ----- */
+const VOC=[
+ // major scale
+ {s:"major",n:"Walk down to the root",g:"Pop, folk, hymns",w:"The melody steps down 5-4-3-2-1 to finish. Most song phrases end by falling stepwise onto the root.",l:"Feel how the last note settles everything.",ph:"4:1! 3:.5 2:.5 1:1 0:1"},
+ {s:"major",n:"Arch phrase",g:"Ballads, film songs, pop",w:"Rise step by step to a high point, then fall back. The most common shape of a sung line.",l:"Let the top note be the loudest.",ph:"0:.5! 1:.5 2:.5 3:.5 4:1! 2:.5 1:.5"},
+ {s:"major",n:"Leap, then fill the gap",g:"Ballads, classical, film songs",w:"A big jump up, then the melody walks back down into the space it skipped. Listeners expect this, so it sounds natural.",l:"Make the leap land cleanly, then relax down.",ph:"0:1! 5:1.5! 4:.5 3:.5 2:.5"},
+ {s:"major",n:"Upper neighbour",g:"Everywhere: folk, pop, classical",w:"Step up to the note above and come straight back: 5-6-5. A simple way to decorate a long note.",l:"The middle note is a decoration, keep it light.",ph:"4:1! 5:.5 4:.5 2:2"},
+ {s:"major",n:"Lower neighbour",g:"Pop vocals, folk",w:"Dip to the note below and return: 3-2-3, then settle on 1.",l:"Hear the dip as a small sigh.",ph:"2:1! 1:.5 2:.5 0:2"},
+ {s:"major",n:"The turn",g:"Classical, Indian film songs, jazz",w:"Circle a note quickly from above and below: 5-6-5-4-5. Singers add turns as ornaments, similar to a murki.",l:"Play the turn fast and the target note long.",ph:"4:.5! 5:.25 4:.25 3:.25 4:.75 2:2"},
+ {s:"major",n:"Sigh (leaning note)",g:"Ballads, classical, romantic songs",w:"A note on the beat that doesn't belong to the chord, resolving down by a step. It sounds like a sigh: 4 to 3, then 2 to 1.",l:"Put weight on the first note of each pair, soften the second.",ph:"3:1.5! 2:.5 1:1.5! 0:.5"},
+ {s:"major",n:"Arrive early",g:"Pop, R&B, Latin",w:"The important note comes half a beat before you expect it and is held. This anticipation makes a melody feel urgent.",l:"Count carefully: the long note starts on the & of 2.",ph:"0:1! 1:.5 2:2.5!"},
+ {s:"major",n:"Repeated-note hook",g:"Pop hooks, chants, rap-singing",w:"Several notes on the same pitch, then a small move. Hooks often repeat one note so the rhythm carries the line.",l:"Make the rhythm of the repeated notes crisp.",ph:"4:.5! 4:.5 4:.5 5:.5 4:1 2:1"},
+ {s:"major",n:"Motif, then down a step",g:"Classical, pop, film themes",w:"A short idea, a breath, then the same idea one step lower. Repetition with change is how melodies stay memorable.",l:"Play both halves with the same feel.",ph:"4:.5! 3:.5 2:1 r:2 3:.5! 2:.5 1:1 r:2"},
+ {s:"major",n:"Question and answer",g:"Folk, pop, Indian songs",w:"The first phrase ends on an unfinished note (6). The second answers by ending on the root.",l:"Hear the first bar as a question that needs an answer.",ph:"0:1! 2:1 4:1 5:1 4:1! 3:1 1:1 0:1"},
+ {s:"major",n:"Chord tones on the beat",g:"Jazz, pop solos",w:"1, 3 and 5 fall on the beats; passing notes sit between them. This is how solos sound connected to the chords.",l:"Notice the beat notes match the backing chord.",ph:"0:.5! 1:.5 2:.5! 3:.5 4:.5! 3:.5 2:1"},
+ {s:"major",n:"Octave leap",g:"Ballads, film songs, anthems",w:"A dramatic jump of an octave, then a gentle step down. Saved for big emotional moments.",l:"Land the high note with confidence.",ph:"0:1! 7:2! 6:.5 5:.5"},
+ {s:"major",n:"Pedal note",g:"Rock, Baroque, guitar instrumentals",w:"The melody keeps returning to one note while the other notes move. Common in rock guitar and Bach-style lines.",l:"Keep the returning note even and steady.",ph:"4:.5! 2:.5 4:.5 1:.5 4:.5! 0:.5 4:1"},
+ {s:"major",n:"Enclosure",g:"Jazz, bebop",w:"Surround the target note from above and below before landing on it: 4-2-3, then 6-4-5.",l:"The landing notes are the point; the others lead in.",ph:"3:.5 1:.5 2:1! 5:.5 3:.5 4:1!"},
+ {s:"major",n:"Run down to a long note",g:"Rock solos, gospel, film songs",w:"A quick descending run that lands on a held note. A favourite way to end a solo phrase.",l:"Aim for the long note, not the run.",ph:"7:.25! 6:.25 5:.25 4:.25 3:.25 2:.25 1:.5 2:2!"},
+ {s:"major",n:"Rise to the root (7 to 8)",g:"Pop, classical, anthems",w:"Climb 6-7-8. The 7th pulls strongly up to the root, which makes this ending feel triumphant.",l:"Feel the pull from 7 to 8.",ph:"5:1! 6:.5 7:2.5!"},
+ {s:"major",n:"Pickup into the bar",g:"Folk songs, anthems, pop",w:"A few notes before the bar starts lead into a strong first beat. Many songs begin this way.",l:"The pickup is quiet; the downbeat is strong.",ph:"r:2.5 0:.5 1:.5 2:.5 4:3! r:1"},
+ {s:"major",n:"Short phrase, then space",g:"Vocal lines, blues, soul",w:"A short idea followed by silence. Space gives the listener time to hear what you played.",l:"Count the rests as carefully as the notes.",ph:"4:.5! 5:.5 4:1 r:2"},
+ {s:"major",n:"Same idea, shifted over the beat",g:"Funk, pop, jazz",w:"Play a motif on beat 1, then repeat it starting on an off-beat. The same notes feel new because the rhythm moved.",l:"The second time it starts on the & of 3.",ph:"0:.5! 2:.5 4:1 r:.5 0:.5! 2:.5 4:.5"},
+ {s:"major",n:"The 1-2-3-5 lift",g:"Pop hooks, children's songs, anthems",w:"Step up 1-2-3, then skip to 5 and hold. Bright, open and singable.",l:"Let the 5 ring.",ph:"0:.5! 1:.5 2:.5 4:2.5!"},
+ // major pentatonic
+ {s:"majpent",n:"Major pentatonic run down",g:"Country, Southern rock, pop solos",w:"A quick descent through the major pentatonic that lands on the root. Sweet and open.",l:"Keep the run even and land softly.",ph:"5:.5! 4:.5 3:.5 2:.5 1:.5 0:.5 -1:.5 0:.5!"},
+ {s:"majpent",n:"Sweet resolution",g:"R&B, soul, pop",w:"The 6 below the root lifts into the root, then 3-2-1. A soulful way to end a phrase.",l:"Lean on the root after the 6.",ph:"-1:.5 0:1.5! 2:1 1:.5 0:.5"},
+ {s:"majpent",n:"2-to-3 lift",g:"Country, rock and roll",w:"A quick 2 slips up to the 3. On guitar this is often a hammer-on or a small bend.",l:"Try the first two notes as a hammer-on.",ph:"1:.25! 2:.75 1:.5 0:.5 2:2"},
+ {s:"majpent",n:"Triplet cascade",g:"Rock, country, gospel",w:"Three-note groups falling down the scale in triplets.",l:"Accent the first of each triplet.",ph:"4:1/3! 3:1/3 2:1/3 3:1/3! 2:1/3 1:1/3 2:1/3! 1:1/3 0:1/3 0:1"},
+ {s:"majpent",n:"Gospel 5-6-8",g:"Gospel, soul, R&B",w:"Climb 5-6 to the high root, then fall back 6-5-3.",l:"Make the high root the peak of the phrase.",ph:"3:.5! 4:.5 5:1! 4:.5 3:.5 2:1"},
+ {s:"majpent",n:"Folk leap",g:"Folk tunes across Asia, Celtic, Scottish",w:"Root, jump to the octave, then fall through 5 and 3. Five-note folk melodies everywhere use this shape.",l:"Sing it before you play it.",ph:"0:1! 5:1 3:.5 2:.5 0:1"},
+ {s:"majpent",n:"Call and answer",g:"Pop, country, blues",w:"A short call, a rest, then a falling answer that ends on the root.",l:"Hear the rest as part of the phrase.",ph:"2:.5! 3:.5 4:1 r:2 4:.5! 3:.5 2:.5 1:.5 0:2"},
+ {s:"majpent",n:"Three over four",g:"Rock and country solos",w:"A three-note figure repeated in eighths, so it lands differently against the beat each time.",l:"Keep playing the same three notes; let the beat move under them.",ph:"0:.5! 1:.5 2:.5 0:.5! 1:.5 2:.5 0:.5! 1:.5"},
+ // minor pentatonic
+ {s:"minpent",n:"Minor pentatonic run down",g:"Blues, rock",w:"The classic descent through the minor pentatonic to the root. The core of countless rock solos.",l:"Keep it even and finish strong on the root.",ph:"5:.5! 4:.5 3:.5 2:.5 1:.5 0:.5 -1:.5 0:.5!"},
+ {s:"minpent",n:"Rocking two-note figure",g:"Rock, blues",w:"Alternate two notes near the top of the box, then step down. Repetition builds energy.",l:"Pick this one hard and steady.",ph:"6:.5! 5:.5 6:.5 5:.5 4:.5 5:.5 4:1"},
+ {s:"minpent",n:"Blues resolve",g:"Blues, soul",w:"The ♭3 falls to the root, dips to ♭7 and comes back. The 'cry' of the blues.",l:"Make the ♭3 sound expressive. Later, try bending it slightly.",ph:"1:1.5! 0:.5 -1:.5 0:1.5"},
+ {s:"minpent",n:"5-4-♭3-1",g:"Blues, rock, soul",w:"Walk down from the 5th to the root, skipping the 2nd. A blues phrase ending.",l:"Hold the root.",ph:"3:.5! 2:.5 1:.5 0:2.5"},
+ {s:"minpent",n:"Triplet blues descent",g:"Blues, rock",w:"Falling three-note groups in triplets, a staple of blues guitar.",l:"Swing it and accent the first of each three.",ph:"5:1/3! 4:1/3 3:1/3 4:1/3! 3:1/3 2:1/3 3:1/3! 2:1/3 1:1/3 0:1"},
+ {s:"minpent",n:"Blues call and response",g:"Blues, gospel",w:"A phrase near the top, a rest, then an answer that falls to the root. This is how blues solos talk.",l:"Leave the rest empty.",ph:"5:.5! 5:.5 4:.5 5:1.5 r:1 3:.5! 2:.5 1:.5 0:2.5"},
+ {s:"minpent",n:"Lick moved over the beat",g:"Rock, funk, blues",w:"The same three-note lick twice: first on the beat, then starting on an off-beat.",l:"The second time starts on the & of 3.",ph:"3:.5! 4:.5 5:1 r:.5 3:.5! 4:.5 5:.5"},
+ {s:"minpent",n:"Run up to the high root",g:"Rock solos, metal",w:"A fast climb through the box to the high root, held. A classic solo climax.",l:"Play the run fast and the held note with vibrato if you can.",ph:"0:.25! 1:.25 2:.25 3:.25 4:.25 5:.25 6:.25 7:.25 5:2!"},
+ {s:"minpent",n:"Hold the note",g:"Blues, rock ballads",w:"♭7 to the root and let it ring for three and a half beats. A sustained note is a melody too.",l:"Keep the note alive; add vibrato.",ph:"4:.5! 5:3.5!"},
+ {s:"minpent",n:"Root, octave, fall",g:"Rock, blues, film themes",w:"Jump from the root to its octave, breathe, then fall to the 5th.",l:"Make the octave land on the beat.",ph:"0:1! 5:1! r:.5 4:.5 3:1"},
+];
+function parsePh(str){return str.trim().split(/\s+/).map(t=>{const acc=t.endsWith("!");t=t.replace("!","");const[a,b]=t.split(":");
+  const d=b.includes("/")?b.split("/").reduce((x,y)=>Number(x)/Number(y)):Number(b);return a==="r"?{r:1,d}:{o:Number(a),d,a:acc?2:0};});}
+
+/* chord progressions used to drill vocabulary: sh = scale-step shift of the phrase, root = semitones above the key */
+const PROG={
+  major:[{sh:0,root:0,q:"maj"},{sh:4,root:7,q:"maj"},{sh:5,root:9,q:"min"},{sh:3,root:5,q:"maj"}],
+  majpent:[{sh:0,root:0,q:"maj"},{sh:0,root:5,q:"maj"},{sh:0,root:7,q:"maj"},{sh:0,root:0,q:"maj"}],
+  minpent:[{sh:0,root:0,q:"7"},{sh:0,root:5,q:"7"},{sh:0,root:0,q:"7"},{sh:0,root:7,q:"7"}],
+};
+const HOME={major:"maj",majpent:"maj",minpent:"min"};
+const QINT={maj:[0,4,7],min:[0,3,7],"7":[0,4,7,10]};
+const chordName=(root,q)=>NOTE[(S.keyPc+root)%12]+(q==="min"?"m":q==="7"?"7":"");
+
+/* ===================== Positions ===================== */
+/* The five CAGED shapes of the major scale, written for C major (frets per string, low E to high e).
+   Pentatonic boxes are the same shapes with two notes left out. */
+const CAGED=[
+  {n:"C",fr:{6:[0,1,3],5:[0,2,3],4:[0,2,3],3:[0,2],2:[0,1,3],1:[0,1,3]},fg:{6:[1,2,4],5:[1,3,4],4:[1,3,4],3:[1,3],2:[1,2,4],1:[1,2,4]}},
+  {n:"A",fr:{6:[3,5],5:[2,3,5],4:[2,3,5],3:[2,4,5],2:[3,5,6],1:[3,5]},fg:{6:[2,4],5:[1,2,4],4:[1,2,4],3:[1,3,4],2:[1,3,4],1:[1,3]}},
+  {n:"G",fr:{6:[5,7,8],5:[5,7,8],4:[5,7],3:[4,5,7],2:[5,6,8],1:[5,7,8]},fg:{6:[1,3,4],5:[1,3,4],4:[1,3],3:[1,2,4],2:[1,2,4],1:[1,3,4]}},
+  {n:"E",fr:{6:[7,8,10],5:[7,8,10],4:[7,9,10],3:[7,9,10],2:[8,10],1:[7,8,10]},fg:{6:[1,2,4],5:[1,2,4],4:[1,3,4],3:[1,3,4],2:[2,4],1:[1,2,4]}},
+  {n:"D",fr:{6:[10,12,13],5:[10,12],4:[9,10,12],3:[9,10,12],2:[10,12,13],1:[10,12,13]},fg:{6:[1,3,4],5:[1,3],4:[1,2,4],3:[1,2,4],2:[1,3,4],1:[1,3,4]}},
+];
+const shapeName=p=>CAGED[((p-1)%5+5)%5].n+" shape";
+const parentTonic=(scale,tonic)=>scale==="minpent"?(tonic+3)%12:tonic;
+function cagedNotes(majorTonic,p){
+  const sh=CAGED[((p-1)%5+5)%5],all=Object.values(sh.fr).flat();let shift=((majorTonic%12)+12)%12;
+  if(Math.min(...all)+shift-12>=0)shift-=12;
+  const notes=[];for(const s of [6,5,4,3,2,1])sh.fr[s].forEach((f,i)=>notes.push({s,f:f+shift,m:OPEN[s]+f+shift,fg:f+shift===0?0:sh.fg[s][i]}));
+  return notes.sort((a,b)=>a.m-b.m);
+}
+function positionNotes(scale,tonic,p){
+  const ints=SCALES[scale].ints,inScale=m=>ints.includes(((m-tonic)%12+12)%12);
+  const notes=cagedNotes(parentTonic(scale,tonic),p).filter(n=>inScale(n.m));
+  notes.forEach(n=>{n.deg=ints.indexOf(((n.m-tonic)%12+12)%12);});
+  return {notes,f:Math.min(...notes.map(n=>n.f))};
+}
+function buildSeq(c,alt,N){
+  const mx=Math.max(...c),mn=Math.min(...c),out=[];
+  for(let i=Math.max(0,-mn);i+mx<=N-1;i++){const p=(alt&&i%2)?[...c].reverse():c;p.forEach(o=>out.push(i+o));}
+  for(let i=N-1;i-mx>=0;i--){if(i-mn>N-1)continue;const k=N-1-i;const p=(alt&&k%2)?[...c].reverse():c;p.forEach(o=>out.push(i-o));}
+  return out;
+}
+
+/* ===================== State ===================== */
+const S={keyPc:7,tempo:72,click:true,loop:true,countin:true,chords:true,labels:"fingers",listen:true,pass:100,latency:null,micId:"",guide:false};
+let sessions={},today=null,posData=null,store=null,extra=null;
+const pad=n=>String(n).padStart(2,"0");
+const dkey=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const fmt=k=>{const[y,m,d]=k.split("-").map(Number);return new Date(y,m-1,d).toLocaleDateString(undefined,{weekday:"short",day:"numeric",month:"short"});};
+function rng(seed){let h=1779033703^seed.length;for(let i=0;i<seed.length;i++){h=Math.imul(h^seed.charCodeAt(i),3432918353);h=h<<13|h>>>19;}
+  return()=>{h=Math.imul(h^h>>>16,2246822507);h=Math.imul(h^h>>>13,3266489909);return((h^=h>>>16)>>>0)/4294967296;};}
+const keyOf=it=>(it.k==="v"?"v":"s")+it.i;
+
+function normalize(x){ // sessions saved by earlier versions of the page
+  if(!x.items){x.items=(x.ex||[]).map((i,j)=>({k:"s",i,rh:x.rh?x.rh[j]:j}));}
+  x.done=(x.done||[]).map(d=>typeof d==="number"?"s"+d:d);x.scale=x.scale||"major";if(x.position>5)x.position=((x.position-1)%5)+1;
+  delete x.ex;delete x.rh;return x;
+}
+
+function planSession(){
+  const past=Object.values(sessions).sort((a,b)=>a.started<b.started?1:-1),prev=past[0];
+  const now=new Date(),id=String(now.getTime()),r=rng(id);
+  // tempo: move one rung up the ladder after a completed session; hold at the top until the stage is fully covered
+  let stage=0,step=0;
+  if(prev&&prev.step!=null){stage=prev.stage;step=prev.step;
+    if(stage<STAGES.length&&prev.done.length===5){const L=ladder(stage);
+      if(step<L.length-1)step++;
+      else if(coverage(stage).full){stage++;step=0;}}}
+  const tempo=stage<STAGES.length?ladder(stage)[step]:null;
+  const inStage=past.filter(d=>stageOf(d)===Math.min(stage,STAGES.length-1));
+  const doneSet=new Set();inStage.forEach(d=>d.done.forEach(k=>doneSet.add(k)));
+  const fresh=sc=>EX.some((e,i)=>CATS[e.cat].scales.includes(sc)&&!doneSet.has("s"+i))||VOC.some((v,i)=>v.s===sc&&!doneSet.has("v"+i));
+  let cyc=prev?((prev.cyc!=null?prev.cyc:0)+1)%SCALE_CYCLE.length:0;
+  for(let t=0;t<SCALE_CYCLE.length&&!fresh(SCALE_CYCLE[cyc]);t++)cyc=(cyc+1)%SCALE_CYCLE.length;
+  const scale=SCALE_CYCLE[cyc];
+  const sc=SCALES[scale];
+  // position: least recently used for this scale, never the previous session's
+  const lastUse={};past.filter(d=>d.scale===scale).forEach(d=>{if(!(d.position in lastUse))lastUse[d.position]=d.started;});
+  const order=[...Array(sc.npos)].map((_,i)=>i+1).filter(p=>!(prev&&prev.scale===scale&&prev.position===p))
+    .sort((a,b)=>{const la=lastUse[a]||"",lb=lastUse[b]||"";return la<lb?-1:la>lb?1:a-b;});
+  // history of plays
+  const plays={},last={},prevKeys=new Set(prev?prev.items.map(keyOf):[]);
+  inStage.forEach(d=>d.done.forEach(k=>{plays[k]=(plays[k]||0)+1;if(!last[k]||d.started>last[k])last[k]=d.started;}));
+  const rank=(a,b)=>a.p-b.p||(a.l<b.l?-1:a.l>b.l?1:0)||a.x-b.x;
+  // three sequences, from groups that suit the scale, all different groups
+  const seqC=EX.map((e,i)=>({i,cat:e.cat,k:"s"+i,x:r()})).filter(o=>CATS[o.cat].scales.includes(scale)&&!prevKeys.has(o.k))
+    .map(o=>({...o,p:plays[o.k]||0,l:last[o.k]||""})).sort(rank);
+  const seq=[],used=new Set();
+  for(const o of seqC){if(seq.length===3)break;if(!used.has(o.cat)){seq.push(o.i);used.add(o.cat);}}
+  for(const o of seqC){if(seq.length===3)break;if(!seq.includes(o.i))seq.push(o.i);}
+  seq.sort((a,b)=>EX[a].cat-EX[b].cat||a-b);
+  // three rhythms, none from the previous session
+  const rUsed={},prevR=new Set(prev?prev.items.filter(x=>x.k==="s").map(x=>x.rh):[]);
+  inStage.forEach(d=>d.items.forEach(x=>{if(x.k==="s"&&d.done.includes(keyOf(x)))rUsed[x.rh]=(rUsed[x.rh]||0)+1;}));
+  const rh=RHY.map((_,i)=>({i,p:prevR.has(i)?1:0,u:rUsed[i]||0,x:r()})).sort((a,b)=>a.p-b.p||a.u-b.u||a.x-b.x).slice(0,3).map(o=>o.i);
+  // two vocabulary phrases for this scale
+  const voc=VOC.map((v,i)=>({i,k:"v"+i,s:v.s,x:r()})).filter(o=>o.s===scale&&!prevKeys.has(o.k))
+    .map(o=>({...o,p:plays[o.k]||0,l:last[o.k]||""})).sort(rank).slice(0,2).map(o=>o.i).sort((a,b)=>a-b);
+  const items=[...seq.map((i,j)=>({k:"s",i,rh:rh[j]})),...voc.map(i=>({k:"v",i}))];
+  return {id,started:dkey(now)+"T"+pad(now.getHours())+":"+pad(now.getMinutes())+":"+pad(now.getSeconds()),scale,cyc,stage,step,tempo,position:order[0],items,done:[],finished:false};
+}
+
+/* ===================== Storage ===================== */
+async function initStore(){
+  try{
+    const db=window.claude?await Promise.race([window.claude.use("db"),new Promise(r=>setTimeout(()=>r(null),8000))]):null;
+    const user=db?await window.claude.use("user"):null;
+    const uid=user?await user.id():null;
+    if(db&&uid){
+      const col=db.collection("data/users/"+uid);
+      return {kind:"db",
+        async load(){const q=await col.get();const ds={};let st=null;
+          q.docs.forEach(d=>{const v=JSON.parse(JSON.stringify(d.data()));if(d.id==="settings")st=v;
+            else if(d.id.startsWith("sess-"))ds[v.id]=v;
+            else if(d.id.startsWith("day-")){const id="d"+v.date;ds[id]={...v,id,started:v.date+"T00:00:00",finished:true};}});return {ds,st};},
+        saveDay(d){return col.doc("sess-"+d.id).set(d);},
+        saveSettings(s){return col.doc("settings").set(s);}};
+    }
+  }catch(e){}
+  return {kind:"local",
+    async load(){try{return JSON.parse(localStorage.getItem("mss-sessions")||"null")||{ds:{},st:null};}catch(e){return {ds:{},st:null};}},
+    async saveDay(){this._w();},async saveSettings(){this._w();},
+    _w(){try{localStorage.setItem("mss-sessions",JSON.stringify({ds:sessions,st:S}));}catch(e){}}};
+}
+let saving=Promise.resolve();
+function persistDay(){const d=JSON.parse(JSON.stringify(today));saving=saving.then(()=>store.saveDay(d)).catch(()=>{});}
+let setT=null;function persistSettings(){clearTimeout(setT);setT=setTimeout(()=>{store.saveSettings({...S}).catch(()=>{});},700);}
+
+/* ===================== Events ===================== */
+function countLbl(b,R){
+  R=R||{};const bpb=R.bpb||4,e=1e-4,f=b-Math.floor(b+e);
+  if(R.compound)return String((Math.round(b*3)%6)+1);
+  const beat=(Math.floor(b+e)%bpb)+1;
+  if(Math.abs(f)<e||Math.abs(f-1)<e)return String(beat);
+  if(R.swing&&Math.abs(f-2/3)<e)return "&";
+  if(Math.abs(f-.25)<e)return "e";if(Math.abs(f-.5)<e)return "&";if(Math.abs(f-.75)<e)return "a";
+  if(Math.abs(f-1/3)<e)return "tri";if(Math.abs(f-2/3)<e)return "let";return "·";
+}
+function cycleGrid(R){
+  const L=cycLen(R),int=v=>Math.abs(v-Math.round(v))<1e-6;
+  const step=R.p.every(x=>int(x.d*4))?(R.p.every(x=>int(x.d*2))?.5:.25):1/3;
+  let span=L;while(!int(span))span+=L;
+  const hits={};let b=0;while(b<span-1e-6){R.p.forEach(x=>{if(!x.r)hits[Math.round(b/step)]=x.a||0;b+=x.d;});}
+  let h="";const n=Math.round(span/step);
+  for(let i=0;i<n;i++){const pos=i*step,lbl=R.compound?String(i%6+1):countLbl(pos,R).replace("·","");
+    const on=i in hits;h+=`<span class="g${on?" h":""}${on&&hits[i]?" a":""}${Math.abs(pos-Math.round(pos))<1e-6&&i?" bt":""}">${lbl}</span>`;}
+  return h;
+}
+const homeChord=()=>({root:0,q:HOME[today.scale]});
+const rootIdx=()=>posData.notes.findIndex(n=>n.deg===0);
+
+function seqEvents(it,ro){
+  const R=RHY[it.rh]||RHY[0],bpb=R.bpb||4,L=R.p.length,root=rootIdx();
+  let seq;
+  if(ro){const per=R.p.filter(x=>!x.r).length,reps=Math.max(1,Math.ceil(2*bpb/cycLen(R)));seq=Array(per*reps).fill(root);}
+  else seq=buildSeq(EX[it.i]?EX[it.i].c:it.c,EX[it.i]?EX[it.i].alt:0,posData.notes.length);
+  const ev=[];let t=0,k=0,pi=0;
+  while(k<seq.length){const s=R.p[pi%L];
+    if(s.r)ev.push({rest:1,b:t,d:s.d});else{ev.push({n:seq[k],b:t,d:s.d,a:s.a});k++;}
+    t+=s.d;pi++;}
+  let end=Math.ceil(t-1e-6);
+  if(!ro){if(end>t+1e-6)ev.push({rest:1,b:t,d:end-t});ev.push({n:root,b:end,d:1,a:2,last:true});end+=1;}
+  const total=Math.ceil(end/bpb-1e-6)*bpb,hc=homeChord(),ch=[];
+  for(let b=0;b<total;b+=bpb)ch.push({b,d:bpb,...hc});
+  return {ev,ch,total,bpb,R};
+}
+function vocEvents(vi,phraseOnly){
+  const V=VOC[vi],ph=parsePh(V.ph),len=ph.reduce((s,x)=>s+x.d,0),L=Math.ceil(len/4-1e-6)*4;
+  const N=posData.notes.length,sl=SCALES[today.scale].ints.length,offs=ph.filter(x=>!x.r).map(x=>x.o);
+  const mn=Math.min(...offs),mx=Math.max(...offs);
+  const prog=phraseOnly?[{sh:0,...homeChord()}]:PROG[today.scale];
+  const ev=[],ch=[];let prevS=null;
+  prog.forEach((c,ci)=>{
+    const t0=ci*L,want=((c.sh%sl)+sl)%sl;
+    const cands=posData.notes.map((n,i)=>i).filter(i=>posData.notes[i].deg===want&&i+mn>=0&&i+mx<=N-1);
+    ch.push({b:t0,d:L,root:c.root,q:c.q,label:true});
+    if(!cands.length){ev.push({rest:1,b:t0,d:L});return;}
+    const target=prevS===null?(N-1-(mx-mn))/2-mn:prevS;
+    const s=cands.sort((a,b)=>Math.abs(a-target)-Math.abs(b-target))[0];prevS=s;
+    let t=t0;ph.forEach(x=>{ev.push(x.r?{rest:1,b:t,d:x.d}:{n:s+x.o,b:t,d:x.d,a:x.a});t+=x.d;});
+    if(t<t0+L-1e-6)ev.push({rest:1,b:t,d:t0+L-t});
+  });
+  let total=prog.length*L;
+  if(!phraseOnly){const r0=rootIdx(),rs=posData.notes.map((n,i)=>i).filter(i=>posData.notes[i].deg===0);
+    const r=rs.sort((a,b)=>Math.abs(a-(prevS||r0))-Math.abs(b-(prevS||r0)))[0];
+    ev.push({n:r,b:total,d:2,a:2,last:true});ev.push({rest:1,b:total+2,d:2});
+    ch.push({b:total,d:4,root:0,q:PROG[today.scale][0].q,label:true});total+=4;}
+  return {ev,ch,total,bpb:4,R:null};
+}
+function eventsFor(id,ro){
+  if(id==="pos")return posEvents();
+  if(id==="x")return seqEvents(extra,ro);
+  const it=today.items[Number(id.slice(1))];
+  return it.k==="v"?vocEvents(it.i,ro):seqEvents(it,ro);
+}
+
+/* ===================== Rendering ===================== */
+function tabHTML(E,id){
+  const {ev,ch,bpb,R}=E,labels={};ch.forEach(c=>{if(c.label)labels[Math.round(c.b/bpb)]=chordName(c.root,c.q);});
+  const SL=`<div class="sl">${[1,2,3,4,5,6].map(s=>`<span>${SNAME[s]}</span>`).join("")}<span></span></div>`;let h="",bar=-1;
+  ev.forEach((e,k)=>{
+    const br=Math.floor(e.b/bpb+1e-6);
+    if(br!==bar){h+=(bar>=0?"</div>":"")+`<div class="tbar">${labels[br]?`<span class="chd">${labels[br]}</span>`:""}${SL}`;bar=br;}
+    const w=Math.round(Math.max(24,18+e.d*44));
+    h+=`<div class="col${e.rest?" rest":""}" style="width:${w}px" data-id="${id}" data-k="${k}">`;
+    if(e.rest){for(let s=1;s<=6;s++)h+=`<div class="c"></div>`;h+=`<div class="cnt">rest</div></div>`;return;}
+    const n=posData.notes[e.n];
+    for(let s=1;s<=6;s++)h+=`<div class="c">${s===n.s?`<i class="${n.deg===0?"r":""}${e.a?" acc":""}">${n.f}</i>`:""}</div>`;
+    h+=`<div class="cnt${e.a?" acc":""}">${countLbl(e.b,R)}</div></div>`;
+  });
+  return h+"</div>";
+}
+function seqCard(id,it,idx,isExtra){
+  const E=seqEvents(it),R=E.R,ex=isExtra?it:EX[it.i],ct=isExtra?null:CATS[ex.cat],done=!isExtra&&today.done.includes(keyOf(it));
+  const nn=E.ev.filter(e=>!e.rest).length;
+  return `<section class="ex${done?" done":""}" id="card-${id}">
+    <div class="exhead"><div>
+      <div class="num">${isExtra?"Extra":`${idx+1} of 5 · Sequence · ${ct.name}`}</div>
+      <h2>${isExtra?"Your cell "+lab(ex.c):(ex.t===lab(ex.c)?ex.t:ex.t)}</h2>
+      <div class="meta"><span class="chip">${R.n}</span><span class="chip m">cell ${lab(ex.c)}${ex.alt?" / reversed":""}</span><span class="chip t">${nn} notes</span></div>
+      <p>${isExtra?"Built in this session's position, up and back down.":ct.desc+" Up the position and back down."}</p>
+    </div><div class="btns">
+      <button class="play" type="button" data-play="${id}" aria-pressed="false">▶ Play</button>
+    </div></div>
+    <div class="rhy"><div class="rtop"><span class="rlab">Rhythm</span><b>${R.n}</b><span class="rtag">${R.tag}</span></div>
+      <p>${R.d}</p>
+      <div class="rfoot"><span class="rcount"><span class="grid">${cycleGrid(R)}</span>${R.bpb?` <span class="gnote">${R.bpb} clicks per bar</span>`:""}</span>
+      <button type="button" class="rbtn" data-rhy="${id}" aria-pressed="false">♪ Hear the rhythm</button></div>
+      <p class="glegend">Highlighted counts are where you play; underlined ones are accented.</p></div>
+    <div class="tabscroll"><div class="tab">${tabHTML(E,id)}</div></div></section>`;
+}
+function vocCard(id,it,idx){
+  const V=VOC[it.i],E=vocEvents(it.i),done=today.done.includes(keyOf(it));
+  const prog=PROG[today.scale].map(c=>chordName(c.root,c.q)).join(" – ")+" – "+chordName(0,PROG[today.scale][0].q);
+  const how=today.scale==="major"?"The phrase is moved to start on each chord's root, so you hear the same idea over every chord.":"The phrase stays at the same pitch while the chords change under it, the way solos work over a progression.";
+  return `<section class="ex voc${done?" done":""}" id="card-${id}">
+    <div class="exhead"><div>
+      <div class="num">${idx+1} of 5 · Melodic vocabulary · ${SCALES[V.s].name}</div>
+      <h2>${V.n}</h2>
+      <div class="meta"><span class="chip">${V.g}</span><span class="chip t">${E.total/4} bars</span></div>
+      <p>${V.w}</p>
+    </div><div class="btns">
+      <button class="play" type="button" data-play="${id}" aria-pressed="false">▶ Play drill</button>
+    </div></div>
+    <div class="rhy vbox"><div class="rtop"><span class="rlab">Listen for</span><b>${V.l}</b></div>
+      <p>Drill over <b class="prog">${prog}</b>. ${how}</p>
+      <div class="rfoot"><span class="rcount">Learn the phrase on its own first, then play the drill.</span>
+      <button type="button" class="rbtn" data-rhy="${id}" aria-pressed="false">♪ Hear the phrase</button></div></div>
+    <div class="tabscroll"><div class="tab">${tabHTML(E,id)}</div></div></section>`;
+}
+/* ===================== Step-by-step session view ===================== */
+let view="setup";
+const STEPS=["setup","box",0,1,2,3,4,"summary"];
+const itemDone=j=>today.done.includes(keyOf(today.items[j]));
+function unlocked(v){
+  if(v==="setup"||v==="box")return true;
+  if(typeof v==="number")return !!today.boxDone&&today.items.slice(0,v).every((_,j)=>itemDone(j));
+  return today.done.length===5;
+}
+function firstOpen(){if(!today.boxDone)return "box";const j=today.items.findIndex((_,i)=>!itemDone(i));return j<0?"summary":j;}
+function go(v){stop();view=v;render();window.scrollTo({top:0,behavior:"smooth"});}
+const fmtMin=sec=>{const m=Math.round((sec||0)/60);return m<60?`${m}m`:`${Math.floor(m/60)}h ${m%60}m`;};
+const sesTime=d=>Object.values(d.time||{}).reduce((a,b)=>a+b,0);
+const itemName=it=>it.k==="v"?VOC[it.i].n:EX[it.i].t;
+const itemKind=it=>it.k==="v"?"Phrase":"Sequence";
+const posLabel=(d)=>`${NOTE[S.keyPc]} ${SCALES[d.scale].name}, ${shapeName(d.position)}`;
+
+function setTempoNote(){
+  const n=document.getElementById("tnote");if(!n||!today)return;
+  n.textContent=today.tempo==null?"":curTempo===today.tempo?"Set by the trainer for this session.":`The trainer set ${today.tempo} bpm. Your change lasts for this sitting only.`;
+}
+function stageHTML(){
+  const st=today.stage==null?0:today.stage,fin=st>=STAGES.length,si=Math.min(st,STAGES.length-1),S_=STAGES[si];
+  const cv=coverage(si),L=ladder(si),top=today.step===L.length-1;
+  const left=[EX.length-cv.seq?`${EX.length-cv.seq} sequences`:"",VOC.length-cv.voc?`${VOC.length-cv.voc} phrases`:"",RHY.length-cv.rh?`${RHY.length-cv.rh} rhythms`:""].filter(Boolean).join(", ");
+  const text=fin?"You've finished all three stages. Choose any tempo you like."
+    :top?(cv.full?`Top of the ladder and everything covered. Finish this session to move on to ${si+1<STAGES.length?"Stage "+STAGES[si+1].n:"free practice"}.`
+               :`You've reached the top tempo. Sessions stay at ${S_.to} bpm until you've covered the rest of this stage: ${left}.`)
+    :`Each completed session moves one step along the ladder: two steps up, one step back. To finish the stage, reach ${S_.to} bpm and cover everything below.`;
+  let fc="";
+  if(!fin){const sLeft=sessionsLeftInStage(),items=sLeft*5-(today.done.length<5?today.done.length:0),p=pace(),name="Stage "+S_.n;
+    if(!p)fc=`About <b>${items}</b> exercises (${sLeft} sessions) left in ${name}. Mark an exercise Done and the trainer will forecast how many days that takes at your pace.`;
+    else{const days=Math.max(1,Math.ceil(items/p.rate)),end=new Date();end.setDate(end.getDate()+days-1);
+      const r=p.rate>=1?`${Math.round(p.rate*10)/10} exercise${p.rate>=1.05?"s":""} a day`:`1 exercise every ${Math.round(10/p.rate)/10} days`;
+      fc=`About <b>${items}</b> exercises (${sLeft} sessions) left in ${name}. At your pace of ${r} (${p.count} done over the last ${p.days} day${p.days>1?"s":""}), that's about <b>${days}</b> day${days>1?"s":""}, finishing around <b>${end.toLocaleDateString(undefined,{day:"numeric",month:"short",year:days>200?"numeric":undefined})}</b>.`;}}
+  const bar=(lbl,n,t)=>`<div class="cv"><div class="cvl"><span>${lbl}</span><b>${n} / ${t}</b></div><div class="bar2"><i style="width:${n/t*100}%"></i></div></div>`;
+  return `<div class="stage">
+    <div class="stHead"><div><div class="num">${fin?"All stages complete":`Stage ${S_.n} of ${STAGES.length} · ${S_.from} to ${S_.to} bpm`}</div>
+      <h3>${fin?"Free practice":`Stage ${S_.n}: ${S_.name}`}</h3><p>${text}</p></div>
+      <div class="stTempo"><b>${fin?curTempo:today.tempo}</b><span>bpm this session</span></div></div>
+    ${fin?"":`<div class="ladder" aria-label="Tempo ladder">${L.map((t,i)=>`<span class="lstep${i<today.step?" done":""}${i===today.step?" cur":""}">${t}</span>`).join("")}</div>`}
+    ${fc?`<p class="fc">${fc}</p>`:""}
+    <div class="cover">${bar("Sequences",cv.seq,EX.length)}${bar("Phrases",cv.voc,VOC.length)}${bar("Rhythms",cv.rh,RHY.length)}</div>
+  </div>`;
+}
+function navHTML(back,main){return `<div class="navf">${back?`<button type="button" class="ghost" data-go="${back}">◂ Back</button>`:"<span></span>"}${main}</div>`;}
+
+function setupView(){
+  const n=Object.values(sessions).filter(d=>d.done.length===5).length+1,st=new Date(today.started),fo=firstOpen(),fresh=!today.boxDone&&!today.done.length;
+  const goLbl=fo==="box"?"Start with the box":fo==="summary"?"See the summary":`Continue with exercise ${fo+1}`;
+  const plan=[`<li class="${today.boxDone?"ok":""}"><span class="pk">Box</span><span class="pn">${posLabel(today)}</span><span class="pd">${today.boxDone?"✓":""}</span></li>`,
+    ...today.items.map((it,j)=>`<li class="${itemDone(j)?"ok":""}"><span class="pk">${j+1}</span><span class="pn">${itemName(it)} <em>${itemKind(it)}${it.k==="s"?" · "+RHY[it.rh].n:""}</em></span><span class="pd">${itemDone(j)?"✓":""}</span></li>`)].join("");
+  return `<section class="card">
+    <div class="num">Session ${n} · planned ${st.toLocaleDateString(undefined,{weekday:"short",day:"numeric",month:"short"})}</div>
+    <h2>${fresh?"A new session is ready":"Welcome back"}</h2>
+    <p class="lead">${fresh?"Check your settings, then work through the box and five exercises one at a time. Take as many days as you need; the session waits for you.":`You've done ${today.done.length} of 5 exercises in this session. Pick up where you left off.`}</p>
+    ${stageHTML()}
+    <div class="two">
+      <div><h3>This session</h3><ol class="plan">${plan}</ol></div>
+      <div><h3>Your settings</h3><div class="settings">
+        <label class="ctl" for="key">Key <select id="key">${KEYS.map(([k,pc])=>`<option value="${pc}"${pc===S.keyPc?" selected":""}>${k}</option>`).join("")}</select></label>
+        <label class="ctl tempo" for="tempo">Tempo <input type="range" id="tempo" min="20" max="200" step="1" value="${curTempo}"> <b id="tempoV">${curTempo}</b> bpm</label>
+        <p class="tnote" id="tnote"></p>
+        ${[["click","Metronome"],["loop","Loop"],["countin","Count-in"],["chords","Backing chords"]].map(([k,l])=>`<label class="chk" for="${k}"><input type="checkbox" id="${k}"${S[k]?" checked":""}> ${l}</label>`).join("")}
+      </div></div>
+    </div>
+    ${listenPanel()}
+    ${navHTML(null,`<button type="button" class="play big" data-go="${fo}">${goLbl} ▸</button>`)}
+  </section>`;
+}
+function listenPanel(){
+  const opts=[`<option value="">Default microphone</option>`,...L.devices.filter(d=>d.deviceId&&d.deviceId!=="default").map(d=>`<option value="${d.deviceId}"${d.deviceId===S.micId?" selected":""}>${(d.label||"Microphone").replace(/</g,"&lt;")}</option>`)].join("");
+  const bt=L.stream&&BT_RE.test(L.label);
+  return `<div class="listen"><h3>Listening and scoring</h3>
+    <label class="chk" for="listen"><input type="checkbox" id="listen"${S.listen?" checked":""}> Score me with the microphone. Each step unlocks only when a test reaches the pass mark.</label>
+    <div class="lrow"><label class="ctl" for="pass">Pass mark <select id="pass">${[100,95,90,80].map(v=>`<option value="${v}"${v===S.pass?" selected":""}>${v}%</option>`).join("")}</select></label>
+      <label class="ctl" for="mic">Microphone <select id="mic">${opts}</select></label></div>
+    ${L.devices.length?"":`<p class="tnote">Tap "Check the microphone" once to allow it; then you can choose which microphone to use.</p>`}
+    ${bt?`<p class="warn">This looks like your earphones' microphone. It switches Bluetooth into call quality. Pick the phone or laptop microphone above and keep the earphones for listening.</p>`:""}
+    ${L.error?`<p class="warn">${L.error}</p>`:""}
+    <div class="lrow"><button type="button" id="tunerBtn" data-tuner="1">Check the microphone</button><span id="tuner" class="tuner"></span></div>
+    <div class="lrow"><button type="button" data-calibrate="1">Calibrate earphones</button><span class="tnote">Delay: <b id="latV">${S.latency!=null?Math.round(S.latency*1000)+" ms":"not calibrated yet"}</b></span></div>
+    <p class="tnote" id="calStatus">With your earphones on, tap Calibrate: listen to 4 clicks, then pluck one note on each of the next 8. Do this once per pair of earphones.</p>
+    <label class="chk" for="guide"><input type="checkbox" id="guide"${S.guide?" checked":""}> Play the guide notes during a test (otherwise you hear only the click and chords)</label>
+  </div>`;
+}
+function testRow(id,key){
+  const sc=today.scores&&today.scores[key];
+  if(!S.listen)return "";
+  return `<div class="testrow"><button type="button" class="tbtn" data-test="${id}">🎤 Test me</button>
+    <span class="tnote">${sc?`Best ${sc.best}% after ${sc.tries} test${sc.tries>1?"s":""}${sc.passed?" · passed ✓":""}`:`Play it from the tab after the count-in; the microphone scores every note. ${S.latency==null?"Calibrate your earphones on the first card first.":""}`}</span></div>
+    <div class="res" id="res-${id}"></div>`;
+}
+const gateOk=key=>!S.listen||!!(today.scores&&today.scores[key]&&today.scores[key].passed);
+function boxView(){
+  const sc=SCALES[today.scale],fr=posData.notes.map(n=>n.f),lo=Math.min(...fr),hi=Math.max(...fr),first=sc.lab[posData.notes[0].deg];
+  const txt=today.scale==="major"
+    ?`The ${shapeName(today.position)} of the CAGED system, frets ${lo} to ${hi}. It's built around the open ${CAGED[today.position-1].n} chord shape moved up the neck, so the roots sit where that chord's roots would. The lowest note is the ${first} of the scale.`
+    :`The ${shapeName(today.position)} box, frets ${lo} to ${hi}: the CAGED ${shapeName(today.position)} of ${NOTE[parentTonic(today.scale,S.keyPc)]} major with two notes left out, so mostly two notes per string. ${today.scale==="minpent"?"This is the scale of most blues and rock solos.":"Bright and open; used in country, pop and folk melodies."}`;
+  const t=today.time&&today.time.box;
+  return `<section class="card">
+    <div class="num">Warm-up · The box${t?` · practised ${fmtMin(t)}`:""}</div>
+    <h2>${posLabel(today)}</h2>
+    <p class="lead">${txt} Play it up and down with the playback until it's under your fingers, then move on.</p>
+    <p id="posWhy" hidden></p>
+    <div id="fretboard" class="board"></div>
+    <div class="lblsw" role="group" aria-label="Diagram labels"><span>Show</span><button type="button" class="seg" data-labels="fingers" aria-pressed="${S.labels!=="degrees"}">Fingers</button><button type="button" class="seg" data-labels="degrees" aria-pressed="${S.labels==="degrees"}">Scale degrees</button></div>
+    <div class="legend"><span><i class="dot sq" style="background:var(--root)"></i>${today.scale==="minpent"?NOTE[S.keyPc]+" minor root":"Root"}</span>${today.scale==="minpent"?`<span><i class="dot sq" style="background:var(--steel)"></i>${NOTE[(S.keyPc+3)%12]} major root, the shape's usual anchor</span>`:""}<span><i class="dot" style="background:var(--steel)"></i>Other scale notes</span><span id="lgExtra" hidden><i class="dot ring"></i>Major-scale notes the box leaves out</span><span>Fret numbers below the diagram</span></div>
+    <div class="posbtn"><button class="play" type="button" id="posPlay" data-play="pos" aria-pressed="false">▶ Play the position</button></div>
+    ${testRow("pos","box")}
+    ${navHTML("setup",today.boxDone?`<button type="button" class="play big" data-go="0">Next: exercise 1 ▸</button>`:`${gateOk("box")?"":`<span class="tnote">Score ${S.pass}% to unlock</span>`}<button type="button" class="play big donego" data-boxdone="1"${gateOk("box")?"":" disabled"}>✓ Box done, next ▸</button>`)}
+  </section>`;
+}
+function itemView(j){
+  const it=today.items[j],id="i"+j,done=itemDone(j),t=today.time&&today.time[keyOf(it)];
+  const card=it.k==="v"?vocCard(id,it,j):seqCard(id,it,j,false);
+  const back=j===0?"box":String(j-1),nextLbl=j===4?"Finish the session":`Next: exercise ${j+2}`;
+  const main=done?`<span class="undo"><button type="button" class="linkb" data-undo="${j}">Mark as not done</button></span><button type="button" class="play big" data-go="${j===4?"summary":j+1}">${nextLbl} ▸</button>`
+                 :`${gateOk(keyOf(it))?"":`<span class="tnote">Score ${S.pass}% to unlock</span>`}<button type="button" class="play big donego" data-itemdone="${j}"${gateOk(keyOf(it))?"":" disabled"}>✓ Done, ${j===4?"finish":"next"} ▸</button>`;
+  return card.replace('<section class="ex','<section class="card ex').replace("</section>",`${testRow(id,keyOf(it))}${t?`<p class="ptime">Practised ${fmtMin(t)} on this exercise so far.</p>`:""}${navHTML(back,main)}</section>`);
+}
+function summaryView(){
+  const all=Object.values(sessions),tot=sesTime(today),rh=[...new Set(today.items.filter(x=>x.k==="s").map(x=>RHY[x.rh].n))];
+  let nx=null;try{nx=planSession();}catch(e){}
+  const rows=today.items.map((it,j)=>`<tr><td class="n">${j+1}</td><td>${itemName(it)}<div class="sub">${itemKind(it)}${it.k==="s"?" · "+RHY[it.rh].n:""}</div></td><td class="n">${fmtMin(today.time&&today.time[keyOf(it)])}</td><td class="n">${today.scores&&today.scores[keyOf(it)]?today.scores[keyOf(it)].best+"%":"–"}</td></tr>`).join("");
+  const tile=(v,l)=>`<div class="tile"><b>${v}</b><span>${l}</span></div>`;
+  return `<section class="card">
+    <div class="num">Session complete</div>
+    <h2>Well played</h2>
+    <p class="lead">${posLabel(today)} at ${today.tempo||curTempo} bpm, finished ${(()=>{const l=Object.values(today.doneAt||{}).sort().pop();if(!l)return new Date();const[y,m,d]=l.split("-").map(Number);return new Date(y,m-1,d);})().toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"short"})}.</p>
+    <div class="tiles">${tile(today.tempo||curTempo,"bpm")}${tile(fmtMin(tot),"playing time")}${tile(rh.length,"rhythms")}${tile(today.items.filter(x=>x.k==="v").length,"phrases")}</div>
+    <h3>What you practised</h3>
+    <table class="hist"><thead><tr><th>#</th><th>Exercise</th><th>Time</th><th>Score</th></tr></thead><tbody>
+      <tr><td class="n">–</td><td>The box<div class="sub">${SCALES[today.scale].name}</div></td><td class="n">${fmtMin(today.time&&today.time.box)}</td><td class="n">${today.scores&&today.scores.box?today.scores.box.best+"%":"–"}</td></tr>${rows}</tbody></table>
+    <h3>Your stage</h3>
+    ${stageHTML()}
+    ${nx?`<div class="nextp"><div><div class="num">Next session</div><b>${nx.tempo!=null?nx.tempo+" bpm":"Your tempo"} · ${NOTE[S.keyPc]} ${SCALES[nx.scale].name}, ${shapeName(nx.position)}</b></div>
+      <button type="button" class="play big" data-newsession="1">Start the next session ▸</button></div>`:""}
+    <details class="more"><summary>Recent sessions</summary>${histHTML()}</details>
+    <details class="more"><summary>Extra: practise a cell from your book</summary>
+      <p>Type a cell in scale steps from its first note. It's built in this session's scale and position. It doesn't count toward any session.</p>
+      <form class="build" id="buildForm">
+        <input type="text" id="cellIn" placeholder="1 3 4 5 6 7 5 3" aria-label="Cell in scale degrees" autocomplete="off">
+        <select id="xr" aria-label="Rhythm for your cell">${RHY.map((r,i)=>`<option value="${i}">${r.n}</option>`).join("")}</select>
+        <button type="submit" class="play">Build</button>
+      </form>
+      <div class="err" id="cellErr"></div>
+      <p class="hint"><code>1</code> is the start note, <code>8</code> an octave up, <code>0</code> the note just below the start.</p>
+      <div id="extra">${extra?seqCard("x",extra,0,true):""}</div>
+    </details>
+  </section>`;
+}
+function histHTML(){
+  const dayOf=x=>x.started.slice(0,10),tk=dkey(new Date());
+  const rows=Object.values(sessions).filter(x=>x.done.length||x===today).sort((a,b)=>a.started<b.started?1:-1).slice(0,12);
+  return `<table class="hist"><thead><tr><th>Started</th><th>Position</th><th>Time</th><th>Done</th></tr></thead><tbody>${rows.map(r=>{
+    const sc=SCALES[r.scale],when=dayOf(r)===tk?"Today":fmt(dayOf(r));
+    return `<tr><td>${when}</td><td class="n">${sc.short}, ${shapeName(r.position)}${r.tempo?` · ${r.tempo} bpm`:""}</td><td class="n">${fmtMin(sesTime(r))}</td><td><span class="pill${r.done.length===5?" full":""}">${r.done.length}/5</span></td></tr>`;}).join("")}</tbody></table>`;
+}
+function renderHeader(){
+  const all=Object.values(sessions),dayOf=x=>((x.doneAt&&Object.values(x.doneAt))||[]).concat(x.done.length?[x.started.slice(0,10)]:[]);
+  const active=new Set();all.forEach(x=>dayOf(x).forEach(d=>active.add(d)));
+  let streak=0;const d=new Date();if(!active.has(dkey(d)))d.setDate(d.getDate()-1);
+  while(active.has(dkey(d))){streak++;d.setDate(d.getDate()-1);}
+  document.getElementById("hStreak").textContent=streak;
+  document.getElementById("hSessions").textContent=all.filter(x=>x.done.length===5).length;
+  document.getElementById("hTime").textContent=fmtMin(all.reduce((a,x)=>a+sesTime(x),0));
+}
+function renderStepper(){
+  const lbl=v=>v==="setup"?"Setup":v==="box"?"Box":v==="summary"?"Summary":String(v+1);
+  const st=v=>v==="setup"?(view!=="setup"):v==="box"?!!today.boxDone:v==="summary"?false:itemDone(v);
+  document.getElementById("stepper").innerHTML=STEPS.map(v=>{const on=view===v,ok=unlocked(v);
+    const title=typeof v==="number"?`${v+1}. ${itemName(today.items[v])}`:lbl(v);
+    return `<button type="button" class="stp${on?" cur":""}${st(v)?" ok":""}" ${ok?`data-go="${v}"`:"disabled"} title="${title}" aria-current="${on?"step":"false"}">${st(v)&&!on&&typeof v==="number"?"✓":lbl(v)}</button>`;}).join('<i class="sep"></i>');
+}
+function renderCtx(){
+  const c=document.getElementById("ctx");if(view==="setup"||view==="summary"){c.hidden=true;return;}
+  c.hidden=false;const st=today.stage==null?0:today.stage;
+  c.innerHTML=`<span>${st<STAGES.length?"Stage "+STAGES[st].n+" · ":""}<b>${curTempo} bpm</b> · ${NOTE[S.keyPc]} ${SCALES[today.scale].short.toLowerCase()}, ${shapeName(today.position)}</span>
+    <span class="cx">${S.click?"Metronome on":"Metronome off"} · <button type="button" class="linkb" data-go="setup">Settings</button></span>`;
+}
+function resetTempo(){curTempo=today.tempo!=null?today.tempo:(S.tempo||72);}
+function render(){
+  stop();
+  posData=positionNotes(today.scale,S.keyPc,today.position);
+  if(!unlocked(view))view="setup";
+  const v=document.getElementById("view");
+  v.innerHTML=view==="setup"?setupView():view==="box"?boxView():view==="summary"?summaryView():itemView(view);
+  if(view==="box")renderBoard();
+  if(view==="setup")setTempoNote();
+  renderStepper();renderCtx();renderHeader();
+  if(view==="box")paintResult("pos",lastResult.pos);else if(typeof view==="number")paintResult("i"+view,lastResult["i"+view]);
+}
+function markDone(j,on){
+  const key=keyOf(today.items[j]),has=today.done.includes(key);if(on===has)return;
+  today.done=on?[...today.done,key]:today.done.filter(x=>x!==key);
+  today.doneAt=today.doneAt||{};if(on)today.doneAt[key]=dkey(new Date());else delete today.doneAt[key];
+  today.finished=today.done.length===5;persistDay();
+}
+const IVL={0:"1",1:"♭2",2:"2",3:"♭3",4:"3",5:"4",6:"♭5",7:"5",8:"♭6",9:"6",10:"♭7",11:"7"};
+function parentMajor(){ // the full CAGED major shape a pentatonic box comes from
+  if(today.scale==="major")return null;
+  const tonic=parentTonic(today.scale,S.keyPc);
+  return {tonic,notes:cagedNotes(tonic,today.position).map(n=>({...n,lab:IVL[((n.m-S.keyPc)%12+12)%12]}))};
+}
+function renderBoard(){
+  const sc=SCALES[today.scale],par=parentMajor(),pm=new Set(posData.notes.map(n=>n.m));
+  const extra=par?par.notes.filter(n=>!pm.has(n.m)):[];
+  const fr=[...posData.notes,...extra].map(n=>n.f),lo=Math.min(...fr)-1,hi=Math.max(...fr);
+  const nf=hi-lo,W=480,H=170,x0=34,y0=20,fw=(W-x0-14)/nf,sh=(H-y0-34)/5;
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Fretboard diagram of this session's position"><title>Scale position diagram</title>`;
+  for(let k=0;k<=nf;k++){const x=x0+k*fw;s+=`<line x1="${x}" y1="${y0}" x2="${x}" y2="${y0+5*sh}" stroke="var(--line)" stroke-width="1.5"/>`;
+    if(k>0)s+=`<text x="${x-fw/2}" y="${H-6}" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="12" fill="var(--muted)">${lo+k}</text>`;}
+  for(let st=1;st<=6;st++){const y=y0+(st-1)*sh;s+=`<line x1="${x0}" y1="${y}" x2="${x0+nf*fw}" y2="${y}" stroke="var(--muted)" stroke-width="${0.8+st*0.25}"/><text x="12" y="${y+4}" font-family="JetBrains Mono,monospace" font-size="12" font-weight="700" fill="var(--muted)">${SNAME[st]}</text>`;}
+  const fing=S.labels!=="degrees";
+  const dot=(n,label,cls,root)=>{const x=x0+(n.f-lo-0.5)*fw,y=y0+(n.s-1)*sh;
+    const shape=root?`<rect x="${x-11}" y="${y-11}" width="22" height="22" rx="3"/>`:`<circle cx="${x}" cy="${y}" r="11"/>`;
+    return `<g class="dt ${cls}" data-sf="${n.s}-${n.f}">${shape}<text x="${x}" y="${y+4}" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="${String(label).length>1?10:11}" font-weight="700">${label}</text></g>`;};
+  extra.forEach(n=>{s+=dot(n,fing?n.fg:n.lab,"ex",false);});
+  const mp=today.scale==="minpent"?(S.keyPc+3)%12:-1;
+  posData.notes.forEach(n=>{s+=dot(n,fing?n.fg:sc.lab[n.deg],n.deg===0?"rt":"sd",n.deg===0||n.m%12===mp);});
+  document.getElementById("fretboard").innerHTML=s+"</svg>";
+  const pb=document.getElementById("posPlay"),why=document.getElementById("posWhy"),lg=document.getElementById("lgExtra");
+  pb.dataset.idle=par?"▶ Play major scale, then the box":"▶ Play the position";if(!(play&&play.id==="pos"))pb.textContent=pb.dataset.idle;
+  lg.hidden=!par;
+  why.hidden=!par;
+  if(par){const kn=NOTE[S.keyPc];
+    why.textContent=today.scale==="majpent"
+      ?`${kn} major pentatonic is ${kn} major with the 4 and 7 left out. The playback runs the ${kn} major shape from its root and back, then the box from its root and back.`
+      :`This is the ${shapeName(today.position)} of ${NOTE[par.tonic]} major, the shape you know, anchored on ${NOTE[par.tonic]}: the teal squares. ${kn} minor uses the same notes, so its root ${kn} (the brown squares) sits 3 frets below each ${NOTE[par.tonic]}, on the 6th of ${NOTE[par.tonic]} major. The pentatonic box leaves out two notes (the 2 and ♭6 of ${kn} minor). The playback runs the ${NOTE[par.tonic]} major shape starting and ending on ${NOTE[par.tonic]}, then the box starting and ending on ${kn}.`;}
+}
+function rootRun(notes,rootPc){ // root -> top of the shape -> bottom of the shape -> back up to the root
+  const r=notes.findIndex(n=>((n.m%12)+12)%12===rootPc),top=notes.length-1,idx=[];
+  for(let i=r;i<=top;i++)idx.push(i);
+  for(let i=top-1;i>=0;i--)idx.push(i);
+  for(let i=1;i<=r;i++)idx.push(i);
+  return idx.map(i=>notes[i]);
+}
+function posEvents(){
+  const par=parentMajor(),key=S.keyPc;
+  const phases=par?[[par.notes,par.tonic],[posData.notes,key]]:[[posData.notes,key]],ev=[];let t=0;
+  phases.forEach(([ns,rpc])=>{const run=rootRun(ns,rpc);
+    run.forEach((n,i)=>{const last=i===run.length-1,first=i===0,d=last?1:.5;
+      ev.push({m:n.m,sf:n.s+"-"+n.f,b:t,d,a:first||last?2:(i%2===0?1:0)});t+=d;});
+    const nt=Math.ceil((t+1)/4-1e-6)*4;ev.push({rest:1,b:t,d:nt-t});t=nt;});
+  const hc=homeChord(),ch=[];for(let b=0;b<t;b+=4)ch.push({b,d:4,...hc});
+  return {ev,ch,total:t,bpb:4,R:null};
+}
+function sessionsLeftInStage(){
+  // replay the planner ahead, assuming each session is completed, until the stage changes
+  const st=today.stage==null?0:today.stage;if(st>=STAGES.length)return 0;
+  const real=sessions,sim=JSON.parse(JSON.stringify(sessions));sessions=sim;
+  const cur=sim[today.id];let left=cur.done.length===5?0:1;cur.done=cur.items.map(keyOf);
+  try{for(let i=0;i<200;i++){const t=planSession();if(t.stage!==st)break;left++;
+      t.id="sim"+i;t.started="9999-12-31T"+String(i).padStart(5,"0");t.done=t.items.map(keyOf);sim[t.id]=t;}}
+  finally{sessions=real;}
+  return left;
+}
+function pace(){ // exercises marked Done per day, over the last 14 days
+  const DAY=864e5,t0=new Date();t0.setHours(0,0,0,0),from=t0.getTime()-13*DAY,dates=[];
+  Object.values(sessions).forEach(d=>d.done.forEach(k=>{
+    const ds=(d.doneAt&&d.doneAt[k])||d.started.slice(0,10),[y,m,dd]=ds.split("-").map(Number),t=new Date(y,m-1,dd).getTime();
+    if(t>=from)dates.push(t);}));
+  if(!dates.length)return null;
+  const days=Math.round((t0.getTime()-Math.min(...dates))/DAY)+1;
+  return {rate:dates.length/days,count:dates.length,days};
+}
+/* ===================== Audio ===================== */
+let ctx=null;const cache={};
+function pluckBuf(m){if(cache[m])return cache[m];
+  const sr=ctx.sampleRate,len=Math.floor(sr*1.8),buf=ctx.createBuffer(1,len,sr),d=buf.getChannelData(0);
+  const N=Math.max(2,Math.round(sr/(440*Math.pow(2,(m-69)/12)))),dl=new Float32Array(N);
+  let p=0;for(let i=0;i<N;i++){const r=Math.random()*2-1;dl[i]=.6*r+.4*p;p=dl[i];}
+  let x=0;for(let i=0;i<len;i++){const v=dl[x],nx=dl[(x+1)%N];dl[x]=.997*.5*(v+nx);d[i]=v;x=(x+1)%N;}
+  return cache[m]=buf;}
+function note(m,t,dur,gain=.55){const s=ctx.createBufferSource();s.buffer=pluckBuf(m);const g=ctx.createGain();
+  g.gain.setValueAtTime(gain,t);g.gain.setTargetAtTime(0,t+Math.max(dur*.95,.05),.04);s.connect(g).connect(ctx.destination);s.start(t);s.stop(t+dur+.4);}
+function click(t,a){const o=ctx.createOscillator(),g=ctx.createGain();o.frequency.value=a?1800:1200;
+  g.gain.setValueAtTime(a?.22:.12,t);g.gain.exponentialRampToValueAtTime(.0001,t+.05);o.connect(g).connect(ctx.destination);o.start(t);o.stop(t+.06);}
+function chord(root,q,t,dur){
+  const pc=(S.keyPc+root)%12,out=ctx.createGain(),lp=ctx.createBiquadFilter();lp.type="lowpass";lp.frequency.value=1400;
+  out.gain.setValueAtTime(0,t);out.gain.linearRampToValueAtTime(1,t+.04);out.gain.setTargetAtTime(0,t+dur-.08,.06);
+  lp.connect(out).connect(ctx.destination);
+  const mids=QINT[q].map(i=>{let m=48+((pc+i)%12);if(m<52)m+=12;return m;}),bass=36+pc;
+  [...mids.map(m=>[m,.045]),[bass,.09]].forEach(([m,g])=>{const o=ctx.createOscillator(),gg=ctx.createGain();o.type="triangle";
+    o.frequency.value=440*Math.pow(2,(m-69)/12);gg.gain.value=g;o.connect(gg).connect(lp);o.start(t);o.stop(t+dur+.3);});
+}
+let play=null,curTempo=20;const spb=()=>60/curTempo;
+function setBtn(id,ro,on,test){const b=document.querySelector(test?`[data-test="${id}"]`:ro?`[data-rhy="${id}"]`:`[data-play="${id}"]`);
+  if(b&&test){b.classList.toggle("on",on);b.textContent=on?"■ Stop the test":"🎤 Test me";}
+  else if(b){b.classList.toggle("on",on);b.setAttribute("aria-pressed",on);
+    const voc=!!b.closest(".voc");b.textContent=on?"■ Stop":b.dataset.idle?b.dataset.idle:ro?(voc?"♪ Hear the phrase":"♪ Hear the rhythm"):(voc?"▶ Play drill":"▶ Play");}
+  const c=document.getElementById("card-"+id);if(c)c.classList.toggle("playing",on);}
+let wake=null;
+function logTime(p){const sec=(performance.now()-p.t0)/1000;if(!today||sec<1)return;
+  const k=p.id==="pos"?"box":p.id==="x"?null:keyOf(today.items[Number(p.id.slice(1))]);if(!k)return;
+  today.time=today.time||{};today.time[k]=Math.round((today.time[k]||0)+sec);persistDay();}
+function stop(){if(!play)return;const P=play;clearInterval(play.timer);cancelAnimationFrame(play.raf);setBtn(play.id,play.ro,false,play.test);logTime(play);
+  if(P.test&&P.complete)setTimeout(()=>finishTest(P),600);
+  try{if(wake){wake.release().catch(()=>{});wake=null;}}catch(e){}
+  document.querySelectorAll(".col.on,.dt.on").forEach(c=>c.classList.remove("on"));play=null;}
+function start(id,ro,test){
+  stop();audioCtx();
+  const E=eventsFor(id,ro),ci=(S.countin||test)?(E.bpb<3?E.bpb*2:E.bpb):0;
+  play={id,ro,test:!!test,expected:[],...E,evi:0,chi:0,cycle:0,clickBeat:-ci,vis:[],lastT:ctx.currentTime+.12,lastB:-ci};
+  play.testStart=play.lastT;
+  play.t0=performance.now();try{if(navigator.wakeLock)navigator.wakeLock.request("screen").then(l=>{wake=l;}).catch(()=>{});}catch(e){}
+  setBtn(id,ro,true,test);play.timer=setInterval(schedule,25);schedule();play.raf=requestAnimationFrame(draw);
+}
+const b2t=b=>play.lastT+(b-play.lastB)*spb();
+function schedule(){
+  if(!play)return;const now=ctx.currentTime,hz=now+.15;
+  if(now>play.lastT){play.lastB+=(now-play.lastT)/spb();play.lastT=now;}
+  for(;;){
+    const off=play.cycle*play.total;
+    const tN=play.evi<play.ev.length?b2t(off+play.ev[play.evi].b):Infinity;
+    const tH=play.chi<play.ch.length?b2t(off+play.ch[play.chi].b):Infinity;
+    const tC=b2t(play.clickBeat),t=Math.min(tN,tH,tC);
+    if(t>hz)break;
+    if(tH===t){const c=play.ch[play.chi++];if(S.chords)chord(c.root,c.q,tH,c.d*spb());continue;}
+    if(tC===t){if(play.clickBeat<0||S.click)click(tC,((play.clickBeat%play.bpb)+play.bpb)%play.bpb===0);play.clickBeat++;
+      if(play.clickBeat>=off+play.total&&play.evi>=play.ev.length){
+        if(S.loop&&!play.test){play.cycle++;play.evi=0;play.chi=0;}else{const p=play;p.complete=true;setTimeout(()=>{if(play===p)stop();},Math.max(0,(tC-now)*1000+300));play.clickBeat=Infinity;play.evi=Infinity;play.chi=Infinity;}}
+      continue;}
+    const e=play.ev[play.evi];if(!e.rest){const m=e.m!=null?e.m:posData.notes[e.n].m;
+      if(play.test)play.expected.push({t:tN,m,k:play.evi});
+      if(!play.test||S.guide)note(m,tN,e.d*spb()*(e.last?1.6:1),e.a===2?.8:e.a?.66:.5);}
+    play.vis.push([tN,play.evi,play.evi===play.ev.length-1]);play.evi++;
+  }
+}
+function draw(){if(!play)return;let k=null,fin=false;
+  while(play.vis.length&&play.vis[0][0]<=ctx.currentTime){const v=play.vis.shift();k=v[1];if(v[2])fin=true;}
+  if(k!==null){document.querySelectorAll(".col.on,.dt.on").forEach(c=>c.classList.remove("on"));const e=play.ev[k];
+    const c=play.id==="pos"?(e&&e.sf?document.querySelector(`.dt[data-sf="${e.sf}"]`):null):document.querySelector(`.col[data-id="${play.id}"][data-k="${k}"]`);if(c)c.classList.add("on");}
+  if(play)play.raf=requestAnimationFrame(draw);}
+
+
+/* ===================== Listening: microphone pitch tracking and scoring ===================== */
+const RS=1<<17; // ring buffer size in samples
+const L={stream:null,src:null,node:null,ring:new Float32Array(RS),sr:48000,head:0,proc:-1,
+  lastDb:[-100,-100,-100,-100],floor:-70,lastOnset:-1,onsets:[],notes:[],pending:[],cur:null,legatoCand:null,hop:256,hopCount:0,
+  devices:[],label:"",error:""};
+const WORKLET=`class Tap extends AudioWorkletProcessor{constructor(){super();this.b=new Float32Array(1024);this.n=0;this.s=0;}
+process(i){const c=i[0]&&i[0][0];if(c){if(this.n===0)this.s=currentFrame;this.b.set(c,this.n);this.n+=c.length;if(this.n>=1024){this.port.postMessage({f:this.s,d:this.b.slice(0,this.n)});this.n=0;}}return true;}}
+registerProcessor("tap",Tap);`;
+const BT_RE=/bluetooth|hands-?free|headset|airpods|buds|earphone|wireless/i;
+function audioCtx(){if(!ctx)ctx=new (window.AudioContext||window.webkitAudioContext)({latencyHint:"interactive"});ctx.resume();return ctx;}
+async function listDevices(){try{const d=await navigator.mediaDevices.enumerateDevices();L.devices=d.filter(x=>x.kind==="audioinput");}catch(e){L.devices=[];}return L.devices;}
+async function ensureListening(){
+  if(L.stream&&L.stream.active)return true;
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){L.error="This browser can't use the microphone. Open the page in Chrome.";return false;}
+  const c=audioCtx();
+  const audio={echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:1};
+  if(S.micId)audio.deviceId={exact:S.micId};
+  try{L.stream=await navigator.mediaDevices.getUserMedia({audio});}
+  catch(e){if(S.micId){S.micId="";persistSettings();return ensureListening();}
+    L.error=e&&e.name==="NotAllowedError"?"Microphone permission was refused. Allow it in the browser's site settings, then try again.":"Couldn't open the microphone: "+(e&&e.message||e);return false;}
+  L.error="";L.sr=c.sampleRate;
+  const tr=L.stream.getAudioTracks()[0];L.label=tr?tr.label:"";
+  await listDevices();
+  L.src=c.createMediaStreamSource(L.stream);const mute=c.createGain();mute.gain.value=0;mute.connect(c.destination);L.proc=-1;
+  try{ // AudioWorklet gives exact sample times; fall back to ScriptProcessor where it isn't available
+    if(!L.workletReady){const url=URL.createObjectURL(new Blob([WORKLET],{type:"application/javascript"}));await c.audioWorklet.addModule(url);L.workletReady=true;}
+    L.node=new AudioWorkletNode(c,"tap");L.node.port.onmessage=e=>feed(e.data.f,e.data.d);
+  }catch(e){
+    L.node=c.createScriptProcessor(1024,1,1);
+    L.node.onaudioprocess=ev=>{const d=new Float32Array(ev.inputBuffer.getChannelData(0));feed(Math.max(0,Math.round(ev.playbackTime*L.sr)-2048),d);};
+  }
+  L.src.connect(L.node);L.node.connect(mute);
+  return true;
+}
+function stopListening(){try{if(L.stream)L.stream.getTracks().forEach(t=>t.stop());}catch(e){}try{L.src&&L.src.disconnect();L.node&&L.node.disconnect();}catch(e){}L.stream=null;}
+function feed(f,d){
+  for(let i=0;i<d.length;i++)L.ring[(f+i)%RS]=d[i];
+  L.head=f+d.length;if(L.proc<0)L.proc=f;
+  while(L.proc+L.hop<=L.head){hop(L.proc);L.proc+=L.hop;}
+  for(let i=L.pending.length-1;i>=0;i--){const p=L.pending[i];if(p.at+2048<=L.head){L.pending.splice(i,1);settlePitch(p);}}
+}
+function hop(f0){
+  let s=0;for(let i=0;i<L.hop;i++){const v=L.ring[(f0+i)%RS];s+=v*v;}
+  const db=10*Math.log10(s/L.hop+1e-12),t=f0/L.sr;
+  if(db<L.floor)L.floor=db;else L.floor+=(db-L.floor)*0.0008;
+  const ref=Math.min(...L.lastDb);
+  if(db>ref+6&&db>L.floor+12&&db>-58&&t-L.lastOnset>0.07){L.lastOnset=t;L.onsets.push(t);if(L.onsets.length>400)L.onsets.shift();
+    L.pending.push({t,at:f0+Math.round(0.03*L.sr),retry:Math.round(0.07*L.sr)});L.legatoCand=null;}
+  L.lastDb.shift();L.lastDb.push(db);L.level=db;
+  // legato: a new pitch while the note keeps sounding (hammer-ons, slides)
+  if(++L.hopCount%8===0&&L.cur&&db>L.floor+15&&t-L.lastOnset>0.09&&f0-2048>0){
+    const p=yinAt(L.head-2048);
+    if(p&&p.clar>0.85){const m=Math.round(69+12*Math.log2(p.f/440));
+      if(m!==L.cur.midi){if(L.legatoCand&&L.legatoCand.m===m){addNote(L.legatoCand.t,m,p.f,true);L.legatoCand=null;}else L.legatoCand={m,t};}
+      else L.legatoCand=null;}}
+}
+function settlePitch(p){
+  let r=yinAt(p.at);
+  if((!r||r.clar<0.8)&&p.retry){const q={t:p.t,at:p.at+p.retry,retry:0};if(q.at+2048<=L.head)r=yinAt(q.at)||r;else{L.pending.push(q);return;}}
+  if(!r)return;
+  const toM=f=>Math.round(69+12*Math.log2(f/440));
+  // also keep every other clearly present pitch: when an earlier note still rings, the new one can be the second-strongest
+  const alts=(r.cands||[]).filter(c=>c.clar>0.75).map(c=>toM(c.f));
+  addNote(p.t,toM(r.f),r.f,false,alts);
+}
+function addNote(t,midi,f,legato,alts){if(midi<36||midi>96)return;const n={t,midi,f,legato,alts:alts||[]};L.notes.push(n);L.cur=n;if(L.notes.length>2000)L.notes.shift();}
+function yinAt(start){ // YIN on 2048 samples, downsampled by 2
+  const N=1024,x=new Float32Array(N);
+  for(let i=0;i<N;i++)x[i]=(L.ring[(start+2*i)%RS]+L.ring[(start+2*i+1)%RS])/2;
+  const sr=L.sr/2,tmin=Math.max(2,Math.floor(sr/1400)),tmax=Math.min(Math.floor(sr/70),N>>1),W=N-tmax;
+  const c=new Float32Array(tmax+2);let run=0;c[0]=1;
+  for(let t=1;t<=tmax+1&&t<N-W;t++){let s=0;for(let i=0;i<W;i++){const v=x[i]-x[i+t];s+=v*v;}run+=s;c[t]=run?s*t/run:1;}
+  const fit=tau=>{const a=c[tau-1]||c[tau],b=c[tau],d=c[tau+1]||c[tau],den=a+d-2*b,T=tau+(den?(a-d)/(2*den):0);return {f:sr/T,clar:1-b};};
+  // every clear dip: when a previous note is still ringing, the new note shows up as a second dip
+  const cands=[];for(let t=tmin+1;t<tmax;t++)if(c[t]<0.3&&c[t]<=c[t-1]&&c[t]<=c[t+1])cands.push(fit(t));
+  let tau=-1;for(let t=tmin;t<=tmax;t++){if(c[t]<0.15){while(t+1<=tmax&&c[t+1]<c[t])t++;tau=t;break;}}
+  if(tau<0){let mi=tmin;for(let t=tmin;t<=tmax;t++)if(c[t]<c[mi])mi=t;if(c[mi]<0.3)tau=mi;else return null;}
+  const r=fit(tau);r.cands=cands;return r;
+}
+const midiName=m=>NOTE[((m%12)+12)%12]+(Math.floor(m/12)-1);
+
+/* ----- Tests ----- */
+function expectedFor(p){return p.expected||[];}
+function scoreTest(p){
+  const off=S.latency||0,exp=p.expected,used=new Set();
+  const dets=L.notes.filter(n=>n.t>=p.testStart-0.3);
+  const res=exp.map((e,i)=>{
+    const gap=Math.min(i+1<exp.length?exp[i+1].t-e.t:1,i>0?e.t-exp[i-1].t:1);
+    const w=Math.max(0.07,Math.min(0.2,gap*0.45)),target=e.t+off;
+    let best=-1,bd=1e9;dets.forEach((d,j)=>{if(used.has(j))return;const dd=Math.abs(d.t-target);if(dd<=w&&dd<bd){bd=dd;best=j;}});
+    if(best<0)return {k:e.k,st:"miss",want:e.m};
+    used.add(best);const d=dets[best],ok=d.midi===e.m||Math.abs(d.midi-e.m)===12||d.alts.some(a=>a===e.m||Math.abs(a-e.m)===12);
+    return {k:e.k,st:ok?"ok":"bad",want:e.m,heard:d.midi,dt:d.t-target};
+  });
+  const ok=res.filter(r=>r.st==="ok"),dts=ok.map(r=>r.dt);
+  const extra=dets.filter((d,j)=>!used.has(j)&&d.t<=exp[exp.length-1].t+off+0.4).length;
+  return {score:Math.round(ok.length/exp.length*100),ok:ok.length,total:exp.length,bad:res.filter(r=>r.st==="bad").length,
+    miss:res.filter(r=>r.st==="miss").length,extra,avgDt:dts.length?Math.round(dts.reduce((a,b)=>a+b,0)/dts.length*1000):0,res,at:new Date().toISOString()};
+}
+async function startTest(id){
+  if(!await ensureListening()){render();return;}
+  L.notes=[];L.onsets=[];
+  start(id,false,true);
+}
+function finishTest(p){
+  const r=scoreTest(p),key=p.id==="pos"?"box":keyOf(today.items[Number(p.id.slice(1))]);
+  today.scores=today.scores||{};const prev=today.scores[key];
+  today.scores[key]={best:Math.max(r.score,prev?prev.best:0),last:r.score,tries:(prev?prev.tries:0)+1};
+  if(r.score>=S.pass)today.scores[key].passed=true;
+  persistDay();lastResult[p.id]=r;render();
+  paintResult(p.id,r);
+}
+const lastResult={};
+function paintResult(id,r){
+  if(!r)return;
+  if(id!=="pos")r.res.forEach(x=>{const c=document.querySelector(`.col[data-id="${id}"][data-k="${x.k}"]`);if(c)c.classList.add("r-"+x.st);});
+  const el=document.getElementById("res-"+id);if(!el)return;
+  const pass=r.score>=S.pass,probs=r.res.filter(x=>x.st!=="ok").slice(0,6).map(x=>x.st==="miss"?`${midiName(x.want)} not heard`:`${midiName(x.want)} expected, heard ${midiName(x.heard)}`);
+  el.innerHTML=`<div class="score ${pass?"pass":"fail"}"><b>${r.score}%</b><div><div class="sh">${pass?"Passed":"Not yet: "+S.pass+"% needed"}</div>
+    <div class="sd">${r.ok} of ${r.total} notes right · ${r.bad} wrong · ${r.miss} missed${r.extra?` · ${r.extra} extra`:""} · timing ${r.avgDt>0?"+":""}${r.avgDt} ms on average</div>
+    ${probs.length?`<div class="sd">${probs.join(" · ")}${r.res.filter(x=>x.st!=="ok").length>6?" …":""}</div>`:""}</div></div>`;
+}
+async function calibrate(){
+  const st=document.getElementById("calStatus");const say=t=>{if(st)st.textContent=t;};
+  if(!await ensureListening()){say(L.error);return;}
+  stop();const c=audioCtx(),sp=60/90,t0=c.currentTime+0.4,clicks=[];
+  for(let i=0;i<12;i++){const t=t0+i*sp;click(t,i%4===0);if(i>=4)clicks.push(t);}
+  L.onsets=[];say("Listen to 4 clicks, then pluck any single note exactly on each of the next 8 clicks…");
+  await new Promise(r=>setTimeout(r,(12*sp+1)*1000));
+  const offs=clicks.map(cl=>{let b=null;L.onsets.forEach(o=>{const d=o-cl;if(d>-0.15&&d<0.6&&(b===null||Math.abs(d)<Math.abs(b)))b=d;});return b;}).filter(x=>x!==null).sort((a,b)=>a-b);
+  if(offs.length<5){say(`Only ${offs.length} of 8 plucks were heard. Play a little louder, keep the room quiet, and try again.`);return;}
+  const med=offs[Math.floor(offs.length/2)],spread=offs[offs.length-1]-offs[0];
+  S.latency=Math.round(med*1000)/1000;persistSettings();
+  say(`Done: your earphones and microphone add ${Math.round(med*1000)} ms. Scores now allow for that.${spread>0.12?" Your plucks varied quite a bit; calibrate again if scores feel off.":""}`);
+  const lv=document.getElementById("latV");if(lv)lv.textContent=Math.round(med*1000)+" ms";
+}
+let tunerTimer=null;
+async function toggleTuner(){
+  const out=document.getElementById("tuner"),btn=document.getElementById("tunerBtn");
+  if(tunerTimer){clearInterval(tunerTimer);tunerTimer=null;if(btn)btn.textContent="Check the microphone";if(out)out.textContent="";return;}
+  if(!await ensureListening()){if(out)out.textContent=L.error;return;}
+  render();
+  const o=()=>document.getElementById("tuner"),b=()=>document.getElementById("tunerBtn");if(b())b().textContent="Stop the check";
+  tunerTimer=setInterval(()=>{const el=o();if(!el){clearInterval(tunerTimer);tunerTimer=null;return;}
+    const lvl=Math.max(0,Math.min(1,((L.level||-100)+70)/55)),p=L.head>2048?yinAt(L.head-2048):null;
+    const sounding=(L.level||-100)>L.floor+12&&p&&p.clar>0.8;
+    el.innerHTML=`<span class="meter"><i style="width:${Math.round(lvl*100)}%"></i></span> ${sounding?`Hearing <b>${midiName(Math.round(69+12*Math.log2(p.f/440)))}</b> (${p.f.toFixed(1)} Hz)`:"Play a single note…"}`;
+  },120);
+}
+
+/* ===================== Controls ===================== */
+document.addEventListener("click",e=>{
+  const p=e.target.closest("[data-play],[data-rhy]");if(p){const ro=!!p.dataset.rhy,id=ro?p.dataset.rhy:p.dataset.play;
+    (play&&play.id===id&&play.ro===ro)?stop():start(id,ro);return;}
+  const g=e.target.closest("[data-go]");if(g){const v=g.dataset.go;go(/^\d$/.test(v)?Number(v):v);return;}
+  const tb=e.target.closest("[data-test]");if(tb){const id=tb.dataset.test;if(play&&play.test&&play.id===id)stop();else startTest(id);return;}
+  if(e.target.closest("[data-tuner]")){toggleTuner();return;}
+  if(e.target.closest("[data-calibrate]")){calibrate();return;}
+  const lb=e.target.closest("[data-labels]");if(lb){S.labels=lb.dataset.labels;persistSettings();render();return;}
+  if(e.target.closest("[data-boxdone]")){today.boxDone=true;persistDay();go(0);return;}
+  const d=e.target.closest("[data-itemdone]");if(d){const j=Number(d.dataset.itemdone);markDone(j,true);go(j===4?"summary":j+1);return;}
+  const u=e.target.closest("[data-undo]");if(u){markDone(Number(u.dataset.undo),false);render();return;}
+  if(e.target.closest("[data-newsession]")){stop();today.finished=true;persistDay();
+    today=planSession();sessions[today.id]=today;persistDay();extra=null;resetTempo();go("setup");}
+});
+document.addEventListener("change",e=>{
+  const t=e.target;
+  if(t.id==="key"){S.keyPc=Number(t.value);persistSettings();render();}
+  else if(["click","loop","countin","chords","guide"].includes(t.id)){S[t.id]=t.checked;persistSettings();}
+  else if(t.id==="listen"){S.listen=t.checked;persistSettings();render();}
+  else if(t.id==="pass"){S.pass=Number(t.value);persistSettings();}
+  else if(t.id==="mic"){S.micId=t.value;persistSettings();stopListening();ensureListening().then(render);}
+});
+document.addEventListener("input",e=>{
+  if(e.target.id!=="tempo")return;curTempo=Number(e.target.value);document.getElementById("tempoV").textContent=curTempo;
+  if(today&&today.tempo==null){S.tempo=curTempo;persistSettings();}setTempoNote();
+});
+document.addEventListener("submit",e=>{if(e.target.id!=="buildForm")return;e.preventDefault();if(!today)return;
+  const err=document.getElementById("cellErr"),toks=document.getElementById("cellIn").value.trim().split(/[\s,–—-]+/).filter(Boolean);
+  if(toks.length<2||toks.length>12||toks.some(t=>!/^\d{1,2}$/.test(t))){err.textContent="Enter 2 to 12 numbers, for example 1 3 4 5.";return;}
+  const c=toks.map(t=>Number(t)-1);
+  if(!buildSeq(c,0,posData.notes.length).length){err.textContent="That cell is too wide for one position. Try smaller numbers.";return;}
+  err.textContent="";if(play&&play.id==="x")stop();extra={c,i:-1,rh:Number(document.getElementById("xr").value)};
+  document.getElementById("extra").innerHTML=seqCard("x",extra,0,true);});
+document.addEventListener("keydown",e=>{
+  if(e.key!==" "||["INPUT","SELECT","TEXTAREA","BUTTON","SUMMARY"].includes(e.target.tagName))return;
+  const b=document.querySelector("#view [data-play]");if(!b)return;e.preventDefault();b.click();
+});
+document.addEventListener("visibilitychange",()=>{if(document.hidden)stop();});
+
+/* ===================== Boot ===================== */
+(async()=>{
+  store=await initStore();
+  let loaded={ds:{},st:null};try{loaded=await store.load();}catch(e){}
+  sessions=loaded.ds||{};Object.values(sessions).forEach(normalize);
+  if(loaded.st)Object.assign(S,loaded.st);
+  const open=Object.values(sessions).filter(x=>!x.finished).sort((a,b)=>a.started<b.started?1:-1)[0];
+  if(open){today=open;if(today.step==null){today.stage=0;today.step=0;today.tempo=ladder(0)[0];}persistDay();}else{today=planSession();sessions[today.id]=today;persistDay();}
+  resetTempo();view="setup";render();
+  document.getElementById("syncNote").textContent=store.kind==="db"
+    ?"Your sessions and settings are saved to your Claude account, so they follow you between phone and computer."
+    :"Progress is saved in this browser on this device.";
+})();
+</script>
+
+</body></html>
