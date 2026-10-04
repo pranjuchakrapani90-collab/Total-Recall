@@ -1036,15 +1036,18 @@ function followPlayingTab(el){
   if(!el||!play||play.id!=="pos")return;
   const tab=el.closest(".tabscroll");
   if(!tab)return;
-  const now=performance.now(),rect=el.getBoundingClientRect(),vh=window.innerHeight||document.documentElement.clientHeight;
-  const topPad=Math.max(72,vh*0.16),bottomPad=Math.min(vh-72,vh*0.82);
-  let delta=0;
-  if(rect.bottom>bottomPad)delta=rect.bottom-bottomPad;
-  else if(rect.top<topPad)delta=rect.top-topPad;
-  if(!delta)return;
-  if(now-tabFollowLast<280&&tabFollowEl===el)return;
+  const now=performance.now();
+  const er=el.getBoundingClientRect(),tr=tab.getBoundingClientRect();
+  const leftEdge=tr.left+Math.min(80,tr.width*0.22),rightEdge=tr.right-Math.min(80,tr.width*0.22);
+  let target=null;
+  if(er.right>rightEdge)target=tab.scrollLeft+(er.right-rightEdge);
+  else if(er.left<leftEdge)target=tab.scrollLeft-(leftEdge-er.left);
+  if(target===null)return;
+  target=Math.max(0,Math.min(target,tab.scrollWidth-tab.clientWidth));
+  if(Math.abs(target-tab.scrollLeft)<2)return;
+  if(now-tabFollowLast<180&&tabFollowEl===el)return;
   tabFollowLast=now;tabFollowEl=el;
-  window.scrollBy({top:delta,behavior:"smooth"});
+  tab.scrollTo({left:target,behavior:"smooth"});
 }
 function draw(){if(!play)return;let k=null,fin=false;
   while(play.vis.length&&play.vis[0][0]<=ctx.currentTime){const v=play.vis.shift();k=v[1];if(v[2])fin=true;}
