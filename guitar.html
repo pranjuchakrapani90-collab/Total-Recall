@@ -61,8 +61,8 @@ button:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visi
 .play.on{background:var(--brass);border-color:var(--brass);color:var(--paper)}
 .donebtn[aria-pressed="true"]{background:var(--good-soft);border-color:var(--good);color:var(--good)}
 .tabscroll{margin-top:16px;overflow-x:auto;overflow-y:hidden;max-width:100%}
-.boxTabScroll{overflow:auto;scroll-behavior:auto;max-height:180px}
-.boxTabScroll .boxTab{flex-direction:column;flex-wrap:nowrap;width:max-content;min-width:max-content;row-gap:4px}
+.boxTabScroll{overflow:auto;overflow-x:auto;overflow-y:auto;scroll-behavior:auto;max-height:180px;max-width:100%}
+.boxTabScroll .boxTab{display:flex;flex-direction:column;flex-wrap:nowrap;width:max-content;min-width:max-content;row-gap:4px}
 .boxTabScroll .boxTab .tbar{flex:none;width:max-content;min-width:max-content}
 .tab{display:flex;flex-wrap:wrap;row-gap:4px;font:500 13px var(--mono);font-variant-numeric:tabular-nums}
 .strings{display:grid;grid-template-rows:repeat(6,18px) 16px;color:var(--muted);font-weight:700;padding-right:6px;font-size:12px;margin-bottom:16px}
@@ -1039,22 +1039,21 @@ function followPlayingTab(el){
   if(!el||!play||play.id!=="pos")return;
   const tab=el.closest(".boxTabScroll");
   if(!tab)return;
-  const row=el.closest(".tbar");
-  if(!row)return;
-  const now=performance.now(),rr=row.getBoundingClientRect(),tr=tab.getBoundingClientRect();
-  let x=tab.scrollLeft,y=tab.scrollTop;
-  const xPad=Math.min(80,tr.width*.22),yPad=Math.min(28,tr.height*.15);
-  if(rr.right>tr.right-xPad)x+=rr.right-(tr.right-xPad);
-  else if(rr.left<tr.left+xPad)x-=tr.left+xPad-rr.left;
-  if(rr.bottom>tr.bottom-yPad)y+=rr.bottom-(tr.bottom-yPad);
-  else if(rr.top<tr.top+yPad)y-=tr.top+yPad-rr.top;
-  x=Math.max(0,Math.min(x,tab.scrollWidth-tab.clientWidth));
-  y=Math.max(0,Math.min(y,tab.scrollHeight-tab.clientHeight));
+  const row=el.closest(".tbar")||el;
+  const now=performance.now();
+  const tr=tab.getBoundingClientRect();
+  const er=el.getBoundingClientRect();
+  const rr=row.getBoundingClientRect();
+  const targetX=tab.scrollLeft+(er.left+er.width/2-(tr.left+tr.width/2));
+  const targetY=tab.scrollTop+(rr.top+rr.height/2-(tr.top+tr.height/2));
+  const maxX=Math.max(0,tab.scrollWidth-tab.clientWidth);
+  const maxY=Math.max(0,tab.scrollHeight-tab.clientHeight);
+  const x=Math.max(0,Math.min(targetX,maxX));
+  const y=Math.max(0,Math.min(targetY,maxY));
   if(Math.abs(x-tab.scrollLeft)<1&&Math.abs(y-tab.scrollTop)<1)return;
-  if(now-tabFollowLast<50&&tabFollowEl===row)return;
-  tabFollowLast=now;tabFollowEl=row;
-  tab.scrollLeft=x;
-  tab.scrollTop=y;
+  if(now-tabFollowLast<40&&tabFollowEl===el)return;
+  tabFollowLast=now;tabFollowEl=el;
+  tab.scrollTo({left:x,top:y,behavior:"smooth"});
 }
 function draw(){if(!play)return;let k=null,fin=false;
   while(play.vis.length&&play.vis[0][0]<=ctx.currentTime){const v=play.vis.shift();k=v[1];if(v[2])fin=true;}
