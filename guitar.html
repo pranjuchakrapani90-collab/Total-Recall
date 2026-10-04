@@ -1,22 +1,16 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Guitar Melody Trainer · Total Recall &amp; Melodies</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap">
 <style>
 /* Layout: header with today's date + progress; sticky settings bar; today's position card; five exercise sheets; history + extra builder */
 :root{
-  --bg:#eceef1; --paper:#fbfbfc; --ink:#18202c; --muted:#5d6676; --line:#b9c0cb;
-  --brass:#a8681a; --brass-soft:#f3e3c8; --steel:#1f6a74; --steel-soft:#d5ebee; --root:#a8681a; --good:#2f7a3d; --good-soft:#dcefdf; --bad:#b3372f;
-  --display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
-  --body:"IBM Plex Sans",ui-sans-serif,system-ui,sans-serif;
-  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  --bg:#f4f7fb; --paper:#ffffff; --ink:#172033; --muted:#697386; --line:#e5e7eb;
+  --brass:#7c3aed; --brass-soft:#f5f3ff; --steel:#4f46e5; --steel-soft:#eef0ff; --root:#ea580c; --good:#059669; --good-soft:#ecfdf5; --bad:#b91c1c;
+  --accent:#4f46e5; --accent-ink:#3730a3;
+  --display:system-ui,-apple-system,"Segoe UI",sans-serif;
+  --body:system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  color-scheme:light;
 }
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --bg:#12161d; --paper:#1a2029; --ink:#e7eaef; --muted:#9aa3b2; --line:#465062;
-  --brass:#e2a453; --brass-soft:#3d2e19; --steel:#6cc3cd; --steel-soft:#163a40; --root:#e2a453; --good:#7fd08c; --good-soft:#1b3a22; --bad:#ff8a80; color-scheme:dark}}
-:root[data-theme="dark"]{
-  --bg:#12161d; --paper:#1a2029; --ink:#e7eaef; --muted:#9aa3b2; --line:#465062;
-  --brass:#e2a453; --brass-soft:#3d2e19; --steel:#6cc3cd; --steel-soft:#163a40; --root:#e2a453; --good:#7fd08c; --good-soft:#1b3a22; --bad:#ff8a80; color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font:15px/1.55 var(--body)}
 .wrap{max-width:980px;margin:0 auto;padding-inline:16px;padding-block:20px 60px}
@@ -241,13 +235,54 @@ details.more[open] > * + *{margin-top:10px}
 .score.fail{background:var(--bg)}.score.fail > b{color:var(--bad)}
 .sh{font-weight:600}.sd{font-size:13px;color:var(--muted)}
 .col.r-ok{background:var(--good-soft)}.col.r-bad{background:#f8d7d3}.col.r-miss{background:var(--bg);outline:1px dashed var(--line)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .col.r-bad{background:#4a2420}}
 .loading{padding:30px 18px;text-align:center;color:var(--muted);background:var(--paper);border:1px dashed var(--line);border-radius:12px}
 @media (prefers-reduced-motion:reduce){.progress i{transition:none}}
+
+/* ---- Total Recall & Melodies look ---- */
+body{font-family:var(--body)}
+header.top{display:block;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;padding:22px 16px}
+.hin{max-width:980px;margin:0 auto;display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap}
+.hin > div{min-width:0}
+header.top h1{font:750 clamp(26px,5vw,36px)/1.1 var(--display);margin:4px 0 0;color:#fff;letter-spacing:0}
+header.top .eyebrow{color:#e0e7ff}
+header.top .backlink{color:#fff;opacity:.9}
+header.top .stat b{color:#fff}header.top .stat span{color:#e0e7ff}
+.sbadge{background:rgba(255,255,255,.18);color:#fff}
+.sbadge.ok{background:rgba(255,255,255,.25);color:#fff}.sbadge.busy{background:rgba(255,255,255,.25);color:#fff}.sbadge.err{background:#fee2e2;color:#991b1b}
+.wrap{padding-block:18px 60px}
+button{border:0;border-radius:10px;background:#eef0ff;color:var(--accent-ink);font:650 14px var(--body);padding:9px 14px}
+.play,.play.big{background:var(--accent);color:#fff;border:0}
+.play.on,.rbtn.on,.tbtn.on{background:#7c3aed;color:#fff}
+.donego{background:var(--good)}
+.ghost{background:#eef0ff}
+.linkb{background:none;color:var(--accent);padding:0}
+.seg[aria-pressed="true"],.stp.cur{background:var(--accent);color:#fff;border-color:var(--accent)}
+.stp{border:1px solid var(--line);background:#fff;border-radius:999px}
+.stp.ok{background:var(--good-soft);border-color:#a7f3d0;color:#065f46}
+.tbtn{background:#f5f3ff;color:#5b21b6;border:1px solid #ddd6fe}
+.card,.ex,.stage,.ctx,.panel{background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:0 5px 18px #141e3710}
+.stage{box-shadow:none;background:#fafaff}
+.ctx{border-radius:12px;box-shadow:none}
+.card h2{font-weight:750}
+.rhy{background:#f5f3ff;border-radius:12px}.vbox{background:#eef0ff}
+.rlab{color:#5b21b6}.vbox .rlab{color:var(--accent-ink)}
+.chip{background:#eef0ff;color:#3730a3}.chip.t{background:#f5f3ff;color:#5b21b6}
+.plan li{background:#fafaff;border:1px solid var(--line)}
+.plan li.ok{background:var(--good-soft);border-color:#a7f3d0}
+.fc,.tile{background:#fafaff;border:1px solid var(--line)}
+.nextp{background:var(--good-soft);border-color:#a7f3d0}
+.score.pass{background:var(--good-soft);border-color:#a7f3d0}
+select,input[type=text],input[type=password]{font:500 14px var(--body);background:#fff;color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:9px 10px}
+select,input[type=range],input[type=checkbox]{accent-color:var(--accent)}
+.lstep.cur{background:var(--accent)}
+.stTempo b{color:var(--accent)}
+.ctx b{color:var(--accent)}
+.bar2 i{background:var(--accent)}
+.progress i{background:var(--good)}
+.warn{color:#9a3412;background:#fff7ed;padding:10px 12px;border-radius:10px}
 </style>
 
-<div class="wrap">
-<header class="top">
+<header class="top"><div class="hin">
   <div>
     <div class="toprow"><a class="backlink" href="./">← Total Recall &amp; Melodies</a><span id="syncBadge" class="sbadge off">☁ Sync off</span></div>
     <div class="eyebrow">Guitar · Melody practice</div>
@@ -258,7 +293,8 @@ details.more[open] > * + *{margin-top:10px}
     <div class="stat"><b id="hSessions">0</b><span>sessions done</span></div>
     <div class="stat"><b id="hTime">0m</b><span>practice time</span></div>
   </div>
-</header>
+</div></header>
+<div class="wrap">
 <nav class="stepper" id="stepper" aria-label="Session steps"></nav>
 <div class="ctx" id="ctx" hidden></div>
 <main id="view"><div class="loading">Loading your session…</div></main>
