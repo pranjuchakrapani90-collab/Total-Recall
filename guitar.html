@@ -61,7 +61,7 @@ button:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visi
 .play.on{background:var(--brass);border-color:var(--brass);color:var(--paper)}
 .donebtn[aria-pressed="true"]{background:var(--good-soft);border-color:var(--good);color:var(--good)}
 .tabscroll{margin-top:16px;overflow-x:auto;overflow-y:hidden;max-width:100%}
-.boxTabScroll{overflow-x:hidden;scroll-behavior:auto}
+.boxTabScroll{overflow-x:hidden;overflow-y:auto;scroll-behavior:auto;max-height:180px}
 .boxTabScroll .boxTab{flex-wrap:nowrap;width:max-content;min-width:max-content}
 .boxTabScroll .boxTab .tbar{flex:none}
 .tab{display:flex;flex-wrap:wrap;row-gap:4px;font:500 13px var(--mono);font-variant-numeric:tabular-nums}
@@ -1042,15 +1042,23 @@ function followPlayingTab(el){
   const now=performance.now();
   const er=el.getBoundingClientRect(),tr=tab.getBoundingClientRect();
   const leftEdge=tr.left+Math.min(80,tr.width*0.22),rightEdge=tr.right-Math.min(80,tr.width*0.22);
-  let target=null;
-  if(er.right>rightEdge)target=tab.scrollLeft+(er.right-rightEdge);
-  else if(er.left<leftEdge)target=tab.scrollLeft-(leftEdge-er.left);
-  if(target===null)return;
-  target=Math.max(0,Math.min(target,tab.scrollWidth-tab.clientWidth));
-  if(Math.abs(target-tab.scrollLeft)<2)return;
-  if(now-tabFollowLast<180&&tabFollowEl===el)return;
+  let xTarget=null;
+  if(er.right>rightEdge)xTarget=tab.scrollLeft+(er.right-rightEdge);
+  else if(er.left<leftEdge)xTarget=tab.scrollLeft-(leftEdge-er.left);
+  const topEdge=tr.top+Math.min(36,tr.height*0.18),bottomEdge=tr.bottom-Math.min(36,tr.height*0.18);
+  let yTarget=null;
+  if(er.bottom>bottomEdge)yTarget=tab.scrollTop+(er.bottom-bottomEdge);
+  else if(er.top<topEdge)yTarget=tab.scrollTop-(topEdge-er.top);
+  const maxX=tab.scrollWidth-tab.clientWidth,maxY=tab.scrollHeight-tab.clientHeight;
+  if(xTarget!==null)xTarget=Math.max(0,Math.min(xTarget,maxX));
+  if(yTarget!==null)yTarget=Math.max(0,Math.min(yTarget,maxY));
+  if(xTarget===null&&yTarget===null)return;
+  if(Math.abs((xTarget===null?tab.scrollLeft:xTarget)-tab.scrollLeft)<2 &&
+     Math.abs((yTarget===null?tab.scrollTop:yTarget)-tab.scrollTop)<2)return;
+  if(now-tabFollowLast<120&&tabFollowEl===el)return;
   tabFollowLast=now;tabFollowEl=el;
-  tab.scrollTo({left:target,behavior:"smooth"});
+  tab.scrollTo({left:xTarget===null?tab.scrollLeft:xTarget,
+    top:yTarget===null?tab.scrollTop:yTarget,behavior:"smooth"});
 }
 function draw(){if(!play)return;let k=null,fin=false;
   while(play.vis.length&&play.vis[0][0]<=ctx.currentTime){const v=play.vis.shift();k=v[1];if(v[2])fin=true;}
