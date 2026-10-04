@@ -1033,13 +1033,18 @@ function schedule(){
 }
 let tabFollowLast=0,tabFollowEl=null;
 function followPlayingTab(el){
-  if(!el||play.id!=="pos")return;
+  if(!el||!play||play.id!=="pos")return;
+  const tab=el.closest(".tabscroll");
+  if(!tab)return;
   const now=performance.now(),rect=el.getBoundingClientRect(),vh=window.innerHeight||document.documentElement.clientHeight;
-  const nearBottom=rect.bottom>vh*0.78,above=rect.top<vh*0.16;
-  if((nearBottom||above)&&(now-tabFollowLast>350||tabFollowEl!==el)){
-    tabFollowLast=now;tabFollowEl=el;
-    el.scrollIntoView({behavior:"smooth",block:"center",inline:"nearest"});
-  }
+  const topPad=Math.max(72,vh*0.16),bottomPad=Math.min(vh-72,vh*0.82);
+  let delta=0;
+  if(rect.bottom>bottomPad)delta=rect.bottom-bottomPad;
+  else if(rect.top<topPad)delta=rect.top-topPad;
+  if(!delta)return;
+  if(now-tabFollowLast<280&&tabFollowEl===el)return;
+  tabFollowLast=now;tabFollowEl=el;
+  window.scrollBy({top:delta,behavior:"smooth"});
 }
 function draw(){if(!play)return;let k=null,fin=false;
   while(play.vis.length&&play.vis[0][0]<=ctx.currentTime){const v=play.vis.shift();k=v[1];if(v[2])fin=true;}
