@@ -60,7 +60,10 @@ button:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visi
 .play{background:var(--ink);color:var(--paper);border-color:var(--ink);padding:9px 18px;font-size:14px;white-space:nowrap}
 .play.on{background:var(--brass);border-color:var(--brass);color:var(--paper)}
 .donebtn[aria-pressed="true"]{background:var(--good-soft);border-color:var(--good);color:var(--good)}
-.tabscroll{margin-top:16px;overflow-x:auto}
+.tabscroll{margin-top:16px;overflow-x:auto;overflow-y:hidden;max-width:100%}
+.boxTabScroll{overflow-x:hidden;scroll-behavior:auto}
+.boxTabScroll .boxTab{flex-wrap:nowrap;width:max-content;min-width:max-content}
+.boxTabScroll .boxTab .tbar{flex:none}
 .tab{display:flex;flex-wrap:wrap;row-gap:4px;font:500 13px var(--mono);font-variant-numeric:tabular-nums}
 .strings{display:grid;grid-template-rows:repeat(6,18px) 16px;color:var(--muted);font-weight:700;padding-right:6px;font-size:12px;margin-bottom:16px}
 .strings span{line-height:18px}
@@ -678,7 +681,7 @@ function seqCard(id,it,idx,isExtra){
       <div class="rfoot"><span class="rcount"><span class="grid">${cycleGrid(R)}</span>${R.bpb?` <span class="gnote">${R.bpb} clicks per bar</span>`:""}</span>
       <button type="button" class="rbtn" data-rhy="${id}" aria-pressed="false">♪ Hear the rhythm</button></div>
       <p class="glegend">Highlighted counts are where you play; underlined ones are accented.</p></div>
-    <div class="tabscroll"><div class="tab">${tabHTML(E,id)}</div></div></section>`;
+    <div class="tabscroll boxTabScroll" id="boxTabScroll"><div class="tab boxTab">${tabHTML(E,id)}</div></div></section>`;
 }
 function vocCard(id,it,idx){
   const V=VOC[it.i],E=vocEvents(it.i),done=today.done.includes(keyOf(it));
@@ -1054,7 +1057,7 @@ function draw(){if(!play)return;let k=null,fin=false;
   if(k!==null){document.querySelectorAll(".col.on,.dt.on").forEach(c=>c.classList.remove("on"));const e=play.ev[k];
     const c=play.id==="pos"?(e&&e.sf?document.querySelector(`.dt[data-sf="${e.sf}"]`):null):document.querySelector(`.col[data-id="${play.id}"][data-k="${k}"]`);if(c)c.classList.add("on");
     if(play.id==="pos"&&e&&e.tk!=null){const tc=document.querySelector(`.col[data-id="pos"][data-k="${e.tk}"]`);if(tc)tc.classList.add("on");}
-    followPlayingTab(c||document.querySelector(`.col[data-id="pos"][data-k="${k}"]`));
+    followPlayingTab(play.id==="pos" ? document.querySelector(`.col[data-id="pos"][data-k="${e&&e.tk!=null?e.tk:k}"]`) : c);
   }
   if(play&&play.test)liveUpdate(play);
   if(play)play.raf=requestAnimationFrame(draw);}
