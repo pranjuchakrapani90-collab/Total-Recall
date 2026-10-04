@@ -280,6 +280,27 @@ select,input[type=range],input[type=checkbox]{accent-color:var(--accent)}
 .bar2 i{background:var(--accent)}
 .progress i{background:var(--good)}
 .warn{color:#9a3412;background:#fff7ed;padding:10px 12px;border-radius:10px}
+
+.howto{margin:0;font-size:13px;color:var(--muted);line-height:1.5}
+.howto b{color:var(--ink)}
+.best{display:inline-block;margin-left:4px;padding:1px 8px;border-radius:999px;background:var(--good-soft);color:#065f46;font-weight:600}
+.tpanel{border:2px solid #c7d2fe;background:#fafaff;border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.lv{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13px}
+.rec{color:#dc2626;font-weight:700;animation:blink 1.2s infinite}
+@keyframes blink{50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){.rec{animation:none}}
+.lvmsg{flex:1;min-width:0;color:var(--ink)}
+.lvbig{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.lvbig > div{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.lvbig .lbl{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.lvbig b{font:700 24px/1.2 var(--mono)}
+.lvbig small{display:block;font:500 12px var(--body);color:var(--muted)}
+.hok{color:var(--good)}.hbad{color:var(--bad)}
+.strip{display:flex;flex-wrap:wrap;gap:3px}
+.strip i{width:12px;height:12px;border-radius:3px;background:#e5e7eb}
+.strip i.ok{background:#10b981}.strip i.bad{background:#ef4444}.strip i.miss{background:#fff;outline:1.5px dashed #9ca3af}
+.res:empty{display:none}
+.res{display:flex;flex-direction:column;gap:8px}
 </style>
 
 <header class="top"><div class="hin">
@@ -603,8 +624,8 @@ function vocEvents(vi,phraseOnly){
     ch.push({b:total,d:4,root:0,q:PROG[today.scale][0].q,label:true});total+=4;}
   return {ev,ch,total,bpb:4,R:null};
 }
-function eventsFor(id,ro){
-  if(id==="pos")return posEvents();
+function eventsFor(id,ro,test){
+  if(id==="pos")return posEvents(test);
   if(id==="x")return seqEvents(extra,ro);
   const it=today.items[Number(id.slice(1))];
   return it.k==="v"?vocEvents(it.i,ro):seqEvents(it,ro);
@@ -636,7 +657,7 @@ function seqCard(id,it,idx,isExtra){
       <div class="meta"><span class="chip">${R.n}</span><span class="chip m">cell ${lab(ex.c)}${ex.alt?" / reversed":""}</span><span class="chip t">${nn} notes</span></div>
       <p>${isExtra?"Built in this session's position, up and back down.":ct.desc+" Up the position and back down."}</p>
     </div><div class="btns">
-      <button class="play" type="button" data-play="${id}" aria-pressed="false">▶ Play</button>
+      <button class="play" type="button" data-play="${id}" aria-pressed="false">▶ Listen</button>${isExtra?"":testBtn(id)}
     </div></div>
     <div class="rhy"><div class="rtop"><span class="rlab">Rhythm</span><b>${R.n}</b><span class="rtag">${R.tag}</span></div>
       <p>${R.d}</p>
@@ -656,7 +677,7 @@ function vocCard(id,it,idx){
       <div class="meta"><span class="chip">${V.g}</span><span class="chip t">${E.total/4} bars</span></div>
       <p>${V.w}</p>
     </div><div class="btns">
-      <button class="play" type="button" data-play="${id}" aria-pressed="false">▶ Play drill</button>
+      <button class="play" type="button" data-play="${id}" aria-pressed="false">▶ Listen to the drill</button>${testBtn(id)}
     </div></div>
     <div class="rhy vbox"><div class="rtop"><span class="rlab">Listen for</span><b>${V.l}</b></div>
       <p>Drill over <b class="prog">${prog}</b>. ${how}</p>
@@ -748,15 +769,14 @@ function listenPanel(){
     <div class="lrow"><button type="button" id="tunerBtn" data-tuner="1">Check the microphone</button><span id="tuner" class="tuner"></span></div>
     <div class="lrow"><button type="button" data-calibrate="1">Calibrate earphones</button><span class="tnote">Delay: <b id="latV">${S.latency!=null?Math.round(S.latency*1000)+" ms":"not calibrated yet"}</b></span></div>
     <p class="tnote" id="calStatus">With your earphones on, tap Calibrate: listen to 4 clicks, then pluck one note on each of the next 8. Do this once per pair of earphones.</p>
-    <label class="chk" for="guide"><input type="checkbox" id="guide"${S.guide?" checked":""}> Play the guide notes during a test (otherwise you hear only the click and chords)</label>
+    <label class="chk" for="guide"><input type="checkbox" id="guide"${S.guide?" checked":""}> During scoring, also play the notes and backing chords (only with earphones, or the microphone hears them too)</label>
   </div>`;
 }
-function testRow(id,key){
+function testBtn(id){return S.listen?`<button type="button" class="tbtn" data-test="${id}">🎤 Play &amp; score</button>`:"";}
+function testPanel(id,key){
   const sc=today.scores&&today.scores[key];
-  if(!S.listen)return "";
-  return `<div class="testrow"><button type="button" class="tbtn" data-test="${id}">🎤 Test me</button>
-    <span class="tnote">${sc?`Best ${sc.best}% after ${sc.tries} test${sc.tries>1?"s":""}${sc.passed?" · passed ✓":""}`:`Play it from the tab after the count-in; the microphone scores every note. ${S.latency==null?"Calibrate your earphones on the first card first.":""}`}</span></div>
-    <div class="res" id="res-${id}"></div>`;
+  return `<p class="howto"><b>▶ Listen</b>: the trainer plays it for you. Play along to learn it; nothing is scored.${S.listen?` <b>🎤 Play &amp; score</b>: the trainer goes quiet except for the click. After the count-in you play it, and every note is checked as you go.${sc?` <span class="best">Best so far: ${sc.best}%${sc.passed?" ✓ passed":""}</span>`:""}`:""}</p>
+  <div class="tpanel" id="tp-${id}" hidden></div><div class="res" id="res-${id}"></div>`;
 }
 const gateOk=key=>!S.listen||!!(today.scores&&today.scores[key]&&today.scores[key].passed);
 function boxView(){
@@ -773,8 +793,8 @@ function boxView(){
     <div id="fretboard" class="board"></div>
     <div class="lblsw" role="group" aria-label="Diagram labels"><span>Show</span><button type="button" class="seg" data-labels="fingers" aria-pressed="${S.labels!=="degrees"}">Fingers</button><button type="button" class="seg" data-labels="degrees" aria-pressed="${S.labels==="degrees"}">Scale degrees</button></div>
     <div class="legend"><span><i class="dot sq" style="background:var(--root)"></i>${today.scale==="minpent"?NOTE[S.keyPc]+" minor root":"Root"}</span>${today.scale==="minpent"?`<span><i class="dot sq" style="background:var(--steel)"></i>${NOTE[(S.keyPc+3)%12]} major root, the shape's usual anchor</span>`:""}<span><i class="dot" style="background:var(--steel)"></i>Other scale notes</span><span id="lgExtra" hidden><i class="dot ring"></i>Major-scale notes the box leaves out</span><span>Fret numbers below the diagram</span></div>
-    <div class="posbtn"><button class="play" type="button" id="posPlay" data-play="pos" aria-pressed="false">▶ Play the position</button></div>
-    ${testRow("pos","box")}
+    <div class="posbtn btns"><button class="play" type="button" id="posPlay" data-play="pos" aria-pressed="false">▶ Listen</button>${testBtn("pos")}</div>
+    ${testPanel("pos","box")}
     ${navHTML("setup",today.boxDone?`<button type="button" class="play big" data-go="0">Next: exercise 1 ▸</button>`:`${gateOk("box")?"":`<span class="tnote">Score ${S.pass}% to unlock</span>`}<button type="button" class="play big donego" data-boxdone="1"${gateOk("box")?"":" disabled"}>✓ Box done, next ▸</button>`)}
   </section>`;
 }
@@ -784,7 +804,7 @@ function itemView(j){
   const back=j===0?"box":String(j-1),nextLbl=j===4?"Finish the session":`Next: exercise ${j+2}`;
   const main=done?`<span class="undo"><button type="button" class="linkb" data-undo="${j}">Mark as not done</button></span><button type="button" class="play big" data-go="${j===4?"summary":j+1}">${nextLbl} ▸</button>`
                  :`${gateOk(keyOf(it))?"":`<span class="tnote">Score ${S.pass}% to unlock</span>`}<button type="button" class="play big donego" data-itemdone="${j}"${gateOk(keyOf(it))?"":" disabled"}>✓ Done, ${j===4?"finish":"next"} ▸</button>`;
-  return card.replace('<section class="ex','<section class="card ex').replace("</section>",`${testRow(id,keyOf(it))}${t?`<p class="ptime">Practised ${fmtMin(t)} on this exercise so far.</p>`:""}${navHTML(back,main)}</section>`);
+  return card.replace('<section class="ex','<section class="card ex').replace('</div></div>',`</div></div>${testPanel(id,keyOf(it))}`).replace("</section>",`${t?`<p class="ptime">Practised ${fmtMin(t)} on this exercise so far.</p>`:""}${navHTML(back,main)}</section>`);
 }
 function summaryView(){
   const all=Object.values(sessions),tot=sesTime(today),rh=[...new Set(today.items.filter(x=>x.k==="s").map(x=>RHY[x.rh].n))];
@@ -888,7 +908,7 @@ function renderBoard(){
   posData.notes.forEach(n=>{s+=dot(n,fing?n.fg:sc.lab[n.deg],n.deg===0?"rt":"sd",n.deg===0||n.m%12===mp);});
   document.getElementById("fretboard").innerHTML=s+"</svg>";
   const pb=document.getElementById("posPlay"),why=document.getElementById("posWhy"),lg=document.getElementById("lgExtra");
-  pb.dataset.idle=par?"▶ Play major scale, then the box":"▶ Play the position";if(!(play&&play.id==="pos"))pb.textContent=pb.dataset.idle;
+  pb.dataset.idle=par?"▶ Listen (major shape, then the box)":"▶ Listen";if(!(play&&play.id==="pos"))pb.textContent=pb.dataset.idle;
   lg.hidden=!par;
   why.hidden=!par;
   if(par){const kn=NOTE[S.keyPc];
@@ -903,9 +923,9 @@ function rootRun(notes,rootPc){ // root -> top of the shape -> bottom of the sha
   for(let i=1;i<=r;i++)idx.push(i);
   return idx.map(i=>notes[i]);
 }
-function posEvents(){
+function posEvents(boxOnly){
   const par=parentMajor(),key=S.keyPc;
-  const phases=par?[[par.notes,par.tonic],[posData.notes,key]]:[[posData.notes,key]],ev=[];let t=0;
+  const phases=par&&!boxOnly?[[par.notes,par.tonic],[posData.notes,key]]:[[posData.notes,key]],ev=[];let t=0;
   phases.forEach(([ns,rpc])=>{const run=rootRun(ns,rpc);
     run.forEach((n,i)=>{const last=i===run.length-1,first=i===0,d=last?1:.5;
       ev.push({m:n.m,sf:n.s+"-"+n.f,b:t,d,a:first||last?2:(i%2===0?1:0)});t+=d;});
@@ -954,23 +974,23 @@ function chord(root,q,t,dur){
 }
 let play=null,curTempo=20;const spb=()=>60/curTempo;
 function setBtn(id,ro,on,test){const b=document.querySelector(test?`[data-test="${id}"]`:ro?`[data-rhy="${id}"]`:`[data-play="${id}"]`);
-  if(b&&test){b.classList.toggle("on",on);b.textContent=on?"■ Stop the test":"🎤 Test me";}
+  if(b&&test){b.classList.toggle("on",on);b.textContent=on?"■ Stop":"🎤 Play & score";}
   else if(b){b.classList.toggle("on",on);b.setAttribute("aria-pressed",on);
-    const voc=!!b.closest(".voc");b.textContent=on?"■ Stop":b.dataset.idle?b.dataset.idle:ro?(voc?"♪ Hear the phrase":"♪ Hear the rhythm"):(voc?"▶ Play drill":"▶ Play");}
+    const voc=!!b.closest(".voc");b.textContent=on?"■ Stop":b.dataset.idle?b.dataset.idle:ro?(voc?"♪ Hear the phrase":"♪ Hear the rhythm"):(voc?"▶ Listen to the drill":"▶ Listen");}
   const c=document.getElementById("card-"+id);if(c)c.classList.toggle("playing",on);}
 let wake=null;
 function logTime(p){const sec=(performance.now()-p.t0)/1000;if(!today||sec<1)return;
   const k=p.id==="pos"?"box":p.id==="x"?null:keyOf(today.items[Number(p.id.slice(1))]);if(!k)return;
   today.time=today.time||{};today.time[k]=Math.round((today.time[k]||0)+sec);persistDay();}
 function stop(){if(!play)return;const P=play;clearInterval(play.timer);cancelAnimationFrame(play.raf);setBtn(play.id,play.ro,false,play.test);logTime(play);
-  if(P.test&&P.complete)setTimeout(()=>finishTest(P),600);
+  if(P.test){L.fmin=0;if(P.complete)setTimeout(()=>finishTest(P),300);else stoppedEarly(P);}
   try{if(wake){wake.release().catch(()=>{});wake=null;}}catch(e){}
   document.querySelectorAll(".col.on,.dt.on").forEach(c=>c.classList.remove("on"));play=null;if(pendingRemote)setTimeout(applyRemote,700);}
 function start(id,ro,test){
   stop();audioCtx();
-  const E=eventsFor(id,ro),ci=(S.countin||test)?(E.bpb<3?E.bpb*2:E.bpb):0;
+  const E=eventsFor(id,ro,test),ci=(S.countin||test)?(E.bpb<3?E.bpb*2:E.bpb):0;
   play={id,ro,test:!!test,expected:[],...E,evi:0,chi:0,cycle:0,clickBeat:-ci,vis:[],lastT:ctx.currentTime+.12,lastB:-ci};
-  play.testStart=play.lastT;
+  play.testStart=play.lastT;if(test)liveInit(play);
   play.t0=performance.now();try{if(navigator.wakeLock)navigator.wakeLock.request("screen").then(l=>{wake=l;}).catch(()=>{});}catch(e){}
   setBtn(id,ro,true,test);play.timer=setInterval(schedule,25);schedule();play.raf=requestAnimationFrame(draw);
 }
@@ -984,13 +1004,12 @@ function schedule(){
     const tH=play.chi<play.ch.length?b2t(off+play.ch[play.chi].b):Infinity;
     const tC=b2t(play.clickBeat),t=Math.min(tN,tH,tC);
     if(t>hz)break;
-    if(tH===t){const c=play.ch[play.chi++];if(S.chords)chord(c.root,c.q,tH,c.d*spb());continue;}
+    if(tH===t){const c=play.ch[play.chi++];if(S.chords&&(!play.test||S.guide))chord(c.root,c.q,tH,c.d*spb());continue;}
     if(tC===t){if(play.clickBeat<0||S.click)click(tC,((play.clickBeat%play.bpb)+play.bpb)%play.bpb===0);play.clickBeat++;
       if(play.clickBeat>=off+play.total&&play.evi>=play.ev.length){
-        if(S.loop&&!play.test){play.cycle++;play.evi=0;play.chi=0;}else{const p=play;p.complete=true;setTimeout(()=>{if(play===p)stop();},Math.max(0,(tC-now)*1000+300));play.clickBeat=Infinity;play.evi=Infinity;play.chi=Infinity;}}
+        if(play.test){play.clickBeat=Infinity;play.evi=Infinity;play.chi=Infinity;}else if(S.loop){play.cycle++;play.evi=0;play.chi=0;}else{const p=play;setTimeout(()=>{if(play===p)stop();},Math.max(0,(tC-now)*1000+300));play.clickBeat=Infinity;play.evi=Infinity;play.chi=Infinity;}}
       continue;}
     const e=play.ev[play.evi];if(!e.rest){const m=e.m!=null?e.m:posData.notes[e.n].m;
-      if(play.test)play.expected.push({t:tN,m,k:play.evi});
       if(!play.test||S.guide)note(m,tN,e.d*spb()*(e.last?1.6:1),e.a===2?.8:e.a?.66:.5);}
     play.vis.push([tN,play.evi,play.evi===play.ev.length-1]);play.evi++;
   }
@@ -999,6 +1018,7 @@ function draw(){if(!play)return;let k=null,fin=false;
   while(play.vis.length&&play.vis[0][0]<=ctx.currentTime){const v=play.vis.shift();k=v[1];if(v[2])fin=true;}
   if(k!==null){document.querySelectorAll(".col.on,.dt.on").forEach(c=>c.classList.remove("on"));const e=play.ev[k];
     const c=play.id==="pos"?(e&&e.sf?document.querySelector(`.dt[data-sf="${e.sf}"]`):null):document.querySelector(`.col[data-id="${play.id}"][data-k="${k}"]`);if(c)c.classList.add("on");}
+  if(play&&play.test)liveUpdate(play);
   if(play)play.raf=requestAnimationFrame(draw);}
 
 
@@ -1061,68 +1081,133 @@ function hop(f0){
 function settlePitch(p){
   let r=yinAt(p.at);
   if((!r||r.clar<0.8)&&p.retry){const q={t:p.t,at:p.at+p.retry,retry:0};if(q.at+2048<=L.head)r=yinAt(q.at)||r;else{L.pending.push(q);return;}}
-  if(!r)return;
-  const toM=f=>Math.round(69+12*Math.log2(f/440));
-  // also keep every other clearly present pitch: when an earlier note still rings, the new one can be the second-strongest
-  const alts=(r.cands||[]).filter(c=>c.clar>0.75).map(c=>toM(c.f));
-  addNote(p.t,toM(r.f),r.f,false,alts);
+  const toM=f=>Math.round(69+12*Math.log2(f/440)),prev=L.cur,same=(a,b)=>a===b||Math.abs(a-b)===12;
+  // a note still ringing on another string masks the new one: cancel it with a comb filter tuned to its period, then measure again
+  let rr=null;if(prev&&p.t-prev.t<2.5)rr=yinAt(p.at,L.sr/prev.f);
+  let main=r,alts=[];
+  if(rr&&rr.clar>0.7&&(!r||!same(toM(rr.f),prev.midi))&&(!r||same(toM(r.f),prev.midi)||r.clar<0.85||rr.clar>r.clar)){main=rr;if(r)alts.push(toM(r.f));}
+  if(!main)return;
+  (main.cands||[]).filter(c=>c.clar>0.75).forEach(c=>alts.push(toM(c.f)));
+  if(rr&&main!==rr&&rr.clar>0.75)alts.push(toM(rr.f));
+  addNote(p.t,toM(main.f),main.f,false,alts);
 }
-function addNote(t,midi,f,legato,alts){if(midi<36||midi>96)return;const n={t,midi,f,legato,alts:alts||[]};L.notes.push(n);L.cur=n;if(L.notes.length>2000)L.notes.shift();}
-function yinAt(start){ // YIN on 2048 samples, downsampled by 2
-  const N=1024,x=new Float32Array(N);
-  for(let i=0;i<N;i++)x[i]=(L.ring[(start+2*i)%RS]+L.ring[(start+2*i+1)%RS])/2;
-  const sr=L.sr/2,tmin=Math.max(2,Math.floor(sr/1400)),tmax=Math.min(Math.floor(sr/70),N>>1),W=N-tmax;
-  const c=new Float32Array(tmax+2);let run=0;c[0]=1;
-  for(let t=1;t<=tmax+1&&t<N-W;t++){let s=0;for(let i=0;i<W;i++){const v=x[i]-x[i+t];s+=v*v;}run+=s;c[t]=run?s*t/run:1;}
+function addNote(t,midi,f,legato,alts){if(midi<36||midi>84)return;const n={t,midi,f,legato,alts:alts||[]};L.notes.push(n);L.cur=n;if(L.notes.length>2000)L.notes.shift();}
+function yinAt(start,cancel){ // YIN on 2048 samples, downsampled by 2; "cancel" removes a ringing note with this period (in samples)
+  const N=1024,x=new Float32Array(N),R=k=>L.ring[((k%RS)+RS)%RS];
+  if(cancel){const P=cancel,ip=Math.floor(P),fr=P-ip,v=k=>R(k)-((1-fr)*R(k-ip)+fr*R(k-ip-1));
+    for(let i=0;i<N;i++)x[i]=(v(start+2*i)+v(start+2*i+1))/2;}
+  else for(let i=0;i<N;i++)x[i]=(R(start+2*i)+R(start+2*i+1))/2;
+  const sr=L.sr/2,tmin=Math.max(2,Math.floor(sr/1400)),tmax=Math.min(Math.floor(sr/(L.fmin||78)),(N>>1)-2),W=N-tmax-2;
+  const c=new Float32Array(tmax+2).fill(1);let run=0;
+  for(let t=1;t<=tmax+1;t++){let s=0;for(let i=0;i<W;i++){const v=x[i]-x[i+t];s+=v*v;}run+=s;c[t]=run?s*t/run:1;}
   const fit=tau=>{const a=c[tau-1]||c[tau],b=c[tau],d=c[tau+1]||c[tau],den=a+d-2*b,T=tau+(den?(a-d)/(2*den):0);return {f:sr/T,clar:1-b};};
-  // every clear dip: when a previous note is still ringing, the new note shows up as a second dip
   const cands=[];for(let t=tmin+1;t<tmax;t++)if(c[t]<0.3&&c[t]<=c[t-1]&&c[t]<=c[t+1])cands.push(fit(t));
   let tau=-1;for(let t=tmin;t<=tmax;t++){if(c[t]<0.15){while(t+1<=tmax&&c[t+1]<c[t])t++;tau=t;break;}}
-  if(tau<0){let mi=tmin;for(let t=tmin;t<=tmax;t++)if(c[t]<c[mi])mi=t;if(c[mi]<0.3)tau=mi;else return null;}
+  if(tau<0){let mi=-1;for(let t=tmin+1;t<tmax-1;t++)if(c[t]<=c[t-1]&&c[t]<=c[t+1]&&(mi<0||c[t]<c[mi]))mi=t;if(mi>0&&c[mi]<0.3)tau=mi;else return null;}
   const r=fit(tau);r.cands=cands;return r;
 }
 const midiName=m=>NOTE[((m%12)+12)%12]+(Math.floor(m/12)-1);
 
-/* ----- Tests ----- */
-function expectedFor(p){return p.expected||[];}
-function scoreTest(p){
-  const off=S.latency||0,exp=p.expected,used=new Set();
-  const dets=L.notes.filter(n=>n.t>=p.testStart-0.3);
-  const res=exp.map((e,i)=>{
-    const gap=Math.min(i+1<exp.length?exp[i+1].t-e.t:1,i>0?e.t-exp[i-1].t:1);
-    const w=Math.max(0.07,Math.min(0.2,gap*0.45)),target=e.t+off;
-    let best=-1,bd=1e9;dets.forEach((d,j)=>{if(used.has(j))return;const dd=Math.abs(d.t-target);if(dd<=w&&dd<bd){bd=dd;best=j;}});
-    if(best<0)return {k:e.k,st:"miss",want:e.m};
-    used.add(best);const d=dets[best],ok=d.midi===e.m||Math.abs(d.midi-e.m)===12||d.alts.some(a=>a===e.m||Math.abs(a-e.m)===12);
-    return {k:e.k,st:ok?"ok":"bad",want:e.m,heard:d.midi,dt:d.t-target};
-  });
-  const ok=res.filter(r=>r.st==="ok"),dts=ok.map(r=>r.dt);
-  const extra=dets.filter((d,j)=>!used.has(j)&&d.t<=exp[exp.length-1].t+off+0.4).length;
-  return {score:Math.round(ok.length/exp.length*100),ok:ok.length,total:exp.length,bad:res.filter(r=>r.st==="bad").length,
-    miss:res.filter(r=>r.st==="miss").length,extra,avgDt:dts.length?Math.round(dts.reduce((a,b)=>a+b,0)/dts.length*1000):0,res,at:new Date().toISOString()};
+/* ----- Tests: live note-by-note feedback while you play, then a final score ----- */
+const pitchOk=(d,m)=>d.midi===m||Math.abs(d.midi-m)===12||(d.alts||[]).some(a=>a===m||Math.abs(a-m)===12);
+const winOf=(e,wide)=>wide?0.35:Math.max(0.12,Math.min(0.25,e.gap*0.5));
+function testExpected(p){ // absolute time, pitch and fret of every note you must play
+  const out=[];p.ev.forEach((e,k)=>{if(e.rest)return;let m,s,f;
+    if(e.m!=null){m=e.m;[s,f]=(e.sf||"0-0").split("-").map(Number);}else{const n=posData.notes[e.n];m=n.m;s=n.s;f=n.f;}
+    out.push({k,m,s,f,sf:e.sf||null,t:p.lastT+(e.b-p.lastB)*spb()});});
+  out.forEach((e,i)=>{const a=i>0?e.t-out[i-1].t:1,b=i+1<out.length?out[i+1].t-e.t:1;e.gap=Math.min(a,b);});
+  return out;
+}
+function liveInit(p){
+  p.exp=testExpected(p);L.fmin=440*Math.pow(2,(Math.min(...p.exp.map(e=>e.m))-3-69)/12);
+  p.live={st:new Array(p.exp.length).fill(null),seen:new Set(),offs:[],off:S.latency!=null?S.latency:0.18,heard:null,ui:0};
+  document.querySelectorAll(`.col[data-id="${p.id}"]`).forEach(c=>c.classList.remove("r-ok","r-bad","r-miss"));
+  const tp=document.getElementById("tp-"+p.id),res=document.getElementById("res-"+p.id);
+  if(res)res.innerHTML="";
+  if(tp){tp.hidden=false;tp.innerHTML=`<div class="lv"><span class="rec">● Listening</span><span id="lvMsg-${p.id}" class="lvmsg">Get ready: count-in…</span><span class="meter"><i id="lvMeter-${p.id}"></i></span></div>
+    <div class="lvbig"><div><span class="lbl">Play</span><b id="lvNext-${p.id}">–</b></div><div><span class="lbl">You played</span><b id="lvHeard-${p.id}">–</b></div></div>
+    <div class="strip" id="strip-${p.id}">${p.exp.map((e,i)=>`<i data-i="${i}" title="${midiName(e.m)}"></i>`).join("")}</div>
+    <div class="tnote" id="lvCount-${p.id}"></div>`;}
+}
+function mark(p,i,st){
+  const chip=document.querySelector(`#strip-${p.id} i[data-i="${i}"]`);if(chip)chip.className=st;
+  if(p.id!=="pos"){const c=document.querySelector(`.col[data-id="${p.id}"][data-k="${p.exp[i].k}"]`);if(c){c.classList.remove("r-ok","r-bad","r-miss");c.classList.add("r-"+st);}}
+}
+function liveUpdate(p){
+  const now=ctx.currentTime,lv=p.live,X=p.exp,wide=lv.offs.length<3;
+  for(const d of L.notes){
+    if(lv.seen.has(d)||d.t<p.testStart-0.3)continue;
+    let best=-1,bs=1e9;
+    for(let i=0;i<X.length;i++){if(lv.st[i])continue;const e=X[i],dt=d.t-(e.t+lv.off);if(Math.abs(dt)>winOf(e,wide))continue;
+      const sc=Math.abs(dt)-(pitchOk(d,e.m)?1:0);if(sc<bs){bs=sc;best=i;}}
+    if(best>=0){const ok=pitchOk(d,X[best].m);lv.st[best]=ok?"ok":"bad";lv.seen.add(d);mark(p,best,lv.st[best]);
+      if(ok){lv.offs.push(d.t-X[best].t);const s=[...lv.offs].sort((a,b)=>a-b);lv.off=s[s.length>>1];}
+      lv.heard={m:d.midi,ok,want:X[best].m};}
+    else if(now-d.t>0.6){lv.seen.add(d);lv.heard={m:d.midi,ok:false,extra:true};}
+  }
+  for(let i=0;i<X.length;i++){if(!lv.st[i]&&now>X[i].t+lv.off+winOf(X[i],wide)+0.15){lv.st[i]="miss";mark(p,i,"miss");}}
+  if(now-lv.ui>0.1){lv.ui=now;
+    const g=id=>document.getElementById(id+"-"+p.id);
+    const next=X.find((e,i)=>!lv.st[i]&&e.t+lv.off>now-0.1);
+    const ok=lv.st.filter(x=>x==="ok").length,bad=lv.st.filter(x=>x==="bad").length,miss=lv.st.filter(x=>x==="miss").length;
+    const heardAny=L.notes.some(d=>d.t>=p.testStart);
+    if(g("lvMsg"))g("lvMsg").textContent=now<X[0].t?`Count-in: start in ${Math.max(1,Math.ceil((X[0].t-now)/spb()))}…`
+      :(!heardAny&&now>X[0].t+2.5)?"I can't hear your guitar yet. Play louder, or check the microphone on the first card.":"Play along with the click";
+    if(g("lvNext"))g("lvNext").innerHTML=next?`${midiName(next.m)} <small>string ${next.s}, fret ${next.f}</small>`:"Finishing…";
+    if(g("lvHeard"))g("lvHeard").innerHTML=lv.heard?`<span class="${lv.heard.ok?"hok":"hbad"}">${midiName(lv.heard.m)} ${lv.heard.ok?"✓":lv.heard.extra?"(extra)":"✗ wanted "+midiName(lv.heard.want)}</span>`:"–";
+    if(g("lvMeter"))g("lvMeter").style.width=Math.round(Math.max(0,Math.min(1,((L.level||-100)+70)/55))*100)+"%";
+    if(g("lvCount"))g("lvCount").textContent=`${ok+bad+miss} of ${X.length} notes · ${ok} right · ${bad} wrong · ${miss} missed`;
+  }
+  if(now>X[X.length-1].t+lv.off+0.9){p.complete=true;stop();}
+}
+function matchAt(X,dets,off){
+  const used=new Set();let ok=0;
+  const res=X.map(e=>{const w=Math.max(0.08,Math.min(0.2,e.gap*0.45)),target=e.t+off;let bi=-1,bs=1e9;
+    dets.forEach((d,j)=>{if(used.has(j))return;const dd=Math.abs(d.t-target);if(dd>w)return;const sc=dd-(pitchOk(d,e.m)?1:0);if(sc<bs){bs=sc;bi=j;}});
+    if(bi<0)return {k:e.k,st:"miss",want:e.m};used.add(bi);const d=dets[bi],good=pitchOk(d,e.m);if(good)ok++;
+    return {k:e.k,st:good?"ok":"bad",want:e.m,heard:d.midi,dt:d.t-target};});
+  return {ok,res,used};
+}
+function finalScore(p){
+  const X=p.exp,dets=L.notes.filter(d=>d.t>=p.testStart-0.3&&d.t<=X[X.length-1].t+1.2),cal=S.latency!=null;
+  const prior=cal?S.latency:p.live.off,lo=cal?S.latency-0.08:-0.05,hi=cal?S.latency+0.08:0.6;
+  let best=null;
+  for(let off=lo;off<=hi+1e-9;off+=0.01){const r=matchAt(X,dets,off);
+    if(!best||r.ok>best.ok||(r.ok===best.ok&&Math.abs(off-prior)<Math.abs(best.off-prior)))best={...r,off};}
+  const ok=best.res.filter(r=>r.st==="ok"),dts=ok.map(r=>r.dt);
+  return {score:Math.round(ok.length/X.length*100),ok:ok.length,total:X.length,bad:best.res.filter(r=>r.st==="bad").length,
+    miss:best.res.filter(r=>r.st==="miss").length,extra:dets.length-best.used.size,delay:Math.round(best.off*1000),cal,
+    avgDt:dts.length?Math.round(dts.reduce((a,b)=>a+b,0)/dts.length*1000):0,res:best.res,at:new Date().toISOString()};
 }
 async function startTest(id){
-  if(!await ensureListening()){render();return;}
+  if(!await ensureListening()){render();const r=document.getElementById("res-"+id);if(r)r.innerHTML=`<p class="warn">${L.error||"The microphone isn't available."}</p>`;return;}
   L.notes=[];L.onsets=[];
   start(id,false,true);
 }
 function finishTest(p){
-  const r=scoreTest(p),key=p.id==="pos"?"box":keyOf(today.items[Number(p.id.slice(1))]);
+  const r=finalScore(p),key=p.id==="pos"?"box":keyOf(today.items[Number(p.id.slice(1))]);
   today.scores=today.scores||{};const prev=today.scores[key];
-  today.scores[key]={best:Math.max(r.score,prev?prev.best:0),last:r.score,tries:(prev?prev.tries:0)+1};
-  if(r.score>=S.pass)today.scores[key].passed=true;
-  persistDay();lastResult[p.id]=r;render();
-  paintResult(p.id,r);
+  today.scores[key]={best:Math.max(r.score,prev?prev.best:0),last:r.score,tries:(prev?prev.tries:0)+1,passed:!!(prev&&prev.passed)||r.score>=S.pass};
+  persistDay();lastResult[p.id]=r;render();paintResult(p.id,r,true);
+}
+function stoppedEarly(p){
+  const lv=p.live;if(!lv)return;const done=lv.st.filter(Boolean).length,ok=lv.st.filter(x=>x==="ok").length;
+  const el=document.getElementById("res-"+p.id);
+  if(el)el.innerHTML=`<div class="score fail"><b>–</b><div><div class="sh">Stopped before the end</div><div class="sd">${done} of ${p.exp.length} notes checked, ${ok} right. Play to the end to get a score.</div></div></div>`;
+  const tp=document.getElementById("tp-"+p.id);if(tp)tp.hidden=true;
 }
 const lastResult={};
-function paintResult(id,r){
+function paintResult(id,r,scroll){
   if(!r)return;
-  if(id!=="pos")r.res.forEach(x=>{const c=document.querySelector(`.col[data-id="${id}"][data-k="${x.k}"]`);if(c)c.classList.add("r-"+x.st);});
+  if(id!=="pos")r.res.forEach(x=>{const c=document.querySelector(`.col[data-id="${id}"][data-k="${x.k}"]`);if(c){c.classList.remove("r-ok","r-bad","r-miss");c.classList.add("r-"+x.st);}});
   const el=document.getElementById("res-"+id);if(!el)return;
-  const pass=r.score>=S.pass,probs=r.res.filter(x=>x.st!=="ok").slice(0,6).map(x=>x.st==="miss"?`${midiName(x.want)} not heard`:`${midiName(x.want)} expected, heard ${midiName(x.heard)}`);
-  el.innerHTML=`<div class="score ${pass?"pass":"fail"}"><b>${r.score}%</b><div><div class="sh">${pass?"Passed":"Not yet: "+S.pass+"% needed"}</div>
-    <div class="sd">${r.ok} of ${r.total} notes right · ${r.bad} wrong · ${r.miss} missed${r.extra?` · ${r.extra} extra`:""} · timing ${r.avgDt>0?"+":""}${r.avgDt} ms on average</div>
-    ${probs.length?`<div class="sd">${probs.join(" · ")}${r.res.filter(x=>x.st!=="ok").length>6?" …":""}</div>`:""}</div></div>`;
+  const pass=r.score>=S.pass,wrong=r.res.filter(x=>x.st!=="ok"),probs=wrong.slice(0,6).map(x=>x.st==="miss"?`${midiName(x.want)} not heard`:`${midiName(x.want)} expected, heard ${midiName(x.heard)}`);
+  const timing=r.cal?`timing ${r.avgDt>0?"+":""}${r.avgDt} ms on average`:`delay measured at ${r.delay} ms; calibrate earphones for stricter timing`;
+  el.innerHTML=`<div class="score ${pass?"pass":"fail"}"><b>${r.score}%</b><div><div class="sh">${pass?"Passed. Next is unlocked.":`Not yet: ${S.pass}% needed. Try again.`}</div>
+    <div class="sd">${r.ok} of ${r.total} notes right · ${r.bad} wrong · ${r.miss} missed${r.extra?` · ${r.extra} extra`:""} · ${timing}</div>
+    ${probs.length?`<div class="sd">${probs.join(" · ")}${wrong.length>6?" …":""}</div>`:""}</div></div>
+    <div class="strip">${r.res.map(x=>`<i class="${x.st}" title="${midiName(x.want)}"></i>`).join("")}</div>`;
+  if(scroll)el.scrollIntoView({behavior:"smooth",block:"center"});
 }
 async function calibrate(){
   const st=document.getElementById("calStatus");const say=t=>{if(st)st.textContent=t;};
