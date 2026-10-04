@@ -1039,19 +1039,22 @@ function followPlayingTab(el){
   if(!el||!play||play.id!=="pos")return;
   const tab=el.closest(".boxTabScroll");
   if(!tab)return;
-  const now=performance.now(),er=el.getBoundingClientRect(),tr=tab.getBoundingClientRect();
-  let xTarget=tab.scrollLeft,yTarget=tab.scrollTop;
-  const xPad=Math.min(80,tr.width*0.22),yPad=Math.min(36,tr.height*0.18);
-  if(er.right>tr.right-xPad)xTarget+=er.right-(tr.right-xPad);
-  else if(er.left<tr.left+xPad)xTarget-=tr.left+xPad-er.left;
-  if(er.bottom>tr.bottom-yPad)yTarget+=er.bottom-(tr.bottom-yPad);
-  else if(er.top<tr.top+yPad)yTarget-=tr.top+yPad-er.top;
-  xTarget=Math.max(0,Math.min(xTarget,tab.scrollWidth-tab.clientWidth));
-  yTarget=Math.max(0,Math.min(yTarget,tab.scrollHeight-tab.clientHeight));
-  if(Math.abs(xTarget-tab.scrollLeft)<2&&Math.abs(yTarget-tab.scrollTop)<2)return;
-  if(now-tabFollowLast<80&&tabFollowEl===el)return;
-  tabFollowLast=now;tabFollowEl=el;
-  tab.scrollTo({left:xTarget,top:yTarget,behavior:"smooth"});
+  const row=el.closest(".tbar");
+  if(!row)return;
+  const now=performance.now(),rr=row.getBoundingClientRect(),tr=tab.getBoundingClientRect();
+  let x=tab.scrollLeft,y=tab.scrollTop;
+  const xPad=Math.min(80,tr.width*.22),yPad=Math.min(28,tr.height*.15);
+  if(rr.right>tr.right-xPad)x+=rr.right-(tr.right-xPad);
+  else if(rr.left<tr.left+xPad)x-=tr.left+xPad-rr.left;
+  if(rr.bottom>tr.bottom-yPad)y+=rr.bottom-(tr.bottom-yPad);
+  else if(rr.top<tr.top+yPad)y-=tr.top+yPad-rr.top;
+  x=Math.max(0,Math.min(x,tab.scrollWidth-tab.clientWidth));
+  y=Math.max(0,Math.min(y,tab.scrollHeight-tab.clientHeight));
+  if(Math.abs(x-tab.scrollLeft)<1&&Math.abs(y-tab.scrollTop)<1)return;
+  if(now-tabFollowLast<50&&tabFollowEl===row)return;
+  tabFollowLast=now;tabFollowEl=row;
+  tab.scrollLeft=x;
+  tab.scrollTop=y;
 }
 function draw(){if(!play)return;let k=null,fin=false;
   while(play.vis.length&&play.vis[0][0]<=ctx.currentTime){const v=play.vis.shift();k=v[1];if(v[2])fin=true;}
