@@ -61,9 +61,6 @@ button:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visi
 .play.on{background:var(--brass);border-color:var(--brass);color:var(--paper)}
 .donebtn[aria-pressed="true"]{background:var(--good-soft);border-color:var(--good);color:var(--good)}
 .tabscroll{margin-top:16px;overflow-x:auto;overflow-y:hidden;max-width:100%}
-.boxTabScroll{overflow:auto;overflow-x:auto;overflow-y:auto;scroll-behavior:auto;max-height:180px;max-width:100%}
-.boxTabScroll .boxTab{display:flex;flex-direction:column;flex-wrap:nowrap;width:max-content;min-width:max-content;row-gap:4px}
-.boxTabScroll .boxTab .tbar{flex:none;width:max-content;min-width:max-content}
 .tab{display:flex;flex-wrap:wrap;row-gap:4px;font:500 13px var(--mono);font-variant-numeric:tabular-nums}
 .strings{display:grid;grid-template-rows:repeat(6,18px) 16px;color:var(--muted);font-weight:700;padding-right:6px;font-size:12px;margin-bottom:16px}
 .strings span{line-height:18px}
@@ -310,6 +307,11 @@ select,input[type=range],input[type=checkbox]{accent-color:var(--accent)}
 .tbar.nc .clef{display:none}
 .tbar.nc::before{left:0}
 .tabh{margin:4px 0 0}
+
+.nowbar{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));background:#fff;border-top:1px solid var(--line);box-shadow:0 -6px 18px #141e3714;font-size:14px}
+.nbinfo{min-width:0;color:var(--ink)}
+.nbinfo b{font-family:var(--mono)}
 </style>
 
 <header class="top"><div class="hin">
@@ -327,6 +329,7 @@ select,input[type=range],input[type=checkbox]{accent-color:var(--accent)}
 <div class="wrap">
 <nav class="stepper" id="stepper" aria-label="Session steps"></nav>
 <div class="ctx" id="ctx" hidden></div>
+<div id="nowbar" class="nowbar" hidden><span id="nbInfo" class="nbinfo">Playing</span><button type="button" class="play" data-nbstop="1">■ Stop</button></div>
 <main id="view"><div class="loading">Loading your session…</div></main>
 <p class="note" id="syncNote"></p>
 </div>
@@ -681,7 +684,7 @@ function seqCard(id,it,idx,isExtra){
       <div class="rfoot"><span class="rcount"><span class="grid">${cycleGrid(R)}</span>${R.bpb?` <span class="gnote">${R.bpb} clicks per bar</span>`:""}</span>
       <button type="button" class="rbtn" data-rhy="${id}" aria-pressed="false">♪ Hear the rhythm</button></div>
       <p class="glegend">Highlighted counts are where you play; underlined ones are accented.</p></div>
-    <div class="tabscroll boxTabScroll" id="boxTabScroll"><div class="tab boxTab">${tabHTML(E,id)}</div></div></section>`;
+    <div class="tabscroll"><div class="tab">${tabHTML(E,id)}</div></div></section>`;
 }
 function vocCard(id,it,idx){
   const V=VOC[it.i],E=vocEvents(it.i),done=today.done.includes(keyOf(it));
@@ -1002,7 +1005,7 @@ let wake=null;
 function logTime(p){const sec=(performance.now()-p.t0)/1000;if(!today||sec<1)return;
   const k=p.id==="pos"?"box":p.id==="x"?null:keyOf(today.items[Number(p.id.slice(1))]);if(!k)return;
   today.time=today.time||{};today.time[k]=Math.round((today.time[k]||0)+sec);persistDay();}
-function stop(){if(!play)return;const P=play;clearInterval(play.timer);cancelAnimationFrame(play.raf);setBtn(play.id,play.ro,false,play.test);logTime(play);
+function stop(){if(!play)return;const P=play;setNowbar(false);clearInterval(play.timer);cancelAnimationFrame(play.raf);setBtn(play.id,play.ro,false,play.test);logTime(play);
   if(P.test){L.fmin=0;if(P.complete)setTimeout(()=>finishTest(P),300);else stoppedEarly(P);}
   try{if(wake){wake.release().catch(()=>{});wake=null;}}catch(e){}
   document.querySelectorAll(".col.on,.dt.on").forEach(c=>c.classList.remove("on"));play=null;if(pendingRemote)setTimeout(applyRemote,700);}
@@ -1012,7 +1015,7 @@ function start(id,ro,test){
   play={id,ro,test:!!test,expected:[],...E,evi:0,chi:0,cycle:0,clickBeat:-ci,vis:[],lastT:ctx.currentTime+.12,lastB:-ci};
   play.testStart=play.lastT;if(test)liveInit(play);
   play.t0=performance.now();try{if(navigator.wakeLock)navigator.wakeLock.request("screen").then(l=>{wake=l;}).catch(()=>{});}catch(e){}
-  setBtn(id,ro,true,test);play.timer=setInterval(schedule,25);schedule();play.raf=requestAnimationFrame(draw);
+  setBtn(id,ro,true,test);setNowbar(true);requestAnimationFrame(()=>startFollow(id));play.timer=setInterval(schedule,25);schedule();play.raf=requestAnimationFrame(draw);
 }
 const b2t=b=>play.lastT+(b-play.lastB)*spb();
 function schedule(){
@@ -1034,33 +1037,45 @@ function schedule(){
     play.vis.push([tN,play.evi,play.evi===play.ev.length-1]);play.evi++;
   }
 }
-let tabFollowLast=0,tabFollowEl=null;
-function followPlayingTab(el){
-  if(!el||!play||play.id!=="pos")return;
-  const tab=el.closest(".boxTabScroll");
-  if(!tab)return;
-  const row=el.closest(".tbar")||el;
-  const now=performance.now();
-  const tr=tab.getBoundingClientRect();
-  const er=el.getBoundingClientRect();
-  const rr=row.getBoundingClientRect();
-  const targetX=tab.scrollLeft+(er.left+er.width/2-(tr.left+tr.width/2));
-  const targetY=tab.scrollTop+(rr.top+rr.height/2-(tr.top+tr.height/2));
-  const maxX=Math.max(0,tab.scrollWidth-tab.clientWidth);
-  const maxY=Math.max(0,tab.scrollHeight-tab.clientHeight);
-  const x=Math.max(0,Math.min(targetX,maxX));
-  const y=Math.max(0,Math.min(targetY,maxY));
-  if(Math.abs(x-tab.scrollLeft)<1&&Math.abs(y-tab.scrollTop)<1)return;
-  if(now-tabFollowLast<40&&tabFollowEl===el)return;
-  tabFollowLast=now;tabFollowEl=el;
-  tab.scrollTo({left:x,top:y,behavior:"smooth"});
+/* Keep whatever is playing on screen: the page scrolls so the current tab line (or the fretboard during the
+   major-shape run) stays between the sticky bar at the top and the playback bar at the bottom. */
+const follow={row:null,userUntil:0};
+function viewBand(){
+  const c=document.getElementById("ctx"),nb=document.getElementById("nowbar");
+  const top=(c&&!c.hidden?Math.max(0,c.getBoundingClientRect().bottom):0)+8;
+  const bot=window.innerHeight-(nb&&!nb.hidden?nb.offsetHeight:0)-8;
+  return {top,bot};
+}
+function followEl(el,force){
+  if(!el)return;
+  const row=el.closest(".tbar")||el.closest("svg")||el,{top,bot}=viewBand(),r=row.getBoundingClientRect();
+  // inside a tab line that is wider than the phone screen, slide sideways too
+  const sc=el.closest(".tabscroll");
+  if(sc&&sc.scrollWidth>sc.clientWidth){const cr=el.getBoundingClientRect(),sr=sc.getBoundingClientRect();
+    if(cr.left<sr.left+8||cr.right>sr.right-8)sc.scrollTo({left:sc.scrollLeft+cr.left-sr.left-sc.clientWidth/3,behavior:"smooth"});}
+  const out=r.top<top||r.bottom>bot;
+  if(!out&&!force){follow.row=row;return;}
+  if(row===follow.row&&!out)return;
+  follow.row=row;
+  // put the current line near the top of the visible area so the next lines can be read ahead
+  window.scrollTo({top:Math.max(0,window.scrollY+r.top-top-6),behavior:"smooth"});
+}
+function startFollow(id){
+  follow.row=null;
+  const first=document.querySelector(`.col[data-id="${id}"]`)||(id==="pos"?document.querySelector("#fretboard svg"):null);
+  if(id==="pos"){const par=parentMajor();if(par&&!(play&&play.test)){followEl(document.querySelector("#fretboard svg"),true);return;}}
+  if(first)followEl(first,true);
+}
+function setNowbar(on){
+  const nb=document.getElementById("nowbar");if(!nb)return;nb.hidden=!on;
+  if(on){document.getElementById("nbInfo").textContent=play&&play.test?"Listening to you…":"Playing";}
 }
 function draw(){if(!play)return;let k=null,fin=false;
   while(play.vis.length&&play.vis[0][0]<=ctx.currentTime){const v=play.vis.shift();k=v[1];if(v[2])fin=true;}
   if(k!==null){document.querySelectorAll(".col.on,.dt.on").forEach(c=>c.classList.remove("on"));const e=play.ev[k];
     const c=play.id==="pos"?(e&&e.sf?document.querySelector(`.dt[data-sf="${e.sf}"]`):null):document.querySelector(`.col[data-id="${play.id}"][data-k="${k}"]`);if(c)c.classList.add("on");
     if(play.id==="pos"&&e&&e.tk!=null){const tc=document.querySelector(`.col[data-id="pos"][data-k="${e.tk}"]`);if(tc)tc.classList.add("on");}
-    followPlayingTab(play.id==="pos" ? document.querySelector(`.col[data-id="pos"][data-k="${e&&e.tk!=null?e.tk:k}"]`) : c);
+    followEl(play.id==="pos"?(e&&e.tk!=null?document.querySelector(`.col[data-id="pos"][data-k="${e.tk}"]`):document.querySelector("#fretboard svg")):c);
   }
   if(play&&play.test)liveUpdate(play);
   if(play)play.raf=requestAnimationFrame(draw);}
@@ -1202,6 +1217,7 @@ function liveUpdate(p){
     if(g("lvNext"))g("lvNext").innerHTML=next?`fret ${next.f} <small>on tab line ${next.s} (${["","top","2nd","3rd","4th","5th","bottom"][next.s]} line) · ${midiName(next.m)}</small>`:"Finishing…";
     if(g("lvHeard"))g("lvHeard").innerHTML=lv.heard?`<span class="${lv.heard.ok?"hok":"hbad"}">${midiName(lv.heard.m)} ${lv.heard.ok?"✓":lv.heard.extra?"(extra)":"✗ wanted "+midiName(lv.heard.want)}</span>`:"–";
     if(g("lvMeter"))g("lvMeter").style.width=Math.round(Math.max(0,Math.min(1,((L.level||-100)+70)/55))*100)+"%";
+    const nbi=document.getElementById("nbInfo");if(nbi)nbi.innerHTML=now<X[0].t?"Count-in…":`${next?`Play <b>fret ${next.f}</b> · line ${next.s}`:"Finishing…"}${lv.heard?` · <span class="${lv.heard.ok?"hok":"hbad"}">${midiName(lv.heard.m)} ${lv.heard.ok?"✓":"✗"}</span>`:""} · ${ok}/${X.length}`;
     if(g("lvCount"))g("lvCount").textContent=`${ok+bad+miss} of ${X.length} notes · ${ok} right · ${bad} wrong · ${miss} missed`;
   }
   if(now>X[X.length-1].t+lv.off+0.9){p.complete=true;stop();}
@@ -1365,6 +1381,7 @@ document.addEventListener("click",e=>{
   const p=e.target.closest("[data-play],[data-rhy]");if(p){const ro=!!p.dataset.rhy,id=ro?p.dataset.rhy:p.dataset.play;
     (play&&play.id===id&&play.ro===ro)?stop():start(id,ro);return;}
   const g=e.target.closest("[data-go]");if(g){const v=g.dataset.go;go(/^\d$/.test(v)?Number(v):v);return;}
+  if(e.target.closest("[data-nbstop]")){stop();return;}
   const tb=e.target.closest("[data-test]");if(tb){const id=tb.dataset.test;if(play&&play.test&&play.id===id)stop();else startTest(id);return;}
   if(e.target.closest("[data-tuner]")){toggleTuner();return;}
   if(e.target.closest("[data-syncnow]")){cloudSync();return;}
