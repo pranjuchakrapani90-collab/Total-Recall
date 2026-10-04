@@ -1,5 +1,5 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
-<title>Guitar Melody Trainer · Total Recall</title>
+<title>Guitar Melody Trainer · Total Recall &amp; Melodies</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap">
 <style>
@@ -221,7 +221,10 @@ details.more[open] > * + *{margin-top:10px}
 .lblsw{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
 .seg{padding:5px 12px;font-size:12px}
 .seg[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
-.backlink{display:inline-block;margin-bottom:10px;font-size:13px;color:var(--steel);text-decoration:none}
+.toprow{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.sbadge{font:600 11px var(--mono);padding:3px 8px;border-radius:999px;background:var(--bg);color:var(--muted)}
+.sbadge.ok{background:var(--good-soft);color:var(--good)}.sbadge.err{background:#f8d7d3;color:var(--bad)}.sbadge.busy{background:var(--brass-soft);color:var(--brass)}
+.backlink{display:inline-block;font-size:13px;color:var(--steel);text-decoration:none}
 .listen{border-top:1px solid var(--line);padding-top:14px;display:flex;flex-direction:column;gap:10px}
 .lrow{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .warn{margin:0;font-size:13px;color:var(--bad)}
@@ -246,7 +249,7 @@ details.more[open] > * + *{margin-top:10px}
 <div class="wrap">
 <header class="top">
   <div>
-    <a class="backlink" href="./">← Total Recall</a>
+    <div class="toprow"><a class="backlink" href="./">← Total Recall &amp; Melodies</a><span id="syncBadge" class="sbadge off">☁ Sync off</span></div>
     <div class="eyebrow">Guitar · Melody practice</div>
     <h1>Guitar Melody Trainer</h1>
   </div>
@@ -500,8 +503,8 @@ async function initStore(){
     _w(){try{localStorage.setItem("mss-sessions",JSON.stringify({ds:sessions,st:S}));}catch(e){}}};
 }
 let saving=Promise.resolve();
-function persistDay(){const d=JSON.parse(JSON.stringify(today));saving=saving.then(()=>store.saveDay(d)).catch(()=>{});}
-let setT=null;function persistSettings(){clearTimeout(setT);setT=setTimeout(()=>{store.saveSettings({...S}).catch(()=>{});},700);}
+function persistDay(){today.upd=Date.now();const d=JSON.parse(JSON.stringify(today));saving=saving.then(()=>store.saveDay(d)).catch(()=>{});scheduleSync();}
+let setT=null;function persistSettings(){S._upd=Date.now();clearTimeout(setT);setT=setTimeout(()=>{store.saveSettings({...S}).catch(()=>{});scheduleSync();},700);}
 
 /* ===================== Events ===================== */
 function countLbl(b,R){
@@ -692,6 +695,7 @@ function setupView(){
       </div></div>
     </div>
     ${listenPanel()}
+    ${syncPanel()}
     ${navHTML(null,`<button type="button" class="play big" data-go="${fo}">${goLbl} ▸</button>`)}
   </section>`;
 }
@@ -925,7 +929,7 @@ function logTime(p){const sec=(performance.now()-p.t0)/1000;if(!today||sec<1)ret
 function stop(){if(!play)return;const P=play;clearInterval(play.timer);cancelAnimationFrame(play.raf);setBtn(play.id,play.ro,false,play.test);logTime(play);
   if(P.test&&P.complete)setTimeout(()=>finishTest(P),600);
   try{if(wake){wake.release().catch(()=>{});wake=null;}}catch(e){}
-  document.querySelectorAll(".col.on,.dt.on").forEach(c=>c.classList.remove("on"));play=null;}
+  document.querySelectorAll(".col.on,.dt.on").forEach(c=>c.classList.remove("on"));play=null;if(pendingRemote)setTimeout(applyRemote,700);}
 function start(id,ro,test){
   stop();audioCtx();
   const E=eventsFor(id,ro),ci=(S.countin||test)?(E.bpb<3?E.bpb*2:E.bpb):0;
@@ -1112,6 +1116,83 @@ async function toggleTuner(){
   },120);
 }
 
+
+/* ===================== Device sync (shares Total Recall's sync code and encrypted cloud bridge) ===================== */
+const SYNC_KEY="totalRecallSyncCode_v1",SYNC_URL=localStorage.getItem("totalRecallTickTickUrl")||"https://total-recall-ticktick.pranjuchakrapani90.workers.dev";
+const LOCAL_ONLY=["micId","latency"]; // microphone and earphone delay belong to each device
+const SY={busy:false,again:false,timer:0,state:"off",msg:"",last:null};
+const b64=a=>{let s="";new Uint8Array(a).forEach(x=>s+=String.fromCharCode(x));return btoa(s);};
+const unb64=s=>{const r=atob(s),u=new Uint8Array(r.length);for(let i=0;i<r.length;i++)u[i]=r.charCodeAt(i);return u;};
+async function syncKeyOf(code){const h=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(code+"#melodies"));return crypto.subtle.importKey("raw",h,{name:"AES-GCM"},false,["encrypt","decrypt"]);}
+async function encryptState(state,code){const iv=crypto.getRandomValues(new Uint8Array(12)),k=await syncKeyOf(code),c=await crypto.subtle.encrypt({name:"AES-GCM",iv},k,new TextEncoder().encode(JSON.stringify(state)));return JSON.stringify({v:1,iv:b64(iv),data:b64(c)});}
+async function decryptState(blob,code){const x=JSON.parse(blob||"{}"),k=await syncKeyOf(code),p=await crypto.subtle.decrypt({name:"AES-GCM",iv:unb64(x.iv)},k,unb64(x.data));return JSON.parse(new TextDecoder().decode(p));}
+const syncCode=()=>{try{return localStorage.getItem(SYNC_KEY)||"";}catch(e){return "";}};
+function sharedSettings(){const o={...S};LOCAL_ONLY.forEach(k=>delete o[k]);return o;}
+function mergeRemote(remote){
+  let changed=false;
+  Object.values(remote.sessions||{}).forEach(r=>{const l=sessions[r.id];
+    if(!l||(r.upd||0)>(l.upd||0)){sessions[r.id]=normalize(JSON.parse(JSON.stringify(r)));changed=true;}});
+  if(remote.settings&&(remote.settings._upd||0)>(S._upd||0)){const keep={};LOCAL_ONLY.forEach(k=>keep[k]=S[k]);Object.assign(S,remote.settings,keep);changed=true;}
+  if(changed&&store&&store._w)store._w();
+  return changed;
+}
+function setSync(state,msg){SY.state=state;SY.msg=msg||"";if(state==="ok")SY.last=new Date();
+  const el=document.getElementById("syncBadge");if(el){el.textContent=state==="busy"?"☁ Syncing…":state==="ok"?"☁ Synced":state==="err"?"☁ Sync problem":"☁ Sync off";el.className="sbadge "+state;el.title=SY.msg;}
+  const st=document.getElementById("syncState");if(st)st.innerHTML=syncStateHTML();}
+function syncStateHTML(){
+  if(!syncCode())return "Sync is off. Progress stays on this device.";
+  if(SY.state==="err")return `Couldn't sync: ${SY.msg.replace(/</g,"&lt;")}. It will retry automatically.`;
+  if(SY.state==="busy")return "Syncing…";
+  return SY.last?`Synced at ${SY.last.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"})}. Changes on any device appear on the others.`:"Sync is on.";
+}
+function scheduleSync(){if(!syncCode())return;clearTimeout(SY.timer);SY.timer=setTimeout(()=>cloudSync(),1500);}
+async function cloudSync(){
+  const code=syncCode();if(!code){setSync("off");return false;}
+  if(SY.busy){SY.again=true;return false;}
+  SY.busy=true;setSync("busy");let changed=false;
+  try{
+    const url=SYNC_URL+(SYNC_URL.indexOf("?")>=0?"&":"?")+"mode=sync",headers={"Content-Type":"application/json","X-Total-Recall-Sync":code+"#melodies"};
+    const r=await fetch(url,{method:"POST",headers,body:JSON.stringify({state:{app:"melodies"}}),cache:"no-store"});
+    if(!r.ok)throw new Error("the sync bridge answered HTTP "+r.status);
+    const data=await r.json();if(data.error)throw new Error(data.error);
+    if(data.blob)changed=mergeRemote(await decryptState(data.blob,code));
+    const blob=await encryptState({v:1,sessions,settings:sharedSettings()},code);
+    const w=await fetch(url,{method:"PUT",headers,body:blob,cache:"no-store"});
+    if(!w.ok)throw new Error("upload failed with HTTP "+w.status);
+    setSync("ok");
+  }catch(e){setSync("err",String(e&&e.message||e));}
+  finally{SY.busy=false;if(SY.again){SY.again=false;scheduleSync();}}
+  if(changed&&today)applyRemote();
+  return changed;
+}
+function pickOpen(){return Object.values(sessions).filter(x=>!x.finished).sort((a,b)=>(b.done.length-a.done.length)||(a.started<b.started?-1:1))[0];}
+let pendingRemote=false;
+function applyRemote(){
+  if(play){pendingRemote=true;return;}
+  pendingRemote=false;
+  const open=pickOpen();
+  if(open&&open.id!==today.id){today=open;resetTempo();view="setup";}
+  else if(sessions[today.id])today=sessions[today.id];
+  else if(open)today=open;
+  render();
+}
+async function turnOnSync(code){
+  code=(code||"").trim();if(code.length<8){setSync("err","use a sync code of at least 8 characters");return;}
+  try{localStorage.setItem(SYNC_KEY,code);}catch(e){}
+  await cloudSync();render();
+}
+function turnOffSync(){try{localStorage.removeItem(SYNC_KEY);}catch(e){}setSync("off");render();}
+function syncPanel(){
+  const on=!!syncCode();
+  return `<div class="listen"><h3>Device sync</h3>
+    <p class="tnote" id="syncState">${syncStateHTML()}</p>
+    ${on?`<div class="lrow"><button type="button" data-syncnow="1">Sync now</button><button type="button" class="linkb" data-syncoff="1">Turn sync off on this device</button></div>
+      <p class="tnote">Uses your Total Recall sync code. Sessions, scores, practice time and settings sync; the microphone choice and earphone calibration stay per device.</p>`
+    :`<div class="lrow"><input type="password" id="syncIn" placeholder="Your Total Recall sync code" autocomplete="off" style="flex:1;min-width:0"><button type="button" class="play" data-syncon="1">Turn on sync</button></div>
+      <p class="tnote">Use the same code as Total Recall's Device Sync on every device. If you already set it in Total Recall on this device, this page uses it automatically.</p>`}
+  </div>`;
+}
+
 /* ===================== Controls ===================== */
 document.addEventListener("click",e=>{
   const p=e.target.closest("[data-play],[data-rhy]");if(p){const ro=!!p.dataset.rhy,id=ro?p.dataset.rhy:p.dataset.play;
@@ -1119,6 +1200,9 @@ document.addEventListener("click",e=>{
   const g=e.target.closest("[data-go]");if(g){const v=g.dataset.go;go(/^\d$/.test(v)?Number(v):v);return;}
   const tb=e.target.closest("[data-test]");if(tb){const id=tb.dataset.test;if(play&&play.test&&play.id===id)stop();else startTest(id);return;}
   if(e.target.closest("[data-tuner]")){toggleTuner();return;}
+  if(e.target.closest("[data-syncnow]")){cloudSync();return;}
+  if(e.target.closest("[data-syncoff]")){turnOffSync();return;}
+  if(e.target.closest("[data-syncon]")){const i=document.getElementById("syncIn");turnOnSync(i?i.value:"");return;}
   if(e.target.closest("[data-calibrate]")){calibrate();return;}
   const lb=e.target.closest("[data-labels]");if(lb){S.labels=lb.dataset.labels;persistSettings();render();return;}
   if(e.target.closest("[data-boxdone]")){today.boxDone=true;persistDay();go(0);return;}
@@ -1150,7 +1234,8 @@ document.addEventListener("keydown",e=>{
   if(e.key!==" "||["INPUT","SELECT","TEXTAREA","BUTTON","SUMMARY"].includes(e.target.tagName))return;
   const b=document.querySelector("#view [data-play]");if(!b)return;e.preventDefault();b.click();
 });
-document.addEventListener("visibilitychange",()=>{if(document.hidden)stop();});
+document.addEventListener("visibilitychange",()=>{if(document.hidden)stop();else cloudSync();});
+setInterval(()=>{if(!document.hidden&&!play)cloudSync();},60000);
 
 /* ===================== Boot ===================== */
 (async()=>{
@@ -1158,12 +1243,13 @@ document.addEventListener("visibilitychange",()=>{if(document.hidden)stop();});
   let loaded={ds:{},st:null};try{loaded=await store.load();}catch(e){}
   sessions=loaded.ds||{};Object.values(sessions).forEach(normalize);
   if(loaded.st)Object.assign(S,loaded.st);
-  const open=Object.values(sessions).filter(x=>!x.finished).sort((a,b)=>a.started<b.started?1:-1)[0];
+  if(syncCode())await Promise.race([cloudSync(),new Promise(r=>setTimeout(r,6000))]);
+  const open=pickOpen();
   if(open){today=open;if(today.step==null){today.stage=0;today.step=0;today.tempo=ladder(0)[0];}persistDay();}else{today=planSession();sessions[today.id]=today;persistDay();}
   resetTempo();view="setup";render();
   document.getElementById("syncNote").textContent=store.kind==="db"
     ?"Your sessions and settings are saved to your Claude account, so they follow you between phone and computer."
-    :"Progress is saved in this browser on this device.";
+    :"Progress is saved on this device"+(syncCode()?" and synced to your other devices with your Total Recall sync code.":". Turn on Device sync on the first card to share it with your other devices.");
 })();
 </script>
 

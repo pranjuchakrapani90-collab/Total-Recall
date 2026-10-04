@@ -1,7 +1,7 @@
 {
-  "name": "Name Recall",
-  "short_name": "Name Recall",
-  "description": "Personal flashcards for remembering people.",
+  "name": "Total Recall & Melodies",
+  "short_name": "Recall & Melodies",
+  "description": "Personal recall flashcards, life memories and guitar melody practice.",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#f4f7fb",
