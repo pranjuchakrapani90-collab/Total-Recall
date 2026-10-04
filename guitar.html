@@ -301,6 +301,12 @@ select,input[type=range],input[type=checkbox]{accent-color:var(--accent)}
 .strip i.ok{background:#10b981}.strip i.bad{background:#ef4444}.strip i.miss{background:#fff;outline:1.5px dashed #9ca3af}
 .res:empty{display:none}
 .res{display:flex;flex-direction:column;gap:8px}
+
+.clef{display:flex;flex-direction:column;justify-content:space-between;align-items:center;height:96px;margin:6px 8px 22px 0;width:16px;padding:4px 0;font:800 19px/1 var(--body);color:var(--ink);flex:none}
+.tbar::before{left:24px}
+.tbar.nc .clef{display:none}
+.tbar.nc::before{left:0}
+.tabh{margin:4px 0 0}
 </style>
 
 <header class="top"><div class="hin">
@@ -634,19 +640,27 @@ function eventsFor(id,ro,test){
 /* ===================== Rendering ===================== */
 function tabHTML(E,id){
   const {ev,ch,bpb,R}=E,labels={};ch.forEach(c=>{if(c.label)labels[Math.round(c.b/bpb)]=chordName(c.root,c.q);});
-  const SL=`<div class="sl">${[1,2,3,4,5,6].map(s=>`<span>${SNAME[s]}</span>`).join("")}<span></span></div>`;let h="",bar=-1;
+  const SL=`<div class="clef" aria-hidden="true"><b>T</b><b>A</b><b>B</b></div>`;let h="",bar=-1;
   ev.forEach((e,k)=>{
     const br=Math.floor(e.b/bpb+1e-6);
     if(br!==bar){h+=(bar>=0?"</div>":"")+`<div class="tbar">${labels[br]?`<span class="chd">${labels[br]}</span>`:""}${SL}`;bar=br;}
     const w=Math.round(Math.max(24,18+e.d*44));
     h+=`<div class="col${e.rest?" rest":""}" style="width:${w}px" data-id="${id}" data-k="${k}">`;
     if(e.rest){for(let s=1;s<=6;s++)h+=`<div class="c"></div>`;h+=`<div class="cnt">rest</div></div>`;return;}
-    const n=posData.notes[e.n];
+    const n=e.n!=null?posData.notes[e.n]:(posData.notes.find(x=>x.m===e.m&&e.sf===x.s+"-"+x.f)||posData.notes.find(x=>x.m===e.m)||{s:+e.sf.split("-")[0],f:+e.sf.split("-")[1],deg:-1});
     for(let s=1;s<=6;s++)h+=`<div class="c">${s===n.s?`<i class="${n.deg===0?"r":""}${e.a?" acc":""}">${n.f}</i>`:""}</div>`;
     h+=`<div class="cnt${e.a?" acc":""}">${countLbl(e.b,R)}</div></div>`;
   });
   return h+"</div>";
 }
+function fixClefs(){ // show the TAB clef only at the start of each line of tab
+  document.querySelectorAll(".tab").forEach(tab=>{const bars=[...tab.children].filter(b=>b.classList.contains("tbar"));
+    bars.forEach(b=>b.classList.remove("nc"));
+    for(let pass=0;pass<4;pass++){let last=null,changed=false;
+      bars.forEach(b=>{const top=b.offsetTop,want=top===last;last=top;if(b.classList.contains("nc")!==want){b.classList.toggle("nc",want);changed=true;}});
+      if(!changed)break;}});
+}
+let clefT=0;window.addEventListener("resize",()=>{clearTimeout(clefT);clefT=setTimeout(fixClefs,150);});
 function seqCard(id,it,idx,isExtra){
   const E=seqEvents(it),R=E.R,ex=isExtra?it:EX[it.i],ct=isExtra?null:CATS[ex.cat],done=!isExtra&&today.done.includes(keyOf(it));
   const nn=E.ev.filter(e=>!e.rest).length;
@@ -791,6 +805,9 @@ function boxView(){
     <p class="lead">${txt} Play it up and down with the playback until it's under your fingers, then move on.</p>
     <p id="posWhy" hidden></p>
     <div id="fretboard" class="board"></div>
+    <h3 class="tabh">The box as tab</h3>
+    <p class="tnote">${today.scale==="major"?"":"Listen plays the full major shape first, then this. "}From the root up to the top of the shape, down to the bottom, and back up to the root. This is what Play &amp; score checks.</p>
+    <div class="tabscroll"><div class="tab">${(()=>{const B=posEvents(true);if(B.ev.length&&B.ev[B.ev.length-1].rest)B.ev.pop();return tabHTML(B,"pos");})()}</div></div>
     <div class="lblsw" role="group" aria-label="Diagram labels"><span>Show</span><button type="button" class="seg" data-labels="fingers" aria-pressed="${S.labels!=="degrees"}">Fingers</button><button type="button" class="seg" data-labels="degrees" aria-pressed="${S.labels==="degrees"}">Scale degrees</button></div>
     <div class="legend"><span><i class="dot sq" style="background:var(--root)"></i>${today.scale==="minpent"?NOTE[S.keyPc]+" minor root":"Root"}</span>${today.scale==="minpent"?`<span><i class="dot sq" style="background:var(--steel)"></i>${NOTE[(S.keyPc+3)%12]} major root, the shape's usual anchor</span>`:""}<span><i class="dot" style="background:var(--steel)"></i>Other scale notes</span><span id="lgExtra" hidden><i class="dot ring"></i>Major-scale notes the box leaves out</span><span>Fret numbers below the diagram</span></div>
     <div class="posbtn btns"><button class="play" type="button" id="posPlay" data-play="pos" aria-pressed="false">▶ Listen</button>${testBtn("pos")}</div>
@@ -875,7 +892,7 @@ function render(){
   v.innerHTML=view==="setup"?setupView():view==="box"?boxView():view==="summary"?summaryView():itemView(view);
   if(view==="box")renderBoard();
   if(view==="setup")setTempoNote();
-  renderStepper();renderCtx();renderHeader();
+  renderStepper();renderCtx();renderHeader();requestAnimationFrame(fixClefs);
   if(view==="box")paintResult("pos",lastResult.pos);else if(typeof view==="number")paintResult("i"+view,lastResult["i"+view]);
 }
 function markDone(j,on){
@@ -898,7 +915,7 @@ function renderBoard(){
   let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Fretboard diagram of this session's position"><title>Scale position diagram</title>`;
   for(let k=0;k<=nf;k++){const x=x0+k*fw;s+=`<line x1="${x}" y1="${y0}" x2="${x}" y2="${y0+5*sh}" stroke="var(--line)" stroke-width="1.5"/>`;
     if(k>0)s+=`<text x="${x-fw/2}" y="${H-6}" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="12" fill="var(--muted)">${lo+k}</text>`;}
-  for(let st=1;st<=6;st++){const y=y0+(st-1)*sh;s+=`<line x1="${x0}" y1="${y}" x2="${x0+nf*fw}" y2="${y}" stroke="var(--muted)" stroke-width="${0.8+st*0.25}"/><text x="12" y="${y+4}" font-family="JetBrains Mono,monospace" font-size="12" font-weight="700" fill="var(--muted)">${SNAME[st]}</text>`;}
+  for(let st=1;st<=6;st++){const y=y0+(st-1)*sh;s+=`<line x1="${x0}" y1="${y}" x2="${x0+nf*fw}" y2="${y}" stroke="var(--muted)" stroke-width="${0.8+st*0.25}"/>`;}
   const fing=S.labels!=="degrees";
   const dot=(n,label,cls,root)=>{const x=x0+(n.f-lo-0.5)*fw,y=y0+(n.s-1)*sh;
     const shape=root?`<rect x="${x-11}" y="${y-11}" width="22" height="22" rx="3"/>`:`<circle cx="${x}" cy="${y}" r="11"/>`;
@@ -926,10 +943,10 @@ function rootRun(notes,rootPc){ // root -> top of the shape -> bottom of the sha
 function posEvents(boxOnly){
   const par=parentMajor(),key=S.keyPc;
   const phases=par&&!boxOnly?[[par.notes,par.tonic],[posData.notes,key]]:[[posData.notes,key]],ev=[];let t=0;
-  phases.forEach(([ns,rpc])=>{const run=rootRun(ns,rpc);
+  phases.forEach(([ns,rpc],ph)=>{const run=rootRun(ns,rpc),box=ph===phases.length-1;let j=0;
     run.forEach((n,i)=>{const last=i===run.length-1,first=i===0,d=last?1:.5;
-      ev.push({m:n.m,sf:n.s+"-"+n.f,b:t,d,a:first||last?2:(i%2===0?1:0)});t+=d;});
-    const nt=Math.ceil((t+1)/4-1e-6)*4;ev.push({rest:1,b:t,d:nt-t});t=nt;});
+      ev.push({m:n.m,sf:n.s+"-"+n.f,b:t,d,a:first||last?2:(i%2===0?1:0),tk:box?j++:null});t+=d;});
+    const nt=Math.ceil((t+1)/4-1e-6)*4;ev.push({rest:1,b:t,d:nt-t,tk:box?j++:null});t=nt;});
   const hc=homeChord(),ch=[];for(let b=0;b<t;b+=4)ch.push({b,d:4,...hc});
   return {ev,ch,total:t,bpb:4,R:null};
 }
@@ -1017,7 +1034,8 @@ function schedule(){
 function draw(){if(!play)return;let k=null,fin=false;
   while(play.vis.length&&play.vis[0][0]<=ctx.currentTime){const v=play.vis.shift();k=v[1];if(v[2])fin=true;}
   if(k!==null){document.querySelectorAll(".col.on,.dt.on").forEach(c=>c.classList.remove("on"));const e=play.ev[k];
-    const c=play.id==="pos"?(e&&e.sf?document.querySelector(`.dt[data-sf="${e.sf}"]`):null):document.querySelector(`.col[data-id="${play.id}"][data-k="${k}"]`);if(c)c.classList.add("on");}
+    const c=play.id==="pos"?(e&&e.sf?document.querySelector(`.dt[data-sf="${e.sf}"]`):null):document.querySelector(`.col[data-id="${play.id}"][data-k="${k}"]`);if(c)c.classList.add("on");
+    if(play.id==="pos"&&e&&e.tk!=null){const tc=document.querySelector(`.col[data-id="pos"][data-k="${e.tk}"]`);if(tc)tc.classList.add("on");}}
   if(play&&play.test)liveUpdate(play);
   if(play)play.raf=requestAnimationFrame(draw);}
 
@@ -1064,11 +1082,13 @@ function feed(f,d){
   for(let i=L.pending.length-1;i>=0;i--){const p=L.pending[i];if(p.at+2048<=L.head){L.pending.splice(i,1);settlePitch(p);}}
 }
 function hop(f0){
-  let s=0;for(let i=0;i<L.hop;i++){const v=L.ring[(f0+i)%RS];s+=v*v;}
-  const db=10*Math.log10(s/L.hop+1e-12),t=f0/L.sr;
+  // loudness for the noise gate, and "attack" energy (sample-to-sample change) to spot a new pluck even while another note rings
+  let s=0,hf=0,pv=L.ring[(f0-1+RS)%RS];for(let i=0;i<L.hop;i++){const v=L.ring[(f0+i)%RS],d=v-pv;s+=v*v;hf+=d*d;pv=v;}
+  const db=10*Math.log10(s/L.hop+1e-12),hdb=10*Math.log10(hf/L.hop+1e-12),t=f0/L.sr;
   if(db<L.floor)L.floor=db;else L.floor+=(db-L.floor)*0.0008;
-  const ref=Math.min(...L.lastDb);
-  if(db>ref+6&&db>L.floor+12&&db>-58&&t-L.lastOnset>0.07){L.lastOnset=t;L.onsets.push(t);if(L.onsets.length>400)L.onsets.shift();
+  L.lastHf=L.lastHf||[-100,-100,-100,-100];
+  const ref=Math.min(...L.lastDb),href=Math.min(...L.lastHf);L.lastHf.shift();L.lastHf.push(hdb);
+  if((db>ref+6||hdb>href+7)&&db>L.floor+12&&db>-58&&t-L.lastOnset>0.07){L.lastOnset=t;L.onsets.push(t);if(L.onsets.length>400)L.onsets.shift();
     L.pending.push({t,at:f0+Math.round(0.03*L.sr),retry:Math.round(0.07*L.sr)});L.legatoCand=null;}
   L.lastDb.shift();L.lastDb.push(db);L.level=db;
   // legato: a new pitch while the note keeps sounding (hammer-ons, slides)
@@ -1131,7 +1151,7 @@ function liveInit(p){
 }
 function mark(p,i,st){
   const chip=document.querySelector(`#strip-${p.id} i[data-i="${i}"]`);if(chip)chip.className=st;
-  if(p.id!=="pos"){const c=document.querySelector(`.col[data-id="${p.id}"][data-k="${p.exp[i].k}"]`);if(c){c.classList.remove("r-ok","r-bad","r-miss");c.classList.add("r-"+st);}}
+  {const c=document.querySelector(`.col[data-id="${p.id}"][data-k="${p.exp[i].k}"]`);if(c){c.classList.remove("r-ok","r-bad","r-miss");c.classList.add("r-"+st);}}
 }
 function liveUpdate(p){
   const now=ctx.currentTime,lv=p.live,X=p.exp,wide=lv.offs.length<3;
@@ -1153,7 +1173,7 @@ function liveUpdate(p){
     const heardAny=L.notes.some(d=>d.t>=p.testStart);
     if(g("lvMsg"))g("lvMsg").textContent=now<X[0].t?`Count-in: start in ${Math.max(1,Math.ceil((X[0].t-now)/spb()))}…`
       :(!heardAny&&now>X[0].t+2.5)?"I can't hear your guitar yet. Play louder, or check the microphone on the first card.":"Play along with the click";
-    if(g("lvNext"))g("lvNext").innerHTML=next?`${midiName(next.m)} <small>string ${next.s}, fret ${next.f}</small>`:"Finishing…";
+    if(g("lvNext"))g("lvNext").innerHTML=next?`fret ${next.f} <small>on tab line ${next.s} (${["","top","2nd","3rd","4th","5th","bottom"][next.s]} line) · ${midiName(next.m)}</small>`:"Finishing…";
     if(g("lvHeard"))g("lvHeard").innerHTML=lv.heard?`<span class="${lv.heard.ok?"hok":"hbad"}">${midiName(lv.heard.m)} ${lv.heard.ok?"✓":lv.heard.extra?"(extra)":"✗ wanted "+midiName(lv.heard.want)}</span>`:"–";
     if(g("lvMeter"))g("lvMeter").style.width=Math.round(Math.max(0,Math.min(1,((L.level||-100)+70)/55))*100)+"%";
     if(g("lvCount"))g("lvCount").textContent=`${ok+bad+miss} of ${X.length} notes · ${ok} right · ${bad} wrong · ${miss} missed`;
@@ -1164,8 +1184,8 @@ function matchAt(X,dets,off){
   const used=new Set();let ok=0;
   const res=X.map(e=>{const w=Math.max(0.08,Math.min(0.2,e.gap*0.45)),target=e.t+off;let bi=-1,bs=1e9;
     dets.forEach((d,j)=>{if(used.has(j))return;const dd=Math.abs(d.t-target);if(dd>w)return;const sc=dd-(pitchOk(d,e.m)?1:0);if(sc<bs){bs=sc;bi=j;}});
-    if(bi<0)return {k:e.k,st:"miss",want:e.m};used.add(bi);const d=dets[bi],good=pitchOk(d,e.m);if(good)ok++;
-    return {k:e.k,st:good?"ok":"bad",want:e.m,heard:d.midi,dt:d.t-target};});
+    if(bi<0)return {k:e.k,st:"miss",want:e.m,s:e.s,f:e.f};used.add(bi);const d=dets[bi],good=pitchOk(d,e.m);if(good)ok++;
+    return {k:e.k,st:good?"ok":"bad",want:e.m,s:e.s,f:e.f,heard:d.midi,dt:d.t-target};});
   return {ok,res,used};
 }
 function finalScore(p){
@@ -1199,9 +1219,9 @@ function stoppedEarly(p){
 const lastResult={};
 function paintResult(id,r,scroll){
   if(!r)return;
-  if(id!=="pos")r.res.forEach(x=>{const c=document.querySelector(`.col[data-id="${id}"][data-k="${x.k}"]`);if(c){c.classList.remove("r-ok","r-bad","r-miss");c.classList.add("r-"+x.st);}});
+  r.res.forEach(x=>{const c=document.querySelector(`.col[data-id="${id}"][data-k="${x.k}"]`);if(c){c.classList.remove("r-ok","r-bad","r-miss");c.classList.add("r-"+x.st);}});
   const el=document.getElementById("res-"+id);if(!el)return;
-  const pass=r.score>=S.pass,wrong=r.res.filter(x=>x.st!=="ok"),probs=wrong.slice(0,6).map(x=>x.st==="miss"?`${midiName(x.want)} not heard`:`${midiName(x.want)} expected, heard ${midiName(x.heard)}`);
+  const pass=r.score>=S.pass,wrong=r.res.filter(x=>x.st!=="ok"),probs=wrong.slice(0,6).map(x=>`line ${x.s} fret ${x.f} (${midiName(x.want)}): ${x.st==="miss"?"not heard":"heard "+midiName(x.heard)}`);
   const timing=r.cal?`timing ${r.avgDt>0?"+":""}${r.avgDt} ms on average`:`delay measured at ${r.delay} ms; calibrate earphones for stricter timing`;
   el.innerHTML=`<div class="score ${pass?"pass":"fail"}"><b>${r.score}%</b><div><div class="sh">${pass?"Passed. Next is unlocked.":`Not yet: ${S.pass}% needed. Try again.`}</div>
     <div class="sd">${r.ok} of ${r.total} notes right · ${r.bad} wrong · ${r.miss} missed${r.extra?` · ${r.extra} extra`:""} · ${timing}</div>
@@ -1350,7 +1370,7 @@ document.addEventListener("submit",e=>{if(e.target.id!=="buildForm")return;e.pre
   const c=toks.map(t=>Number(t)-1);
   if(!buildSeq(c,0,posData.notes.length).length){err.textContent="That cell is too wide for one position. Try smaller numbers.";return;}
   err.textContent="";if(play&&play.id==="x")stop();extra={c,i:-1,rh:Number(document.getElementById("xr").value)};
-  document.getElementById("extra").innerHTML=seqCard("x",extra,0,true);});
+  document.getElementById("extra").innerHTML=seqCard("x",extra,0,true);requestAnimationFrame(fixClefs);});
 document.addEventListener("keydown",e=>{
   if(e.key!==" "||["INPUT","SELECT","TEXTAREA","BUTTON","SUMMARY"].includes(e.target.tagName))return;
   const b=document.querySelector("#view [data-play]");if(!b)return;e.preventDefault();b.click();
