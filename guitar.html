@@ -478,8 +478,10 @@ const CAGED=[
 const shapeName=p=>CAGED[((p-1)%5+5)%5].n+" shape";
 const parentTonic=(scale,tonic)=>scale==="minpent"?(tonic+3)%12:tonic;
 function cagedNotes(majorTonic,p){
+  // closed shapes only: place the shape as low as it goes with every note fretted (no open strings)
   const sh=CAGED[((p-1)%5+5)%5],all=Object.values(sh.fr).flat();let shift=((majorTonic%12)+12)%12;
-  if(Math.min(...all)+shift-12>=0)shift-=12;
+  if(Math.min(...all)+shift-12>=1)shift-=12;
+  if(Math.min(...all)+shift<1)shift+=12;
   const notes=[];for(const s of [6,5,4,3,2,1])sh.fr[s].forEach((f,i)=>notes.push({s,f:f+shift,m:OPEN[s]+f+shift,fg:f+shift===0?0:sh.fg[s][i]}));
   return notes.sort((a,b)=>a.m-b.m);
 }
