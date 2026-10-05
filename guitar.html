@@ -318,6 +318,17 @@ select,input[type=range],input[type=checkbox]{accent-color:var(--accent)}
 .wiz{border:2px solid #c7d2fe;background:#fafaff;border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
 .wiz p{margin:0}
 .wiz pre{white-space:pre-wrap;word-break:break-word;font:12px/1.4 var(--mono);background:#fff;border:1px solid var(--line);border-radius:8px;padding:8px;margin:8px 0}
+
+.groove{margin-top:14px;padding:12px 14px;border-radius:12px;background:#f0f9ff;border:1px solid #bae6fd;display:flex;flex-direction:column;gap:8px}
+.groove p{margin:0;color:var(--ink);max-width:70ch}
+.groove .rlab{color:#0369a1}
+.dgrid{display:grid;gap:3px;align-items:center;overflow-x:auto}
+.dl{font:600 11px var(--body);color:var(--muted);padding-right:8px;white-space:nowrap}
+.dc{font:500 9px var(--mono);color:var(--muted);text-align:center}
+.dc.bt{color:var(--ink);font-weight:700}
+.d{display:block;height:14px;border-radius:3px;background:#e0f2fe}
+.d.bt{box-shadow:inset 2px 0 0 #7dd3fc}
+.d.on{background:#0284c7}.d.gh{background:#7dd3fc}.d.op{background:#fff;box-shadow:inset 0 0 0 2px #0284c7}
 </style>
 
 <header class="top"><div class="hin">
@@ -499,7 +510,7 @@ function buildSeq(c,alt,N){
 }
 
 /* ===================== State ===================== */
-const S={keyPc:7,tempo:72,click:true,loop:true,countin:true,chords:true,labels:"fingers",listen:true,pass:100,latency:null,micId:"",guide:false,hearNotes:true,audioMode:"keep"};
+const S={keyPc:7,tempo:72,click:true,loop:true,countin:true,chords:true,labels:"fingers",listen:true,pass:100,latency:null,micId:"",guide:false,hearNotes:true,audioMode:"keep",drums:true};
 let sessions={},today=null,posData=null,store=null,extra=null;
 const pad=n=>String(n).padStart(2,"0");
 const dkey=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
@@ -554,7 +565,13 @@ function planSession(){
   const voc=VOC.map((v,i)=>({i,k:"v"+i,s:v.s,x:r()})).filter(o=>o.s===scale&&!prevKeys.has(o.k))
     .map(o=>({...o,p:plays[o.k]||0,l:last[o.k]||""})).sort(rank).slice(0,2).map(o=>o.i).sort((a,b)=>a-b);
   const items=[...seq.map((i,j)=>({k:"s",i,rh:rh[j]})),...voc.map(i=>({k:"v",i}))];
-  return {id,started:dkey(now)+"T"+pad(now.getHours())+":"+pad(now.getMinutes())+":"+pad(now.getSeconds()),scale,cyc,stage,step,tempo,position:order[0],items,done:[],finished:false};
+  const gUse={},taken=new Set();past.forEach(d=>{(d.items||[]).forEach(x=>{if(x.gr!=null)gUse[x.gr]=(gUse[x.gr]||0)+1;});if(d.boxGr!=null)gUse[d.boxGr]=(gUse[d.boxGr]||0)+1;});
+  const pickG=(fam,pref)=>{const best=GROOVES.map((g,i)=>({i,g})).filter(o=>o.g.fam===fam)
+      .map(o=>({i:o.i,s:(gUse[o.i]||0)+(taken.has(o.i)?5:0)-(pref&&o.g.n===pref?0.6:0)+r()*0.5})).sort((a,b)=>a.s-b.s)[0].i;
+    taken.add(best);gUse[best]=(gUse[best]||0)+1;return best;};
+  items.forEach(it=>{it.gr=pickG(famOfItem(it),prefOfItem(it));});
+  const boxGr=pickG("straight",null);
+  return {id,started:dkey(now)+"T"+pad(now.getHours())+":"+pad(now.getMinutes())+":"+pad(now.getSeconds()),scale,cyc,stage,step,tempo,position:order[0],items,boxGr,done:[],finished:false};
 }
 
 /* ===================== Storage ===================== */
@@ -645,10 +662,90 @@ function vocEvents(vi,phraseOnly){
   return {ev,ch,total,bpb:4,R:null};
 }
 function eventsFor(id,ro,test){
-  if(id==="pos")return posEvents(test);
-  if(id==="x")return seqEvents(extra,ro);
-  const it=today.items[Number(id.slice(1))];
-  return it.k==="v"?vocEvents(it.i,ro):seqEvents(it,ro);
+  const gr=grooveOf(id);
+  if(ro==="groove"){const G=GROOVES[gr],T=2*G.bpb;return {ev:[{rest:1,b:0,d:T}],ch:[],total:T,bpb:G.bpb,R:null,gr};}
+  let E;
+  if(id==="pos")E=posEvents(test);
+  else if(id==="x")E=seqEvents(extra,ro);
+  else{const it=today.items[Number(id.slice(1))];E=it.k==="v"?vocEvents(it.i,ro):seqEvents(it,ro);}
+  E.gr=gr;return E;
+}
+
+/* ===================== Drums ===================== */
+/* Each groove is one bar. sub = steps per beat (4 = sixteenths, 3 = triplets), bpb = beats per bar.
+   In a part: x = hit, g = ghost (soft), o = open hi-hat (in the hi-hat row) or accent, . = rest */
+const KIT={y:"Ride",h:"Hi-hat",z:"Shaker",p:"Pedal hat",c:"Clap",s:"Snare",r:"Rim",t:"High tom",f:"Low tom",k:"Kick"};
+const GROOVES=[
+ {n:"Rock beat",g:"Rock, pop",fam:"straight",sub:4,bpb:4,d:"Kick on 1 and 3, snare on 2 and 4, steady eighth notes on the hi-hat. The backbone of rock and pop.",p:{h:"x.x.x.x.x.x.x.x.",s:"....x.......x...",k:"x.......x......."}},
+ {n:"Pop backbeat",g:"Pop, Bollywood pop",fam:"straight",sub:4,bpb:4,d:"Like the rock beat, with an extra kick on the & of 2 that pushes the groove forward.",p:{h:"x.x.x.x.x.x.x.x.",s:"....x.......x...",k:"x.....x.x......."}},
+ {n:"Four on the floor",g:"Disco, dance, house",fam:"straight",sub:4,bpb:4,d:"Kick on every beat, clap on 2 and 4, open hi-hat on every &. Made for dancing.",p:{h:"..o...o...o...o.",c:"....x.......x...",k:"x...x...x...x..."}},
+ {n:"Half-time",g:"Ballads, hip-hop, big rock choruses",fam:"straight",sub:4,bpb:4,d:"The snare lands only on beat 3, so the song feels half as fast while your notes stay at the same tempo.",p:{h:"x.x.x.x.x.x.x.x.",s:"........x.......",k:"x.........x....."}},
+ {n:"Funk sixteenths",g:"Funk, R&B",fam:"straight",sub:4,bpb:4,d:"Busy sixteenth notes on the hi-hat, a syncopated kick and soft ghost notes on the snare between the backbeats.",p:{h:"xgxgxgxgxgxgxgxg",s:"....x..g.g..x..g",k:"x.x.......x..x.."}},
+ {n:"Motown",g:"Soul, Motown, 60s pop",fam:"straight",sub:4,bpb:4,d:"Snare on all four beats, louder on 2 and 4, over a bouncing kick. Think tambourine and handclaps.",p:{h:"x.x.x.x.x.x.x.x.",s:"g...x...g...x...",k:"x..x....x..x...."}},
+ {n:"Train beat",g:"Country, rockabilly",fam:"straight",sub:4,bpb:4,d:"Rolling sixteenth notes on the snare with accents on 2 and 4, like a train on the tracks.",p:{s:"ggggxgggggggxggg",k:"x.......x......."}},
+ {n:"One drop",g:"Reggae",fam:"straight",sub:4,bpb:4,d:"Nothing on beat 1. Kick and rim click land together on beat 3, and the space makes the groove.",p:{h:"x.x.x.x.x.x.x.x.",r:"........x.......",k:"........x......."}},
+ {n:"Dembow",g:"Reggaeton, Latin pop, Bollywood dance",fam:"straight",sub:4,bpb:4,d:"Kick on every beat and snare on the 3+3+2 tresillo spots. The groove behind most reggaeton.",p:{h:"x.x.x.x.x.x.x.x.",s:"...x..x....x..x.",k:"x...x...x...x..."}},
+ {n:"Bossa nova",g:"Bossa nova, Latin jazz",fam:"straight",sub:4,bpb:4,d:"A soft kick on 1 and the & of 2, a rim click playing the bossa clave, and a shaker on the eighths.",p:{z:"x.x.x.x.x.x.x.x.",r:"x..x..x...x..x..",k:"x..xx..xx..xx..x"}},
+ {n:"Keherwa feel",g:"Indian film and folk songs",fam:"straight",sub:4,bpb:4,d:"The 8-beat Keherwa taal (Dha Ge Na Ti | Na Ke Dhi Na) played on drums: bass on Dha, Ge and Dhi, high tom on the other beats.",p:{z:"x.x.x.x.x.x.x.x.",t:"....x.x.x.x...x.",k:"x.x.........x..."}},
+ {n:"Shuffle",g:"Blues, rock and roll",fam:"swing",sub:3,bpb:4,d:"Long-short triplet feel on the hi-hat with a backbeat on 2 and 4. The sound of the blues.",p:{h:"x.xx.xx.xx.x",s:"...x.....x..",k:"x.....x....."}},
+ {n:"Jazz swing",g:"Jazz",fam:"swing",sub:3,bpb:4,d:"The ride cymbal's 'ding, ding-a-ding', hi-hat pedal on 2 and 4, and a soft kick on every beat.",p:{y:"x..x.xx..x.x",p:"...x.....x..",k:"g..g..g..g.."}},
+ {n:"12/8 slow blues",g:"Slow blues, soul ballads",fam:"swing",sub:3,bpb:4,d:"All twelve triplets on the hi-hat and a heavy backbeat: each beat is felt as three.",p:{h:"xxxxxxxxxxxx",s:"...x.....x..",k:"x.....x.x..."}},
+ {n:"6/8 ballad",g:"Ballads, waltz-like songs",fam:"six8",sub:3,bpb:2,d:"Kick on 1, snare on 4, and all six eighth notes on the hi-hat.",p:{h:"xxxxxx",s:"...x..",k:"x....."}},
+ {n:"Dadra feel",g:"Indian light classical, film songs",fam:"six8",sub:3,bpb:2,d:"The 6-beat Dadra taal (Dha Dhi Na | Dha Ti Na) on drums: bass on each Dha, high tom on Dhi and Ti, rim on Na.",p:{t:".x..x.",r:"..x..x",k:"x..x.."}},
+];
+function grooveFamily(R){return R&&R.compound?"six8":R&&(R.swing||R.n==="Triplets")?"swing":"straight";}
+function famOfItem(it){return it.k==="v"?(VOC[it.i].ph.indexOf("/3")>=0?"swing":"straight"):grooveFamily(RHY[it.rh]);}
+function prefOfItem(it){
+  if(it.k==="s")return {"Tresillo 3+3+2":"Dembow","Son clave 3-2":"Bossa nova","Off-beat push":"Funk sixteenths","Sixteenth notes":"Funk sixteenths","Swing eighths":"Shuffle","Phrase and breathe":"Half-time","Gallop":"Rock beat"}[RHY[it.rh].n]||null;
+  const g=VOC[it.i].g;return /Indian/.test(g)?"Keherwa feel":/Funk/.test(g)?"Funk sixteenths":/Country/.test(g)?"Train beat":/Latin/.test(g)?"Bossa nova":/Jazz|bebop/i.test(g)?"Jazz swing":/Gospel|Soul/.test(g)?"Motown":null;
+}
+function grooveOf(id){
+  let gr=null,fam="straight";
+  if(id==="pos")gr=today.boxGr;
+  else if(id==="x")fam=grooveFamily(RHY[extra.rh]);
+  else{const it=today.items[Number(id.slice(1))];gr=it.gr;fam=famOfItem(it);}
+  if(gr!=null&&GROOVES[gr])return gr;
+  const c=GROOVES.map((g,i)=>i).filter(i=>GROOVES[i].fam===fam);let h=0;for(const ch of (today.id||"")+id)h=(h*31+ch.charCodeAt(0))>>>0;return c[h%c.length];
+}
+function drumEvents(gr,total){
+  const G=GROOVES[gr];if(!G)return [];const steps=G.sub*G.bpb,out=[];
+  for(let bar=0;bar*G.bpb<total-1e-6;bar++)for(const [inst,pat] of Object.entries(G.p))for(let i=0;i<steps;i++){
+    const ch=pat[i];if(!ch||ch===".")continue;const b=bar*G.bpb+i/G.sub;if(b>=total-1e-6)continue;
+    out.push({b,inst:inst==="h"&&ch==="o"?"o":inst,v:ch==="g"?0.35:ch==="o"&&inst!=="h"?1.15:1});}
+  return out.sort((a,b)=>a.b-b.b);
+}
+let NOISE=null;
+function noiseBuf(){if(!NOISE||NOISE.sr!==ctx.sampleRate){const n=ctx.sampleRate,b=ctx.createBuffer(1,n,n),d=b.getChannelData(0);for(let i=0;i<n;i++)d[i]=Math.random()*2-1;NOISE={b,sr:n};}return NOISE.b;}
+function hit(inst,t,v){
+  const o=outNode(),V=0.8*v;
+  const env=(node,peak,dec,st)=>{const g=ctx.createGain();g.gain.setValueAtTime(0.0001,st);g.gain.exponentialRampToValueAtTime(Math.max(0.0002,peak),st+0.002);g.gain.exponentialRampToValueAtTime(0.0001,st+dec);node.connect(g).connect(o);};
+  const noise=(f,type,q,peak,dec,st=t)=>{const s=ctx.createBufferSource();s.buffer=noiseBuf();const fl=ctx.createBiquadFilter();fl.type=type;fl.frequency.value=f;if(q)fl.Q.value=q;s.connect(fl);env(fl,peak,dec,st);s.start(st,Math.random()*0.5);s.stop(st+dec+0.05);};
+  const tone=(f0,f1,type,peak,dec)=>{const os=ctx.createOscillator();os.type=type;os.frequency.setValueAtTime(f0,t);os.frequency.exponentialRampToValueAtTime(f1,t+dec*0.6);env(os,peak,dec,t);os.start(t);os.stop(t+dec+0.05);};
+  switch(inst){
+    case"k":tone(140,45,"sine",0.95*V,0.32);break;
+    case"s":tone(190,150,"triangle",0.25*V,0.12);noise(1800,"highpass",0,0.35*V,0.17);break;
+    case"r":tone(1700,1650,"square",0.05*V,0.03);noise(2500,"bandpass",2,0.18*V,0.04);break;
+    case"c":[0,0.011,0.023].forEach(dt=>noise(1200,"bandpass",1,0.3*V,0.1+dt,t+dt));break;
+    case"h":noise(8000,"highpass",0,0.13*V,0.045);break;
+    case"o":noise(7000,"highpass",0,0.12*V,0.3);break;
+    case"p":noise(6000,"highpass",0,0.08*V,0.05);break;
+    case"y":noise(5000,"highpass",0,0.08*V,0.5);tone(3300,3250,"square",0.012*V,0.45);break;
+    case"z":noise(6500,"highpass",0,0.07*V,0.06);break;
+    case"t":tone(260,180,"sine",0.5*V,0.22);break;
+    case"f":tone(130,90,"sine",0.55*V,0.3);break;
+  }
+}
+function grooveCounts(G,i){if(G.sub===4)return String(Math.floor(i/4)+1)+["","e","&","a"][i%4].replace(/^$/,"");
+  if(G.bpb===2)return String(i+1);return [String(Math.floor(i/3)+1),"tri","let"][i%3];}
+function groovePanel(id,gr){
+  const G=GROOVES[gr];if(!G)return "";const steps=G.sub*G.bpb;
+  const head=`<span class="dl"></span>`+[...Array(steps)].map((_,i)=>`<span class="dc${i%G.sub===0?" bt":""}">${G.sub===4?(i%4===0?i/4+1:["","e","&","a"][i%4]):grooveCounts(G,i)}</span>`).join("");
+  const rows=Object.keys(KIT).filter(k=>G.p[k]).map(k=>`<span class="dl">${KIT[k]}</span>`+[...G.p[k]].map((ch,i)=>`<i class="d${ch==="."?"":ch==="g"?" gh":ch==="o"?" op":" on"}${i%G.sub===0?" bt":""}"></i>`).join("")).join("");
+  return `<div class="groove"><div class="rtop"><span class="rlab">Drums</span><b>${G.n}</b><span class="rtag">${G.g}</span></div>
+    <p>${G.d}</p>
+    <div class="dgrid" style="grid-template-columns:max-content repeat(${steps},minmax(0,1fr))">${head}${rows}</div>
+    <div class="rfoot"><span class="rcount">${S.drums?"Filled squares are hits; pale ones are soft ghost notes; rings are an open hi-hat.":"Drums are switched off in your settings."}</span>
+    <button type="button" class="rbtn" data-groove="${id}" aria-pressed="false">🥁 Hear the groove</button></div></div>`;
 }
 
 /* ===================== Rendering ===================== */
@@ -692,6 +789,7 @@ function seqCard(id,it,idx,isExtra){
       <div class="rfoot"><span class="rcount"><span class="grid">${cycleGrid(R)}</span>${R.bpb?` <span class="gnote">${R.bpb} clicks per bar</span>`:""}</span>
       <button type="button" class="rbtn" data-rhy="${id}" aria-pressed="false">♪ Hear the rhythm</button></div>
       <p class="glegend">Highlighted counts are where you play; underlined ones are accented.</p></div>
+    ${groovePanel(id,grooveOf(id))}
     <div class="tabscroll"><div class="tab">${tabHTML(E,id)}</div></div></section>`;
 }
 function vocCard(id,it,idx){
@@ -711,6 +809,7 @@ function vocCard(id,it,idx){
       <p>Drill over <b class="prog">${prog}</b>. ${how}</p>
       <div class="rfoot"><span class="rcount">Learn the phrase on its own first, then play the drill.</span>
       <button type="button" class="rbtn" data-rhy="${id}" aria-pressed="false">♪ Hear the phrase</button></div></div>
+    ${groovePanel(id,grooveOf(id))}
     <div class="tabscroll"><div class="tab">${tabHTML(E,id)}</div></div></section>`;
 }
 /* ===================== Step-by-step session view ===================== */
@@ -764,7 +863,7 @@ function setupView(){
   const n=Object.values(sessions).filter(d=>d.done.length===5).length+1,st=new Date(today.started),fo=firstOpen(),fresh=!today.boxDone&&!today.done.length;
   const goLbl=fo==="box"?"Start with the box":fo==="summary"?"See the summary":`Continue with exercise ${fo+1}`;
   const plan=[`<li class="${today.boxDone?"ok":""}"><span class="pk">Box</span><span class="pn">${posLabel(today)}</span><span class="pd">${today.boxDone?"✓":""}</span></li>`,
-    ...today.items.map((it,j)=>`<li class="${itemDone(j)?"ok":""}"><span class="pk">${j+1}</span><span class="pn">${itemName(it)} <em>${itemKind(it)}${it.k==="s"?" · "+RHY[it.rh].n:""}</em></span><span class="pd">${itemDone(j)?"✓":""}</span></li>`)].join("");
+    ...today.items.map((it,j)=>`<li class="${itemDone(j)?"ok":""}"><span class="pk">${j+1}</span><span class="pn">${itemName(it)} <em>${itemKind(it)}${it.k==="s"?" · "+RHY[it.rh].n:""} · 🥁 ${GROOVES[grooveOf("i"+j)].n}</em></span><span class="pd">${itemDone(j)?"✓":""}</span></li>`)].join("");
   return `<section class="card">
     <div class="num">Session ${n} · planned ${st.toLocaleDateString(undefined,{weekday:"short",day:"numeric",month:"short"})}</div>
     <h2>${fresh?"A new session is ready":"Welcome back"}</h2>
@@ -776,7 +875,7 @@ function setupView(){
         <label class="ctl" for="key">Key <select id="key">${KEYS.map(([k,pc])=>`<option value="${pc}"${pc===S.keyPc?" selected":""}>${k}</option>`).join("")}</select></label>
         <label class="ctl tempo" for="tempo">Tempo <input type="range" id="tempo" min="20" max="200" step="1" value="${curTempo}"> <b id="tempoV">${curTempo}</b> bpm</label>
         <p class="tnote" id="tnote"></p>
-        ${[["click","Metronome"],["loop","Loop"],["countin","Count-in"],["chords","Backing chords"]].map(([k,l])=>`<label class="chk" for="${k}"><input type="checkbox" id="${k}"${S[k]?" checked":""}> ${l}</label>`).join("")}
+        ${[["drums","Drums"],["click","Metronome (when drums are off)"],["loop","Loop"],["countin","Count-in"],["chords","Backing chords"]].map(([k,l])=>`<label class="chk" for="${k}"><input type="checkbox" id="${k}"${S[k]?" checked":""}> ${l}</label>`).join("")}
       </div></div>
     </div>
     ${syncPanel()}
@@ -821,6 +920,7 @@ function boxView(){
     <h3 class="tabh">The box as tab</h3>
     <p class="tnote">${today.scale==="major"?"":"Listen plays the full major shape first, then this. "}From the root up to the top of the shape, down to the bottom, and back up to the root.</p>
     <div class="tabscroll"><div class="tab">${(()=>{const B=posEvents(true);if(B.ev.length&&B.ev[B.ev.length-1].rest)B.ev.pop();return tabHTML(B,"pos");})()}</div></div>
+    ${groovePanel("pos",grooveOf("pos"))}
     <div class="lblsw" role="group" aria-label="Diagram labels"><span>Show</span><button type="button" class="seg" data-labels="fingers" aria-pressed="${S.labels!=="degrees"}">Fingers</button><button type="button" class="seg" data-labels="degrees" aria-pressed="${S.labels==="degrees"}">Scale degrees</button></div>
     <div class="legend"><span><i class="dot sq" style="background:var(--root)"></i>${today.scale==="minpent"?NOTE[S.keyPc]+" minor root":"Root"}</span>${today.scale==="minpent"?`<span><i class="dot sq" style="background:var(--steel)"></i>${NOTE[(S.keyPc+3)%12]} major root, the shape's usual anchor</span>`:""}<span><i class="dot" style="background:var(--steel)"></i>Other scale notes</span><span id="lgExtra" hidden><i class="dot ring"></i>Major-scale notes the box leaves out</span><span>Fret numbers below the diagram</span></div>
     <div class="posbtn btns"><button class="play" type="button" id="posPlay" data-play="pos" aria-pressed="false">▶ Listen</button>${testBtn("pos")}</div>
@@ -839,7 +939,7 @@ function itemView(j){
 function summaryView(){
   const all=Object.values(sessions),tot=sesTime(today),rh=[...new Set(today.items.filter(x=>x.k==="s").map(x=>RHY[x.rh].n))];
   let nx=null;try{nx=planSession();}catch(e){}
-  const rows=today.items.map((it,j)=>`<tr><td class="n">${j+1}</td><td>${itemName(it)}<div class="sub">${itemKind(it)}${it.k==="s"?" · "+RHY[it.rh].n:""}</div></td><td class="n">${fmtMin(today.time&&today.time[keyOf(it)])}</td></tr>`).join("");
+  const rows=today.items.map((it,j)=>`<tr><td class="n">${j+1}</td><td>${itemName(it)}<div class="sub">${itemKind(it)}${it.k==="s"?" · "+RHY[it.rh].n:""} · 🥁 ${GROOVES[grooveOf("i"+j)].n}</div></td><td class="n">${fmtMin(today.time&&today.time[keyOf(it)])}</td></tr>`).join("");
   const tile=(v,l)=>`<div class="tile"><b>${v}</b><span>${l}</span></div>`;
   return `<section class="card">
     <div class="num">Session complete</div>
@@ -848,7 +948,7 @@ function summaryView(){
     <div class="tiles">${tile(today.tempo||curTempo,"bpm")}${tile(fmtMin(tot),"playing time")}${tile(rh.length,"rhythms")}${tile(today.items.filter(x=>x.k==="v").length,"phrases")}</div>
     <h3>What you practised</h3>
     <table class="hist"><thead><tr><th>#</th><th>Exercise</th><th>Time</th></tr></thead><tbody>
-      <tr><td class="n">–</td><td>The box<div class="sub">${SCALES[today.scale].name}</div></td><td class="n">${fmtMin(today.time&&today.time.box)}</td></tr>${rows}</tbody></table>
+      <tr><td class="n">–</td><td>The box<div class="sub">${SCALES[today.scale].name} · 🥁 ${GROOVES[grooveOf("pos")].n}</div></td><td class="n">${fmtMin(today.time&&today.time.box)}</td></tr>${rows}</tbody></table>
     <h3>Your stage</h3>
     ${stageHTML()}
     ${nx?`<div class="nextp"><div><div class="num">Next session</div><b>${nx.tempo!=null?nx.tempo+" bpm":"Your tempo"} · ${NOTE[S.keyPc]} ${SCALES[nx.scale].name}, ${shapeName(nx.position)}</b></div>
@@ -1003,10 +1103,10 @@ function chord(root,q,t,dur){
     o.frequency.value=440*Math.pow(2,(m-69)/12);gg.gain.value=g;o.connect(gg).connect(lp);o.start(t);o.stop(t+dur+.3);});
 }
 let play=null,curTempo=20;const spb=()=>60/curTempo;
-function setBtn(id,ro,on,test){const b=document.querySelector(test?`[data-test="${id}"]`:ro?`[data-rhy="${id}"]`:`[data-play="${id}"]`);
+function setBtn(id,ro,on,test){const b=document.querySelector(test?`[data-test="${id}"]`:ro==="groove"?`[data-groove="${id}"]`:ro?`[data-rhy="${id}"]`:`[data-play="${id}"]`);
   if(b&&test){b.classList.toggle("on",on);b.textContent=on?"■ Stop":"🎤 Play & score";}
   else if(b){b.classList.toggle("on",on);b.setAttribute("aria-pressed",on);
-    const voc=!!b.closest(".voc");b.textContent=on?"■ Stop":b.dataset.idle?b.dataset.idle:ro?(voc?"♪ Hear the phrase":"♪ Hear the rhythm"):(voc?"▶ Listen to the drill":"▶ Listen");}
+    const voc=!!b.closest(".voc");b.textContent=on?"■ Stop":b.dataset.groove!=null?"🥁 Hear the groove":b.dataset.idle?b.dataset.idle:ro?(voc?"♪ Hear the phrase":"♪ Hear the rhythm"):(voc?"▶ Listen to the drill":"▶ Listen");}
   const c=document.getElementById("card-"+id);if(c)c.classList.toggle("playing",on);}
 let wake=null;
 function logTime(p){const sec=(performance.now()-p.t0)/1000;if(!today||sec<1)return;
@@ -1020,9 +1120,10 @@ function start(id,ro,test){
   stop();audioCtx();
   const E=eventsFor(id,ro,test),ci=(S.countin||test)?(E.bpb<3?E.bpb*2:E.bpb):0;
   play={id,ro,test:!!test,expected:[],...E,evi:0,chi:0,cycle:0,clickBeat:-ci,vis:[],lastT:ctx.currentTime+.12,lastB:-ci};
+  play.dr=(S.drums||ro==="groove")&&E.gr!=null?drumEvents(E.gr,E.total):[];play.dri=0;
   play.testStart=play.lastT;if(test)liveInit(play);
   play.t0=performance.now();try{if(navigator.wakeLock)navigator.wakeLock.request("screen").then(l=>{wake=l;}).catch(()=>{});}catch(e){}
-  setBtn(id,ro,true,test);setNowbar(true);requestAnimationFrame(()=>startFollow(id));play.timer=setInterval(schedule,25);schedule();play.raf=requestAnimationFrame(draw);
+  setBtn(id,ro,true,test);setNowbar(true);requestAnimationFrame(()=>{if(ro!=="groove")startFollow(id);});play.timer=setInterval(schedule,25);schedule();play.raf=requestAnimationFrame(draw);
 }
 const b2t=b=>play.lastT+(b-play.lastB)*spb();
 function schedule(){
@@ -1032,12 +1133,14 @@ function schedule(){
     const off=play.cycle*play.total;
     const tN=play.evi<play.ev.length?b2t(off+play.ev[play.evi].b):Infinity;
     const tH=play.chi<play.ch.length?b2t(off+play.ch[play.chi].b):Infinity;
-    const tC=b2t(play.clickBeat),t=Math.min(tN,tH,tC);
+    const tD=play.dri<play.dr.length?b2t(off+play.dr[play.dri].b):Infinity;
+    const tC=b2t(play.clickBeat),t=Math.min(tN,tH,tC,tD);
     if(t>hz)break;
+    if(tD===t){const d=play.dr[play.dri++];hit(d.inst,tD,d.v);continue;}
     if(tH===t){const c=play.ch[play.chi++];if(S.chords&&(!play.test||(S.hearNotes&&!play.mute)))chord(c.root,c.q,tH,c.d*spb());continue;}
-    if(tC===t){if(play.test&&play.clickBeat<0)(play.ci=play.ci||[]).push(tC);if(play.clickBeat<0||S.click)click(tC,((play.clickBeat%play.bpb)+play.bpb)%play.bpb===0);play.clickBeat++;
+    if(tC===t){if(play.test&&play.clickBeat<0)(play.ci=play.ci||[]).push(tC);if(play.clickBeat<0||(S.click&&!play.dr.length))click(tC,((play.clickBeat%play.bpb)+play.bpb)%play.bpb===0);play.clickBeat++;
       if(play.clickBeat>=off+play.total&&play.evi>=play.ev.length){
-        if(play.test){play.clickBeat=Infinity;play.evi=Infinity;play.chi=Infinity;}else if(S.loop){play.cycle++;play.evi=0;play.chi=0;}else{const p=play;setTimeout(()=>{if(play===p)stop();},Math.max(0,(tC-now)*1000+300));play.clickBeat=Infinity;play.evi=Infinity;play.chi=Infinity;}}
+        if(play.test){play.clickBeat=Infinity;play.evi=Infinity;play.chi=Infinity;play.dri=Infinity;}else if(S.loop){play.cycle++;play.evi=0;play.chi=0;play.dri=0;}else{const p=play;setTimeout(()=>{if(play===p)stop();},Math.max(0,(tC-now)*1000+300));play.clickBeat=Infinity;play.evi=Infinity;play.chi=Infinity;play.dri=Infinity;}}
       continue;}
     const e=play.ev[play.evi];if(!e.rest){const m=e.m!=null?e.m:posData.notes[e.n].m;
       if(!play.test||(S.hearNotes&&!play.mute))note(m,tN,e.d*spb()*(e.last?1.6:1),e.a===2?.8:e.a?.66:.5);}
@@ -1079,7 +1182,7 @@ function setNowbar(on){
 }
 function draw(){if(!play)return;let k=null,fin=false;
   while(play.vis.length&&play.vis[0][0]<=ctx.currentTime){const v=play.vis.shift();k=v[1];if(v[2])fin=true;}
-  if(k!==null){document.querySelectorAll(".col.on,.dt.on").forEach(c=>c.classList.remove("on"));const e=play.ev[k];
+  if(k!==null&&play.ro!=="groove"){document.querySelectorAll(".col.on,.dt.on").forEach(c=>c.classList.remove("on"));const e=play.ev[k];
     const c=play.id==="pos"?(e&&e.sf?document.querySelector(`.dt[data-sf="${e.sf}"]`):null):document.querySelector(`.col[data-id="${play.id}"][data-k="${k}"]`);if(c)c.classList.add("on");
     if(play.id==="pos"&&e&&e.tk!=null){const tc=document.querySelector(`.col[data-id="pos"][data-k="${e.tk}"]`);if(tc)tc.classList.add("on");}
     followEl(play.id==="pos"?(e&&e.tk!=null?document.querySelector(`.col[data-id="pos"][data-k="${e.tk}"]`):document.querySelector("#fretboard svg")):c);
@@ -1469,6 +1572,7 @@ function syncPanel(){
 
 /* ===================== Controls ===================== */
 document.addEventListener("click",e=>{
+  const gb=e.target.closest("[data-groove]");if(gb){const id=gb.dataset.groove;(play&&play.id===id&&play.ro==="groove")?stop():start(id,"groove");return;}
   const p=e.target.closest("[data-play],[data-rhy]");if(p){const ro=!!p.dataset.rhy,id=ro?p.dataset.rhy:p.dataset.play;
     (play&&play.id===id&&play.ro===ro)?stop():start(id,ro);return;}
   const g=e.target.closest("[data-go]");if(g){const v=g.dataset.go;go(/^\d$/.test(v)?Number(v):v);return;}
@@ -1492,7 +1596,7 @@ document.addEventListener("click",e=>{
 document.addEventListener("change",e=>{
   const t=e.target;
   if(t.id==="key"){S.keyPc=Number(t.value);persistSettings();render();}
-  else if(["click","loop","countin","chords","guide","hearNotes"].includes(t.id)){S[t.id]=t.checked;persistSettings();}
+  else if(["click","loop","countin","chords","guide","hearNotes","drums"].includes(t.id)){S[t.id]=t.checked;persistSettings();}
   else if(t.id==="listen"){S.listen=t.checked;persistSettings();render();}
   else if(t.id==="pass"){S.pass=Number(t.value);persistSettings();}
   else if(t.id==="mic"){S.micId=t.value;persistSettings();stopListening();ensureListening().then(render);}
