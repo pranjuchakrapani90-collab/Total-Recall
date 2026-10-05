@@ -332,6 +332,15 @@ select,input[type=range],input[type=checkbox]{accent-color:var(--accent)}
 
 .pdesc{font-size:16px;line-height:1.6;color:var(--ink)!important;max-width:62ch}
 .pdesc b{font-family:var(--mono);font-weight:700}
+
+.mix{display:flex;flex-direction:column;gap:6px;margin-top:6px;padding-top:8px;border-top:1px solid var(--line)}
+.mix h4{margin:0;font:600 13px var(--body);color:var(--ink)}
+.mixrow{display:grid;grid-template-columns:104px minmax(0,1fr) 4.5ch;gap:8px;align-items:center;width:100%}
+.mixrow input{width:100%;min-width:0}
+.mixrow b{text-align:right}
+.nbmix{display:flex;align-items:center;gap:4px;flex:1;min-width:0;max-width:220px}
+.nbmix input{flex:1;min-width:0;width:60px}
+.nbmix label{font-size:14px}
 </style>
 
 <header class="top"><div class="hin">
@@ -349,7 +358,7 @@ select,input[type=range],input[type=checkbox]{accent-color:var(--accent)}
 <div class="wrap">
 <nav class="stepper" id="stepper" aria-label="Session steps"></nav>
 <div class="ctx" id="ctx" hidden></div>
-<div id="nowbar" class="nowbar" hidden><span id="nbInfo" class="nbinfo">Playing</span><button type="button" id="nbResume" data-resume="1" hidden>🔈 Restore sound</button><button type="button" class="play" data-nbstop="1">■ Stop</button></div>
+<div id="nowbar" class="nowbar" hidden><span id="nbInfo" class="nbinfo">Playing</span><span class="nbmix"><label for="nbvDrums">🥁</label><input type="range" id="nbvDrums" min="0" max="150" step="5" aria-label="Drums volume"><label for="nbvNotes">♪</label><input type="range" id="nbvNotes" min="0" max="100" step="5" aria-label="Guide notes volume"></span><button type="button" id="nbResume" data-resume="1" hidden>🔈 Restore sound</button><button type="button" class="play" data-nbstop="1">■ Stop</button></div>
 <main id="view"><div class="loading">Loading your session…</div></main>
 <p class="note" id="syncNote"></p>
 </div>
@@ -513,7 +522,7 @@ function buildSeq(c,alt,N){
 }
 
 /* ===================== State ===================== */
-const S={keyPc:7,tempo:72,click:true,loop:true,countin:true,chords:true,labels:"fingers",listen:true,pass:100,latency:null,micId:"",guide:false,hearNotes:true,audioMode:"keep",drums:true};
+const S={keyPc:7,tempo:72,click:true,loop:true,countin:true,chords:true,labels:"fingers",listen:true,pass:100,latency:null,micId:"",guide:false,hearNotes:true,audioMode:"keep",drums:true,vDrums:1.2,vNotes:0.22,vChords:0.35};
 let sessions={},today=null,posData=null,store=null,extra=null;
 const pad=n=>String(n).padStart(2,"0");
 const dkey=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
@@ -720,17 +729,17 @@ function drumEvents(gr,total){
 let NOISE=null;
 function noiseBuf(){if(!NOISE||NOISE.sr!==ctx.sampleRate){const n=ctx.sampleRate,b=ctx.createBuffer(1,n,n),d=b.getChannelData(0);for(let i=0;i<n;i++)d[i]=Math.random()*2-1;NOISE={b,sr:n};}return NOISE.b;}
 function hit(inst,t,v){
-  const o=outNode(),V=0.8*v;
+  const o=outNode(),V=1.25*v*(S.vDrums!=null?S.vDrums:1.2);if(V<=0.001)return;
   const env=(node,peak,dec,st)=>{const g=ctx.createGain();g.gain.setValueAtTime(0.0001,st);g.gain.exponentialRampToValueAtTime(Math.max(0.0002,peak),st+0.002);g.gain.exponentialRampToValueAtTime(0.0001,st+dec);node.connect(g).connect(o);};
   const noise=(f,type,q,peak,dec,st=t)=>{const s=ctx.createBufferSource();s.buffer=noiseBuf();const fl=ctx.createBiquadFilter();fl.type=type;fl.frequency.value=f;if(q)fl.Q.value=q;s.connect(fl);env(fl,peak,dec,st);s.start(st,Math.random()*0.5);s.stop(st+dec+0.05);};
   const tone=(f0,f1,type,peak,dec)=>{const os=ctx.createOscillator();os.type=type;os.frequency.setValueAtTime(f0,t);os.frequency.exponentialRampToValueAtTime(f1,t+dec*0.6);env(os,peak,dec,t);os.start(t);os.stop(t+dec+0.05);};
   switch(inst){
-    case"k":tone(140,45,"sine",0.95*V,0.32);break;
-    case"s":tone(190,150,"triangle",0.25*V,0.12);noise(1800,"highpass",0,0.35*V,0.17);break;
+    case"k":tone(140,45,"sine",0.95*V,0.38);break;
+    case"s":tone(190,150,"triangle",0.35*V,0.14);noise(1800,"highpass",0,0.55*V,0.2);break;
     case"r":tone(1700,1650,"square",0.05*V,0.03);noise(2500,"bandpass",2,0.18*V,0.04);break;
     case"c":[0,0.011,0.023].forEach(dt=>noise(1200,"bandpass",1,0.3*V,0.1+dt,t+dt));break;
-    case"h":noise(8000,"highpass",0,0.13*V,0.045);break;
-    case"o":noise(7000,"highpass",0,0.12*V,0.3);break;
+    case"h":noise(8000,"highpass",0,0.2*V,0.05);break;
+    case"o":noise(7000,"highpass",0,0.18*V,0.32);break;
     case"p":noise(6000,"highpass",0,0.08*V,0.05);break;
     case"y":noise(5000,"highpass",0,0.08*V,0.5);tone(3300,3250,"square",0.012*V,0.45);break;
     case"z":noise(6500,"highpass",0,0.07*V,0.06);break;
@@ -858,6 +867,8 @@ const itemName=it=>it.k==="v"?VOC[it.i].n:EX[it.i].t;
 const itemKind=it=>it.k==="v"?"Phrase":"Sequence";
 const posLabel=(d)=>`${NOTE[S.keyPc]} ${SCALES[d.scale].name}, ${shapeName(d.position)}`;
 
+function mixHTML(){return [["vDrums","🥁 Drums",150],["vNotes","♪ Guide notes",100],["vChords","Chords",100]].map(([k,l,mx])=>
+  `<label class="ctl mixrow" for="${k}"><span>${l}</span><input type="range" id="${k}" min="0" max="${mx}" step="5" value="${Math.round((S[k]!=null?S[k]:0)*100)}"><b id="${k}V">${Math.round((S[k]!=null?S[k]:0)*100)}</b></label>`).join("");}
 function setTempoNote(){
   const n=document.getElementById("tnote");if(!n||!today)return;
   n.textContent=today.tempo==null?"":curTempo===today.tempo?"Set by the trainer for this session.":`The trainer set ${today.tempo} bpm. Your change lasts for this sitting only.`;
@@ -905,6 +916,7 @@ function setupView(){
         <label class="ctl tempo" for="tempo">Tempo <input type="range" id="tempo" min="20" max="200" step="1" value="${curTempo}"> <b id="tempoV">${curTempo}</b> bpm</label>
         <p class="tnote" id="tnote"></p>
         ${[["drums","Drums"],["click","Metronome (when drums are off)"],["loop","Loop"],["countin","Count-in"],["chords","Backing chords"]].map(([k,l])=>`<label class="chk" for="${k}"><input type="checkbox" id="${k}"${S[k]?" checked":""}> ${l}</label>`).join("")}
+        <div class="mix"><h4>Mix</h4>${mixHTML()}</div>
       </div></div>
     </div>
     ${syncPanel()}
@@ -1120,12 +1132,12 @@ function pluckBuf(m){const ck=m+"@"+ctx.sampleRate;if(cache[ck])return cache[ck]
   let x=0;for(let i=0;i<len;i++){const v=dl[x],nx=dl[(x+1)%N];dl[x]=.997*.5*(v+nx);d[i]=v;x=(x+1)%N;}
   return cache[ck]=buf;}
 function note(m,t,dur,gain=.55){const s=ctx.createBufferSource();s.buffer=pluckBuf(m);const g=ctx.createGain();
-  g.gain.setValueAtTime(gain,t);g.gain.setTargetAtTime(0,t+Math.max(dur*.95,.05),.04);s.connect(g).connect(outNode());s.start(t);s.stop(t+dur+.4);}
+  g.gain.setValueAtTime(Math.max(0.0001,gain*(S.vNotes!=null?S.vNotes:0.22)),t);g.gain.setTargetAtTime(0,t+Math.max(dur*.95,.05),.04);s.connect(g).connect(outNode());s.start(t);s.stop(t+dur+.4);}
 function click(t,a){const o=ctx.createOscillator(),g=ctx.createGain();o.frequency.value=a?1800:1200;
   g.gain.setValueAtTime(a?.22:.12,t);g.gain.exponentialRampToValueAtTime(.0001,t+.05);o.connect(g).connect(outNode());o.start(t);o.stop(t+.06);}
 function chord(root,q,t,dur){
   const pc=(S.keyPc+root)%12,out=ctx.createGain(),lp=ctx.createBiquadFilter();lp.type="lowpass";lp.frequency.value=1400;
-  out.gain.setValueAtTime(0,t);out.gain.linearRampToValueAtTime(1,t+.04);out.gain.setTargetAtTime(0,t+dur-.08,.06);
+  const cv=S.vChords!=null?S.vChords:0.35;out.gain.setValueAtTime(0,t);out.gain.linearRampToValueAtTime(Math.max(0.0001,cv),t+.04);out.gain.setTargetAtTime(0,t+dur-.08,.06);
   lp.connect(out).connect(outNode());
   const mids=QINT[q].map(i=>{let m=48+((pc+i)%12);if(m<52)m+=12;return m;}),bass=36+pc;
   [...mids.map(m=>[m,.045]),[bass,.09]].forEach(([m,g])=>{const o=ctx.createOscillator(),gg=ctx.createGain();o.type="triangle";
@@ -1207,6 +1219,7 @@ function startFollow(id){
 }
 function setNowbar(on){
   const nb=document.getElementById("nowbar");if(!nb)return;nb.hidden=!on;
+  const a=document.getElementById("nbvDrums"),b=document.getElementById("nbvNotes");if(a)a.value=Math.round((S.vDrums||0)*100);if(b)b.value=Math.round((S.vNotes||0)*100);
   if(on){document.getElementById("nbInfo").textContent=play&&play.test?"Listening to you…":"Playing";}
 }
 function draw(){if(!play)return;let k=null,fin=false;
@@ -1234,13 +1247,21 @@ function audioCtx(){
     ctx.onstatechange=()=>{const b=document.getElementById("nbResume");if(b)b.hidden=ctx.state==="running";if(ctx.state!=="running"&&play)ctx.resume().catch(()=>{});};}
   ctx.resume().catch(()=>{});return ctx;}
 let OUTD=null,outEl=null,outFor=null;
-function outNode(){ // "element" route plays the sound through a media player instead of straight to the speaker
+function rawOut(){ // "element" route plays the sound through a media player instead of straight to the speaker
   if(S.audioMode==="element"){
     if(outFor!==ctx){OUTD=ctx.createMediaStreamDestination();outFor=ctx;
       if(!outEl){outEl=document.createElement("audio");outEl.setAttribute("playsinline","");outEl.autoplay=true;document.body.appendChild(outEl);}
       outEl.srcObject=OUTD.stream;}
     if(outEl.paused)outEl.play().catch(()=>{});return OUTD;}
   return ctx.destination;
+}
+let MASTER=null;
+function outNode(){ // everything goes through one limiter, so turning the drums up never distorts
+  const dest=rawOut();
+  if(!MASTER||MASTER.context!==ctx||MASTER._dest!==dest){MASTER=ctx.createDynamicsCompressor();
+    MASTER.threshold.value=-10;MASTER.knee.value=6;MASTER.ratio.value=8;MASTER.attack.value=0.002;MASTER.release.value=0.15;
+    MASTER.connect(dest);MASTER._dest=dest;}
+  return MASTER;
 }
 function restartOut(){if(play)return;try{if(ctx)ctx.close();}catch(e){}ctx=null;outFor=null;audioCtx();}
 function micCtx(){if(!L.ctx||L.ctx.state==="closed"){L.ctx=new (window.AudioContext||window.webkitAudioContext)({latencyHint:"interactive"});L.workletReady=false;}L.ctx.resume().catch(()=>{});return L.ctx;}
@@ -1631,6 +1652,9 @@ document.addEventListener("change",e=>{
   else if(t.id==="mic"){S.micId=t.value;persistSettings();stopListening();ensureListening().then(render);}
 });
 document.addEventListener("input",e=>{
+  if(["vDrums","vNotes","vChords"].includes(e.target.id)){const id=e.target.id,v=Number(e.target.value);S[id]=v/100;
+    document.querySelectorAll(`#${id}V`).forEach(x=>x.textContent=v);document.querySelectorAll(`#${id},#nb${id}`).forEach(x=>{if(x!==e.target)x.value=v;});persistSettings();return;}
+  if(e.target.id==="nbvNotes"||e.target.id==="nbvDrums"){const id=e.target.id.slice(2),v=Number(e.target.value);S[id]=v/100;persistSettings();return;}
   if(e.target.id!=="tempo")return;curTempo=Number(e.target.value);document.getElementById("tempoV").textContent=curTempo;
   if(today&&today.tempo==null){S.tempo=curTempo;persistSettings();}setTempoNote();
 });
