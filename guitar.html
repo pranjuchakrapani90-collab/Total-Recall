@@ -777,7 +777,6 @@ function setupView(){
         ${[["click","Metronome"],["loop","Loop"],["countin","Count-in"],["chords","Backing chords"]].map(([k,l])=>`<label class="chk" for="${k}"><input type="checkbox" id="${k}"${S[k]?" checked":""}> ${l}</label>`).join("")}
       </div></div>
     </div>
-    ${listenPanel()}
     ${syncPanel()}
     ${navHTML(null,`<button type="button" class="play big" data-go="${fo}">${goLbl} ▸</button>`)}
   </section>`;
@@ -800,13 +799,11 @@ function listenPanel(){
     <div id="wiz" class="wiz" hidden></div>
   </div>`;
 }
-function testBtn(id){return S.listen?`<button type="button" class="tbtn" data-test="${id}">🎤 Play &amp; score</button>`:"";}
+function testBtn(id){return "";}
 function testPanel(id,key){
-  const sc=today.scores&&today.scores[key];
-  return `<p class="howto"><b>▶ Listen</b>: the trainer plays it for you. Play along to learn it; nothing is scored.${S.listen?` <b>🎤 Play &amp; score</b>: after a count-in you play it while the microphone checks every note${S.hearNotes?"; the trainer plays it in your earphone at the same time":"; you hear only the click"}.${sc?` <span class="best">Best so far: ${sc.best}%${sc.passed?" ✓ passed":""}</span>`:""}`:""}</p>
-  <div class="tpanel" id="tp-${id}" hidden></div><div class="res" id="res-${id}"></div>`;
+  return `<p class="howto"><b>▶ Listen</b>: the trainer plays it for you with the click. Play along from the tab, and tap Done when it feels right.</p>`;
 }
-const gateOk=key=>!S.listen||!!(today.scores&&today.scores[key]&&today.scores[key].passed);
+const gateOk=key=>true;
 function boxView(){
   const sc=SCALES[today.scale],fr=posData.notes.map(n=>n.f),lo=Math.min(...fr),hi=Math.max(...fr),first=sc.lab[posData.notes[0].deg];
   const txt=today.scale==="major"
@@ -820,7 +817,7 @@ function boxView(){
     <p id="posWhy" hidden></p>
     <div id="fretboard" class="board"></div>
     <h3 class="tabh">The box as tab</h3>
-    <p class="tnote">${today.scale==="major"?"":"Listen plays the full major shape first, then this. "}From the root up to the top of the shape, down to the bottom, and back up to the root. This is what Play &amp; score checks.</p>
+    <p class="tnote">${today.scale==="major"?"":"Listen plays the full major shape first, then this. "}From the root up to the top of the shape, down to the bottom, and back up to the root.</p>
     <div class="tabscroll"><div class="tab">${(()=>{const B=posEvents(true);if(B.ev.length&&B.ev[B.ev.length-1].rest)B.ev.pop();return tabHTML(B,"pos");})()}</div></div>
     <div class="lblsw" role="group" aria-label="Diagram labels"><span>Show</span><button type="button" class="seg" data-labels="fingers" aria-pressed="${S.labels!=="degrees"}">Fingers</button><button type="button" class="seg" data-labels="degrees" aria-pressed="${S.labels==="degrees"}">Scale degrees</button></div>
     <div class="legend"><span><i class="dot sq" style="background:var(--root)"></i>${today.scale==="minpent"?NOTE[S.keyPc]+" minor root":"Root"}</span>${today.scale==="minpent"?`<span><i class="dot sq" style="background:var(--steel)"></i>${NOTE[(S.keyPc+3)%12]} major root, the shape's usual anchor</span>`:""}<span><i class="dot" style="background:var(--steel)"></i>Other scale notes</span><span id="lgExtra" hidden><i class="dot ring"></i>Major-scale notes the box leaves out</span><span>Fret numbers below the diagram</span></div>
@@ -840,7 +837,7 @@ function itemView(j){
 function summaryView(){
   const all=Object.values(sessions),tot=sesTime(today),rh=[...new Set(today.items.filter(x=>x.k==="s").map(x=>RHY[x.rh].n))];
   let nx=null;try{nx=planSession();}catch(e){}
-  const rows=today.items.map((it,j)=>`<tr><td class="n">${j+1}</td><td>${itemName(it)}<div class="sub">${itemKind(it)}${it.k==="s"?" · "+RHY[it.rh].n:""}</div></td><td class="n">${fmtMin(today.time&&today.time[keyOf(it)])}</td><td class="n">${today.scores&&today.scores[keyOf(it)]?today.scores[keyOf(it)].best+"%":"–"}</td></tr>`).join("");
+  const rows=today.items.map((it,j)=>`<tr><td class="n">${j+1}</td><td>${itemName(it)}<div class="sub">${itemKind(it)}${it.k==="s"?" · "+RHY[it.rh].n:""}</div></td><td class="n">${fmtMin(today.time&&today.time[keyOf(it)])}</td></tr>`).join("");
   const tile=(v,l)=>`<div class="tile"><b>${v}</b><span>${l}</span></div>`;
   return `<section class="card">
     <div class="num">Session complete</div>
@@ -848,8 +845,8 @@ function summaryView(){
     <p class="lead">${posLabel(today)} at ${today.tempo||curTempo} bpm, finished ${(()=>{const l=Object.values(today.doneAt||{}).sort().pop();if(!l)return new Date();const[y,m,d]=l.split("-").map(Number);return new Date(y,m-1,d);})().toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"short"})}.</p>
     <div class="tiles">${tile(today.tempo||curTempo,"bpm")}${tile(fmtMin(tot),"playing time")}${tile(rh.length,"rhythms")}${tile(today.items.filter(x=>x.k==="v").length,"phrases")}</div>
     <h3>What you practised</h3>
-    <table class="hist"><thead><tr><th>#</th><th>Exercise</th><th>Time</th><th>Score</th></tr></thead><tbody>
-      <tr><td class="n">–</td><td>The box<div class="sub">${SCALES[today.scale].name}</div></td><td class="n">${fmtMin(today.time&&today.time.box)}</td><td class="n">${today.scores&&today.scores.box?today.scores.box.best+"%":"–"}</td></tr>${rows}</tbody></table>
+    <table class="hist"><thead><tr><th>#</th><th>Exercise</th><th>Time</th></tr></thead><tbody>
+      <tr><td class="n">–</td><td>The box<div class="sub">${SCALES[today.scale].name}</div></td><td class="n">${fmtMin(today.time&&today.time.box)}</td></tr>${rows}</tbody></table>
     <h3>Your stage</h3>
     ${stageHTML()}
     ${nx?`<div class="nextp"><div><div class="num">Next session</div><b>${nx.tempo!=null?nx.tempo+" bpm":"Your tempo"} · ${NOTE[S.keyPc]} ${SCALES[nx.scale].name}, ${shapeName(nx.position)}</b></div>
