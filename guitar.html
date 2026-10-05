@@ -329,6 +329,9 @@ select,input[type=range],input[type=checkbox]{accent-color:var(--accent)}
 .d{display:block;height:14px;border-radius:3px;background:#e0f2fe}
 .d.bt{box-shadow:inset 2px 0 0 #7dd3fc}
 .d.on{background:#0284c7}.d.gh{background:#7dd3fc}.d.op{background:#fff;box-shadow:inset 0 0 0 2px #0284c7}
+
+.pdesc{font-size:16px;line-height:1.6;color:var(--ink)!important;max-width:62ch}
+.pdesc b{font-family:var(--mono);font-weight:700}
 </style>
 
 <header class="top"><div class="hin">
@@ -748,6 +751,31 @@ function groovePanel(id,gr){
     <button type="button" class="rbtn" data-groove="${id}" aria-pressed="false">🥁 Hear the groove</button></div></div>`;
 }
 
+/* ===================== Pattern descriptions in words (book style) ===================== */
+const NUMW=["zero","one","two","three","four","five","six","seven","eight","nine","ten","eleven","twelve","thirteen","fourteen","fifteen","sixteen"];
+const ORD=["","","2nd","3rd","4th","5th","6th","7th","octave"];
+function describeCell(c,alt,scale){
+  const pent=scale&&scale!=="major",oct=pent?5:7,n=c.length,mv=[];
+  for(let i=1;i<n;i++)mv.push(c[i]-c[i-1]);
+  // group the moves: runs of single steps, runs of equal leaps, repeated notes
+  const seg=[];for(const d of mv){const kind=d===0?"rep":Math.abs(d)===1?"step":"leap",last=seg[seg.length-1];
+    if(last&&last.kind===kind&&Math.sign(last.d)===Math.sign(d)&&(kind!=="leap"||last.d===d))last.k++;else seg.push({kind,d,k:1});}
+  const leapName=d=>{const a=Math.abs(d);if(a===oct)return "an octave";if(pent)return a===2?"one note (skipping one)":`${NUMW[a]} notes (skipping ${NUMW[a-1]})`;return (a===8?"an ":"a ")+(ORD[a+1]||a+" steps");};
+  const parts=seg.map((s,i)=>{const up=s.d>0,prev=seg[i-1];
+    if(s.kind==="rep")return s.k===1?"repeats the note":`repeats the note ${s.k===2?"twice":NUMW[s.k]+" times"}`;
+    if(s.kind==="leap"){if(s.k===1)return `jumps ${up?"up":"down"} ${leapName(s.d)}`;
+      const a=Math.abs(s.d);return `${up?"ascends":"descends"} by ${NUMW[s.k]} consecutive ${a===oct?"octaves":pent?"skips":ORD[a+1]+"s"}`;}
+    const afterTurn=prev&&prev.kind==="step";             // a run that turns back from another run counts only its new notes
+    if(s.k===1)return afterTurn?`steps back ${up?"up":"down"}`:`steps ${up?"up":"down"}`;
+    return `${up?"ascends":"descends"} ${NUMW[afterTurn?s.k:s.k+1]} notes`;});
+  const list=parts.length<2?parts.join(""):parts.slice(0,-1).join(", ")+", then "+parts[parts.length-1];
+  const art=/^(eight|eleven)/.test(NUMW[n])?"an":"a";
+  let txt=`${art[0].toUpperCase()+art.slice(1)} ${NUMW[n]}-note cell that ${list}.`;
+  txt+=` The cell starts one scale note higher each time up to the top of the ${pent?"box":"position"}, then comes back down turned upside down`;
+  txt+=alt?", and every other repeat is played backwards, so the line zig-zags.":".";
+  return txt;
+}
+
 /* ===================== Rendering ===================== */
 function tabHTML(E,id){
   const {ev,ch,bpb,R}=E,labels={};ch.forEach(c=>{if(c.label)labels[Math.round(c.b/bpb)]=chordName(c.root,c.q);});
@@ -780,7 +808,8 @@ function seqCard(id,it,idx,isExtra){
       <div class="num">${isExtra?"Extra":`${idx+1} of 5 · Sequence · ${ct.name}`}</div>
       <h2>${isExtra?"Your cell "+lab(ex.c):(ex.t===lab(ex.c)?ex.t:ex.t)}</h2>
       <div class="meta"><span class="chip">${R.n}</span><span class="chip m">cell ${lab(ex.c)}${ex.alt?" / reversed":""}</span><span class="chip t">${nn} notes</span></div>
-      <p>${isExtra?"Built in this session's position, up and back down.":ct.desc+" Up the position and back down."}</p>
+      <p class="pdesc">${(()=>{const d=describeCell(ex.c,ex.alt,today.scale);return `<b>Pattern ${lab(ex.c)}</b> is ${d[0].toLowerCase()+d.slice(1)}`;})()}</p>
+      ${isExtra?"":`<p>${ct.desc}</p>`}
     </div><div class="btns">
       <button class="play" type="button" data-play="${id}" aria-pressed="false">▶ Listen</button>${isExtra?"":testBtn(id)}
     </div></div>
