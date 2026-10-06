@@ -1914,6 +1914,16 @@ document.addEventListener("keydown",e=>{
 document.addEventListener("visibilitychange",()=>{if(document.hidden)stop();else cloudSync();});
 setInterval(()=>{if(!document.hidden&&!play)cloudSync();},60000);
 
+/* A session planned before chord work and double stops existed is planned again in the new format.
+   It keeps its id, so the new version replaces the old one on every synced device; anything already
+   marked Done in it is kept in an archived copy so it still counts towards the stage. */
+function restartInNewFormat(old){
+  delete sessions[old.id];
+  if(old.done.length){const a=JSON.parse(JSON.stringify(old));a.id=old.id+"-old";a.finished=true;sessions[a.id]=a;today=a;persistDay();}
+  let fresh;try{fresh=planSession();}catch(e){sessions[old.id]=old;return old;}
+  Object.assign(fresh,{id:old.id,started:old.started,stage:old.stage,step:old.step,tempo:old.tempo});
+  sessions[fresh.id]=fresh;return fresh;
+}
 /* ===================== Boot ===================== */
 (async()=>{
   store=await initStore();
@@ -1921,7 +1931,8 @@ setInterval(()=>{if(!document.hidden&&!play)cloudSync();},60000);
   sessions=loaded.ds||{};Object.values(sessions).forEach(normalize);
   if(loaded.st)Object.assign(S,loaded.st);
   if(syncCode())await Promise.race([cloudSync(),new Promise(r=>setTimeout(r,6000))]);
-  const open=pickOpen();
+  let open=pickOpen();
+  if(open&&!(open.items||[]).some(x=>x.k==="m"))open=restartInNewFormat(open);
   if(open){today=open;if(today.step==null){today.stage=0;today.step=0;today.tempo=ladder(0)[0];}persistDay();}else{today=planSession();sessions[today.id]=today;persistDay();}
   resetTempo();view="setup";render();
   document.getElementById("syncNote").textContent=store.kind==="db"
