@@ -126,6 +126,9 @@ button:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visi
 .vbox .rtop b{font:600 15px var(--body)}
 .prog{font-family:var(--mono);font-weight:700}
 .ex.voc{border-top:3px solid var(--steel)}
+.ex.mel{border-top:3px solid var(--good)}
+.mbox{background:var(--good-soft)}
+.mbox .rlab{color:var(--good)}
 .stage{margin-top:18px;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:14px}
 .stHead{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:flex-start}
 .stHead > div:first-child{min-width:0;flex:1 1 300px}
@@ -396,10 +399,10 @@ const STAGES=[
 function ladder(st){const S_=STAGES[st],out=[];for(let x=S_.from;x<S_.to;x+=S_.step)out.push(x,x+S_.step,x);out.push(S_.to);return out;}
 const stageOf=d=>d.stage==null?0:d.stage;
 function coverage(st){ // what has been done within one stage
-  const seq=new Set(),voc=new Set(),rh=new Set();
+  const seq=new Set(),voc=new Set(),rh=new Set(),mel=new Set();
   Object.values(sessions).filter(d=>stageOf(d)===st).forEach(d=>d.done.forEach(k=>{
-    if(k[0]==="v")voc.add(k);else{seq.add(k);const it=d.items.find(x=>keyOf(x)===k);if(it&&it.rh!=null)rh.add(it.rh);}}));
-  return {seq:seq.size,voc:voc.size,rh:rh.size,full:seq.size>=EX.length&&voc.size>=VOC.length&&rh.size>=RHY.length};
+    if(k[0]==="v")voc.add(k);else if(k[0]==="m")mel.add(k);else{seq.add(k);const it=d.items.find(x=>keyOf(x)===k);if(it&&it.rh!=null)rh.add(it.rh);}}));
+  return {seq:seq.size,voc:voc.size,rh:rh.size,mel:mel.size,full:seq.size>=EX.length&&voc.size>=VOC.length&&rh.size>=RHY.length&&mel.size>=MEL.length};
 }
 
 /* ----- Sequences (cells moved through the position) ----- */
@@ -497,8 +500,8 @@ const PROG={
   minpent:[{sh:0,root:0,q:"7"},{sh:0,root:5,q:"7"},{sh:0,root:0,q:"7"},{sh:0,root:7,q:"7"}],
 };
 const HOME={major:"maj",majpent:"maj",minpent:"min"};
-const QINT={maj:[0,4,7],min:[0,3,7],"7":[0,4,7,10]};
-const chordName=(root,q)=>NOTE[(S.keyPc+root)%12]+(q==="min"?"m":q==="7"?"7":"");
+const QINT={maj:[0,4,7],min:[0,3,7],"7":[0,4,7,10],dim:[0,3,6],maj7:[0,4,7,11],m7:[0,3,7,10],m7b5:[0,3,6,10]};
+const chordName=(root,q)=>NOTE[(S.keyPc+root)%12]+({min:"m","7":"7",dim:"°",maj7:"maj7",m7:"m7",m7b5:"m7♭5"}[q]||"");
 
 /* ===================== Positions ===================== */
 /* The five CAGED shapes of the major scale, written for C major (frets per string, low E to high e).
@@ -541,7 +544,7 @@ const dkey=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 const fmt=k=>{const[y,m,d]=k.split("-").map(Number);return new Date(y,m-1,d).toLocaleDateString(undefined,{weekday:"short",day:"numeric",month:"short"});};
 function rng(seed){let h=1779033703^seed.length;for(let i=0;i<seed.length;i++){h=Math.imul(h^seed.charCodeAt(i),3432918353);h=h<<13|h>>>19;}
   return()=>{h=Math.imul(h^h>>>16,2246822507);h=Math.imul(h^h>>>13,3266489909);return((h^=h>>>16)>>>0)/4294967296;};}
-const keyOf=it=>(it.k==="v"?"v":"s")+it.i;
+const keyOf=it=>(it.k==="v"?"v":it.k==="m"?"m":"s")+it.i;
 
 function normalize(x){ // sessions saved by earlier versions of the page
   if(!x.items){x.items=(x.ex||[]).map((i,j)=>({k:"s",i,rh:x.rh?x.rh[j]:j}));}
@@ -574,21 +577,26 @@ function planSession(){
   const plays={},last={},prevKeys=new Set(prev?prev.items.map(keyOf):[]);
   inStage.forEach(d=>d.done.forEach(k=>{plays[k]=(plays[k]||0)+1;if(!last[k]||d.started>last[k])last[k]=d.started;}));
   const rank=(a,b)=>a.p-b.p||(a.l<b.l?-1:a.l>b.l?1:0)||a.x-b.x;
-  // three sequences, from groups that suit the scale, all different groups
+  // two sequences, from groups that suit the scale, all different groups
   const seqC=EX.map((e,i)=>({i,cat:e.cat,k:"s"+i,x:r()})).filter(o=>CATS[o.cat].scales.includes(scale)&&!prevKeys.has(o.k))
     .map(o=>({...o,p:plays[o.k]||0,l:last[o.k]||""})).sort(rank);
   const seq=[],used=new Set();
-  for(const o of seqC){if(seq.length===3)break;if(!used.has(o.cat)){seq.push(o.i);used.add(o.cat);}}
-  for(const o of seqC){if(seq.length===3)break;if(!seq.includes(o.i))seq.push(o.i);}
+  for(const o of seqC){if(seq.length===2)break;if(!used.has(o.cat)){seq.push(o.i);used.add(o.cat);}}
+  for(const o of seqC){if(seq.length===2)break;if(!seq.includes(o.i))seq.push(o.i);}
   seq.sort((a,b)=>EX[a].cat-EX[b].cat||a-b);
   // three rhythms, none from the previous session
   const rUsed={},prevR=new Set(prev?prev.items.filter(x=>x.k==="s").map(x=>x.rh):[]);
   inStage.forEach(d=>d.items.forEach(x=>{if(x.k==="s"&&d.done.includes(keyOf(x)))rUsed[x.rh]=(rUsed[x.rh]||0)+1;}));
-  const rh=RHY.map((_,i)=>({i,p:prevR.has(i)?1:0,u:rUsed[i]||0,x:r()})).sort((a,b)=>a.p-b.p||a.u-b.u||a.x-b.x).slice(0,3).map(o=>o.i);
+  const rh=RHY.map((_,i)=>({i,p:prevR.has(i)?1:0,u:rUsed[i]||0,x:r()})).sort((a,b)=>a.p-b.p||a.u-b.u||a.x-b.x).slice(0,2).map(o=>o.i);
   // two vocabulary phrases for this scale
   const voc=VOC.map((v,i)=>({i,k:"v"+i,s:v.s,x:r()})).filter(o=>o.s===scale&&!prevKeys.has(o.k))
-    .map(o=>({...o,p:plays[o.k]||0,l:last[o.k]||""})).sort(rank).slice(0,2).map(o=>o.i).sort((a,b)=>a-b);
-  const items=[...seq.map((i,j)=>({k:"s",i,rh:rh[j]})),...voc.map(i=>({k:"v",i}))];
+    .map(o=>({...o,p:plays[o.k]||0,l:last[o.k]||""})).sort(rank).slice(0,1).map(o=>o.i);
+  // one chord-work drill (arpeggios and chord-tone targeting take turns) and one double-stop drill
+  const melC=types=>MEL.map((m,i)=>({i,k:"m"+i,t:melType(i),x:r()})).filter(o=>types.includes(o.t)&&!prevKeys.has(o.k)).map(o=>({...o,p:plays[o.k]||0,l:last[o.k]||""}));
+  const prevCW=prev&&(prev.items||[]).find(x=>x.k==="m"&&melType(x.i)!=="d"),want=prevCW&&melType(prevCW.i)==="a"?"t":"a";
+  const cw=melC(["a","t"]).sort((a,b)=>a.p-b.p||(a.t===want?0:1)-(b.t===want?0:1)||(a.l<b.l?-1:a.l>b.l?1:0)||a.x-b.x)[0];
+  const ds=melC(["d"]).sort(rank)[0];
+  const items=[...seq.map((i,j)=>({k:"s",i,rh:rh[j]})),{k:"m",i:cw.i},{k:"m",i:ds.i},...voc.map(i=>({k:"v",i}))];
   const gUse={},taken=new Set();past.forEach(d=>{(d.items||[]).forEach(x=>{if(x.gr!=null)gUse[x.gr]=(gUse[x.gr]||0)+1;});if(d.boxGr!=null)gUse[d.boxGr]=(gUse[d.boxGr]||0)+1;});
   const pickG=(fam,pref)=>{const best=GROOVES.map((g,i)=>({i,g})).filter(o=>o.g.fam===fam)
       .map(o=>({i:o.i,s:(gUse[o.i]||0)+(taken.has(o.i)?5:0)-(pref&&o.g.n===pref?0.6:0)+r()*0.5})).sort((a,b)=>a.s-b.s)[0].i;
@@ -685,13 +693,162 @@ function vocEvents(vi,phraseOnly){
     ch.push({b:total,d:4,root:0,q:PROG[today.scale][0].q,label:true});total+=4;}
   return {ev,ch,total,bpb:4,R:null};
 }
+/* ===================== Chord work and double stops =====================
+   Built from the full seven-note scale in this session's shape: the major scale, or natural minor in
+   minor-pentatonic sessions. Chords are the diatonic chords of the key; degrees count 0-6 from the key note. */
+const PRG={P1:[0,3,4,0],P2:[0,5,3,4],P3:[1,4,0,0],P4:[0,4,5,3],P5:[5,3,0,4]};
+const MTYPE={a:{n:"Arpeggios over chords",d:"Chord tones of whatever chord is playing. Arpeggios are the skeleton of melody: they make a line sound like it belongs to the song."},
+  t:{n:"Chord-tone targeting",d:"Scale lines that land on a note of the next chord exactly when it arrives. This is what makes a solo follow the changes instead of noodling over them."},
+  d:{n:"Double stops",d:"Two notes played together. 3rds and 6ths are the sweetest sounding pairs, and the basis of countless soul, country, rock and film-song leads."}};
+const MK={
+ A1:{t:"a",n:"Triads, one note per beat",gp:"Rock beat",w:"Each bar spells the chord underneath it: root, 3rd, 5th and octave, one note per beat. The first time through the progression the arpeggios climb from the root; the second time they fall from the octave.",l:"Each arpeggio should match the chord that is playing."},
+ A2:{t:"a",n:"Triads up and back in eighths",w:"Eighth notes run root, 3rd, 5th and octave, then turn and come back down, one chord per bar.",l:"Keep the turn at the top smooth and even."},
+ A3:{t:"a",sev:1,n:"Seventh-chord arpeggios",w:"The four-note form of each chord: root, 3rd, 5th and 7th, on to the next root and back. The 7th gives each chord its colour.",l:"The 7th sounds bright on major 7 chords, bluesy on the dominant 7th and soft on minor 7 chords."},
+ A4:{t:"a",n:"Triads starting on the 3rd",w:"Each arpeggio begins on the chord's 3rd instead of its root (the first inversion): 3rd, 5th, root, 3rd and back. The 3rd is the note that tells the ear major or minor.",l:"Starting on the 3rd sounds more like a melody than an exercise."},
+ A5:{t:"a",sev:1,any:1,n:"Seventh chords with smooth voice leading",w:"Each bar starts on whichever chord tone is closest to where the last bar ended, so the hand moves as little as possible. Four quarter notes up the chord; the second time through, four down.",l:"Notice how little your hand moves when you take the nearest chord tone."},
+ A6:{t:"a",fam:"swing",n:"Triplet arpeggios",w:"Three notes to a beat: root, 3rd, 5th, on up and back down, twelve notes in each bar. A rolling sound heard in ballads and in fast melodic solos.",l:"Count 1-tri-let, 2-tri-let, and lean a little on the first note of each beat."},
+ T1:{t:"t",n:"Walk to the root",w:"Beat 1 of every bar is the root of its chord. The three notes after it walk along the scale so that the next downbeat lands on the next chord's root. The simplest way of playing the changes.",l:"Every downbeat should sound settled against the new chord."},
+ T2:{t:"t",n:"Walk to the 3rd",w:"The same idea, but each bar lands on the chord's 3rd. Because the 3rd decides major or minor, landing on it makes a line follow the harmony very clearly.",l:"Hear the major or minor colour switch on each downbeat."},
+ T3:{t:"t",n:"Eighth-note lines that land",w:"Seven eighth notes of scale run between chord tones, and the eighth lands on a chord tone of the next chord on beat 1. The basic habit behind every good solo.",l:"The run can wander, but the downbeat must land on a chord tone."},
+ T4:{t:"t",n:"Arpeggio, then walk",w:"The first half of each bar spells the chord; the second half walks along the scale into a chord tone of the next chord. Arpeggios and targeting in one line.",l:"The arpeggio says what the chord is, and the walk leads into the next one."},
+ T5:{t:"t",sev:1,gp:"Half-time",n:"Guide tones",w:"Only the 3rd and 7th of each chord, two half notes to the bar, always moving to the nearest one. Guide tones carry the sound of a progression with the fewest possible notes.",l:"The line moves by a step, or not at all, as the chords change."},
+ T6:{t:"t",n:"Approach from above",w:"Each chord tone is reached from the scale note just above it: step down onto the target, four times a bar.",l:"The upper note should lean into the chord tone and resolve."},
+ T7:{t:"t",n:"Approach from below",w:"Each chord tone is reached from the scale note just below it, a rising lead-in on every beat.",l:"Feel each lower note pull up into the chord tone."},
+ T8:{t:"t",fam:"swing",n:"Enclosures",w:"Each chord tone is surrounded before it is played: the scale note above, the scale note below, then the target, as a triplet on every beat. A favourite device in jazz and in fast melodic leads.",l:"Above, below, land: the target is the last note of each triplet."},
+ D1:{t:"d",free:1,iv:2,gap:1,n:"3rds up and down the shape",w:"Two notes together, a 3rd apart on neighbouring strings, climbing through the whole shape and back down, one pair per beat.",l:"Both notes should ring evenly. Pick both, or use pick and middle finger."},
+ D2:{t:"d",free:1,iv:5,gap:2,gp:"Motown",n:"6ths up and down the shape",w:"Two notes a 6th apart with one string skipped between them, through the shape and back. Mute the skipped string with the underside of the finger on the lower note. The sound of soul, country and many Hindi film songs.",l:"Only the two notes should ring, never the string between them."},
+ D3:{t:"d",free:1,grp:1,iv:2,gap:1,n:"3rds in groups of three",w:"Pairs of 3rds in a sequence: three pairs climbing, then start again one pair higher, in eighth notes. Coming down, the groups fall the same way.",l:"Accent the first pair of each group."},
+ D4:{t:"d",free:1,grp:1,iv:5,gap:2,n:"6ths in groups of three",w:"The same three-pair sequence played in 6ths, with one string skipped between the two notes.",l:"Keep the skipped string quiet as you move across."},
+ D5:{t:"d",iv:2,gap:1,n:"3rds over the chords",w:"Each bar plays its chord as two double stops, root with 3rd and 3rd with 5th, in a dotted rhythm. The second time through, the order flips.",l:"Two notes are enough to suggest each chord."},
+ D6:{t:"d",iv:5,gap:2,gp:"Motown",n:"6ths over the chords",w:"Each bar plays two 6ths from its chord: the 3rd with the root above it, then the 5th with the 3rd above it. Try sliding into each pair from one fret below.",l:"Hear how 6ths sound both sweet and open."},
+};
+const MEL=[["A1","P1"],["A1","P4"],["A2","P2"],["A2","P5"],["A3","P3"],["A3","P1"],["A4","P4"],["A4","P2"],["A5","P5"],["A5","P3"],["A6","P1"],["A6","P2"],
+  ["T1","P1"],["T1","P2"],["T2","P4"],["T2","P5"],["T3","P3"],["T3","P1"],["T4","P2"],["T4","P4"],["T5","P3"],["T5","P5"],["T6","P1"],["T7","P4"],["T8","P2"],
+  ["D1"],["D2"],["D3"],["D4"],["D5","P1"],["D5","P4"],["D6","P2"],["D6","P5"]].map(([kd,prog])=>({kd,prog}));
+const melType=i=>MK[MEL[i].kd].t;
+function harm(){
+  const minor=today.scale==="minpent",ints=minor?[0,2,3,5,7,8,10]:[0,2,4,5,7,9,11],tonic=S.keyPc,seen=new Set();
+  const notes=cagedNotes(parentTonic(today.scale,tonic),today.position).filter(n=>!seen.has(n.m)&&seen.add(n.m))
+    .map(n=>({...n,deg:ints.indexOf(((n.m-tonic)%12+12)%12)})).filter(n=>n.deg>=0);
+  return {notes,ints,minor};
+}
+function dchord(H,d,sev){ // the diatonic chord on scale degree d
+  const I=H.ints,iv=k=>((I[(d+k)%7]-I[d])%12+12)%12,t=iv(2),f=iv(4),s=iv(6);
+  const q=sev?(t===4?(s===11?"maj7":"7"):f===6?"m7b5":"m7"):(t===4?"maj":f===6?"dim":"min");
+  return {root:I[d],q,deg:d,tones:sev?[d,(d+2)%7,(d+4)%7,(d+6)%7]:[d,(d+2)%7,(d+4)%7]};
+}
+function roman(H,d){const c=dchord(H,d,false),r=["I","II","III","IV","V","VI","VII"][d];return c.q==="maj"?r:c.q==="dim"?r.toLowerCase()+"°":r.toLowerCase();}
+const progRoman=(H,id)=>PRG[id].map(d=>roman(H,d)).join("–");
+const ctIdx=(H,degs)=>H.notes.map((_,i)=>i).filter(i=>degs.includes(H.notes[i].deg));
+const nearestOf=(L,x)=>L.reduce((b,i)=>b==null||Math.abs(i-x)<Math.abs(b-x)?i:b,null);
+function arpRun(H,c,st,offs,rule){ // chord tones taken in order from a starting chord tone; stays inside the shape
+  const L=ctIdx(H,c.tones),mn=Math.min(...offs),mx=Math.max(...offs),want=rule==="root"?c.deg:rule==="third"?(c.deg+2)%7:null;
+  const ks=L.map((_,k)=>k).filter(k=>k+mn>=0&&k+mx<=L.length-1);
+  let kw=ks.filter(k=>want==null||H.notes[L[k]].deg===want);if(!kw.length)kw=ks.length?ks:L.map((_,k)=>k);
+  const k=kw.reduce((b,k)=>b==null||Math.abs(L[k]-st.cur)<Math.abs(L[b]-st.cur)?k:b,null);
+  return offs.map(o=>L[Math.max(0,Math.min(L.length-1,k+o))]);
+}
+function pickTarget(C,from,moves,N){
+  const pref=moves<=4?2:moves===5?3:4,mid=(N-1)/2;
+  const ok=C.filter(i=>Math.abs(i-from)<=moves&&(moves-Math.abs(i-from))%2===0);
+  const pool=ok.length?ok:C;
+  return pool.reduce((b,i)=>{const sc=x=>Math.abs(Math.abs(x-from)-pref)+0.4*Math.abs(x-mid)/N;return b==null||sc(i)<sc(b)?i:b;},null);
+}
+function walkTo(from,to,moves,N){ // moves-1 scale steps from `from`; the next step lands on `to`
+  const out=[];let cur=from,dir=Math.sign(to-from)||1;
+  for(let r=moves;r>1;r--){let step;
+    if(Math.abs(to-cur)>=r)step=Math.sign(to-cur);
+    else{step=dir;if(cur+step<0||cur+step>N-1)step=-step;if(Math.abs(to-(cur+step))>r-1)step=-step;}
+    cur=Math.max(0,Math.min(N-1,cur+step));dir=step;out.push(cur);}
+  return out;
+}
+function dsPairs(H,K){ // playable 3rds (neighbouring strings) or 6ths (one string skipped)
+  return H.notes.map((_,i)=>i).filter(i=>{const j=i+K.iv;if(j>=H.notes.length)return false;const a=H.notes[i],b=H.notes[j];
+    return a.s-b.s>=K.gap&&a.s-b.s<=K.gap+1&&Math.abs(a.f-b.f)<=4;}).map(i=>[i,i+K.iv]);}
+function melBar(H,K,c,next,st,bi,pass){
+  const N=H.notes.length,mid=(N-1)/2;
+  if(K.t==="a"){
+    const spec={A1:[[0,1,2,3],[3,2,1,0],1,"root"],A2:[[0,1,2,3,2,1,0,1],null,.5,"root"],A3:[[0,1,2,3,4,3,2,1],null,.5,"root"],
+      A4:[[0,1,2,3,2,1,0,1],null,.5,"third"],A5:[[0,1,2,3],[0,-1,-2,-3],1,null],A6:[[0,1,2,3,2,1,0,1,2,3,2,1],null,1/3,"root"]}[K.id];
+    const offs=pass&&spec[1]?spec[1]:spec[0],xs=arpRun(H,c,st,offs,spec[3]);st.cur=xs[xs.length-1];
+    return xs.map((x,j)=>[x,spec[2],j===0?2:(spec[2]===1/3&&j%3===0)?1:0]);
+  }
+  if(K.t==="t"){
+    if(K.id==="T5"){const gd=x=>[(x.deg+2)%7,(x.deg+6)%7],G=ctIdx(H,gd(c)),g1=nearestOf(G,st.cur),g2=nearestOf(G.filter(i=>H.notes[i].deg!==H.notes[g1].deg),g1);
+      st.cur=g2;return [[g1,2,2],[g2,2,0]];}
+    if(K.id==="T6"||K.id==="T7"||K.id==="T8"){
+      const xs=arpRun(H,c,st,pass?[3,2,1,0]:[0,1,2,3],"root"),nb=(x,s)=>x+s>=0&&x+s<=N-1?x+s:x-s;st.cur=xs[3];
+      if(K.id==="T8")return xs.flatMap(x=>[[nb(x,1),1/3,1],[nb(x,-1),1/3,0],[x,1/3,0]]);
+      const s=K.id==="T6"?1:-1;return xs.flatMap(x=>[[nb(x,s),.5,0],[x,.5,1]]);}
+    const tdeg=x=>K.id==="T1"?[x.deg]:K.id==="T2"?[(x.deg+2)%7]:x.tones;
+    if(st.T==null)st.T=nearestOf(ctIdx(H,tdeg(c)),mid);
+    const T=st.T;let pre=[],from=T,moves=K.id==="T3"?8:4,d=K.id==="T3"||K.id==="T4"?.5:1;
+    if(K.id==="T4"){const L=ctIdx(H,c.tones),k=L.indexOf(T),dir=T>mid?-1:1;pre=[1,2,3].map(j=>L[Math.max(0,Math.min(L.length-1,k+dir*j))]);from=pre[2];moves=5;}
+    const Tn=pickTarget(ctIdx(H,tdeg(next)),from,moves,N),path=walkTo(from,Tn,moves,N);st.T=Tn;st.cur=Tn;
+    return [T,...pre,...path].map((x,j)=>[x,d,j===0?2:0]);
+  }
+  // double stops over the chords
+  const P=dsPairs(H,K),lo=K.iv===2?[c.deg,(c.deg+2)%7]:[(c.deg+2)%7,(c.deg+4)%7];
+  const pick=(deg,x)=>{let L=P.filter(p=>H.notes[p[0]].deg===deg);if(!L.length)L=P.filter(p=>c.tones.includes(H.notes[p[0]].deg)&&c.tones.includes(H.notes[p[1]].deg));if(!L.length)L=P;
+    return L.reduce((b,p)=>b==null||Math.abs(p[0]-x)<Math.abs(b[0]-x)?p:b,null);};
+  const A=pick(lo[0],st.cur),B=pick(lo[1],A[0]);st.cur=A[0];
+  const[x,y]=pass?[B,A]:[A,B];return [[x,1.5,2],[y,.5,0],[x,1,0],[y,1,0]];
+}
+function melEvents(mi,ro){
+  const M=MEL[mi],K={...MK[M.kd],id:M.kd},H=harm(),N=H.notes.length,ev=[],ch=[];let t=0;
+  const pt=i=>{const n=H.notes[i];return {m:n.m,sf:n.s+"-"+n.f,dg:n.deg};};
+  const push=(x,d,a)=>{if(x==null)ev.push({rest:1,b:t,d});else if(Array.isArray(x)){const p=pt(x[0]),q=pt(x[1]);ev.push({...p,m2:q.m,sf2:q.sf,dg2:q.dg,b:t,d,a});}else ev.push({...pt(x),b:t,d,a});t=Math.round((t+d)*48)/48;};
+  const home=dchord(H,0,false),st={cur:(N-1)/2};
+  if(K.free){
+    const P=dsPairs(H,K),seq=[];
+    if(K.grp){for(let k=0;k+2<P.length;k++)seq.push([P[k],.5,1],[P[k+1],.5,0],[P[k+2],.5,0]);for(let k=P.length-1;k-2>=0;k--)seq.push([P[k],.5,1],[P[k-1],.5,0],[P[k-2],.5,0]);}
+    else{[...P,...P.slice(0,-1).reverse()].forEach(p=>seq.push([p,1,H.notes[p[0]].deg===0?2:0]));}
+    seq.forEach(([x,d,a])=>push(x,d,a));
+    const end=Math.ceil(t/4-1e-6)*4;if(end>t+1e-6)push(null,end-t);st.cur=P.length?P[0][0]:st.cur;
+  }else{
+    const prog=PRG[M.prog],bars=[...prog,...prog].map(d=>dchord(H,d,K.sev)),fin=dchord(H,0,K.sev);
+    bars.forEach((c,bi)=>{ch.push({b:t,d:4,root:c.root,q:c.q,label:true});
+      melBar(H,K,c,bi+1<bars.length?bars[bi+1]:fin,st,bi,bi>=prog.length?1:0).forEach(([x,d,a])=>push(x,d,a));});
+  }
+  // last bar: settle on the home chord
+  const t0=t;ch.push({b:t0,d:4,root:home.root,q:K.sev&&!K.free?dchord(H,0,true).q:home.q,label:!K.free});
+  if(K.free)for(let b=0;b<t0;b+=4)ch.unshift({b,d:4,...homeChord()});
+  if(K.t==="d"){const P=dsPairs(H,K),dg=K.iv===2?0:2,L=P.filter(p=>H.notes[p[0]].deg===dg);push((L.length?L:P).reduce((b,p)=>b==null||Math.abs(p[0]-st.cur)<Math.abs(b[0]-st.cur)?p:b,null),2,2);}
+  else push(st.T!=null?st.T:nearestOf(ctIdx(H,[0]),st.cur),2,2);
+  push(null,2);
+  ch.sort((a,b)=>a.b-b.b);
+  if(ro)return {ev:[{rest:1,b:0,d:t}],ch:ch.map(c=>({...c,label:true})),total:t,bpb:4,R:null};
+  return {ev,ch,total:t,bpb:4,R:null};
+}
+function melCard(id,it,idx){
+  const M=MEL[it.i],K=MK[M.kd],T=MTYPE[K.t],H=harm(),E=melEvents(it.i),done=today.done.includes(keyOf(it));
+  const key=H.minor?`${NOTE[S.keyPc]} natural minor`:`${NOTE[S.keyPc]} major`;
+  const chordsTxt=M.prog?[...new Set(E.ch.filter(c=>c.label).map(c=>chordName(c.root,c.q)))].join(", "):"";
+  const progTxt=M.prog?`${progRoman(H,M.prog)}: <b class="prog">${PRG[M.prog].map(d=>{const c=dchord(H,d,K.sev);return chordName(c.root,c.q);}).join(" – ")}</b>, played twice, ending on ${chordName(0,dchord(H,0,K.sev).q)}`:"";
+  return `<section class="ex mel${done?" done":""}" id="card-${id}">
+    <div class="exhead"><div>
+      <div class="num">${idx+1} of 5 · ${T.n} · ${key}</div>
+      <h2>${K.n}</h2>
+      <div class="meta">${M.prog?`<span class="chip">${progRoman(H,M.prog)}</span>`:""}<span class="chip m">${shapeName(today.position)}</span><span class="chip t">${E.total/4} bars</span></div>
+      <p class="pdesc"><b>In words:</b> ${K.w}</p>
+      <p>${T.d}</p>
+    </div><div class="btns">
+      <button class="play" type="button" data-play="${id}" data-idle="▶ Listen" aria-pressed="false">▶ Listen</button>${testBtn(id)}
+    </div></div>
+    <div class="rhy mbox"><div class="rtop"><span class="rlab">Listen for</span><b>${K.l}</b></div>
+      <p>${M.prog?`Over ${progTxt}.`:`Over a steady ${chordName(0,homeChord().q)} chord. Uses every ${K.iv===2?"3rd":"6th"} that fits in the ${shapeName(today.position)}${H.minor?", taken from the natural minor scale":""}.`} Tab notes in orange are the key note; underlined notes are the ones to land on.</p>
+      ${M.prog?`<div class="rfoot"><span class="rcount">Hear the chords first, then play along.</span><button type="button" class="rbtn" data-rhy="${id}" data-idle="♪ Hear the chords" aria-pressed="false">♪ Hear the chords</button></div>`:""}</div>
+    ${groovePanel(id,grooveOf(id))}
+    ${barsBar(id,E)}
+    <div class="tabscroll"><div class="tab${barSel[selKey(id)]?" hassel":""}">${tabHTML(E,id)}</div></div></section>`;
+}
 function eventsFor(id,ro,test,whole){
   const gr=grooveOf(id);
   if(ro==="groove"){const G=GROOVES[gr],T=2*G.bpb;return {ev:[{rest:1,b:0,d:T}],ch:[],total:T,bpb:G.bpb,R:null,gr};}
   let E;
   if(id==="pos")E=posEvents(test);
   else if(id==="x")E=seqEvents(extra,ro);
-  else{const it=today.items[Number(id.slice(1))];E=it.k==="v"?vocEvents(it.i,ro):seqEvents(it,ro);}
+  else{const it=today.items[Number(id.slice(1))];E=it.k==="v"?vocEvents(it.i,ro):it.k==="m"?melEvents(it.i,ro):seqEvents(it,ro);}
   E.gr=gr;
   const sel=id!=="pos"&&!ro&&!test&&!whole?barSel[selKey(id)]:null;
   if(sel)E=sliceBars(E,sel.a,sel.b);
@@ -761,8 +918,9 @@ const GROOVES=[
  {n:"Dadra feel",g:"Indian light classical, film songs",fam:"six8",sub:3,bpb:2,d:"The 6-beat Dadra taal (Dha Dhi Na | Dha Ti Na) on drums: bass on each Dha, high tom on Dhi and Ti, rim on Na.",p:{t:".x..x.",r:"..x..x",k:"x..x.."}},
 ];
 function grooveFamily(R){return R&&R.compound?"six8":R&&(R.swing||R.n==="Triplets")?"swing":"straight";}
-function famOfItem(it){return it.k==="v"?(VOC[it.i].ph.indexOf("/3")>=0?"swing":"straight"):grooveFamily(RHY[it.rh]);}
+function famOfItem(it){return it.k==="m"?(MK[MEL[it.i].kd].fam||"straight"):it.k==="v"?(VOC[it.i].ph.indexOf("/3")>=0?"swing":"straight"):grooveFamily(RHY[it.rh]);}
 function prefOfItem(it){
+  if(it.k==="m")return MK[MEL[it.i].kd].gp||null;
   if(it.k==="s")return {"Tresillo 3+3+2":"Dembow","Son clave 3-2":"Bossa nova","Off-beat push":"Funk sixteenths","Sixteenth notes":"Funk sixteenths","Swing eighths":"Shuffle","Phrase and breathe":"Half-time","Gallop":"Rock beat"}[RHY[it.rh].n]||null;
   const g=VOC[it.i].g;return /Indian/.test(g)?"Keherwa feel":/Funk/.test(g)?"Funk sixteenths":/Country/.test(g)?"Train beat":/Latin/.test(g)?"Bossa nova":/Jazz|bebop/i.test(g)?"Jazz swing":/Gospel|Soul/.test(g)?"Motown":null;
 }
@@ -851,8 +1009,9 @@ function tabHTML(E,id){
     const w=Math.round(Math.max(24,18+e.d*44));
     h+=`<div class="col${e.rest?" rest":""}" style="width:${w}px" data-id="${id}" data-k="${k}">`;
     if(e.rest){for(let s=1;s<=6;s++)h+=`<div class="c"></div>`;h+=`<div class="cnt">rest</div></div>`;return;}
-    const n=e.n!=null?posData.notes[e.n]:(posData.notes.find(x=>x.m===e.m&&e.sf===x.s+"-"+x.f)||posData.notes.find(x=>x.m===e.m)||{s:+e.sf.split("-")[0],f:+e.sf.split("-")[1],deg:-1});
-    for(let s=1;s<=6;s++)h+=`<div class="c">${s===n.s?`<i class="${n.deg===0?"r":""}${e.a?" acc":""}">${n.f}</i>`:""}</div>`;
+    const n=e.n!=null?posData.notes[e.n]:(posData.notes.find(x=>x.m===e.m&&e.sf===x.s+"-"+x.f)||(e.sf?null:posData.notes.find(x=>x.m===e.m))||{s:+e.sf.split("-")[0],f:+e.sf.split("-")[1],deg:e.dg!=null?e.dg:-1});
+    const n2=e.m2!=null?{s:+e.sf2.split("-")[0],f:+e.sf2.split("-")[1],deg:e.dg2}:null;
+    for(let s=1;s<=6;s++){const x=s===n.s?n:n2&&s===n2.s?n2:null;h+=`<div class="c">${x?`<i class="${x.deg===0?"r":""}${e.a?" acc":""}">${x.f}</i>`:""}</div>`;}
     h+=`<div class="cnt${e.a?" acc":""}">${countLbl(e.b,R)}</div></div>`;
   });
   return h+"</div>";
@@ -921,8 +1080,8 @@ function firstOpen(){if(!today.boxDone)return "box";const j=today.items.findInde
 function go(v){stop();view=v;render();window.scrollTo({top:0,behavior:"smooth"});}
 const fmtMin=sec=>{const m=Math.round((sec||0)/60);return m<60?`${m}m`:`${Math.floor(m/60)}h ${m%60}m`;};
 const sesTime=d=>Object.values(d.time||{}).reduce((a,b)=>a+b,0);
-const itemName=it=>it.k==="v"?VOC[it.i].n:EX[it.i].t;
-const itemKind=it=>it.k==="v"?"Phrase":"Sequence";
+const itemName=it=>it.k==="v"?VOC[it.i].n:it.k==="m"?MK[MEL[it.i].kd].n:EX[it.i].t;
+const itemKind=it=>it.k==="v"?"Phrase":it.k==="m"?MTYPE[melType(it.i)].n:"Sequence";
 const posLabel=(d)=>`${NOTE[S.keyPc]} ${SCALES[d.scale].name}, ${shapeName(d.position)}`;
 
 function mixHTML(){return [["vMaster","🔊 Overall",200],["vDrums","🥁 Drums",150],["vClick","Click",150],["vNotes","♪ Guide notes",100],["vChords","Chords",100]].map(([k,l,mx])=>
@@ -934,7 +1093,7 @@ function setTempoNote(){
 function stageHTML(){
   const st=today.stage==null?0:today.stage,fin=st>=STAGES.length,si=Math.min(st,STAGES.length-1),S_=STAGES[si];
   const cv=coverage(si),L=ladder(si),top=today.step===L.length-1;
-  const left=[EX.length-cv.seq?`${EX.length-cv.seq} sequences`:"",VOC.length-cv.voc?`${VOC.length-cv.voc} phrases`:"",RHY.length-cv.rh?`${RHY.length-cv.rh} rhythms`:""].filter(Boolean).join(", ");
+  const left=[EX.length-cv.seq?`${EX.length-cv.seq} sequences`:"",VOC.length-cv.voc?`${VOC.length-cv.voc} phrases`:"",RHY.length-cv.rh?`${RHY.length-cv.rh} rhythms`:"",MEL.length-cv.mel?`${MEL.length-cv.mel} chord and double-stop drills`:""].filter(Boolean).join(", ");
   const text=fin?"You've finished all three stages. Choose any tempo you like."
     :top?(cv.full?`Top of the ladder and everything covered. Finish this session to move on to ${si+1<STAGES.length?"Stage "+STAGES[si+1].n:"free practice"}.`
                :`You've reached the top tempo. Sessions stay at ${S_.to} bpm until you've covered the rest of this stage: ${left}.`)
@@ -952,7 +1111,7 @@ function stageHTML(){
       <div class="stTempo"><b>${fin?curTempo:today.tempo}</b><span>bpm this session</span></div></div>
     ${fin?"":`<div class="ladder" aria-label="Tempo ladder">${L.map((t,i)=>`<span class="lstep${i<today.step?" done":""}${i===today.step?" cur":""}">${t}</span>`).join("")}</div>`}
     ${fc?`<p class="fc">${fc}</p>`:""}
-    <div class="cover">${bar("Sequences",cv.seq,EX.length)}${bar("Phrases",cv.voc,VOC.length)}${bar("Rhythms",cv.rh,RHY.length)}</div>
+    <div class="cover">${bar("Sequences",cv.seq,EX.length)}${bar("Phrases",cv.voc,VOC.length)}${bar("Rhythms",cv.rh,RHY.length)}${bar("Chords & double stops",cv.mel,MEL.length)}</div>
   </div>`;
 }
 function navHTML(back,main){return `<div class="navf">${back?`<button type="button" class="ghost" data-go="${back}">◂ Back</button>`:"<span></span>"}${main}</div>`;}
@@ -1029,7 +1188,7 @@ function boxView(){
 }
 function itemView(j){
   const it=today.items[j],id="i"+j,done=itemDone(j),t=today.time&&today.time[keyOf(it)];
-  const card=it.k==="v"?vocCard(id,it,j):seqCard(id,it,j,false);
+  const card=it.k==="v"?vocCard(id,it,j):it.k==="m"?melCard(id,it,j):seqCard(id,it,j,false);
   const back=j===0?"box":String(j-1),nextLbl=j===4?"Finish the session":`Next: exercise ${j+2}`;
   const main=done?`<span class="undo"><button type="button" class="linkb" data-undo="${j}">Mark as not done</button></span><button type="button" class="play big" data-go="${j===4?"summary":j+1}">${nextLbl} ▸</button>`
                  :`${gateOk(keyOf(it))?"":`<span class="tnote">Score ${S.pass}% to unlock</span>`}<button type="button" class="play big donego" data-itemdone="${j}"${gateOk(keyOf(it))?"":" disabled"}>✓ Done, ${j===4?"finish":"next"} ▸</button>`;
@@ -1251,7 +1410,7 @@ function schedule(){
         if(play.test){play.clickBeat=Infinity;play.evi=Infinity;play.chi=Infinity;play.dri=Infinity;}else if(S.loop||play.bars){play.base+=play.total;play.evi=0;play.chi=0;play.dri=0;}else{const p=play;setTimeout(()=>{if(play===p)stop();},Math.max(0,(tC-now)*1000+300));play.clickBeat=Infinity;play.evi=Infinity;play.chi=Infinity;play.dri=Infinity;}}
       continue;}
     const e=play.ev[play.evi];if(!e.rest){const m=e.m!=null?e.m:posData.notes[e.n].m;
-      if(!play.test||(S.hearNotes&&!play.mute))note(m,tN,e.d*spb()*(e.last?1.6:1),e.a===2?.8:e.a?.66:.5);}
+      if(!play.test||(S.hearNotes&&!play.mute)){const gn=e.a===2?.8:e.a?.66:.5;note(m,tN,e.d*spb()*(e.last?1.6:1),e.m2!=null?gn*.8:gn);if(e.m2!=null)note(e.m2,tN,e.d*spb(),gn*.8);}}
     play.vis.push([tN,play.evi,play.evi===play.ev.length-1,e]);play.evi++;
   }
 }
