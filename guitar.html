@@ -307,6 +307,18 @@ select,input[type=range],input[type=checkbox]{accent-color:var(--accent)}
 .tbar.nc .clef{display:none}
 .tbar.nc::before{left:0}
 .tabh{margin:4px 0 0}
+.tbar.pick{cursor:pointer;border-radius:8px;transition:background .15s,opacity .15s}
+.tbar.pick:hover{background:var(--steel-soft)}
+.bno{position:absolute;top:0;right:6px;font:700 11px var(--mono);color:var(--muted)}
+.tab.hassel .tbar.pick:not(.sel){opacity:.4}
+.tbar.sel{background:var(--brass-soft);box-shadow:inset 0 0 0 2px var(--brass)}
+.tbar.sel .bno{color:var(--brass)}
+.barsbar{margin-top:14px;padding:12px 14px;border-radius:10px;border:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+.bbtop{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.bbtop .bbl{color:var(--brass)}
+.bbbtns{display:flex;gap:8px;flex-wrap:wrap}
+.bbbtns button{padding:7px 12px;font-size:13px}
+.barsbar .tnote{margin:0}
 
 .nowbar{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:12px;
   padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));background:#fff;border-top:1px solid var(--line);box-shadow:0 -6px 18px #141e3714;font-size:14px}
@@ -673,15 +685,58 @@ function vocEvents(vi,phraseOnly){
     ch.push({b:total,d:4,root:0,q:PROG[today.scale][0].q,label:true});total+=4;}
   return {ev,ch,total,bpb:4,R:null};
 }
-function eventsFor(id,ro,test){
+function eventsFor(id,ro,test,whole){
   const gr=grooveOf(id);
   if(ro==="groove"){const G=GROOVES[gr],T=2*G.bpb;return {ev:[{rest:1,b:0,d:T}],ch:[],total:T,bpb:G.bpb,R:null,gr};}
   let E;
   if(id==="pos")E=posEvents(test);
   else if(id==="x")E=seqEvents(extra,ro);
   else{const it=today.items[Number(id.slice(1))];E=it.k==="v"?vocEvents(it.i,ro):seqEvents(it,ro);}
-  E.gr=gr;return E;
+  E.gr=gr;
+  const sel=id!=="pos"&&!ro&&!test&&!whole?barSel[selKey(id)]:null;
+  if(sel)E=sliceBars(E,sel.a,sel.b);
+  return E;
 }
+/* ----- Bar practice (like Songsterr): loop one bar, then add the next, with the backing kept in sync ----- */
+const barSel={};
+const selKey=id=>(today&&today.id||"")+":"+id;
+const nBars=E=>{const s=new Set(E.ev.map(e=>Math.floor(e.b/E.bpb+1e-6)));return s.size;};
+function sliceBars(E,a,b){
+  const s=a*E.bpb,en=Math.min((b+1)*E.bpb,E.total),in_=x=>x>=s-1e-6&&x<en-1e-6;
+  const ev=E.ev.map((e,k)=>({...e,k0:k})).filter(e=>in_(e.b)).map(e=>({...e,b:e.b-s}));
+  const ch=E.ch.filter(c=>c.b<en-1e-6&&c.b+c.d>s+1e-6).map(c=>{const b0=Math.max(c.b,s);return {...c,b:b0-s,d:Math.min(c.b+c.d,en)-b0};});
+  const drs=E.gr!=null?drumEvents(E.gr,E.total).filter(d=>in_(d.b)).map(d=>({...d,b:d.b-s})):[];
+  return {...E,ev,ch,drs,total:en-s,bars:{a,b}};
+}
+function barsLabel(id,E){const sel=barSel[selKey(id)],n=nBars(E);
+  return sel?(sel.a===sel.b?`Looping bar ${sel.a+1} of ${n}`:`Looping bars ${sel.a+1}–${sel.b+1} of ${n}`):`Whole exercise · ${n} bars`;}
+function barsBar(id,E){
+  const sel=barSel[selKey(id)];
+  return `<div class="barsbar" id="bars-${id}"><div class="bbtop"><span class="rlab">Bar practice</span><b class="bbl">${barsLabel(id,E)}</b></div>
+    <div class="bbbtns"><button type="button" data-bars="${id}" data-op="first">${sel?"◀ Back a bar":"Bar 1 only"}</button>
+    <button type="button" data-bars="${id}" data-op="add">＋ Add next bar</button>
+    <button type="button" data-bars="${id}" data-op="next">Next bar only ▶</button>
+    <button type="button" data-bars="${id}" data-op="all"${sel?"":" disabled"}>All bars</button></div>
+    <p class="tnote">Tap a bar in the tab to loop just that bar. Then use “Add next bar” to build up: 1, then 1–2, then 1–3… Drums, chords and click stay in time with the bars you pick, and the loop runs until you press Stop.</p></div>`;
+}
+function setBars(id,sel){
+  const k=selKey(id);if(sel)barSel[k]=sel;else delete barSel[k];
+  const card=document.getElementById("card-"+id);
+  if(card){card.querySelectorAll(".tbar.pick").forEach(t=>{const b=Number(t.dataset.bar);t.classList.toggle("sel",!!sel&&b>=sel.a&&b<=sel.b);});
+    const tab=card.querySelector(".tab");if(tab)tab.classList.toggle("hassel",!!sel);
+    const full=eventsFor(id,false,false,true),bb=document.getElementById("bars-"+id);
+    if(bb){bb.querySelector(".bbl").textContent=barsLabel(id,full);
+      bb.querySelector('[data-op="first"]').textContent=sel?"◀ Back a bar":"Bar 1 only";bb.querySelector('[data-op="all"]').disabled=!sel;}}
+  if(play&&play.id===id&&!play.ro&&!play.test){const E=eventsFor(id,false);E.dr=drumsOf(E,false);play.pendingE=E;}
+}
+function barOp(id,op){
+  const full=eventsFor(id,false,false,true),n=nBars(full),sel=barSel[selKey(id)];
+  if(op==="all")return setBars(id,null);
+  if(op==="first")return setBars(id,sel?{a:Math.max(0,sel.a-1),b:Math.max(0,sel.a-1)}:{a:0,b:0});
+  if(op==="add")return setBars(id,sel?{a:sel.a,b:Math.min(n-1,sel.b+1)}:{a:0,b:Math.min(n-1,1)});
+  if(op==="next"){const nb=sel?Math.min(n-1,sel.b+1):0;return setBars(id,{a:nb,b:nb});}
+}
+function drumsOf(E,ro){return (S.drums||ro==="groove")&&E.gr!=null?(E.drs||drumEvents(E.gr,E.total)):[];}
 
 /* ===================== Drums ===================== */
 /* Each groove is one bar. sub = steps per beat (4 = sixteenths, 3 = triplets), bpb = beats per bar.
@@ -792,7 +847,7 @@ function tabHTML(E,id){
   const SL=`<div class="clef" aria-hidden="true"><b>T</b><b>A</b><b>B</b></div>`;let h="",bar=-1;
   ev.forEach((e,k)=>{
     const br=Math.floor(e.b/bpb+1e-6);
-    if(br!==bar){h+=(bar>=0?"</div>":"")+`<div class="tbar">${labels[br]?`<span class="chd">${labels[br]}</span>`:""}${SL}`;bar=br;}
+    if(br!==bar){const pick=id!=="pos";const sl=pick&&barSel[selKey(id)],on=sl&&br>=sl.a&&br<=sl.b;h+=(bar>=0?"</div>":"")+`<div class="tbar${pick?" pick":""}${on?" sel":""}"${pick?` data-bar="${br}" data-bid="${id}" title="Tap to loop this bar"`:""}>${labels[br]?`<span class="chd">${labels[br]}</span>`:""}${pick?`<span class="bno">${br+1}</span>`:""}${SL}`;bar=br;}
     const w=Math.round(Math.max(24,18+e.d*44));
     h+=`<div class="col${e.rest?" rest":""}" style="width:${w}px" data-id="${id}" data-k="${k}">`;
     if(e.rest){for(let s=1;s<=6;s++)h+=`<div class="c"></div>`;h+=`<div class="cnt">rest</div></div>`;return;}
@@ -829,7 +884,8 @@ function seqCard(id,it,idx,isExtra){
       <button type="button" class="rbtn" data-rhy="${id}" aria-pressed="false">♪ Hear the rhythm</button></div>
       <p class="glegend">Highlighted counts are where you play; underlined ones are accented.</p></div>
     ${groovePanel(id,grooveOf(id))}
-    <div class="tabscroll"><div class="tab">${tabHTML(E,id)}</div></div></section>`;
+    ${barsBar(id,E)}
+    <div class="tabscroll"><div class="tab${barSel[selKey(id)]?" hassel":""}">${tabHTML(E,id)}</div></div></section>`;
 }
 function vocCard(id,it,idx){
   const V=VOC[it.i],E=vocEvents(it.i),done=today.done.includes(keyOf(it));
@@ -849,7 +905,8 @@ function vocCard(id,it,idx){
       <div class="rfoot"><span class="rcount">Learn the phrase on its own first, then play the drill.</span>
       <button type="button" class="rbtn" data-rhy="${id}" aria-pressed="false">♪ Hear the phrase</button></div></div>
     ${groovePanel(id,grooveOf(id))}
-    <div class="tabscroll"><div class="tab">${tabHTML(E,id)}</div></div></section>`;
+    ${barsBar(id,E)}
+    <div class="tabscroll"><div class="tab${barSel[selKey(id)]?" hassel":""}">${tabHTML(E,id)}</div></div></section>`;
 }
 /* ===================== Step-by-step session view ===================== */
 let view="setup";
@@ -1165,8 +1222,8 @@ function stop(){if(!play)return;const P=play;setNowbar(false);clearInterval(play
 function start(id,ro,test){
   stop();audioCtx();
   const E=eventsFor(id,ro,test),ci=(S.countin||test)?(E.bpb<3?E.bpb*2:E.bpb):0;
-  play={id,ro,test:!!test,expected:[],...E,evi:0,chi:0,cycle:0,clickBeat:-ci,vis:[],lastT:ctx.currentTime+.12,lastB:-ci};
-  play.dr=(S.drums||ro==="groove")&&E.gr!=null?drumEvents(E.gr,E.total):[];play.dri=0;
+  play={id,ro,test:!!test,expected:[],...E,evi:0,chi:0,base:0,clickBeat:-ci,vis:[],lastT:ctx.currentTime+.12,lastB:-ci};
+  play.dr=drumsOf(E,ro);play.dri=0;
   play.testStart=play.lastT;if(test)liveInit(play);
   play.t0=performance.now();try{if(navigator.wakeLock)navigator.wakeLock.request("screen").then(l=>{wake=l;}).catch(()=>{});}catch(e){}
   setBtn(id,ro,true,test);setNowbar(true);requestAnimationFrame(()=>{if(ro!=="groove")startFollow(id);});play.timer=setInterval(schedule,25);schedule();play.raf=requestAnimationFrame(draw);
@@ -1176,7 +1233,12 @@ function schedule(){
   if(!play)return;const now=ctx.currentTime,hz=now+.15;
   if(now>play.lastT){play.lastB+=(now-play.lastT)/spb();play.lastT=now;}
   for(;;){
-    const off=play.cycle*play.total;
+    if(play.pendingE){ // switch to the newly picked bars on the next bar line, so the groove never stumbles
+      const cb=Math.max(play.clickBeat,0),B=cb+((play.bpb-((cb-play.base)%play.bpb))%play.bpb),tB=b2t(B);
+      const nx=Math.min(play.evi<play.ev.length?b2t(play.base+play.ev[play.evi].b):Infinity,play.chi<play.ch.length?b2t(play.base+play.ch[play.chi].b):Infinity,play.dri<play.dr.length?b2t(play.base+play.dr[play.dri].b):Infinity);
+      if(play.clickBeat>=B&&nx>=tB-1e-4){const P=play.pendingE;play.pendingE=null;Object.assign(play,{ev:P.ev,ch:P.ch,dr:P.dr,total:P.total,bars:P.bars||null,base:B,evi:0,chi:0,dri:0});}
+    }
+    const off=play.base;
     const tN=play.evi<play.ev.length?b2t(off+play.ev[play.evi].b):Infinity;
     const tH=play.chi<play.ch.length?b2t(off+play.ch[play.chi].b):Infinity;
     const tD=play.dri<play.dr.length?b2t(off+play.dr[play.dri].b):Infinity;
@@ -1186,11 +1248,11 @@ function schedule(){
     if(tH===t){const c=play.ch[play.chi++];if(S.chords&&(!play.test||(S.hearNotes&&!play.mute)))chord(c.root,c.q,tH,c.d*spb());continue;}
     if(tC===t){if(play.test&&play.clickBeat<0)(play.ci=play.ci||[]).push(tC);if(play.clickBeat<0||(S.click&&!play.dr.length))click(tC,((play.clickBeat%play.bpb)+play.bpb)%play.bpb===0);play.clickBeat++;
       if(play.clickBeat>=off+play.total&&play.evi>=play.ev.length){
-        if(play.test){play.clickBeat=Infinity;play.evi=Infinity;play.chi=Infinity;play.dri=Infinity;}else if(S.loop){play.cycle++;play.evi=0;play.chi=0;play.dri=0;}else{const p=play;setTimeout(()=>{if(play===p)stop();},Math.max(0,(tC-now)*1000+300));play.clickBeat=Infinity;play.evi=Infinity;play.chi=Infinity;play.dri=Infinity;}}
+        if(play.test){play.clickBeat=Infinity;play.evi=Infinity;play.chi=Infinity;play.dri=Infinity;}else if(S.loop||play.bars){play.base+=play.total;play.evi=0;play.chi=0;play.dri=0;}else{const p=play;setTimeout(()=>{if(play===p)stop();},Math.max(0,(tC-now)*1000+300));play.clickBeat=Infinity;play.evi=Infinity;play.chi=Infinity;play.dri=Infinity;}}
       continue;}
     const e=play.ev[play.evi];if(!e.rest){const m=e.m!=null?e.m:posData.notes[e.n].m;
       if(!play.test||(S.hearNotes&&!play.mute))note(m,tN,e.d*spb()*(e.last?1.6:1),e.a===2?.8:e.a?.66:.5);}
-    play.vis.push([tN,play.evi,play.evi===play.ev.length-1]);play.evi++;
+    play.vis.push([tN,play.evi,play.evi===play.ev.length-1,e]);play.evi++;
   }
 }
 /* Keep whatever is playing on screen: the page scrolls so the current tab line (or the fretboard during the
@@ -1228,9 +1290,9 @@ function setNowbar(on){
   if(on){document.getElementById("nbInfo").textContent=play&&play.test?"Listening to you…":"Playing";}
 }
 function draw(){if(!play)return;let k=null,fin=false;
-  while(play.vis.length&&play.vis[0][0]<=ctx.currentTime){const v=play.vis.shift();k=v[1];if(v[2])fin=true;}
-  if(k!==null&&play.ro!=="groove"){document.querySelectorAll(".col.on,.dt.on").forEach(c=>c.classList.remove("on"));const e=play.ev[k];
-    const c=play.id==="pos"?(e&&e.sf?document.querySelector(`.dt[data-sf="${e.sf}"]`):null):document.querySelector(`.col[data-id="${play.id}"][data-k="${k}"]`);if(c)c.classList.add("on");
+  let ek=null;while(play.vis.length&&play.vis[0][0]<=ctx.currentTime){const v=play.vis.shift();k=v[1];ek=v[3];if(v[2])fin=true;}
+  if(k!==null&&play.ro!=="groove"){document.querySelectorAll(".col.on,.dt.on").forEach(c=>c.classList.remove("on"));const e=ek||play.ev[k];
+    const c=play.id==="pos"?(e&&e.sf?document.querySelector(`.dt[data-sf="${e.sf}"]`):null):document.querySelector(`.col[data-id="${play.id}"][data-k="${e&&e.k0!=null?e.k0:k}"]`);if(c)c.classList.add("on");
     if(play.id==="pos"&&e&&e.tk!=null){const tc=document.querySelector(`.col[data-id="pos"][data-k="${e.tk}"]`);if(tc)tc.classList.add("on");}
     followEl(play.id==="pos"?(e&&e.tk!=null?document.querySelector(`.col[data-id="pos"][data-k="${e.tk}"]`):document.querySelector("#fretboard svg")):c);
   }
@@ -1643,6 +1705,9 @@ document.addEventListener("click",e=>{
   const gb=e.target.closest("[data-groove]");if(gb){const id=gb.dataset.groove;(play&&play.id===id&&play.ro==="groove")?stop():start(id,"groove");return;}
   const p=e.target.closest("[data-play],[data-rhy]");if(p){const ro=!!p.dataset.rhy,id=ro?p.dataset.rhy:p.dataset.play;
     (play&&play.id===id&&play.ro===ro)?stop():start(id,ro);return;}
+  const bo=e.target.closest("[data-bars]");if(bo){barOp(bo.dataset.bars,bo.dataset.op);return;}
+  const tbar=e.target.closest(".tbar.pick");if(tbar){const id=tbar.dataset.bid,b=Number(tbar.dataset.bar),cur=barSel[selKey(id)];
+    if(e.shiftKey&&cur)setBars(id,{a:Math.min(cur.a,b),b:Math.max(cur.b,b)});else if(cur&&cur.a===b&&cur.b===b)setBars(id,null);else setBars(id,{a:b,b});return;}
   const g=e.target.closest("[data-go]");if(g){const v=g.dataset.go;go(/^\d$/.test(v)?Number(v):v);return;}
   if(e.target.closest("[data-nbstop]")){stop();return;}
   if(e.target.closest("[data-resume]")){if(ctx)ctx.resume().catch(()=>{});return;}
