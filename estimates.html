@@ -1,0 +1,673 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0f6b5a">
+<title>Pole-to-BoQ Trainer · Total Recall &amp; Melodies</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: field-notebook tool — level rail on the left, one structure at a time, drawing beside its bill of materials */
+:root{
+  --bg:#eef1ef; --panel:#fbfcfb; --ink:#18221f; --muted:#5b6964; --line:#d3dad6;
+  --accent:#0f6b5a; --accent-soft:#d8ebe5; --warn:#b5651d; --warn-soft:#f6e6d4;
+  --danger:#b3261e; --danger-soft:#f7dcd9; --ok:#2f7a3a; --ok-soft:#dcefdc;
+  --steel:#6d7c86; --conc:#a9a49a; --earth:#8a6a3b;
+  --f-display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#121816; --panel:#1a2220; --ink:#e3ebe7; --muted:#9aa8a2; --line:#2f3b37;
+  --accent:#4fc0a6; --accent-soft:#1d3a33; --warn:#e3a35e; --warn-soft:#3a2b1b;
+  --danger:#f08a80; --danger-soft:#3d1f1c; --ok:#7cc987; --ok-soft:#1d3320;
+  --steel:#9fb0ba; --conc:#7d786f; --earth:#c49a5c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121816; --panel:#1a2220; --ink:#e3ebe7; --muted:#9aa8a2; --line:#2f3b37;
+  --accent:#4fc0a6; --accent-soft:#1d3a33; --warn:#e3a35e; --warn-soft:#3a2b1b;
+  --danger:#f08a80; --danger-soft:#3d1f1c; --ok:#7cc987; --ok-soft:#1d3320;
+  --steel:#9fb0ba; --conc:#7d786f; --earth:#c49a5c; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-body);padding-block:0 40px;padding-inline:16px}
+.wrap{max-width:1180px;margin:0 auto}
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;padding-block:20px 14px;border-bottom:2px solid var(--ink)}
+.brand h1{font:700 2.1rem/1 var(--f-display);letter-spacing:.01em;margin:0;text-transform:uppercase}
+.brand p{margin:4px 0 0;color:var(--muted);font-size:.85rem;font-family:var(--f-mono)}
+nav.tabs{display:flex;gap:4px;flex-wrap:wrap}
+nav.tabs button{font:600 1rem var(--f-display);letter-spacing:.06em;text-transform:uppercase;background:none;border:1px solid var(--line);color:var(--muted);padding:6px 14px;border-radius:3px;cursor:pointer}
+nav.tabs button[aria-selected="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+button:focus-visible,input:focus-visible,select:focus-visible,.tile:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.view{padding-top:18px}
+.grid{display:grid;grid-template-columns:240px minmax(0,1fr);gap:20px}
+@media (max-width:820px){.grid{grid-template-columns:minmax(0,1fr)}.rail{display:none}.railsel{display:block!important}}
+.railsel{display:none;width:100%;padding:8px;font:inherit;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:3px;margin-bottom:12px}
+.rail{display:flex;flex-direction:column;gap:14px;position:sticky;top:12px;align-self:start}
+.rail h3{font:600 .8rem var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 4px}
+.rail ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.rail button{width:100%;text-align:left;background:none;border:0;padding:6px 8px;border-radius:3px;color:var(--ink);font:inherit;font-size:.9rem;cursor:pointer;display:flex;gap:8px;align-items:center}
+.rail button:hover{background:var(--accent-soft)}
+.rail button.on{background:var(--ink);color:var(--bg)}
+.dot{width:9px;height:9px;border-radius:50%;border:1.5px solid var(--muted);flex:none}
+.dot.tried{background:var(--warn);border-color:var(--warn)}
+.dot.done{background:var(--ok);border-color:var(--ok)}
+.kit{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:20px;min-width:0}
+.kit-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;align-items:flex-start}
+.eyebrow{font:500 .75rem var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.kit h2{font:700 1.75rem/1.1 var(--f-display);margin:2px 0 6px;text-wrap:balance}
+.scenario{margin:0;max-width:64ch;color:var(--ink)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:3px;overflow:hidden;flex:none}
+.seg button{background:none;border:0;padding:7px 12px;font:500 .85rem var(--f-body);color:var(--muted);cursor:pointer}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
+.body{display:grid;grid-template-columns:230px minmax(0,1fr);gap:20px;margin-top:18px}
+@media (max-width:640px){.body{grid-template-columns:minmax(0,1fr)}.figure{max-width:260px;margin:0 auto}}
+.figure{border:1px dashed var(--line);border-radius:4px;padding:8px;align-self:start}
+.figure svg{width:100%;height:auto;display:block}
+.figure .cap{font:.72rem/1.35 var(--f-mono);color:var(--muted);margin-top:6px}
+.tbl-wrap{overflow-x:auto;min-width:0}
+table{border-collapse:collapse;width:100%;font-size:.88rem}
+th{font:600 .72rem var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:left;padding:6px 8px;border-bottom:1px solid var(--ink)}
+td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+td.num,th.num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+td.sor{font-family:var(--f-mono);color:var(--muted);white-space:nowrap}
+tr.grp td{font:600 .78rem var(--f-display);letter-spacing:.08em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);border-bottom:0;padding:4px 8px}
+.why{color:var(--muted);font-size:.82rem;margin-top:2px}
+.opt{font:500 .68rem var(--f-mono);color:var(--warn);background:var(--warn-soft);padding:1px 5px;border-radius:2px;margin-left:6px;white-space:nowrap}
+.tot td{font-weight:600;border-bottom:0}
+.notes{margin-top:16px;display:flex;flex-direction:column;gap:8px}
+.note{border-left:3px solid var(--warn);background:var(--warn-soft);padding:8px 12px;border-radius:0 3px 3px 0;font-size:.88rem}
+.note.trap{border-color:var(--danger);background:var(--danger-soft)}
+.note b{font-family:var(--f-display);letter-spacing:.04em;text-transform:uppercase;font-size:.85rem;margin-right:4px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
+.tile{border:1px solid var(--line);background:var(--bg);border-radius:3px;padding:9px 10px;cursor:pointer;font-size:.86rem;text-align:left;color:var(--ink);font-family:inherit;display:flex;flex-direction:column;gap:2px}
+.tile small{font-family:var(--f-mono);color:var(--muted);font-size:.7rem}
+.tile[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent)}
+.tile.r-ok{border-color:var(--ok);background:var(--ok-soft)}
+.tile.r-miss{border-color:var(--danger);background:var(--danger-soft)}
+.tile.r-extra{border-color:var(--warn);background:var(--warn-soft)}
+.tile .verdict{font:600 .7rem var(--f-mono);text-transform:uppercase;letter-spacing:.05em}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;align-items:center}
+.btn{font:600 .95rem var(--f-display);letter-spacing:.06em;text-transform:uppercase;padding:8px 16px;border-radius:3px;border:1px solid var(--ink);background:var(--ink);color:var(--bg);cursor:pointer}
+.btn.ghost{background:none;color:var(--ink)}
+.score{font:600 1rem var(--f-mono)}
+.score.good{color:var(--ok)} .score.mid{color:var(--warn)} .score.bad{color:var(--danger)}
+input.qty{width:80px;padding:5px 6px;font:500 .9rem var(--f-mono);text-align:right;border:1px solid var(--line);border-radius:3px;background:var(--bg);color:var(--ink)}
+input.qty.ok{border-color:var(--ok);background:var(--ok-soft)} input.qty.bad{border-color:var(--danger);background:var(--danger-soft)}
+.ans{font:.78rem var(--f-mono)}
+.ans.ok{color:var(--ok)} .ans.bad{color:var(--danger)}
+.hint{color:var(--muted);font-size:.85rem;margin:10px 0 0}
+/* companions */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.card h4{font:700 1.2rem/1.1 var(--f-display);margin:0}
+.card .lead{font-size:.85rem;color:var(--muted);margin:0}
+.card ul{margin:0;padding-left:18px;font-size:.86rem}
+.card li{margin:3px 0}
+.card .sorchip{font:.72rem var(--f-mono);color:var(--muted)}
+/* builder */
+.bgrid{display:grid;grid-template-columns:300px minmax(0,1fr);gap:20px}
+@media (max-width:820px){.bgrid{grid-template-columns:minmax(0,1fr)}}
+.form{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:16px;display:flex;flex-direction:column;gap:12px;align-self:start}
+.form label{display:flex;flex-direction:column;gap:3px;font-size:.82rem;color:var(--muted)}
+.form select,.form input{font:500 .92rem var(--f-body);padding:6px 8px;border:1px solid var(--line);border-radius:3px;background:var(--bg);color:var(--ink)}
+.form .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.form fieldset{border:1px solid var(--line);border-radius:3px;padding:8px 10px;display:flex;flex-direction:column;gap:8px;margin:0}
+.form legend{font:600 .75rem var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:0 4px}
+.derive{font:.8rem/1.55 var(--f-mono);color:var(--muted);background:var(--bg);border:1px solid var(--line);border-radius:3px;padding:10px 12px;margin:0 0 14px;white-space:pre-wrap}
+.warnline{color:var(--danger);font-weight:500}
+.legend-row{display:flex;flex-wrap:wrap;gap:14px;font-size:.8rem;color:var(--muted);margin:6px 0 0}
+.intro{max-width:70ch;color:var(--muted);margin:0 0 14px}
+footer{margin-top:28px;color:var(--muted);font-size:.78rem;max-width:80ch}
+/* svg */
+.s-pole{fill:var(--conc);stroke:var(--ink);stroke-width:1}
+.s-steel{fill:var(--steel);stroke:var(--ink);stroke-width:1}
+.s-arm{fill:var(--steel);stroke:var(--ink);stroke-width:.8}
+.s-ins{fill:var(--panel);stroke:var(--ink);stroke-width:1}
+.s-disc{fill:var(--panel);stroke:var(--ink);stroke-width:.9}
+.s-cond{stroke:var(--ink);stroke-width:1.2;fill:none}
+.s-stay{stroke:var(--muted);stroke-width:1.2;fill:none}
+.s-earth{stroke:var(--earth);stroke-width:1.4;fill:none}
+.s-ground{stroke:var(--ink);stroke-width:1.5}
+.s-grout{fill:var(--line);stroke:var(--muted);stroke-dasharray:3 2}
+.s-dp{fill:var(--danger)}
+.s-barb{stroke:var(--muted);stroke-width:1;fill:none}
+.s-dtr{fill:var(--accent-soft);stroke:var(--ink);stroke-width:1.2}
+.s-box{fill:var(--panel);stroke:var(--ink);stroke-width:1}
+.s-t{fill:var(--muted);font:9px var(--f-mono)}
+.s-tb{fill:var(--ink);font:600 9px var(--f-mono)}
+.s-acc{fill:var(--accent)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.toprow{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding-top:14px}
+.backlink{color:var(--accent);text-decoration:none;font-size:.88rem;font-weight:500}
+.sbadge{font:500 .75rem var(--f-mono);padding:3px 8px;border-radius:3px;border:1px solid var(--line);color:var(--muted);cursor:default}
+.sbadge.ok{color:var(--ok);border-color:var(--ok)} .sbadge.err{color:var(--danger);border-color:var(--danger)} .sbadge.busy{color:var(--warn);border-color:var(--warn)}
+</style></head><body>
+
+<div class="wrap">
+<div class="toprow"><a class="backlink" href="./">← Total Recall &amp; Melodies</a><span id="syncBadge" class="sbadge off" title="">☁ Sync off</span></div>
+<header class="top">
+  <div class="brand"><h1>Pole-to-BoQ Trainer</h1><p>APDCL · SoR 2021-22 · structure by structure</p></div>
+  <nav class="tabs" role="tablist">
+    <button role="tab" id="t-kits" aria-selected="true" data-view="kits">Structures</button>
+    <button role="tab" id="t-comp" aria-selected="false" data-view="comp">What goes with what</button>
+    <button role="tab" id="t-build" aria-selected="false" data-view="build">Line builder</button>
+  </nav>
+</header>
+
+<section class="view" id="v-kits">
+  <select class="railsel" id="railsel" aria-label="Choose structure"></select>
+  <div class="grid">
+    <aside class="rail" id="rail"></aside>
+    <article class="kit" id="kit"></article>
+  </div>
+</section>
+
+<section class="view" id="v-comp" hidden>
+  <p class="intro">Every main item drags a set of companions into the estimate. When you write the main item, write its companions in the same breath. Tap a card to test yourself before revealing.</p>
+  <div class="cards" id="cards"></div>
+</section>
+
+<section class="view" id="v-build" hidden>
+  <p class="intro">Give the field-visit picture (route length, special structures, DTR) and the builder adds up the structure kits into one bill of materials. It shows how each count was reached, so you can check it against the site.</p>
+  <div class="bgrid">
+    <form class="form" id="bform">
+      <label for="b-sys">Line type
+        <select id="b-sys">
+          <option value="hv11">11 kV overhead, PSC 9.75 m</option>
+          <option value="hv33">33 kV overhead, SP-76</option>
+          <option value="lt3">LT 3-ph 4-wire bare, PSC 8.5 m</option>
+          <option value="lt1">LT 1-ph 2-wire bare, PSC 8.5 m</option>
+          <option value="abc">LT AB cable 3-ph, PSC 8.5 m</option>
+        </select></label>
+      <div class="row2">
+        <label for="b-len">Route length (m)<input id="b-len" type="number" min="0" step="10" value="1000"></label>
+        <label for="b-span">Span (m)<input id="b-span" type="number" min="20" step="1" value="45"></label>
+      </div>
+      <label for="b-cond">Conductor<select id="b-cond"></select></label>
+      <fieldset><legend>Special structures (count)</legend>
+        <div class="row2">
+          <label for="b-angle">Small angle (pin + stay)<input id="b-angle" type="number" min="0" value="2"></label>
+          <label for="b-cut">Cut-point, single pole<input id="b-cut" type="number" min="0" value="1"></label>
+          <label for="b-dead">Dead-end<input id="b-dead" type="number" min="0" value="1"></label>
+          <label for="b-dp">DP cut-point<input id="b-dp" type="number" min="0" value="0"></label>
+          <label for="b-guard">Guarding sets<input id="b-guard" type="number" min="0" value="0"></label>
+          <label for="b-tap">DO at tap-off<input id="b-tap" type="number" min="0" value="1"></label>
+        </div>
+      </fieldset>
+      <label for="b-dtr">DTR at the far end
+        <select id="b-dtr"><option value="">None</option><option value="d25">25 kVA on DP</option><option value="d100">100 kVA on DP</option></select></label>
+      <label for="b-start">First pole
+        <select id="b-start"><option value="new">New pole at start</option><option value="exist">Starts from an existing pole</option></select></label>
+    </form>
+    <div class="kit" id="bout" style="min-width:0"></div>
+  </div>
+</section>
+
+<footer>Quantities are typical APDCL/Samaguri practice drawn from the office's own estimates, the DDUGJY/VEI BoQ kits and the 2026 Jamuguri 33 kV NIT. Rates are SoR 2021-22 ex-works, excluding GST. Site conditions, the circle's construction drawings and GTPs decide the final count. Items marked “—” in the SoR column are non-SoR or need the approved/market rate.</footer>
+</div>
+
+<script>
+/* ---------- Catalogue: id -> [SoR, item, unit, rate, group] ---------- */
+const G={pole:"Pole & foundation",arm:"Cross-arms & steel",ins:"Insulators & fittings",cond:"Conductor & jointing",stay:"Stay",earth:"Earthing",safe:"Safety",eq:"Equipment",cab:"Cables & metering",hw:"Hardware",job:"Labour-included jobs (E)"};
+const C={
+ psc85:["747","PSC pole 8.5 m","No",5315.10,"pole"], psc975:["748","PSC pole 9.75 m","No",7030.80,"pole"],
+ sp76:["754","SP-76 steel tubular pole (14.5 m)","No",39590.67,"pole"],
+ gr85:["426","Grouting of PSC 8.5 m pole (1.5 m deep)","Job",1787.97,"job"], gr975:["427","Grouting of PSC 9.75 m pole (1.8 m deep)","Job",1894.28,"job"],
+ gr76:["423","Grouting of SP-66/76 pole (2.15 m deep)","Job",4950.94,"job"], grst:["428","Stay grouting","Job",1000,"job"],
+ fence:["420","DTR fencing","Job",36304.80,"job"],
+ ltarm:["645","LT angle cross-arm 500 mm","No",197.80,"arm"], tarm:["634","11 kV T cross-arm","No",862.50,"arm"],
+ varm:["635","33 kV V cross-arm","No",1812.40,"arm"], cleat:["647","Top cleat","No",244.95,"arm"],
+ ch2200:["638","Channel cross-arm 100×50×6, 2200 mm","No",2012.50,"arm"], ch2800:["639","Channel cross-arm 100×50×6, 2800 mm","No",2221.80,"arm"],
+ ch3200:["640","Channel cross-arm 100×50×6, 3200 mm","No",2702.50,"arm"], ch7540:["644","MS channel 75×40×6","Mtr",548.55,"arm"],
+ angle50:["637","GI angle 50×50×6","Mtr",432.40,"arm"], pclamp:["830","Pole clamp","No",85.05,"arm"],
+ nb:["646","Nuts & bolts","Kg",93.15,"hw"],
+ ltpin:["630","LT pin insulator","No",31.50,"ins"], ltgipin:["842","LT GI pin","No",41.50,"ins"],
+ shackle:["632","LT shackle insulator","No",47.25,"ins"], strap:["853","LT shackle strap (D-strap)","No",85,"ins"],
+ pin11:["626","11 kV pin insulator, polymer","No",262.50,"ins"], gipin11:["841","11 kV GI pin","No",98.60,"ins"],
+ pin33:["613","33 kV pin insulator, polymer","No",735,"ins"], gipin33:["840","33 kV GI pin","No",209,"ins"],
+ disc70:["622","Disc insulator 70 kN T&C, polymer (11 kV)","No",315,"ins"], hw70:["850","H/W fitting T&C 70 kN, tension","Set",395,"ins"],
+ disc90:["607","Disc insulator 90 kN B&S, polymer (33 kV)","No",840,"ins"], hw90:["844","H/W fitting B&S 90 kN, tension","Set",565,"ins"],
+ tcRab:["834","Tension clamp, Rabbit","No",150,"ins"], tcRac:["835","Tension clamp, Raccoon","No",350,"ins"], tcWolf:["836","Tension clamp, Wolf","No",400,"ins"],
+ pgRab:["826","PG clamp, Rabbit","No",63.75,"cond"], pgRac:["827","PG clamp, Raccoon","No",105.25,"cond"], pgWolf:["828","PG clamp, Wolf","No",188,"cond"],
+ slRab:["822","Mid-span jointing sleeve, Rabbit","No",82.33,"cond"], slRac:["823","Mid-span jointing sleeve, Raccoon","No",122.67,"cond"], slWolf:["824","Mid-span jointing sleeve, Wolf","No",308.33,"cond"],
+ bind:["—","Aluminium binding wire","Kg",null,"ins"],
+ rabbit:["446","ACSR Rabbit","Km",47299.44,"cond"], raccoon:["447","ACSR Raccoon","Km",76160,"cond"], weasel:["445","ACSR Weasel","Km",32770.56,"cond"], wolf:["449","ACSR Wolf","Km",185640,"cond"],
+ abc3:["18","LT AB cable 3C×70+1C×50","Mtr",215.50,"cond"], abc395:["19","LT AB cable 3C×95+1C×70","Mtr",293.50,"cond"],
+ spacer:["718","LT spacer","No",46,"cond"], tie:["819","Cable tie (ABC)","No",7.67,"cond"],
+ susp:["800","Suspension clamp (ABC)","No",226.67,"ins"], anchor:["806","Anchor clamp (ABC)","No",378.33,"ins"],
+ eyehook:["810","Eye hook","No",71,"ins"], ihook:["654","I-hook","No",80.50,"ins"], endcap:["807","End cap (ABC)","No",19,"cond"],
+ htstay:["653","HT stay set","Set",546.25,"stay"], guy11:["629","Guy insulator, 11 kV","No",52.50,"stay"], guy33:["616","Guy insulator, 33 kV","No",111.30,"stay"],
+ wire710:["651","Stay wire 7/10 SWG","Kg",87.40,"stay"], ltstay:["657","LT stay set","Set",409.40,"stay"], guylt:["631","LT guy insulator","No",31.50,"stay"],
+ wire714:["652","Stay wire 7/14 SWG","Kg",98.90,"stay"],
+ cipipe:["474","CI earth pipe","No",1312.50,"earth"], gipipe:["473","GI earth pipe 3 m","No",2346.75,"earth"],
+ swg6:["649","GI wire 6 SWG","Kg",79.35,"earth"], swg8:["650","GI wire 8 SWG","Kg",93.15,"earth"],
+ gistrip:["476","GI strip 25×3","Mtr",64.05,"earth"], gistrip50:["477","GI strip 50×6","Mtr",266.70,"earth"],
+ dpLT:["722","Danger plate, LT","No",46,"safe"], dp11:["721","Danger plate, 11 kV","No",57.50,"safe"], dp33:["720","Danger plate, 33 kV","No",57.50,"safe"],
+ barbed:["633","Barbed wire (anti-climbing)","Kg",93.15,"safe"],
+ do11:["513","11 kV DO fuse 150 A","Set",3300,"eq"], la11:["676","11 kV lightning arrester 5 kA","Set",2646,"eq"], la11s:["677","11 kV lightning arrester 10 kA","Set",8410,"eq"],
+ goab:["518","11 kV GOAB switch 150 A","Set",7783.33,"eq"],
+ dtr25:["771","Distribution transformer 25 kVA","No",75995.76,"eq"], dtr100:["774","Distribution transformer 100 kVA (Al)","No",201000,"eq"],
+ mccb100:["356","MCCB 100 A 4-pole","No",24738.02,"eq"], mccb200:["357","MCCB 200 A","No",34366.38,"eq"],
+ cab50:["124","LT cable 1C×50","Mtr",75.03,"cab"], cab120:["71","LT cable 1C×120 armoured","Mtr",306,"cab"],
+ lug50:["683","Cable lug 50 sq mm","No",12.60,"cab"], lug120:["686","Cable lug 120 sq mm","No",29.40,"cab"],
+ ltct:["597","LT CT (DT metering)","No",1560,"cab"], cabinet:["507","Metering cabinet","No",6720,"cab"],
+ ptr:["—","Power transformer 33/11 kV (e.g. 5 MVA)","No",null,"eq"], ptrfdn:["—","PTR plinth with oil soak pit","Job",null,"job"],
+ iso33:["—","33 kV isolator TPGO-DBCR 800 A, without earth switch","Set",69562.50,"eq"], fdnIso:["430","Foundation, 33 kV isolator","Job",24608.85,"job"],
+ vcb33:["270","33 kV VCB 800 A with structure","No",249000,"eq"], fdnVcb:["433","Foundation, VCB","Job",34452.60,"job"],
+ ct33:["—","33 kV outdoor CT (set of 3), ratio to suit PTR","Set",null,"eq"], fdnCT:["429","Foundation, CT/CT-PT","Job",7953.75,"job"],
+ la33s:["672","33 kV station-class lightning arrester","Set",43666.67,"eq"], fdnLA:["432","Foundation, 33 kV LA","Job",3818.29,"job"],
+ vcb11:["—","11 kV outdoor VCB 800 A with structure (incomer)","No",171250,"eq"],
+ hv300:["58","11 kV XLPE cable 1C×300","Mtr",1115.20,"cab"], kit300:["214","Termination kit 1C×300 11 kV","No",3826,"cab"],
+ cr33:["465","33 kV control & relay panel with differential","No",416250,"eq"],
+ cc10:["37","Control cable 10C×2.5","Mtr",484.16,"cab"], cc4:["35","Control cable 4C×2.5","Mtr",194,"cab"], cc14:["39","Control cable 14C×1.5","Mtr",843,"cab"],
+ trench:["—","Cable trench 750×775","Rm",8231.70,"job"], gantry:["—","Switchyard gantry / equipment structure steel","MT",null,"arm"]
+};
+
+/* ---------- Structure kits ---------- */
+const LEVELS=[
+ {id:"blk",name:"0 · Building blocks"},{id:"lt",name:"1 · LT lines"},{id:"hv",name:"2 · 11 kV lines"},
+ {id:"dtr",name:"3 · DTR substations"},{id:"ehv",name:"4 · 33 kV lines"},{id:"sp",name:"5 · Crossings & switchyard"}];
+
+const K={
+stayHT:{lv:"blk",t:"One HT stay",fig:"stay",scen:"Any 11 kV pole that has unbalanced pull on it (angle, cut-point, dead-end) gets a stay. What do you write in the estimate for one stay?",
+ items:[["htstay",1,"Stay set: rod, anchor plate, thimbles, turnbuckle."],["guy11",1,"Guy (egg) insulator in the stay wire about 3 m above ground, so a fallen live wire can't make the lower stay live."],
+ ["wire710",10,"7/10 SWG stay wire: about 10 kg for one HT stay (8–12 m run, plus wraps)."],["grst",1,"Every new stay is one stay-grouting job (428)."],["pclamp",1,"Clamp on the pole to take the stay wire."]],
+ notes:[["tip","LT stay is the same pattern: 657 LT stay set + 631 LT guy insulator + 7/14 wire about 5–7 kg + 428."],["trap","Count check: stay sets = guy insulators = 428 jobs. Office sheets often get these three out of step."]]},
+earth:{lv:"blk",t:"One pole earthing",fig:"earth",scen:"An earthing point at a pole. What goes in?",
+ items:[["cipipe",1,"CI earth pipe driven next to the pole."],["swg6",3,"6 SWG GI wire from the pins/cross-arm down the pole to the pipe: about 20 m, roughly 3 kg (6 SWG weighs about 0.15 kg/m)."]],
+ notes:[["tip","Where earthing goes: every special structure (cut-point, dead-end, DP, DO/GOAB), every DTR, and on plain 11 kV runs about every 4th–5th pole. LT: both ends and roughly every 8–10 poles. 33 kV steel-pole lines are earthed far more often (Jamuguri NIT: 24 earth pipes per 34 poles) using GI pipe 473 with 8 SWG."],["tip","Chemical earthing (481) replaces CI pipes at DTRs where the soil is poor or the scheme asks for it."]]},
+
+lt1:{lv:"lt",t:"LT 1-ph intermediate pole",fig:"lt2",scen:"Erect one 8.5 m PSC pole on a straight run of a single-phase, 2-wire LT line (bare ACSR).",
+ items:[["psc85",1,"The pole. LT normally uses 8.5 m PSC (7.5 m on lanes with short spans)."],["gr85",1,"Every new pole is one grouting job of matching length."],
+ ["ltarm",1,"One LT angle arm carries the two wires."],["ltpin",2,"One pin insulator per wire on a straight run."],["ltgipin",2,"Each LT pin insulator sits on its own GI pin."],
+ ["pclamp",1,"One clamp to hold the arm on the pole."],["nb",1,"About 1 kg of nuts & bolts per LT pole."],["dpLT",1,"Danger plate on every pole."],
+ ["cipipe",0,"Not on every LT pole: earth both ends and about every 8–10 poles.",1],["swg6",0,"Goes with an earth pipe if this is an earthing pole.",1]],
+ notes:[["tip","Many Samaguri 1-ph estimates use a shackle + D-strap on every pole (vertical formation) instead of pins. Both are accepted; pick one and keep it consistent through the estimate."],["trap","No channel, no T-arm and no disc on an LT intermediate pole."]]},
+lt3:{lv:"lt",t:"LT 3-ph 4-wire intermediate pole",fig:"lt4",scen:"Erect one 8.5 m PSC pole on a straight run of a 3-phase, 4-wire LT line.",
+ items:[["psc85",1,"The pole."],["gr85",1,"Grouting job for the pole."],["ltarm",2,"Two LT angle arms (two wires each)."],["ltpin",4,"One pin insulator per wire: R, Y, B, N."],["ltgipin",4,"A GI pin for every LT pin insulator."],
+ ["pclamp",2,"One clamp per arm."],["nb",2,"About 2 kg for two arms."],["dpLT",1,"Danger plate."],["cipipe",0,"Only if this is one of the earthing poles.",1],["swg6",0,"Only with an earth pipe.",1]],
+ notes:[["tip","Per span, not per pole: one LT spacer (718) per span keeps the four wires from clashing."],["tip","Conductor: route length × 4 wires × about 1.03 for sag and jumpers. A 100 m route needs about 0.42 km, not 0.1 km."]]},
+ltend:{lv:"lt",t:"LT 3-ph dead-end pole",fig:"ltend",scen:"The last pole of a 3-ph 4-wire LT line. The wires terminate here and pull only one way.",
+ items:[["psc85",1,"The pole."],["gr85",1,"Grouting job."],["ltarm",2,"Two LT arms to take the shackles."],["shackle",4,"Wires terminate on shackle insulators, one per wire."],["strap",4,"Each shackle needs its D-strap pair to bolt it on."],
+ ["ltstay",1,"Stay opposite to the pull of the wires."],["guylt",1,"Guy insulator in the stay wire."],["wire714",6,"7/14 stay wire, about 6 kg."],["grst",1,"Stay grouting."],
+ ["pclamp",3,"Two for the arms, one for the stay."],["cipipe",1,"Line ends are always earthed; the neutral is bonded here."],["swg6",2,"Earth lead down an 8.5 m pole, about 2 kg."],
+ ["nb",3,"About 3 kg (arms, straps, stay clamp)."],["dpLT",1,"Danger plate."]],
+ notes:[["tip","A 1-ph dead-end is half of this: 1 arm, 2 shackles, 2 straps, same stay and earth."],["tip","An LT cut-point (straight-line tension point or sharp angle) takes shackles on both sides (8 + 8 straps for 3-ph) and two stays."]]},
+abc:{lv:"lt",t:"LT AB cable intermediate pole",fig:"abc",scen:"One 8.5 m PSC pole on a straight run of 3-ph LT aerial bunched cable.",
+ items:[["psc85",1,"The pole (7.5 m also used in lanes)."],["gr85",1,"Grouting job."],["susp",1,"Suspension clamp carries the bundle on straight runs."],["eyehook",1,"Eye hook (or I-hook 654) to hang the suspension clamp."],
+ ["pclamp",1,"Clamp for the hook."],["nb",0.5,"About 0.5 kg."],["dpLT",1,"Danger plate."]],
+ notes:[["tip","At angles and ends the suspension clamp is replaced by anchor clamps (806): 1 at a dead-end, 2 at a cut-point or sharp angle, each with its own hook."],["tip","Per span and per service: ties (819) about 15 per span, distribution boxes, IPCs (802/805), end caps 2 per run, steel strap + buckles per DB."],["trap","No insulators, no cross-arm and no spacer on ABC. If you see LT pins in an ABC estimate, something was copied from a bare-line sheet."]]},
+
+h1:{lv:"hv",t:"11 kV intermediate pole (9.75 m PSC)",fig:"tarm",scen:"You're given one 9.75 m PSC pole to erect on a straight run of an 11 kV Rabbit line. Channels? T-arm or V-arm? Pins? Earth?",
+ items:[["psc975",1,"The pole. 11 kV uses 9.75 m PSC."],["gr975",1,"Grouting job 427 for a 9.75 m pole."],["tarm",1,"T cross-arm. Two pins on the arm, one at the top: that's three phases on one arm. V-arms are for 33 kV."],
+ ["pin11",3,"One pin insulator per phase on a straight run."],["gipin11",3,"A GI pin for each pin insulator.","",0,"If the GTP or SoR item includes the pin with the insulator, drop 841."],["pclamp",1,"Clamp to fix the T-arm."],
+ ["bind",0.25,"Binding wire to tie the conductor on the pin insulator, about 1 m per pin."],["dp11",1,"Danger plate on every HT pole."],["barbed",2,"Anti-climbing barbed wire, about 2 kg per pole."],
+ ["nb",1.5,"About 1.5 kg."],["cipipe",0,"Plain intermediates are not all earthed; about every 4th–5th pole is.",1],["swg6",0,"Only with an earth pipe.",1]],
+ notes:[["trap","Channels: none. A channel cross-arm appears only where the conductor is dead-ended on disc strings (cut-point, dead-end, DP, DTR)."],["tip","Raccoon line: same kit. Only tension clamps, PG clamps and sleeves change when the structure carries discs."]]},
+h2:{lv:"hv",t:"11 kV small-angle pole (up to ~10°)",fig:"tstay",scen:"A slight bend in the 11 kV route. The conductor still rides on pins, but the pole is pulled sideways.",
+ items:[["psc975",1,"The pole."],["gr975",1,"Grouting job."],["tarm",1,"T-arm as on a straight pole."],["pin11",3,"Pins still carry the wire at small angles."],["gipin11",3,"GI pins."],
+ ["htstay",1,"One stay on the outside of the bend, along the bisector of the angle."],["guy11",1,"Guy insulator."],["wire710",10,"Stay wire about 10 kg."],["grst",1,"Stay grouting."],
+ ["pclamp",2,"One for the arm, one for the stay."],["bind",0.25,"Binding wire."],["dp11",1,"Danger plate."],["barbed",2,"Anti-climbing."],["nb",2,"About 2 kg."],
+ ["cipipe",0,"Optional at a small angle; earth if it falls on the 4th–5th pole cycle.",1],["swg6",0,"With the earth pipe.",1]],
+ notes:[["tip","Beyond about 10–15° the pin can't hold the side pull. Make it a cut-point (discs on channel arms) instead."]]},
+h3:{lv:"hv",t:"11 kV cut-point, single pole",fig:"cut",scen:"An angle of 30–60°, or a tension point you put every ~1 km on a long straight run. The conductor is cut, dead-ended on both sides and jumpered across.",
+ items:[["psc975",1,"The pole."],["gr975",1,"Grouting job."],["ch2200",2,"Two channel cross-arms, one for each direction of pull."],["pclamp",4,"Two for the channel arms, two for the stays."],
+ ["disc70",6,"Three strings each side = six disc insulators (polymer, one per string)."],["hw70",6,"Every disc needs its hardware fitting. Match the type: T&C disc → T&C hardware 850."],
+ ["tcRab",6,"Every disc string ends in a tension clamp sized to the conductor."],["pgRab",6,"Jumper across each phase: a PG clamp at each end = 2 per phase."],
+ ["pin11",1,"One pin on top to support the middle-phase jumper."],["gipin11",1,"GI pin for it."],
+ ["htstay",2,"Two stays: on an angle, one along each line direction (or one on the bisector, by site); on a straight tension point, one each way in line."],
+ ["guy11",2,"Guy insulators."],["wire710",20,"About 10 kg per stay."],["grst",2,"Stay grouting ×2."],
+ ["cipipe",1,"Special structures are always earthed."],["swg6",3,"Earth lead."],["dp11",1,"Danger plate."],["barbed",2,"Anti-climbing."],["nb",4,"About 4 kg."]],
+ notes:[["trap","Hardware must match the disc: T&C disc (622) with T&C hardware (850); B&S disc with B&S tension hardware (846/844). Never suspension-type 843 on a tension string."],["tip","With porcelain discs an 11 kV string uses 2 × 45 kN discs. Then the disc count doubles (12), but hardware and tension clamps stay at 6."]]},
+h4:{lv:"hv",t:"11 kV dead-end pole",fig:"dead",scen:"The last pole of an 11 kV line, or a terminal before a cable. Wires pull one way only.",
+ items:[["psc975",1,"The pole."],["gr975",1,"Grouting job."],["ch2200",1,"One channel arm to take the three strings."],["pclamp",2,"Arm + stay."],
+ ["disc70",3,"One string per phase."],["hw70",3,"Matching hardware per string."],["tcRab",3,"Tension clamp per phase."],
+ ["htstay",1,"One stay in line, behind the pole, opposite the wires."],["guy11",1,"Guy insulator."],["wire710",10,"Stay wire."],["grst",1,"Stay grouting."],
+ ["cipipe",1,"Line ends are earthed."],["swg6",3,"Earth lead."],["dp11",1,"Danger plate."],["barbed",2,"Anti-climbing."],["nb",3,"About 3 kg."]],
+ notes:[["tip","If the line ends on a DTR or cable, the dead-end kit merges into that structure. Don't count it twice."]]},
+h5:{lv:"hv",t:"11 kV double-pole (DP) cut-point",fig:"dp",scen:"A heavy angle (over ~60°), a river or road crossing, or a section that needs more strength than one pole. You're given a DP to erect.",
+ items:[["psc975",2,"Two poles."],["gr975",2,"Two grouting jobs."],["ch2800",2,"Two long channel arms spanning both poles, one per direction."],["ch7540",6,"75×40 channel for bracing between the poles, about 6 m."],
+ ["pclamp",8,"Each arm is clamped to both poles (4) plus one clamp per stay (4)."],["disc70",6,"Three strings each side."],["hw70",6,"Matching T&C hardware."],["tcRab",6,"Tension clamps."],["pgRab",6,"Jumper PG clamps, 2 per phase."],
+ ["pin11",3,"Pins on the bracing to carry the three jumpers clear of steel."],["gipin11",3,"GI pins."],
+ ["htstay",4,"Four stays, two per pole, set against both directions of pull."],["guy11",4,"Guy insulators."],["wire710",40,"About 10 kg per stay."],["grst",4,"Stay grouting ×4."],
+ ["cipipe",2,"One earth per pole."],["swg6",6,"Earth leads for both poles."],["dp11",2,"Danger plate on each pole."],["barbed",4,"Anti-climbing on both poles."],["nb",8,"About 8 kg."]],
+ notes:[["tip","Pole spacing of a DP is normally about 2 m centre to centre; that is why the 2800 mm arm is used here rather than the 2200."]]},
+h6:{lv:"hv",t:"DO fuse set at a tap-off",fig:"tap",scen:"A new 11 kV branch is tapped off the main line and protected by a drop-out fuse set. Fittings only (the pole is counted in its own kit).",
+ items:[["do11",1,"DO fuse set for the branch."],["ch2200",1,"Channel arm to mount the DO set."],["pin11",3,"Pins to carry the tap jumpers."],["gipin11",3,"GI pins."],
+ ["pgRab",6,"Tap connection to the main line and DO terminals, 2 per phase."],["pclamp",4,"Clamps for the DO channel and pin arm."],["cipipe",1,"DO structure is earthed."],["swg6",2,"Earth lead."],["nb",4,"About 4 kg."]],
+ notes:[["tip","DDUGJY norm: one DO set at each tapping, roughly one per 2 km of new 11 kV line."]]},
+
+d25:{lv:"dtr",t:"25 kVA DTR substation on DP",fig:"dtr",scen:"A new 25 kVA transformer on a double-pole structure at the end of an 11 kV tap.",
+ items:[["dtr25",1,"The transformer."],["psc975",2,"Two 9.75 m PSC poles (DDUGJY kit allows 8.5 m for 25/63 kVA)."],["gr975",2,"Two grouting jobs."],
+ ["ch2200",6,"Channel arms: HT dead-end, DO and LA mountings, and the transformer seat."],["angle50",2,"GI angle for the DTR seat / support, about 2 m."],["pclamp",12,"Two clamps per arm × 6 arms."],
+ ["disc70",3,"Incoming HT dead-ended on the DP."],["hw70",3,"Matching hardware."],["tcRab",3,"Tension clamps."],["pin11",3,"Pins carry the jumpers down to the DO."],["gipin11",3,"GI pins."],
+ ["do11",1,"DO fuse set on the HT side."],["la11",1,"Lightning arrester set on the HT side."],["rabbit",0.015,"Rabbit for HT jumpers, about 15 m."],["pgRab",6,"Jumper connections."],
+ ["cab50",40,"LT leads from DTR bushings to the MCCB/LT line, about 40 m of 1C×50."],["lug50",12,"Lugs at both ends of each run."],["mccb100",1,"LT protection (25 kVA ≈ 35 A)."],
+ ["ltct",3,"DT metering: one CT per phase."],["cabinet",1,"Meter cabinet."],
+ ["cipipe",5,"Five earths: 2 for transformer body, 2 for neutral, 1 for LA."],["swg6",15,"About 3 kg per earth lead."],
+ ["htstay",2,"Stays against the incoming line pull."],["guy11",2,"Guy insulators."],["wire710",20,"Stay wire."],["grst",2,"Stay grouting."],
+ ["dp11",2,"Danger plate on each pole."],["barbed",4,"Anti-climbing on both poles."],["nb",15,"About 15 kg for a DTR structure."],["fence",1,"DTR fencing (CGM circular, March 2024)."]],
+ notes:[["trap","Earth pipes at a DTR: 5 (or chemical earthing 481). A DTR estimate with 1–2 earth pipes will be returned."],["tip","Office sheets often show 4 LT CTs. Three-phase four-wire DT metering needs 3; the 4th is usually a spare. Say which in your notes."]]},
+d100:{lv:"dtr",t:"100 kVA DTR substation on DP",fig:"dtr",scen:"A consumer's 100 kVA DTR on a double pole with GOAB, DO, LA and LT CT metering (Samaguri office pattern).",
+ items:[["dtr100",1,"The transformer."],["psc975",2,"Two 9.75 m PSC poles."],["gr975",2,"Two grouting jobs."],["ch2200",2,"Channel arms for HT dead-end and DO/LA."],
+ ["ch7540",24,"75×40 channel for the DTR seat, belting and bracing, about 24 m."],["tarm",1,"Top arm for the GOAB / jumper pins."],["pclamp",12,"Clamps for arms and belting."],
+ ["disc70",3,"Incoming HT dead-end."],["hw70",3,"Matching hardware."],["tcRab",3,"Tension clamps."],["pin11",3,"Jumper support."],["gipin11",3,"GI pins."],
+ ["goab",1,"GOAB isolator on the HT side, so the DTR can be isolated without the line."],["do11",1,"DO fuse set."],["la11",1,"LA set."],["rabbit",0.02,"HT jumpers, about 20 m."],["pgRab",6,"Jumper connections."],
+ ["cab120",35,"LT leads 1C×120 armoured, about 35 m (4 cores × ~8 m + spare)."],["lug120",16,"Lugs, 2 per run end."],["mccb200",1,"100 kVA ≈ 139 A, so a 200 A MCCB."],
+ ["ltct",3,"Metering CTs, one per phase."],["cabinet",1,"Meter cabinet."],
+ ["cipipe",5,"Five earths: body 2, neutral 2, LA 1."],["swg6",15,"Earth leads."],["gistrip",20,"GI strip for neutral and body earth connections, about 20 m."],
+ ["htstay",2,"Stays."],["guy11",2,"Guy insulators."],["wire710",20,"Stay wire."],["grst",2,"Stay grouting."],
+ ["dp11",2,"Danger plates."],["barbed",4,"Anti-climbing."],["nb",15,"About 15 kg."],["fence",1,"DTR fencing."]],
+ notes:[["tip","Upgrading an existing DTR (say 100 → 250 kVA) also needs a dismantling estimate for the old transformer at 85% of SoR."],["trap","Temporary DTR on an existing DP from O&M stock: only labour is payable; put the materials in the Existing column."]]},
+
+v1:{lv:"ehv",t:"33 kV intermediate pole (SP-76)",fig:"varm",scen:"One SP-76 steel tubular pole on a straight run of a 33 kV Wolf line.",
+ items:[["sp76",1,"The pole. 33 kV uses SP-76 steel tubular poles."],["gr76",1,"Grouting job 423 for SP-66/76 (not 427, which is for PSC)."],["varm",1,"33 kV V cross-arm carries two phases."],["cleat",1,"Top cleat carries the third phase on top."],
+ ["pin33",3,"33 kV pin insulator per phase."],["gipin33",3,"33 kV GI pin per insulator."],["pclamp",1,"Clamp for the V-arm."],["bind",0.4,"Binding wire."],["dp33",1,"33 kV danger plate."],
+ ["barbed",1.5,"Anti-climbing, about 1.5 kg."],["nb",3,"About 3 kg."],["gipipe",0,"Steel-pole lines are earthed on about 2 of every 3 poles (GI pipe 473).",1],["swg8",0,"8 SWG with GI pipe on 33 kV.",1]],
+ notes:[["tip","Typical 33 kV span on SP-76: 30–33 m, so about 33–34 poles per km."]]},
+v2:{lv:"ehv",t:"33 kV tension / cut-point (SP-76)",fig:"cut33",scen:"An angle or tension point on a 33 kV Wolf line, dead-ended both sides and jumpered.",
+ items:[["sp76",1,"The pole."],["gr76",1,"Grouting job 423."],["ch3200",2,"Two 3200 mm channel arms (wider phase spacing at 33 kV)."],["pclamp",4,"Arms and stays."],
+ ["disc90",6,"Three strings each side, 90 kN polymer B&S."],["hw90",6,"B&S 90 kN tension hardware to match."],["tcWolf",6,"Wolf tension clamps."],["pgWolf",6,"Jumper PG clamps, 2 per phase."],
+ ["pin33",1,"Top pin for the middle jumper."],["gipin33",1,"GI pin."],["htstay",2,"Two stays."],["guy33",2,"33 kV guy insulators (616, not the 11 kV 629)."],["wire710",32,"About 16 kg per 33 kV stay."],["grst",2,"Stay grouting."],
+ ["gipipe",1,"Earthing."],["swg8",2,"Earth lead."],["dp33",1,"Danger plate."],["barbed",1.5,"Anti-climbing."],["nb",8,"About 8 kg."]],
+ notes:[["trap","33 kV on Wolf: tension clamp 836, PG 828, sleeve 824. Using Rabbit fittings on a Wolf line is a common copy-paste slip."]]},
+v3:{lv:"ehv",t:"33 kV dead-end (SP-76)",fig:"dead33",scen:"End pole of a 33 kV line before a substation gantry or cable.",
+ items:[["sp76",1,"The pole."],["gr76",1,"Grouting job 423."],["ch3200",1,"One channel arm."],["pclamp",2,"Arm and stay."],["disc90",3,"One string per phase."],["hw90",3,"Matching hardware."],["tcWolf",3,"Tension clamps."],
+ ["htstay",1,"Stay behind the pole."],["guy33",1,"33 kV guy insulator."],["wire710",16,"Stay wire."],["grst",1,"Stay grouting."],["gipipe",1,"Earthing."],["swg8",2,"Earth lead."],["dp33",1,"Danger plate."],["barbed",1.5,"Anti-climbing."],["nb",5,"About 5 kg."]],
+ notes:[]},
+
+guard:{lv:"sp",t:"Guarding at a crossing (per set)",fig:"guard",scen:"An 11 kV line crosses a road, an LT line or a telephone line. A guard cradle is strung under it so a broken HT wire falls onto earthed steel.",
+ items:[["angle50",5,"Two GI angle guard arms of 2.5 m."],["swg8",35,"8 SWG for the cradle: longitudinal guard wires and cross lacing."],["ihook",4,"I-hooks to anchor the guard wires."],
+ ["swg6",6,"Bonding the guard to earth."],["cipipe",2,"Guarding is earthed at both ends."],["nb",2,"About 2 kg."]],
+ notes:[["tip","DDUGJY kit per set: angle 2 × 2.5 m, 8 SWG lacing 35 kg, 6 SWG 6 kg, I-hook 4, CI pipe 2."],["tip","The crossing poles themselves are counted as cut-points or DPs in their own kits."]]},
+ptr:{lv:"sp",t:"33/11 kV PTR bay (indicative)",fig:"ptr",noqty:1,scen:"A power transformer bay in a 33/11 kV substation yard. Most of this is set by the yard layout drawing; use this to make sure nothing is forgotten, then measure lengths from the drawing.",
+ items:[["ptr",1,"The power transformer. Non-SoR: use the approved/tender rate."],["ptrfdn",1,"Transformer plinth with oil soak pit (civil)."],
+ ["iso33",1,"Bus-side isolator so the VCB can be isolated for maintenance."],["fdnIso",1,"Isolator foundation."],["vcb33",1,"33 kV VCB on the HV side of the PTR."],["fdnVcb",1,"VCB foundation."],
+ ["ct33",1,"CTs for protection and metering of the bay."],["fdnCT",1,"CT foundation."],["la33s",1,"Station-class LA at the PTR HV bushings."],["fdnLA",1,"LA foundation."],
+ ["la11s",1,"11 kV LA at the LV bushings."],["vcb11",1,"11 kV incomer breaker (or one unit of the indoor panel)."],
+ ["hv300",120,"PTR LV to 11 kV incomer: 3 single-core runs × about 40 m (measure from layout)."],["kit300",6,"One termination per single-core cable end: 3 cables × 2 ends."],
+ ["cr33",1,"Control & relay panel with differential protection for the PTR."],["cc10",150,"Control cables from CTs, VCB and PTR (OTI/WTI, Buchholz) to the C&R panel."],["cc4",100,"4-core control cable."],["cc14",60,"14-core for multi-function wiring."],
+ ["trench",30,"Cable trench from yard to control room."],["gipipe",8,"Earths: PTR body 2, neutral 2, LAs 2, structures 2 (tie into the station earth mat)."],["gistrip50",80,"50×6 GI flat risers and equipment-to-mat connections."],
+ ["disc90",6,"Strain strings where the bay conductor is dead-ended on the gantry."],["hw90",6,"Matching hardware."],["wolf",0.1,"Bus droppers and jumpers."],["pgWolf",12,"T-connectors / PG clamps on droppers."],
+ ["gantry",1,"Gantry and equipment support structures (by weight from the drawing)."],["nb",30,"About 30 kg."],["dp33",2,"Danger plates."]],
+ notes:[["tip","Bay chain from the bus: isolator → VCB → CT → LA → PTR → LA → 11 kV cable → 11 kV incomer → 11 kV bus. Walk this chain and you won't miss an item."],["tip","Battery bank + charger, ACDB, station transformer and yard lighting belong to the substation, not to one bay. Add them once per substation."],["trap","Equipment foundations (429, 430, 432, 433) are labour-included jobs. If plinths are reused, show them at 0 and say so."]]}
+};
+const ORDER=Object.keys(K);
+
+/* ---------- Companion families ---------- */
+const FAM=[
+ {h:"New pole",sor:"746–754",lead:"Whatever the voltage",c:["Grouting of matching length (425/426/427 PSC, 422/423 steel)","Danger plate of the line's voltage","Nuts & bolts","Anti-climbing barbed wire on HT poles","Something to carry the wires: arm + insulators"]},
+ {h:"Pin insulator",sor:"630 / 626 / 613",lead:"Wire riding on top of the insulator",c:["GI pin of the same voltage (842 / 841 / 840)","Binding wire to tie the conductor","A cross-arm or top cleat to sit on"]},
+ {h:"Disc insulator",sor:"622 / 607",lead:"Wire dead-ended on a string",c:["Hardware fitting of the same type (T&C → 850, B&S → 846/844)","Tension clamp sized to the conductor (834/835/836)","A channel cross-arm to hang from","At a cut-point: jumper + 2 PG clamps per phase","Almost always a stay on the pole"]},
+ {h:"Shackle insulator",sor:"632",lead:"LT wire dead-ended",c:["D-strap pair (853) per shackle","LT angle arm","LT stay at ends and angles"]},
+ {h:"Stay",sor:"653 / 657",lead:"One stay set means",c:["Guy insulator (629 11 kV, 616 33 kV, 631 LT)","Stay wire (7/10 HT ≈10 kg, 7/14 LT ≈6 kg)","Stay grouting 428","Pole clamp for the stay"]},
+ {h:"Earth pipe",sor:"474 / 473 / 481",lead:"One earthing point",c:["Earth lead: 6 SWG ≈3 kg (8 SWG on 33 kV steel)","At DTRs: GI strip for body/neutral","Count 5 at a DTR, 2 at a guarding set, 1 at every special structure"]},
+ {h:"Channel cross-arm",sor:"638 / 639 / 640",lead:"Steel on the pole",c:["Pole clamps (one per pole it touches)","Nuts & bolts","It exists because discs or equipment hang on it"]},
+ {h:"Conductor",sor:"445–449",lead:"Per km of route",c:["Length × wires × 1.03 (11 kV and 33 kV: 3.3 km per route km)","Mid-span sleeves, about one per wire per km","PG clamps at every jumper and tap","LT bare 3-ph: one spacer per span"]},
+ {h:"DTR",sor:"770–782",lead:"A transformer never comes alone",c:["DP structure: 2 poles, grouting, channels, clamps","HT dead-end strings + jumpers + PG","DO set + LA set (GOAB at 100 kVA and above)","LT cable + lugs + MCCB","LT CTs + meter cabinet","5 earths + earth leads","Fencing, danger plates, stays"]},
+ {h:"AB cable",sor:"13–21",lead:"Per km of LT ABC",c:["Suspension clamp + eye hook per straight pole","Anchor clamps at ends and angles","Distribution boxes + steel strap + buckles","IPCs for service and DB taps","End caps, ties","LT stays"]},
+ {h:"VCB / isolator / LA / CT in a yard",sor:"270 · 430–433",lead:"Equipment in a switchyard",c:["Its foundation job (433 VCB, 430 isolator, 432 LA, 429 CT)","Earthing to the mat (GI flat + pipe)","Control cable to the C&R panel","Droppers + PG / T-connectors"]},
+ {h:"Line crossing",sor:"637 · 650",lead:"HT over road / LT / telecom",c:["Guard cradle: GI angle arms, 8 SWG lacing","I-hooks","Earthing both ends","Stronger crossing poles: cut-point or DP"]}
+];
+
+/* ---------- helpers ---------- */
+const $=s=>document.querySelector(s);
+const fmt=n=>n==null?"—":n.toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
+const fq=q=>{if(q===0)return"0";return Number.isInteger(q)?String(q):(+q.toFixed(3)).toString()};
+const esc=s=>String(s).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
+let PROG={};try{PROG=JSON.parse(localStorage.getItem("p2b-prog")||"{}")}catch(e){PROG={}}
+function saveProg(){try{localStorage.setItem("p2b-prog",JSON.stringify(PROG))}catch(e){};scheduleSync()}
+let cur="h1",mode="study";
+try{const s=localStorage.getItem("p2b-cur");if(s&&K[s])cur=s}catch(e){}
+
+/* ---------- SVG schematics ---------- */
+const GY=230;
+function pole(x,top=30,steel=false){return `<polygon class="${steel?'s-steel':'s-pole'}" points="${x-5},${GY} ${x+5},${GY} ${x+3},${top} ${x-3},${top}"/><rect class="s-grout" x="${x-10}" y="${GY}" width="20" height="30"/><line x1="${x}" y1="${GY}" x2="${x}" y2="${GY+26}" stroke="var(--muted)" stroke-dasharray="2 2"/>`}
+function ground(){return `<line class="s-ground" x1="6" y1="${GY}" x2="254" y2="${GY}"/>`}
+function pin(x,y,s=1){return `<rect class="s-ins" x="${x-3.5*s}" y="${y-11*s}" width="${7*s}" height="${11*s}" rx="2"/><line x1="${x-5*s}" y1="${y-7*s}" x2="${x+5*s}" y2="${y-7*s}" stroke="var(--ink)" stroke-width=".8"/><line x1="${x-5*s}" y1="${y-3.5*s}" x2="${x+5*s}" y2="${y-3.5*s}" stroke="var(--ink)" stroke-width=".8"/><circle cx="${x}" cy="${y-12*s}" r="1.6" class="s-acc"/>`}
+function dplate(x,y=165){return `<rect class="s-dp" x="${x-6}" y="${y}" width="12" height="9"/>`}
+function barbs(x){let s="";for(let i=0;i<4;i++){s+=`<path class="s-barb" d="M${x-9} ${188+i*4} l18 2"/>`}return s}
+function stay(x,y,dir=1){const gx=x+dir*78;return `<line class="s-stay" x1="${x}" y1="${y}" x2="${gx}" y2="${GY}"/><rect class="s-ins" x="${x+dir*30-4}" y="${y+(GY-y)*0.38-3}" width="8" height="6" rx="3"/><line x1="${gx}" y1="${GY}" x2="${gx+dir*6}" y2="${GY+22}" stroke="var(--muted)" stroke-width="2"/><rect class="s-grout" x="${gx+dir*6-8}" y="${GY+18}" width="16" height="8"/>`}
+function earthL(x,dir=-1){const ex=x+dir*22;return `<path class="s-earth" d="M${x+dir*4} 60 L${x+dir*4} ${GY-6} L${ex} ${GY-6} L${ex} ${GY+18}"/><rect fill="var(--earth)" x="${ex-2}" y="${GY+2}" width="4" height="24"/><path class="s-earth" d="M${ex-8} ${GY+28} h16 M${ex-5} ${GY+32} h10 M${ex-2} ${GY+36} h4"/>`}
+function hlabel(x,t){return `<text class="s-t" x="${x+10}" y="${GY-6}">${t}</text>`}
+function discString(x,y,dir){let s="";for(let i=0;i<3;i++){s+=`<ellipse class="s-disc" cx="${x+dir*(6+i*5)}" cy="${y}" rx="2.4" ry="5"/>`}s+=`<rect class="s-arm" x="${dir>0?x+21:x-27}" y="${y-2}" width="6" height="4"/>`;s+=`<line class="s-cond" x1="${x+dir*27}" y1="${y}" x2="${x+dir*110}" y2="${y+6}"/>`;return s}
+function svg(inner,vb="0 0 260 270"){return `<svg viewBox="${vb}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Structure sketch">${inner}</svg>`}
+function draw(kind){
+ const x=130;let s="";
+ switch(kind){
+ case"lt2":s=ground()+pole(x,70)+`<rect class="s-arm" x="${x-28}" y="82" width="56" height="5"/>`+pin(x-22,82)+pin(x+22,82)+dplate(x)+hlabel(x,"PSC 8.5 m");break;
+ case"lt4":s=ground()+pole(x,70)+`<rect class="s-arm" x="${x-30}" y="82" width="60" height="5"/><rect class="s-arm" x="${x-30}" y="102" width="60" height="5"/>`+pin(x-24,82)+pin(x+24,82)+pin(x-24,102)+pin(x+24,102)+dplate(x)+hlabel(x,"PSC 8.5 m");break;
+ case"ltend":s=ground()+pole(x,70);[82,94,106,118].forEach(y=>{s+=`<circle class="s-ins" cx="${x-9}" cy="${y}" r="4"/><line class="s-cond" x1="${x-13}" y1="${y}" x2="20" y2="${y+4}"/>`});s+=stay(x,90,1)+earthL(x,-1)+dplate(x)+`<text class="s-t" x="16" y="70">wires →</text>`;break;
+ case"abc":s=ground()+pole(x,70)+`<path class="s-cond" d="M10 96 Q70 104 ${x-8} 92 Q190 104 250 96" stroke-width="4"/><rect class="s-box" x="${x-12}" y="86" width="12" height="9" rx="2"/><circle cx="${x-4}" cy="84" r="3" fill="none" stroke="var(--ink)"/>`+dplate(x)+hlabel(x,"PSC 8.5 m");break;
+ case"tarm":case"tstay":s=ground()+pole(x,36)+`<rect class="s-arm" x="${x-52}" y="50" width="104" height="5"/>`+pin(x-46,50)+pin(x+46,50)+pin(x,36)+dplate(x)+barbs(x)+hlabel(x,"PSC 9.75 m");if(kind==="tstay")s+=stay(x,60,1);break;
+ case"cut":s=ground()+pole(x,36)+`<rect class="s-arm" x="${x-6}" y="48" width="12" height="6"/><rect class="s-arm" x="${x-6}" y="66" width="12" height="6"/>`;[51,69,40].forEach(y=>{s+=discString(x-5,y,-1)+discString(x+5,y,1)});s+=`<path class="s-cond" d="M${x-27} 51 Q${x} 62 ${x+27} 51 M${x-27} 69 Q${x} 82 ${x+27} 69"/>`+pin(x,32)+stay(x,60,1)+stay(x,60,-1)+earthL(x,-1)+dplate(x)+barbs(x);break;
+ case"dead":s=ground()+pole(x,36)+`<rect class="s-arm" x="${x-6}" y="48" width="12" height="6"/>`;[44,51,58].forEach(y=>s+=discString(x-5,y,-1));s+=stay(x,56,1)+earthL(x,-1)+dplate(x)+barbs(x);break;
+ case"dp":{const a=95,b=165;s=ground()+pole(a,36)+pole(b,36)+`<rect class="s-arm" x="${a-14}" y="48" width="${b-a+28}" height="5"/><rect class="s-arm" x="${a-14}" y="64" width="${b-a+28}" height="5"/><path stroke="var(--steel)" stroke-width="3" fill="none" d="M${a} 90 L${b} 130 M${b} 90 L${a} 130 M${a} 110 H${b}"/>`;s+=pin(a+20,64)+pin(x,64)+pin(b-20,64)+`<line class="s-stay" x1="${a}" y1="60" x2="18" y2="${GY}"/><line class="s-stay" x1="${b}" y1="60" x2="242" y2="${GY}"/>`+dplate(a)+dplate(b)+earthL(a,-1)+`<text class="s-t" x="${a-10}" y="28">DP · 2 × 9.75 m</text>`;break}
+ case"tap":s=ground()+pole(x,36)+`<line class="s-cond" x1="10" y1="40" x2="250" y2="40"/><rect class="s-arm" x="${x-44}" y="78" width="88" height="5"/>`;[-30,0,30].forEach(d=>{s+=`<line class="s-cond" x1="${x+d}" y1="40" x2="${x+d}" y2="62"/><rect class="s-box" x="${x+d-3}" y="62" width="6" height="16" rx="1"/><line class="s-cond" x1="${x+d}" y1="83" x2="${x+d+40}" y2="130"/>`});s+=`<text class="s-t" x="10" y="34">main 11 kV line</text><text class="s-tb" x="${x+48}" y="74">DO set</text>`+earthL(x,-1);break;
+ case"dtr":{const a=95,b=165;s=ground()+pole(a,36)+pole(b,36)+`<rect class="s-arm" x="${a-14}" y="46" width="${b-a+28}" height="5"/><rect class="s-arm" x="${a-14}" y="78" width="${b-a+28}" height="5"/><rect class="s-arm" x="${a-6}" y="148" width="${b-a+12}" height="5"/>`;
+  [a+12,x,b-12].forEach(px=>{s+=`<rect class="s-box" x="${px-3}" y="60" width="6" height="16" rx="1"/><line class="s-cond" x1="${px}" y1="83" x2="${px}" y2="110"/>`});
+  s+=`<rect class="s-dtr" x="${a+10}" y="110" width="${b-a-20}" height="38" rx="3"/><text class="s-tb" x="${x}" y="133" text-anchor="middle">DTR</text><text class="s-t" x="${b+10}" y="70">DO</text><text class="s-t" x="${b+10}" y="54">dead-end</text>`;
+  s+=`<rect class="s-box" x="${b+12}" y="170" width="22" height="28"/><text class="s-t" x="${b+10}" y="210">MCCB/meter</text><path class="s-cond" d="M${b-14} 140 Q${b+6} 150 ${b+20} 170"/>`;
+  s+=`<rect x="${a-26}" y="196" width="${b-a+52}" height="34" fill="none" stroke="var(--muted)" stroke-dasharray="4 3"/><text class="s-t" x="${a-24}" y="${GY+38}">fence · 5 earths</text>`+dplate(a,175)+dplate(b,175);break}
+ case"varm":s=ground()+pole(x,22,true)+`<path stroke="var(--steel)" stroke-width="5" fill="none" d="M${x-58} 40 L${x} 64 L${x+58} 40"/><rect class="s-arm" x="${x-4}" y="20" width="8" height="10"/>`+pin(x-54,40,1.2)+pin(x+54,40,1.2)+pin(x,20,1.2)+dplate(x)+barbs(x)+hlabel(x,"SP-76 · 14.5 m");break;
+ case"cut33":case"dead33":s=ground()+pole(x,22,true)+`<rect class="s-arm" x="${x-6}" y="40" width="12" height="6"/>`;[36,46,56].forEach(y=>{s+=discString(x-5,y,-1);if(kind==="cut33")s+=discString(x+5,y,1)});if(kind==="cut33"){s+=pin(x,20,1.2)+stay(x,52,-1)}s+=stay(x,52,1)+earthL(x,-1)+dplate(x)+barbs(x)+`<text class="s-t" x="12" y="22">SP-76 · Wolf</text>`;break;
+ case"guard":{const a=40,b=220;s=ground()+pole(a,36)+pole(b,36)+`<line class="s-cond" x1="${a}" y1="44" x2="${b}" y2="44"/><line class="s-cond" x1="${a}" y1="52" x2="${b}" y2="52"/><path stroke="var(--earth)" stroke-width="1" fill="none" d="M${a} 78 Q130 92 ${b} 78 M${a} 90 Q130 104 ${b} 90"/>`;for(let i=0;i<9;i++){const gx=a+20+i*18;s+=`<line stroke="var(--earth)" stroke-width=".8" x1="${gx}" y1="${80+ (i>4?8-i:i)*1.2}" x2="${gx}" y2="${94+(i>4?8-i:i)*1.2}"/>`}
+  s+=`<rect fill="var(--line)" x="70" y="${GY-14}" width="120" height="14"/><text class="s-t" x="108" y="${GY-4}">ROAD</text><text class="s-tb" x="${a+30}" y="74">guard cradle (8 SWG)</text>`+earthL(a,-1)+earthL(b,1);break}
+ case"stay":s=ground()+pole(70,36)+stay(70,60,1)+`<text class="s-tb" x="120" y="100">stay wire 7/10</text><text class="s-tb" x="102" y="132">guy insulator</text><text class="s-t" x="150" y="${GY+38}">stay set + 428</text>`;break;
+ case"earth":s=ground()+pole(x,36)+earthL(x,-1)+`<text class="s-tb" x="20" y="140">6 SWG lead</text><text class="s-tb" x="50" y="${GY+44}">CI pipe</text>`;break;
+ case"ptr":{const st=["33 kV bus","Isolator","VCB","CT","LA","PTR","LA","11 kV cable","Incomer"];let o="";st.forEach((t,i)=>{const row=i<5?0:1,col=row?i-5:i,xx=row?20+col*58:12+col*48,yy=row?150:40;
+   const w=t==="PTR"?50:40;o+=`<rect class="${t==='PTR'?'s-dtr':'s-box'}" x="${xx}" y="${yy}" width="${w}" height="34" rx="3"/><text class="s-tb" x="${xx+w/2}" y="${yy+20}" text-anchor="middle" style="font-size:7.5px">${t}</text>`;
+   if(i<4)o+=`<line class="s-cond" x1="${xx+40}" y1="${yy+17}" x2="${xx+48}" y2="${yy+17}"/>`;if(i>=5&&i<8)o+=`<line class="s-cond" x1="${xx+w}" y1="${yy+17}" x2="${xx+58}" y2="${yy+17}"/>`});
+   o+=`<path class="s-cond" d="M224 74 V110 H45 V150"/><text class="s-t" x="12" y="28">33 kV side</text><text class="s-t" x="20" y="140">11 kV side</text><text class="s-t" x="12" y="214">+ C&amp;R panel, control cables,</text><text class="s-t" x="12" y="226">earth mat, foundations</text>`;return svg(o,"0 0 260 240")}
+ }
+ return svg(s);
+}
+
+/* ---------- Structures view ---------- */
+function buildRail(){
+ let h="",opts="";
+ LEVELS.forEach(L=>{
+  const ks=ORDER.filter(k=>K[k].lv===L.id);
+  h+=`<div><h3>${L.name}</h3><ul>`+ks.map(k=>{const p=PROG[k];const cls=p&&p.best>=0.9?"done":p?"tried":"";
+   return `<li><button data-k="${k}" class="${k===cur?'on':''}"><span class="dot ${cls}"></span>${esc(K[k].t)}</button></li>`}).join("")+`</ul></div>`;
+  opts+=`<optgroup label="${L.name}">`+ks.map(k=>`<option value="${k}" ${k===cur?'selected':''}>${esc(K[k].t)}</option>`).join("")+`</optgroup>`;
+ });
+ $("#rail").innerHTML=h;$("#railsel").innerHTML=opts;
+ $("#rail").querySelectorAll("button").forEach(b=>b.onclick=()=>pick(b.dataset.k));
+}
+$("#railsel").onchange=e=>pick(e.target.value);
+function pick(k){cur=k;try{localStorage.setItem("p2b-cur",k)}catch(e){};buildRail();renderKit()}
+
+function kitRows(k){return K[k].items.map(r=>({id:r[0],q:r[1],why:r[2],opt:!!r[3],alt:r[5]||""}))}
+function grouped(rows){const by={};rows.forEach(r=>{const g=C[r.id][4];(by[g]=by[g]||[]).push(r)});return Object.keys(G).filter(g=>by[g]).map(g=>[g,by[g]])}
+
+function renderKit(){
+ const k=K[cur],lvl=LEVELS.find(l=>l.id===k.lv).name;
+ const noqty=!!k.noqty;if(noqty&&mode==="qty")mode="study";
+ let h=`<div class="kit-head"><div><div class="eyebrow">${lvl}</div><h2>${esc(k.t)}</h2><p class="scenario">${esc(k.scen)}</p></div>
+ <div class="seg" role="group" aria-label="Mode">
+  <button data-m="study" aria-pressed="${mode==='study'}">Study</button>
+  <button data-m="check" aria-pressed="${mode==='check'}">What goes on it?</button>
+  ${noqty?"":`<button data-m="qty" aria-pressed="${mode==='qty'}">How many?</button>`}</div></div>
+ <div class="body"><div class="figure">${draw(k.fig)}<div class="cap">Sketch, not to scale.</div></div><div id="pane" style="min-width:0"></div></div>`;
+ $("#kit").innerHTML=h;
+ $("#kit").querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{mode=b.dataset.m;renderKit()});
+ if(mode==="study")study();else if(mode==="check")checklist();else qtyQuiz();
+}
+function notesHtml(){const n=K[cur].notes||[];return n.length?`<div class="notes">`+n.map(([t,x])=>`<div class="note ${t==='trap'?'trap':''}"><b>${t==='trap'?'Watch out':'Note'}</b>${esc(x)}</div>`).join("")+`</div>`:""}
+function study(){
+ const rows=kitRows(cur);let mat=0,job=0,miss=0;
+ let h=`<div class="tbl-wrap"><table><thead><tr><th>SoR</th><th>Item</th><th>Unit</th><th class="num">Qty</th><th class="num">Rate</th><th class="num">Amount</th></tr></thead><tbody>`;
+ grouped(rows).forEach(([g,rs])=>{h+=`<tr class="grp"><td colspan="6">${G[g]}</td></tr>`;rs.forEach(r=>{const c=C[r.id],amt=c[3]==null?null:c[3]*r.q;
+  if(amt==null&&r.q>0)miss++;else if(g==="job")job+=amt||0;else mat+=amt||0;
+  h+=`<tr><td class="sor">${c[0]}</td><td>${esc(c[1])}${r.opt?'<span class="opt">if earthing pole</span>':''}<div class="why">${esc(r.why)}${r.alt?' '+esc(r.alt):''}</div></td><td>${c[2]}</td><td class="num">${fq(r.q)}</td><td class="num">${fmt(c[3])}</td><td class="num">${amt==null?'—':fmt(amt)}</td></tr>`})});
+ h+=`<tr class="tot"><td colspan="5">Materials (goes into A)</td><td class="num">${fmt(mat)}</td></tr>`;
+ if(job)h+=`<tr class="tot"><td colspan="5">Labour-included jobs (goes into E)</td><td class="num">${fmt(job)}</td></tr>`;
+ h+=`</tbody></table></div>`;if(miss)h+=`<p class="hint">${miss} item(s) have no SoR rate here; price them at the approved or tender rate.</p>`;
+ $("#pane").innerHTML=h+notesHtml();
+}
+/* checklist */
+let sel=new Set(),checked=false,pool=[];
+function checklist(){
+ sel=new Set();checked=false;
+ const need=kitRows(cur).filter(r=>!r.opt&&r.q>0).map(r=>r.id);
+ const others=[...new Set(ORDER.filter(k=>k!==cur&&K[k].lv===K[cur].lv||["blk"].includes(K[k].lv)).flatMap(k=>kitRows(k).map(r=>r.id)))].filter(id=>!need.includes(id));
+ const near=["ch2200","tarm","varm","disc70","hw70","shackle","ltpin","pin11","pin33","htstay","cipipe","ch7540","goab","la11","spacer","susp","guy33","gr85","gr975","gr76","dp11","dpLT","barbed","pgRab","tcRab"].filter(id=>!need.includes(id));
+ const dist=shuffle([...new Set([...others,...near])]).slice(0,Math.max(6,Math.round(need.length*0.6)));
+ pool=shuffle([...need,...dist]);
+ $("#pane").innerHTML=`<p class="hint" style="margin-top:0">Tap every item that belongs in the estimate for this structure (quantities come later). ${need.length} items are needed; some tiles are traps.</p>
+ <div class="tiles" id="tiles">`+pool.map(id=>`<button class="tile" data-id="${id}" aria-pressed="false">${esc(C[id][1])}<small>SoR ${C[id][0]}</small></button>`).join("")+`</div>
+ <div class="actions"><button class="btn" id="chk">Check</button><button class="btn ghost" id="again">Shuffle again</button><span id="sc" class="score"></span></div><div id="fb"></div>`;
+ $("#tiles").querySelectorAll(".tile").forEach(t=>t.onclick=()=>{if(checked)return;const id=t.dataset.id;sel.has(id)?sel.delete(id):sel.add(id);t.setAttribute("aria-pressed",sel.has(id))});
+ $("#again").onclick=checklist;
+ $("#chk").onclick=()=>{checked=true;let ok=0,miss=[],extra=[];
+  $("#tiles").querySelectorAll(".tile").forEach(t=>{const id=t.dataset.id,n=need.includes(id),s=sel.has(id);
+   t.classList.add(n&&s?"r-ok":n?"r-miss":s?"r-extra":"x");if(n&&s)ok++;if(n&&!s)miss.push(id);if(!n&&s)extra.push(id);
+   if(n||s)t.insertAdjacentHTML("beforeend",`<span class="verdict">${n&&s?"✓ correct":n?"✗ missed":"✗ not needed"}</span>`)});
+  const score=Math.max(0,(ok-extra.length)/need.length);record(score);
+  const scEl=$("#sc");scEl.textContent=`${ok}/${need.length} found · ${extra.length} wrong picks`;scEl.className="score "+(score>=.9?"good":score>=.6?"mid":"bad");
+  const why=Object.fromEntries(kitRows(cur).map(r=>[r.id,r.why]));
+  let fb="";if(miss.length)fb+=`<div class="notes"><div class="note trap"><b>Missed</b><ul style="margin:4px 0 0;padding-left:18px">`+miss.map(id=>`<li><b style="text-transform:none;font-family:var(--f-body);font-size:.88rem">${esc(C[id][1])}</b> ${esc(why[id])}</li>`).join("")+`</ul></div></div>`;
+  if(extra.length)fb+=`<div class="notes"><div class="note"><b>Not on this structure</b>${extra.map(id=>esc(C[id][1])).join(" · ")}</div></div>`;
+  $("#fb").innerHTML=fb||`<p class="hint">Clean sweep. Try “How many?” next.</p>`};
+}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+/* quantity quiz */
+function tolOf(u){return u==="Kg"?0.35:u==="Mtr"||u==="Km"?0.25:0}
+function qtyQuiz(){
+ const rows=kitRows(cur);
+ let h=`<p class="hint" style="margin-top:0">Enter the quantity for each item. Kg and metre items pass within a reasonable band (±35% kg, ±25% m); counts must be exact. “Optional” rows accept either 0 or 1.</p><div class="tbl-wrap"><table><thead><tr><th>SoR</th><th>Item</th><th>Unit</th><th class="num">Your qty</th><th>Answer</th></tr></thead><tbody>`;
+ grouped(rows).forEach(([g,rs])=>{h+=`<tr class="grp"><td colspan="5">${G[g]}</td></tr>`;rs.forEach(r=>{const c=C[r.id];
+  h+=`<tr><td class="sor">${c[0]}</td><td>${esc(c[1])}${r.opt?'<span class="opt">optional</span>':''}<div class="why" hidden id="w-${r.id}">${esc(r.why)}</div></td><td>${c[2]}</td><td class="num"><input class="qty" id="q-${r.id}" inputmode="decimal" aria-label="Quantity of ${esc(c[1])}"></td><td><span class="ans" id="a-${r.id}"></span></td></tr>`})});
+ h+=`</tbody></table></div><div class="actions"><button class="btn" id="qchk">Check</button><button class="btn ghost" id="qclr">Clear</button><span id="qsc" class="score"></span></div>`;
+ $("#pane").innerHTML=h+`<div id="qnotes" hidden>${notesHtml()}</div>`;
+ $("#qclr").onclick=qtyQuiz;
+ $("#qchk").onclick=()=>{let ok=0,n=0;rows.forEach(r=>{const inp=$("#q-"+r.id),v=parseFloat(inp.value);const u=C[r.id][2],t=tolOf(u);let good;
+   if(r.opt){good=isNaN(v)||v===0||v===1}else{n++;good=!isNaN(v)&&(t?Math.abs(v-r.q)<=Math.max(t*r.q,0.01):v===r.q)}
+   if(good&&!r.opt)ok++;inp.className="qty "+(good?"ok":"bad");const a=$("#a-"+r.id);a.className="ans "+(good?"ok":"bad");a.textContent=(good?"✓ ":"✗ ")+(r.opt?"0 or 1":fq(r.q));$("#w-"+r.id).hidden=false});
+  const s=ok/n;record(s);const e=$("#qsc");e.textContent=`${ok}/${n} right`;e.className="score "+(s>=.9?"good":s>=.6?"mid":"bad");$("#qnotes").hidden=false};
+}
+function record(s){const p=PROG[cur]||{best:0,n:0};p.n++;p.upd=Date.now();p.best=Math.max(p.best,s);PROG[cur]=p;saveProg();buildRail()}
+
+/* ---------- Companions ---------- */
+function renderCards(){
+ $("#cards").innerHTML=FAM.map((f,i)=>`<div class="card"><div class="sorchip">SoR ${f.sor}</div><h4>${esc(f.h)}</h4><p class="lead">${esc(f.lead)}: what else must appear in the estimate?</p>
+ <ul id="fc${i}" hidden>${f.c.map(x=>`<li>${esc(x)}</li>`).join("")}</ul><button class="btn ghost" data-i="${i}" style="align-self:flex-start">Reveal</button></div>`).join("");
+ $("#cards").querySelectorAll("button").forEach(b=>b.onclick=()=>{const u=$("#fc"+b.dataset.i);u.hidden=!u.hidden;b.textContent=u.hidden?"Reveal":"Hide"});
+}
+
+/* ---------- Line builder ---------- */
+const SYS={
+ hv11:{span:45,wires:3,cond:[["rabbit","Rabbit"],["raccoon","Raccoon"]],inter:"h1",angle:"h2",cut:"h3",dead:"h4",dp:"h5",earthEvery:5,earthKit:["cipipe","swg6"]},
+ hv33:{span:32,wires:3,cond:[["wolf","Wolf"]],inter:"v1",angle:"v1+stay33",cut:"v2",dead:"v3",dp:"v2x2",earthEvery:1.5,earthKit:["gipipe","swg8"]},
+ lt3:{span:45,wires:4,cond:[["weasel","Weasel"],["rabbit","Rabbit"]],inter:"lt3",angle:"lt3+ltstay",cut:"ltend+cut",dead:"ltend",dp:null,earthEvery:9,earthKit:["cipipe","swg6"]},
+ lt1:{span:45,wires:2,cond:[["weasel","Weasel"],["rabbit","Rabbit"]],inter:"lt1",angle:"lt1+ltstay",cut:"ltend1+cut",dead:"ltend1",dp:null,earthEvery:9,earthKit:["cipipe","swg6"]},
+ abc:{span:33,wires:1,cond:[["abc3","3C×70+1C×50"],["abc395","3C×95+1C×70"]],inter:"abc",angle:"abc+ltstay+anch",cut:"abc+cutabc",dead:"abc+deadabc",dp:null,earthEvery:9,earthKit:["cipipe","swg6"]}
+};
+const STAYHT=[["htstay",1],["guy11",1],["wire710",10],["grst",1],["pclamp",1]],STAY33=[["htstay",1],["guy33",1],["wire710",16],["grst",1],["pclamp",1]],STAYLT=[["ltstay",1],["guylt",1],["wire714",6],["grst",1],["pclamp",1]];
+function kitList(code){
+ const base=k=>kitRows(k).filter(r=>!r.opt).map(r=>[r.id,r.q]);
+ switch(code){
+  case"v1+stay33":return base("v1").concat(STAY33);
+  case"v2x2":return base("v2").map(([i,q])=>[i,["sp76","gr76"].includes(i)?q*2:i==="htstay"||i==="guy33"||i==="grst"?q*2:i==="wire710"?q*2:i==="pclamp"?8:q]);
+  case"lt3+ltstay":return base("lt3").concat(STAYLT);
+  case"lt1+ltstay":return base("lt1").concat(STAYLT);
+  case"ltend+cut":return base("ltend").concat([["shackle",4],["strap",4],["ltarm",2],["pclamp",2]],STAYLT);
+  case"ltend1":return base("ltend").map(([i,q])=>[i,["shackle","strap"].includes(i)?2:i==="ltarm"?1:i==="pclamp"?2:i==="nb"?2:q]);
+  case"ltend1+cut":return kitList("ltend1").concat([["shackle",2],["strap",2],["ltarm",1],["pclamp",1]],STAYLT);
+  case"abc+ltstay+anch":return base("abc").filter(r=>r[0]!=="susp").concat([["anchor",2],["eyehook",1]],STAYLT);
+  case"abc+cutabc":return base("abc").filter(r=>r[0]!=="susp").concat([["anchor",2],["eyehook",1]],STAYLT,STAYLT,[["cipipe",1],["swg6",2]]);
+  case"abc+deadabc":return base("abc").filter(r=>r[0]!=="susp").concat([["anchor",1],["endcap",4]],STAYLT,[["cipipe",1],["swg6",2]]);
+  default:return base(code);
+ }
+}
+function swapCond(id,cond){
+ const m={rabbit:{tcRab:"tcRab",pgRab:"pgRab"},raccoon:{tcRab:"tcRac",pgRab:"pgRac",rabbit:"raccoon"}};
+ return (m[cond]&&m[cond][id])||id;
+}
+function fillCond(){const s=SYS[$("#b-sys").value];$("#b-cond").innerHTML=s.cond.map(([v,t])=>`<option value="${v}">${t}</option>`).join("");$("#b-span").value=s.span;
+ const hv=$("#b-sys").value.startsWith("hv");["b-dp","b-guard","b-tap"].forEach(i=>{$("#"+i).disabled=!hv;if(!hv)$("#"+i).value=0});$("#b-dtr").disabled=$("#b-sys").value!=="hv11";if($("#b-sys").value!=="hv11")$("#b-dtr").value="";}
+function build(){
+ const sk=$("#b-sys").value,s=SYS[sk],cond=$("#b-cond").value;
+ const L=Math.max(0,+$("#b-len").value||0),span=Math.max(20,+$("#b-span").value||s.span);
+ const n={angle:+$("#b-angle").value||0,cut:+$("#b-cut").value||0,dead:+$("#b-dead").value||0,dp:+$("#b-dp").value||0,guard:+$("#b-guard").value||0,tap:+$("#b-tap").value||0};
+ const dtr=$("#b-dtr").value,exist=$("#b-start").value==="exist";
+ const spans=Math.ceil(L/span),positions=spans+1-(exist?1:0);
+ const special=n.angle+n.cut+n.dead+n.dp+(dtr?1:0);
+ const inter=positions-special;
+ const tally={};const add=(id,q)=>{id=swapCond(id,cond);tally[id]=(tally[id]||0)+q};
+ const lines=[];
+ lines.push(`Spans = ⌈${L} m ÷ ${span} m⌉ = ${spans}`);
+ lines.push(`Pole positions = ${spans} + 1${exist?" − 1 (start pole exists)":""} = ${positions}`);
+ lines.push(`Special positions = ${n.angle} angle + ${n.cut} cut-point + ${n.dead} dead-end${s.dp?` + ${n.dp} DP`:""}${dtr?" + 1 DTR DP":""} = ${special}`);
+ let warn="";
+ if(inter<0)warn=`More special structures (${special}) than pole positions (${positions}). Reduce the specials or lengthen the route.`;
+ const I=Math.max(0,inter);lines.push(`Intermediate poles = ${positions} − ${special} = ${I}`);
+ const use=(code,count)=>{if(!count)return;kitList(code).forEach(([id,q])=>add(id,q*count))};
+ use(s.inter,I);use(s.angle,n.angle);use(s.cut,n.cut);use(s.dead,n.dead);if(s.dp)use(s.dp,n.dp);if(dtr)use(dtr,1);if(n.guard)use("guard",n.guard);if(n.tap)use("h6",n.tap);
+ const ne=Math.ceil(I/s.earthEvery);if(ne){add(s.earthKit[0],ne);add(s.earthKit[1],ne*(s.earthKit[1]==="swg8"?1:3))}
+ lines.push(`Extra earthing on intermediates: ⌈${I} ÷ ${s.earthEvery}⌉ = ${ne}${sk==="hv33"?" (steel poles: about 2 in 3)":""}`);
+ if(sk==="abc"){const m=Math.round(L*1.03);add(cond,m);add("tie",Math.round(spans*15));add("endcap",2);lines.push(`AB cable = ${L} × 1.03 ≈ ${m} m · ties ≈ 15 per span`)}
+ else{const km=+(L/1000*s.wires*1.03).toFixed(3);add(cond,km);lines.push(`Conductor = ${L/1000} km × ${s.wires} wires × 1.03 = ${km} km`);
+  if(sk==="lt3"){add("spacer",spans);lines.push(`LT spacers = 1 per span = ${spans}`)}
+  if(sk.startsWith("hv")){const sl=Math.max(0,Math.ceil(L/1000)*s.wires-(L<1000?s.wires:0));if(sl){add(cond==="wolf"?"slWolf":cond==="raccoon"?"slRac":"slRab",sl);lines.push(`Mid-span sleeves ≈ 1 per wire per km beyond the first drum = ${sl}`)}}}
+ if(dtr)lines.push(`DTR structure counted as the last pole position.`);
+ const ids=Object.keys(tally).filter(i=>tally[i]>0);
+ const rows=ids.map(id=>({id,q:+tally[id].toFixed(3)}));
+ let mat=0,job=0,unpriced=0;
+ let h=`<h2 style="font:700 1.5rem var(--f-display);margin:0 0 10px">Bill of materials</h2><pre class="derive">${lines.map(esc).join("\n")}${warn?`\n<span class="warnline">${esc(warn)}</span>`:""}</pre>
+ <div class="tbl-wrap"><table id="btbl"><thead><tr><th>SoR</th><th>Item</th><th>Unit</th><th class="num">Qty</th><th class="num">Rate</th><th class="num">Amount</th></tr></thead><tbody>`;
+ grouped(rows).forEach(([g,rs])=>{h+=`<tr class="grp"><td colspan="6">${G[g]}</td></tr>`;rs.forEach(r=>{const c=C[r.id];let q=r.q;if(["No","Set","Job"].includes(c[2]))q=Math.ceil(q-1e-9);r.q=q;
+  const amt=c[3]==null?null:c[3]*q;if(amt==null)unpriced++;else if(g==="job")job+=amt;else mat+=amt;
+  h+=`<tr><td class="sor">${c[0]}</td><td>${esc(c[1])}</td><td>${c[2]}</td><td class="num">${fq(q)}</td><td class="num">${fmt(c[3])}</td><td class="num">${amt==null?"—":fmt(amt)}</td></tr>`})});
+ h+=`<tr class="tot"><td colspan="5">A · Materials</td><td class="num">${fmt(mat)}</td></tr><tr class="tot"><td colspan="5">E · Labour-included jobs</td><td class="num">${fmt(job)}</td></tr></tbody></table></div>
+ <div class="actions"><button class="btn" id="copy">Copy table for Excel</button><span class="hint" id="copied" style="margin:0"></span></div>
+ <p class="hint">Next steps in the estimate format: B = 5% of A (T&amp;S), C = A + B, D = 15% of C (labour), then E jobs, contingency and supervision per who pays, then GST 9% + 9%.${unpriced?` ${unpriced} item(s) need an approved rate.`:""}</p>`;
+ $("#bout").innerHTML=h;
+ $("#copy").onclick=()=>{const tsv=["SoR\tItem\tUnit\tQty\tRate\tAmount"].concat(rows.map(r=>{const c=C[r.id];return [c[0],c[1],c[2],r.q,c[3]??"",c[3]==null?"":(c[3]*r.q).toFixed(2)].join("\t")})).join("\n");
+  const done=m=>{$("#copied").textContent=m};
+  try{navigator.clipboard.writeText(tsv).then(()=>done("Copied. Paste into Excel."),()=>fallback())}catch(e){fallback()}
+  function fallback(){const ta=document.createElement("textarea");ta.value=tsv;ta.style.width="100%";ta.rows=6;$("#bout").appendChild(ta);ta.select();done("Select-all is ready below; press Ctrl/Cmd+C.")}};
+}
+$("#b-sys").onchange=()=>{fillCond();build()};
+$("#bform").addEventListener("input",e=>{if(e.target.id!=="b-sys")build()});
+$("#bform").addEventListener("submit",e=>e.preventDefault());
+
+/* ---------- tabs ---------- */
+document.querySelectorAll("nav.tabs button").forEach(b=>b.onclick=()=>{
+ document.querySelectorAll("nav.tabs button").forEach(x=>x.setAttribute("aria-selected",x===b));
+ ["kits","comp","build"].forEach(v=>$("#v-"+v).hidden=v!==b.dataset.view);
+ if(b.dataset.view==="build")build();
+});
+
+
+/* ---------- Device sync (shares Total Recall's sync code and encrypted cloud bridge) ---------- */
+const SYNC_KEY="totalRecallSyncCode_v1";let SYNC_URL="https://total-recall-ticktick.pranjuchakrapani90.workers.dev";
+try{SYNC_URL=localStorage.getItem("totalRecallTickTickUrl")||SYNC_URL}catch(e){}
+const SY={busy:false,again:false,timer:0};
+const b64=a=>{let s="";new Uint8Array(a).forEach(x=>s+=String.fromCharCode(x));return btoa(s)};
+const unb64=s=>{const r=atob(s),u=new Uint8Array(r.length);for(let i=0;i<r.length;i++)u[i]=r.charCodeAt(i);return u};
+async function syncKeyOf(code){const h=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(code+"#estimates"));return crypto.subtle.importKey("raw",h,{name:"AES-GCM"},false,["encrypt","decrypt"])}
+async function encryptState(st,code){const iv=crypto.getRandomValues(new Uint8Array(12)),k=await syncKeyOf(code),c=await crypto.subtle.encrypt({name:"AES-GCM",iv},k,new TextEncoder().encode(JSON.stringify(st)));return JSON.stringify({v:1,iv:b64(iv),data:b64(c)})}
+async function decryptState(blob,code){const x=JSON.parse(blob||"{}"),k=await syncKeyOf(code),p=await crypto.subtle.decrypt({name:"AES-GCM",iv:unb64(x.iv)},k,unb64(x.data));return JSON.parse(new TextDecoder().decode(p))}
+const syncCode=()=>{try{return localStorage.getItem(SYNC_KEY)||""}catch(e){return ""}};
+function setSync(state,msg){const el=document.getElementById("syncBadge");if(!el)return;el.textContent=state==="busy"?"☁ Syncing…":state==="ok"?"☁ Synced":state==="err"?"☁ Sync problem":"☁ Sync off";el.className="sbadge "+state;
+ el.title=state==="off"?"Set a sync code on the Total Recall home page to share progress across devices.":state==="err"?"Couldn't sync: "+(msg||"")+". It will retry on your next answer.":state==="ok"?"Quiz progress is shared across your devices.":""}
+function mergeRemote(r){let ch=false;Object.entries((r&&r.prog)||{}).forEach(([k,v])=>{if(!K[k])return;const l=PROG[k];
+  if(!l){PROG[k]=v;ch=true;return}const nb=Math.max(l.best||0,v.best||0),nn=Math.max(l.n||0,v.n||0),nu=Math.max(l.upd||0,v.upd||0);
+  if(nb!==l.best||nn!==l.n){ch=true}PROG[k]={best:nb,n:nn,upd:nu}});
+ if(ch){try{localStorage.setItem("p2b-prog",JSON.stringify(PROG))}catch(e){}}return ch}
+function scheduleSync(){if(!syncCode())return;clearTimeout(SY.timer);SY.timer=setTimeout(cloudSync,1500)}
+async function cloudSync(){const code=syncCode();if(!code){setSync("off");return}
+ if(SY.busy){SY.again=true;return}SY.busy=true;setSync("busy");
+ try{const url=SYNC_URL+(SYNC_URL.indexOf("?")>=0?"&":"?")+"mode=sync",headers={"Content-Type":"application/json","X-Total-Recall-Sync":code+"#estimates"};
+  const r=await fetch(url,{method:"POST",headers,body:JSON.stringify({state:{app:"estimates"}}),cache:"no-store"});
+  if(!r.ok)throw new Error("the sync bridge answered HTTP "+r.status);const d=await r.json();if(d.error)throw new Error(d.error);
+  if(d.blob&&mergeRemote(await decryptState(d.blob,code)))buildRail();
+  const w=await fetch(url,{method:"PUT",headers,body:await encryptState({v:1,prog:PROG},code),cache:"no-store"});
+  if(!w.ok)throw new Error("upload failed with HTTP "+w.status);setSync("ok")}
+ catch(e){setSync("err",String(e&&e.message||e))}
+ finally{SY.busy=false;if(SY.again){SY.again=false;scheduleSync()}}}
+
+buildRail();renderKit();renderCards();fillCond();build();
+setSync(syncCode()?"busy":"off");cloudSync();
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)cloudSync()});
+</script>
+</body></html>
+

@@ -1,7 +1,7 @@
 {
   "name": "Total Recall & Melodies",
   "short_name": "Recall & Melodies",
-  "description": "Personal recall flashcards, life memories and guitar melody practice.",
+  "description": "Personal recall flashcards, life memories, guitar melody practice and an APDCL estimate trainer.",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#f4f7fb",
