@@ -132,6 +132,21 @@ footer{margin-top:28px;color:var(--muted);font-size:.78rem;max-width:80ch}
 .s-t{fill:var(--muted);font:9px var(--f-mono)}
 .s-tb{fill:var(--ink);font:600 9px var(--f-mono)}
 .s-acc{fill:var(--accent)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{font:500 .85rem var(--f-body);padding:6px 12px;border:1px solid var(--line);border-radius:3px;background:var(--panel);color:var(--ink);cursor:pointer}
+.chips button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.sits{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;margin-top:14px}
+.sit{border:1px solid var(--line);border-radius:3px;padding:10px 12px;background:var(--bg);min-width:0}
+.sit h4{font:600 .95rem/1.2 var(--f-display);letter-spacing:.04em;text-transform:uppercase;margin:0 0 6px;color:var(--accent)}
+.sit ul{margin:0 0 4px;padding-left:16px;font-size:.86rem}
+.sit .none,.matrix .none{color:var(--muted);font-style:italic;font-size:.84rem;margin:0}
+.sorchip{font:.7rem var(--f-mono);color:var(--muted)}
+.never{margin-top:14px;border:1px solid var(--danger);border-radius:3px;padding:10px 12px;background:var(--danger-soft)}
+.never h4{font:600 .9rem var(--f-display);letter-spacing:.05em;text-transform:uppercase;margin:0 0 6px;color:var(--danger)}
+.never div{display:flex;flex-wrap:wrap;gap:6px}
+.nchip{font-size:.8rem;padding:2px 8px;border:1px solid var(--danger);border-radius:2px;text-decoration:line-through;text-decoration-color:var(--danger);color:var(--ink)}
+.matrix td{font-size:.8rem;min-width:130px}
+.matrix td:first-child{min-width:150px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 .toprow{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding-top:14px}
 .backlink{color:var(--accent);text-decoration:none;font-size:.88rem;font-weight:500}
@@ -146,6 +161,7 @@ footer{margin-top:28px;color:var(--muted);font-size:.78rem;max-width:80ch}
   <nav class="tabs" role="tablist">
     <button role="tab" id="t-kits" aria-selected="true" data-view="kits">Structures</button>
     <button role="tab" id="t-comp" aria-selected="false" data-view="comp">What goes with what</button>
+    <button role="tab" id="t-cond" aria-selected="false" data-view="cond">Conductors</button>
     <button role="tab" id="t-build" aria-selected="false" data-view="build">Line builder</button>
   </nav>
 </header>
@@ -161,6 +177,11 @@ footer{margin-top:28px;color:var(--muted);font-size:.78rem;max-width:80ch}
 <section class="view" id="v-comp" hidden>
   <p class="intro">Every main item drags a set of companions into the estimate. When you write the main item, write its companions in the same breath. Tap a card to test yourself before revealing.</p>
   <div class="cards" id="cards"></div>
+</section>
+
+<section class="view" id="v-cond" hidden>
+  <p class="intro">Each conductor type brings its own accessories. Pick a family to see what it needs in every situation on the line, what never goes with it, and then test yourself.</p>
+  <div id="condbox"></div>
 </section>
 
 <section class="view" id="v-build" hidden>
@@ -629,10 +650,140 @@ $("#b-sys").onchange=()=>{fillCond();build()};
 $("#bform").addEventListener("input",e=>{if(e.target.id!=="b-sys")build()});
 $("#bform").addEventListener("submit",e=>e.preventDefault());
 
+/* ---------- Conductors & their accessories ---------- */
+Object.assign(C,{
+ squirrel:["444","ACSR Squirrel","Km",18931.20,"cond"], dog:["448","ACSR Dog","Km",74628.64,"cond"], panther:["450","ACSR Panther","Km",163200,"cond"],
+ abc1_50:["14","LT AB cable 1C×50+1C×50 (1-ph)","Mtr",122,"cond"], abc1_70:["15","LT AB cable 1C×70+1C×70 (1-ph)","Mtr",144.15,"cond"], abc3120:["21","LT AB cable 3C×120+1C×95","Mtr",375,"cond"],
+ abcjoint:["801","Mid-span joint (ABC, insulated)","No",521.67,"cond"], ipc:["802","Insulation piercing connector (IPC) 50–70","No",117.33,"cond"],
+ ipcT:["804","IPC tee connector","No",91.50,"cond"], ipcDB:["805","IPC P2×95 (DB feed)","No",83,"cond"],
+ db1:["811","Distribution box 1-ph 140 A, 8 connections","No",2075,"eq"], db3:["813","Distribution box 3-ph 250 A, 10 connections","No",5950,"eq"],
+ sstrap:["809","Stainless steel strap","Mtr",63,"hw"], buckle:["808","Buckle for steel strap","No",22.67,"hw"],
+ mv11_50:["458","11 kV MVCC 1C×50","Mtr",336.50,"cond"], mv11:["461","11 kV MVCC 1C×120","Mtr",485,"cond"], mv33:["455","33 kV MVCC 1C×120","Mtr",586.25,"cond"],
+ mvTie:["904","MVCC cable tie (11 kV)","No",925,"ins"], mvTI:["928","MVCC tension insulator (11 kV)","No",1230,"ins"], mvTH:["916","MVCC tension hardware (11 kV)","Set",2200,"ins"],
+ mvJoint:["863","MVCC mid-span joint (11 kV)","No",2233.33,"cond"], mvTerm:["875","MVCC termination kit (11 kV)","No",3350,"cab"],
+ ugJoint:["—","Straight-through joint kit, 11 kV XLPE","No",null,"cab"], hdpe:["738","HDPE pipe 110 mm","Mtr",570,"cab"],
+ spun:["655","CI spun pipe class 1A, 300 mm × 5.5 m","No",12100,"cab"], socket:["475","Socket for CI spun pipe","No",853.65,"cab"],
+ hv400_33:["46","33 kV XLPE cable 1C×400 armoured","Mtr",2066.50,"cab"]
+});
+const SIT=[["support","Straight-run support"],["deadend","Dead-end / angle / cut-point"],["joint","Joint in mid-span"],["tap","Tap, branch or jumper"],
+ ["equip","Connection to DTR, DO or another conductor type"],["spacing","Keeping the phases apart"],["service","Consumer service"],["earth","Earthing"]];
+const CF={
+ bareLT:{n:"Bare ACSR · LT",what:"Bare aluminium strands round a steel core, strung on LT pins and shackles. The everyday LT line on PSC 8.5 m poles.",
+  sizes:[["squirrel","6/1/2.11 mm","20.98","13","80","Short 1-ph rural runs"],["weasel","6/1/2.59 mm","31.61","20","128","Office standard for LT, 1-ph→3-ph conversion"],["rabbit","6/1/3.35 mm","52.88","30","214","Heavier LT trunk near the DTR"]],
+  rule:"Conductor km = route km × wires (2 for 1-ph, 4 for 3-ph) × 1.03. A 100 m 3-ph route needs about 0.42 km.",
+  s:{support:[["ltpin","ltgipin","bind"],"LT pin insulator on an LT GI pin, wire tied with binding wire. Many Samaguri 1-ph sheets use shackle + D-strap on every pole instead."],
+   deadend:[["shackle","strap"],"Wire wrapped round a shackle bolted with a D-strap pair. The pole gets an LT stay."],
+   joint:[["slRab"],"Compression sleeve of the same size, one per joint per wire. Weasel needs a Weasel sleeve; pick the size to match."],
+   tap:[["pgRab"],"PG clamps: 2 per wire per jumper, 1 per wire at a tee-off."],
+   equip:[["pgRab","lug120"],"DTR LT leads are lugged at the MCCB end and PG-clamped to the line. Bare LT to ABC: PG or IPC per core at the junction pole, anchor clamp on the ABC side."],
+   spacing:[["spacer"],"One LT spacer per span on 3-ph 4-wire so the wires can't clash in wind."],
+   service:[["pgRab"],"Service cable tapped off the bare line with a PG/service connector per conductor."],
+   earth:[["cipipe","swg6"],"Neutral earthed at both ends and about every 8–10 poles."]},
+  never:["disc70","tcRab","susp","ipcDB","mvTerm"],
+  notes:[["trap","No disc insulators, tension clamps or channel arms on LT bare lines. Those belong to 11 kV."]]},
+ bareHT:{n:"Bare ACSR · 11 kV & 33 kV",what:"Same family of conductor, bigger sizes, carried on pins on straight runs and on disc strings where it is dead-ended.",
+  sizes:[["rabbit","6/1/3.35 mm","52.88","30","214","11 kV rural feeders and taps"],["raccoon","6/1/4.09 mm","78.84","50","319","11 kV trunk feeders, reconductoring"],["dog","6/4.72 + 7/1.57 mm","105","65","394","Heavier 11 kV trunk"],
+   ["wolf","30/2.59 + 7/2.59 mm","158","95","726","33 kV lines"],["panther","30/3.00 + 7/3.00 mm","212","130","974","Heavier 33 kV"]],
+  rule:"About 3.3 km of conductor per route km (3 phases + sag + jumpers + wastage).",
+  s:{support:[["pin11","gipin11","bind"],"Polymer pin insulator on a GI pin of the line voltage (841 at 11 kV, 840 + 613 at 33 kV); conductor tied with binding wire."],
+   deadend:[["disc70","hw70","tcRab"],"Per phase per direction: disc insulator + matching hardware + tension clamp sized to the conductor. Hung from a channel arm, with a stay on the pole."],
+   joint:[["slRab"],"Compression mid-span sleeve sized to the conductor (822 Rabbit, 823 Raccoon, 824 Wolf). Roughly one per wire per km (drum length)."],
+   tap:[["pgRab","do11"],"Jumper at a cut-point: 2 PG per phase. Branch line: PG clamps at the tee and a DO set on the branch."],
+   equip:[["pgRab","la11"],"Jumpers down to DO, GOAB and DTR bushings with PG clamps; LA at the DTR. Where bare meets MVCC or cable, use their termination kits."],
+   spacing:[[],"Phase spacing comes from the cross-arm. No spacers on HT."],
+   service:[[],"No direct service from an 11 kV bare line except HT consumers, who get CT-PT metering."],
+   earth:[["cipipe","swg6"],"Every special structure and about every 4th–5th pole; guard cradles at road and LT crossings."]},
+  never:["shackle","spacer","susp","ipc","mvTie"],
+  notes:[["trap","Size-specific items change with the conductor: tension clamp, PG clamp and sleeve. Rabbit fittings on a Raccoon line is a common copy-paste slip."],["tip","Raccoon and Rabbit use the same pins, discs and hardware. Only clamps and sleeves change."]]},
+ abc:{n:"LT AB cable",what:"Insulated phase cores twisted round an insulated neutral messenger that carries the weight. Theft-resistant and safe to touch; the standard for RDSS LT conversion.",
+  sizes:[["abc1_50","1C×50 + 1C×50","—","—","—","1-ph lanes"],["abc1_70","1C×70 + 1C×70","—","—","—","1-ph heavier"],["abc3","3C×70 + 1C×50","—","—","—","3-ph standard"],["abc395","3C×95 + 1C×70","—","—","—","3-ph near DTR"],["abc3120","3C×120 + 1C×95","—","—","—","3-ph trunk off 100+ kVA DTR"]],
+  rule:"Cable m = route m × 1.03. One bundle carries all phases, so don't multiply by wires.",
+  s:{support:[["susp","eyehook","pclamp"],"The bundle hangs in a suspension clamp on an eye hook (or I-hook 654) clamped to the pole."],
+   deadend:[["anchor","eyehook"],"Anchor clamp grips the neutral messenger: 1 at a dead-end, 2 at a cut-point or sharp angle. LT stay on the pole."],
+   joint:[["abcjoint"],"Insulated mid-span joint, one per core."],
+   tap:[["ipc","ipcT"],"Insulation piercing connectors bite through the insulation without stripping it. That is why ABC has no PG clamps."],
+   equip:[["ipc","lug120"],"At the DTR: cores lugged into the MCCB. Joining an old bare line: IPC/PG per core at the junction pole."],
+   spacing:[["tie"],"Cores are already insulated and bundled. Ties (819), about 15 per span, keep the bundle neat."],
+   service:[["db1","db3","ipcDB","sstrap","buckle"],"Distribution box strapped to the pole (steel strap + 2 buckles) and fed by IPC P2×95; consumers' service cables leave from the DB."],
+   earth:[["cipipe","swg6"],"Neutral messenger earthed at both ends and at DBs."]},
+  never:["ltpin","disc70","shackle","pgRab","spacer","bind"],
+  notes:[["tip","End caps (807) seal every cut core end at the end of a run and at DBs."],["trap","If an ABC estimate shows LT pins, shackles or spacers, it was copied from a bare-line sheet."]]},
+ mvcc:{n:"MVCC (covered conductor, 11 kV & 33 kV)",what:"A conductor with a polymer covering. It still looks like an overhead line on pins, but the covering cuts faults from branches and birds. Used in elephant corridors, forests and congested bazaars.",
+  sizes:[["mv11_50","1C×50 AAAC covered","—","—","—","11 kV taps, PHE/JJM supplies"],["mv11","1C×120 AAAC covered","—","—","—","11 kV feeders"],["mv33","1C×120 AAAC covered","—","—","—","33 kV lines"]],
+  rule:"3,300 m per route km (3 phases × 1.1). Spans about 30 m, so about 32 poles per km.",
+  s:{support:[["pin11","gipin11","mvTie"],"Still on pin insulators, but fixed with a preformed MVCC tie instead of bare binding wire (about 3–4 ties per pole)."],
+   deadend:[["mvTI","mvTH"],"MVCC tension insulator + MVCC tension hardware per phase per direction. These replace the disc string and tension clamp."],
+   joint:[["mvJoint"],"MVCC mid-span joint (863 at 11 kV, 857 at 33 kV)."],
+   tap:[["ipc"],"Tap with insulation piercing connectors. No PG clamps on covered conductor."],
+   equip:[["mvTerm","la11"],"Termination kit on every phase end where MVCC meets bare conductor, a DO, GOAB or DTR; LA set at that point."],
+   spacing:[[],"Spacing comes from the cross-arm, as on bare lines."],
+   service:[[],"Not used for consumer services."],
+   earth:[["cipipe","swg6"],"Pole earthing as for any 11 kV/33 kV line."]},
+  never:["disc70","tcRab","pgRab","shackle","spacer"],
+  notes:[["trap","Don't charge disc strings and MVCC tension insulators for the same dead-end. One replaces the other."],["tip","Count termination kits at every bare↔MVCC transition, both ends of the MVCC section."]]},
+ ug:{n:"HT underground cable (XLPE)",what:"Armoured XLPE cable laid in the ground or in pipes. Used at railway and road crossings, substation exits and where overhead is impossible.",
+  sizes:[["hv300","11 kV 1C×300 armoured","—","—","—","Railway/road crossings, feeder exits"],["hv400_33","33 kV 1C×400 armoured","—","—","—","33 kV crossings"]],
+  rule:"Cable m = (route + 10–15 m per end for riser and slack) × runs × 3 for single-core. Railway crossing: 2 runs × 3 phases ≈ 600–660 m.",
+  s:{support:[["hdpe","spun","socket"],"Laid in a trench, HDPE pipe, or CI spun pipe with sockets under roads and tracks (or horizontal boring)."],
+   deadend:[["kit300","la11"],"At each riser pole: outdoor termination kit per core end, LA set, cable clamps on the pole and a GI guard pipe."],
+   joint:[["ugJoint"],"Straight-through joint kit where two drum lengths meet."],
+   tap:[[],"No taps on UG cable. Branch at a riser pole or an RMU."],
+   equip:[["kit300"],"Indoor termination kit at a panel, outdoor kit at a pole."],
+   spacing:[[],"Not applicable."],
+   service:[[],"Not applicable."],
+   earth:[["cipipe","swg6"],"Armour and screen bonded to the riser-pole earth at both ends."]},
+  never:["pin11","disc70","pgRab","susp","ipc"],
+  notes:[["tip","Termination kit count for single-core: runs × 3 cores × 2 ends. One 11 kV crossing with 2 runs = 12 kits."],["trap","Lugs come inside the termination kit. Don't add separate lugs for HT cable."]]}
+};
+let cfam="bareHT";
+function renderCond(){
+ const f=CF[cfam];
+ let h=`<div class="chips" role="group" aria-label="Conductor family">`+Object.keys(CF).map(k=>`<button data-f="${k}" aria-pressed="${k===cfam}">${esc(CF[k].n)}</button>`).join("")+`</div>`;
+ h+=`<div class="kit" style="margin-top:14px"><div class="eyebrow">Conductor family</div><h2>${esc(f.n)}</h2><p class="scenario">${esc(f.what)}</p>`;
+ h+=`<div class="tbl-wrap" style="margin-top:14px"><table><thead><tr><th>SoR</th><th>Size</th><th>Stranding</th><th class="num">Al mm²</th><th class="num">Cu eq.</th><th class="num">kg/km</th><th class="num">Rate</th><th>Typical use</th></tr></thead><tbody>`+
+  f.sizes.map(([id,st,al,cu,kg,use])=>{const c=C[id];return `<tr><td class="sor">${c[0]}</td><td>${esc(c[1])}</td><td>${esc(st)}</td><td class="num">${al}</td><td class="num">${cu}</td><td class="num">${kg}</td><td class="num">${fmt(c[3])}/${c[2]==="Km"?"km":"m"}</td><td>${esc(use)}</td></tr>`}).join("")+`</tbody></table></div>`;
+ h+=`<p class="hint"><b>Length rule:</b> ${esc(f.rule)}</p>`;
+ h+=`<div class="sits">`+SIT.map(([k,lab])=>{const [ids,txt]=f.s[k];return `<div class="sit"><h4>${lab}</h4>${ids.length?`<ul>`+ids.map(i=>`<li>${esc(C[i][1])} <span class="sorchip">${C[i][0]}</span></li>`).join("")+`</ul>`:`<p class="none">Nothing extra</p>`}<p class="why">${esc(txt)}</p></div>`}).join("")+`</div>`;
+ h+=`<div class="never"><h4>Never with ${esc(f.n.split(" (")[0])}</h4><div>`+f.never.map(i=>`<span class="nchip">${esc(C[i][1])}</span>`).join("")+`</div></div>`;
+ h+=(f.notes||[]).length?`<div class="notes">`+f.notes.map(([t,x])=>`<div class="note ${t==='trap'?'trap':''}"><b>${t==='trap'?'Watch out':'Note'}</b>${esc(x)}</div>`).join("")+`</div>`:"";
+ h+=`</div>`;
+ /* matrix */
+ const fams=Object.keys(CF);
+ h+=`<div class="kit" style="margin-top:16px"><div class="eyebrow">Side by side</div><h2>What goes with what</h2><div class="tbl-wrap"><table class="matrix"><thead><tr><th>Situation</th>`+fams.map(k=>`<th>${esc(CF[k].n.split(" (")[0])}</th>`).join("")+`</tr></thead><tbody>`+
+  SIT.map(([k,lab])=>`<tr><td><b>${lab}</b></td>`+fams.map(fk=>{const ids=CF[fk].s[k][0];return `<td>${ids.length?ids.map(i=>esc(shortN(i))).join("<br>"):'<span class="none">—</span>'}</td>`}).join("")+`</tr>`).join("")+`</tbody></table></div></div>`;
+ /* quiz */
+ h+=`<div class="kit" style="margin-top:16px"><div class="eyebrow">Test yourself</div><h2 id="cq-title"></h2><p class="hint" style="margin-top:0">Tap everything that this conductor needs in this situation. Some tiles belong to other conductor types.</p><div class="tiles" id="cq-tiles"></div>
+ <div class="actions"><button class="btn" id="cq-chk">Check</button><button class="btn ghost" id="cq-next">Next question</button><span class="score" id="cq-sc"></span></div><div id="cq-fb"></div></div>`;
+ $("#condbox").innerHTML=h;
+ $("#condbox").querySelectorAll(".chips button").forEach(b=>b.onclick=()=>{cfam=b.dataset.f;renderCond()});
+ condQ();
+}
+function shortN(i){return C[i][1].replace(/ \(.*?\)/g,"").replace("Insulation piercing connector","IPC")}
+let CQ=null,cqSel=new Set(),cqDone=false,CQS={ok:0,n:0};
+function condQ(){
+ const fams=Object.keys(CF),pairs=[];fams.forEach(f=>SIT.forEach(([k])=>{if(CF[f].s[k][0].length)pairs.push([f,k])}));
+ const pref=pairs.filter(p=>p[0]===cfam);const src=Math.random()<.6&&pref.length?pref:pairs;const [f,k]=src[Math.floor(Math.random()*src.length)];
+ const need=CF[f].s[k][0];const all=[...new Set(fams.flatMap(x=>SIT.flatMap(([s])=>CF[x].s[s][0]).concat(CF[x].never)))].filter(i=>!need.includes(i));
+ const neverFirst=shuffle(CF[f].never.filter(i=>!need.includes(i))).slice(0,3);
+ const dist=[...new Set([...neverFirst,...shuffle(all)])].slice(0,Math.max(5,need.length+3));
+ CQ={f,k,need,opts:shuffle([...need,...dist])};cqSel=new Set();cqDone=false;
+ $("#cq-title").textContent=`${CF[f].n}: ${SIT.find(s=>s[0]===k)[1].toLowerCase()}`;
+ $("#cq-tiles").innerHTML=CQ.opts.map(i=>`<button class="tile" data-id="${i}" aria-pressed="false">${esc(C[i][1])}<small>SoR ${C[i][0]}</small></button>`).join("");
+ $("#cq-fb").innerHTML="";$("#cq-sc").textContent=CQS.n?`${CQS.ok} of ${CQS.n} answered fully right`:"";
+ $("#cq-tiles").querySelectorAll(".tile").forEach(t=>t.onclick=()=>{if(cqDone)return;const id=t.dataset.id;cqSel.has(id)?cqSel.delete(id):cqSel.add(id);t.setAttribute("aria-pressed",cqSel.has(id))});
+ $("#cq-next").onclick=condQ;
+ $("#cq-chk").onclick=()=>{if(cqDone)return;cqDone=true;let ok=0,ex=0;
+  $("#cq-tiles").querySelectorAll(".tile").forEach(t=>{const id=t.dataset.id,n=need.includes(id),s=cqSel.has(id);t.classList.add(n&&s?"r-ok":n?"r-miss":s?"r-extra":"x");
+   if(n&&s)ok++;if(!n&&s)ex++;if(n||s)t.insertAdjacentHTML("beforeend",`<span class="verdict">${n&&s?"✓ correct":n?"✗ missed":"✗ not here"}</span>`)});
+  const full=ok===need.length&&ex===0;CQS.n++;if(full)CQS.ok++;
+  const e=$("#cq-sc");e.textContent=`${CQS.ok} of ${CQS.n} answered fully right`;e.className="score "+(full?"good":"bad");
+  $("#cq-fb").innerHTML=`<div class="notes"><div class="note ${full?'':'trap'}"><b>${full?'Right':'Answer'}</b>${esc(CF[f].s[k][1])}</div></div>`};
+}
+
 /* ---------- tabs ---------- */
 document.querySelectorAll("nav.tabs button").forEach(b=>b.onclick=()=>{
  document.querySelectorAll("nav.tabs button").forEach(x=>x.setAttribute("aria-selected",x===b));
- ["kits","comp","build"].forEach(v=>$("#v-"+v).hidden=v!==b.dataset.view);
+ ["kits","comp","cond","build"].forEach(v=>$("#v-"+v).hidden=v!==b.dataset.view);
  if(b.dataset.view==="build")build();
 });
 
@@ -665,7 +816,7 @@ async function cloudSync(){const code=syncCode();if(!code){setSync("off");return
  catch(e){setSync("err",String(e&&e.message||e))}
  finally{SY.busy=false;if(SY.again){SY.again=false;scheduleSync()}}}
 
-buildRail();renderKit();renderCards();fillCond();build();
+buildRail();renderKit();renderCards();renderCond();fillCond();build();
 setSync(syncCode()?"busy":"off");cloudSync();
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)cloudSync()});
 </script>
