@@ -310,6 +310,8 @@ select,input[type=range],input[type=checkbox]{accent-color:var(--accent)}
 .tbar.nc .clef{display:none}
 .tbar.nc::before{left:0}
 .tabh{margin:4px 0 0}
+.col.gs{position:relative}
+.col.gs::before{content:"";position:absolute;left:-1px;top:2px;height:104px;border-left:2px dotted var(--brass);opacity:.55}
 .tbar.pick{cursor:pointer;border-radius:8px;transition:background .15s,opacity .15s}
 .tbar.pick:hover{background:var(--steel-soft)}
 .bno{position:absolute;top:0;right:6px;font:700 11px var(--mono);color:var(--muted)}
@@ -531,11 +533,18 @@ function positionNotes(scale,tonic,p){
   notes.forEach(n=>{n.deg=ints.indexOf(((n.m-tonic)%12+12)%12);});
   return {notes,f:Math.min(...notes.map(n=>n.f))};
 }
-function buildSeq(c,alt,N){
+function buildGroups(c,alt,N){ // one group per starting note: up through the shape, then back down
   const mx=Math.max(...c),mn=Math.min(...c),out=[];
-  for(let i=Math.max(0,-mn);i+mx<=N-1;i++){const p=(alt&&i%2)?[...c].reverse():c;p.forEach(o=>out.push(i+o));}
-  for(let i=N-1;i-mx>=0;i--){if(i-mn>N-1)continue;const k=N-1-i;const p=(alt&&k%2)?[...c].reverse():c;p.forEach(o=>out.push(i-o));}
+  for(let i=Math.max(0,-mn);i+mx<=N-1;i++){const p=(alt&&i%2)?[...c].reverse():c;out.push(p.map(o=>i+o));}
+  for(let i=N-1;i-mx>=0;i--){if(i-mn>N-1)continue;const k=N-1-i;const p=(alt&&k%2)?[...c].reverse():c;out.push(p.map(o=>i-o));}
   return out;
+}
+function buildSeq(c,alt,N){return buildGroups(c,alt,N).flat();}
+/* each group gets a slot that starts on a beat and never crosses a barline: 1 beat, half a bar, a bar, or whole bars */
+function groupSlot(len,bpb){
+  const c=[1];if(bpb%2===0&&bpb>2)c.push(bpb/2);c.push(bpb);
+  for(const x of c)if(len<=x+1e-6)return x;
+  return Math.ceil(len/bpb-1e-6)*bpb;
 }
 
 /* ===================== State ===================== */
@@ -659,13 +668,21 @@ const rootIdx=()=>posData.notes.findIndex(n=>n.deg===0);
 
 function seqEvents(it,ro){
   const R=RHY[it.rh]||RHY[0],bpb=R.bpb||4,L=R.p.length,root=rootIdx();
-  let seq;
-  if(ro){const per=R.p.filter(x=>!x.r).length,reps=Math.max(1,Math.ceil(2*bpb/cycLen(R)));seq=Array(per*reps).fill(root);}
-  else seq=buildSeq(EX[it.i]?EX[it.i].c:it.c,EX[it.i]?EX[it.i].alt:0,posData.notes.length);
-  const ev=[];let t=0,k=0,pi=0;
-  while(k<seq.length){const s=R.p[pi%L];
-    if(s.r)ev.push({rest:1,b:t,d:s.d});else{ev.push({n:seq[k],b:t,d:s.d,a:s.a});k++;}
-    t+=s.d;pi++;}
+  const ev=[];let t=0;
+  if(ro){const per=R.p.filter(x=>!x.r).length,reps=Math.max(1,Math.ceil(2*bpb/cycLen(R))),seq=Array(per*reps).fill(root);let k=0,pi=0;
+    while(k<seq.length){const s=R.p[pi%L];
+      if(s.r)ev.push({rest:1,b:t,d:s.d});else{ev.push({n:seq[k],b:t,d:s.d,a:s.a});k++;}
+      t+=s.d;pi++;}}
+  else{
+    // every repeat of the cell starts the rhythm afresh on a beat, so each group is heard and seen as one unit
+    const groups=buildGroups(EX[it.i]?EX[it.i].c:it.c,EX[it.i]?EX[it.i].alt:0,posData.notes.length);
+    groups.forEach((g,gi)=>{const t0=t;let k=0,pi=0;
+      while(k<g.length){const s=R.p[pi%L];
+        if(s.r)ev.push({rest:1,b:t,d:s.d});else{ev.push({n:g[k],b:t,d:s.d,a:k===0?Math.max(1,s.a||0):s.a,gs:k===0?gi+1:0});k++;}
+        t=Math.round((t+s.d)*48)/48;pi++;}
+      const slot=groupSlot(t-t0,bpb),end=t0+slot;
+      if(end>t+1e-6){ev.push({rest:1,b:t,d:Math.round((end-t)*48)/48});t=end;}});
+  }
   let end=Math.ceil(t-1e-6);
   if(!ro){if(end>t+1e-6)ev.push({rest:1,b:t,d:end-t});ev.push({n:root,b:end,d:1,a:2,last:true});end+=1;}
   const total=Math.ceil(end/bpb-1e-6)*bpb,hc=homeChord(),ch=[];
@@ -1010,7 +1027,8 @@ function tabHTML(E,id){
     const br=Math.floor(e.b/bpb+1e-6);
     if(br!==bar){const pick=id!=="pos";const sl=pick&&barSel[selKey(id)],on=sl&&br>=sl.a&&br<=sl.b;h+=(bar>=0?"</div>":"")+`<div class="tbar${pick?" pick":""}${on?" sel":""}"${pick?` data-bar="${br}" data-bid="${id}" title="Tap to loop this bar"`:""}>${labels[br]?`<span class="chd">${labels[br]}</span>`:""}${pick?`<span class="bno">${br+1}</span>`:""}${SL}`;bar=br;}
     const w=Math.round(Math.max(24,18+e.d*44));
-    h+=`<div class="col${e.rest?" rest":""}" style="width:${w}px" data-id="${id}" data-k="${k}">`;
+    const gsc=e.gs&&ev[k-1]&&Math.floor(ev[k-1].b/bpb+1e-6)===br?" gs":"";
+    h+=`<div class="col${e.rest?" rest":""}${gsc}" style="width:${w}px" data-id="${id}" data-k="${k}"${e.gs?` title="Group ${e.gs}"`:""}>`;
     if(e.rest){for(let s=1;s<=6;s++)h+=`<div class="c"></div>`;h+=`<div class="cnt">rest</div></div>`;return;}
     const n=e.n!=null?posData.notes[e.n]:(posData.notes.find(x=>x.m===e.m&&e.sf===x.s+"-"+x.f)||(e.sf?null:posData.notes.find(x=>x.m===e.m))||{s:+e.sf.split("-")[0],f:+e.sf.split("-")[1],deg:e.dg!=null?e.dg:-1});
     const n2=e.m2!=null?{s:+e.sf2.split("-")[0],f:+e.sf2.split("-")[1],deg:e.dg2}:null;
