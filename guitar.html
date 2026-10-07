@@ -325,7 +325,9 @@ select,input[type=range],input[type=checkbox]{accent-color:var(--accent)}
 
 .nowbar{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:12px;
   padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));background:#fff;border-top:1px solid var(--line);box-shadow:0 -6px 18px #141e3714;font-size:14px}
-.nbinfo{min-width:0;color:var(--ink)}
+.nbinfo{min-width:0;flex:1;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#nbPlay{min-width:96px;flex:none}
+body.hasbar .wrap{padding-bottom:96px}
 .nbinfo b{font-family:var(--mono)}
 
 #nbResume{background:#fff7ed;color:#9a3412}
@@ -373,7 +375,7 @@ select,input[type=range],input[type=checkbox]{accent-color:var(--accent)}
 <div class="wrap">
 <nav class="stepper" id="stepper" aria-label="Session steps"></nav>
 <div class="ctx" id="ctx" hidden></div>
-<div id="nowbar" class="nowbar" hidden><span id="nbInfo" class="nbinfo">Playing</span><span class="nbmix"><label for="nbvDrums">🥁</label><input type="range" id="nbvDrums" min="0" max="150" step="5" aria-label="Drums volume"><label for="nbvNotes">♪</label><input type="range" id="nbvNotes" min="0" max="100" step="5" aria-label="Guide notes volume"></span><button type="button" id="nbResume" data-resume="1" hidden>🔈 Restore sound</button><button type="button" class="play" data-nbstop="1">■ Stop</button></div>
+<div id="nowbar" class="nowbar" hidden><button type="button" class="play" id="nbPlay" data-nbplay="1">▶ Play</button><span id="nbInfo" class="nbinfo">Playing</span><span class="nbmix"><label for="nbvDrums">🥁</label><input type="range" id="nbvDrums" min="0" max="150" step="5" aria-label="Drums volume"><label for="nbvNotes">♪</label><input type="range" id="nbvNotes" min="0" max="100" step="5" aria-label="Guide notes volume"></span><button type="button" id="nbResume" data-resume="1" hidden>🔈 Restore sound</button></div>
 <main id="view"><div class="loading">Loading your session…</div></main>
 <p class="note" id="syncNote"></p>
 </div>
@@ -833,7 +835,7 @@ function melCard(id,it,idx){
       <p class="pdesc"><b>In words:</b> ${K.w}</p>
       <p>${T.d}</p>
     </div><div class="btns">
-      <button class="play" type="button" data-play="${id}" data-idle="▶ Listen" aria-pressed="false">▶ Listen</button>${testBtn(id)}
+      ${testBtn(id)}
     </div></div>
     <div class="rhy mbox"><div class="rtop"><span class="rlab">Listen for</span><b>${K.l}</b></div>
       <p>${M.prog?`Over ${progTxt}.`:`Over a steady ${chordName(0,homeChord().q)} chord. Uses every ${K.iv===2?"3rd":"6th"} that fits in the ${shapeName(today.position)}${H.minor?", taken from the natural minor scale":""}.`} Tab notes in orange are the key note; underlined notes are the ones to land on.</p>
@@ -885,6 +887,7 @@ function setBars(id,sel){
     if(bb){bb.querySelector(".bbl").textContent=barsLabel(id,full);
       bb.querySelector('[data-op="first"]').textContent=sel?"◀ Back a bar":"Bar 1 only";bb.querySelector('[data-op="all"]').disabled=!sel;}}
   if(play&&play.id===id&&!play.ro&&!play.test){const E=eventsFor(id,false);E.dr=drumsOf(E,false);play.pendingE=E;}
+  setNowbar();
 }
 function barOp(id,op){
   const full=eventsFor(id,false,false,true),n=nBars(full),sel=barSel[selKey(id)];
@@ -1035,7 +1038,7 @@ function seqCard(id,it,idx,isExtra){
       <p class="pdesc">${(()=>{const d=describeCell(ex.c,ex.alt,today.scale);return `<b>Pattern ${lab(ex.c)}</b> is ${d[0].toLowerCase()+d.slice(1)}`;})()}</p>
       ${isExtra?"":`<p>${ct.desc}</p>`}
     </div><div class="btns">
-      <button class="play" type="button" data-play="${id}" aria-pressed="false">▶ Listen</button>${isExtra?"":testBtn(id)}
+      ${isExtra?`<button class="play" type="button" data-play="${id}" aria-pressed="false">▶ Listen</button>`:testBtn(id)}
     </div></div>
     <div class="rhy"><div class="rtop"><span class="rlab">Rhythm</span><b>${R.n}</b><span class="rtag">${R.tag}</span></div>
       <p>${R.d}</p>
@@ -1057,7 +1060,7 @@ function vocCard(id,it,idx){
       <div class="meta"><span class="chip">${V.g}</span><span class="chip t">${E.total/4} bars</span></div>
       <p>${V.w}</p>
     </div><div class="btns">
-      <button class="play" type="button" data-play="${id}" aria-pressed="false">▶ Listen to the drill</button>${testBtn(id)}
+      ${testBtn(id)}
     </div></div>
     <div class="rhy vbox"><div class="rtop"><span class="rlab">Listen for</span><b>${V.l}</b></div>
       <p>Drill over <b class="prog">${prog}</b>. ${how}</p>
@@ -1160,7 +1163,7 @@ function listenPanel(){
 }
 function testBtn(id){return "";}
 function testPanel(id,key){
-  return `<p class="howto"><b>▶ Listen</b>: the trainer plays it for you with the click. Play along from the tab, and tap Done when it feels right.</p>`;
+  return `<p class="howto"><b>▶ Play</b> in the bar at the bottom: the trainer plays it for you with the backing. Play along from the tab, and tap Done when it feels right.</p>`;
 }
 const gateOk=key=>true;
 function boxView(){
@@ -1181,7 +1184,7 @@ function boxView(){
     ${groovePanel("pos",grooveOf("pos"))}
     <div class="lblsw" role="group" aria-label="Diagram labels"><span>Show</span><button type="button" class="seg" data-labels="fingers" aria-pressed="${S.labels!=="degrees"}">Fingers</button><button type="button" class="seg" data-labels="degrees" aria-pressed="${S.labels==="degrees"}">Scale degrees</button></div>
     <div class="legend"><span><i class="dot sq" style="background:var(--root)"></i>${today.scale==="minpent"?NOTE[S.keyPc]+" minor root":"Root"}</span>${today.scale==="minpent"?`<span><i class="dot sq" style="background:var(--steel)"></i>${NOTE[(S.keyPc+3)%12]} major root, the shape's usual anchor</span>`:""}<span><i class="dot" style="background:var(--steel)"></i>Other scale notes</span><span id="lgExtra" hidden><i class="dot ring"></i>Major-scale notes the box leaves out</span><span>Fret numbers below the diagram</span></div>
-    <div class="posbtn btns"><button class="play" type="button" id="posPlay" data-play="pos" aria-pressed="false">▶ Listen</button>${testBtn("pos")}</div>
+    <div class="posbtn btns"><span id="posPlay" hidden></span>${testBtn("pos")}</div>
     ${testPanel("pos","box")}
     ${navHTML("setup",today.boxDone?`<button type="button" class="play big" data-go="0">Next: exercise 1 ▸</button>`:`${gateOk("box")?"":`<span class="tnote">Score ${S.pass}% to unlock</span>`}<button type="button" class="play big donego" data-boxdone="1"${gateOk("box")?"":" disabled"}>✓ Box done, next ▸</button>`)}
   </section>`;
@@ -1263,7 +1266,7 @@ function render(){
   v.innerHTML=view==="setup"?setupView():view==="box"?boxView():view==="summary"?summaryView():itemView(view);
   if(view==="box")renderBoard();
   if(view==="setup")setTempoNote();
-  renderStepper();renderCtx();renderHeader();requestAnimationFrame(fixClefs);
+  renderStepper();renderCtx();renderHeader();setNowbar();requestAnimationFrame(fixClefs);
   if(view==="box")paintResult("pos",lastResult.pos);else if(typeof view==="number")paintResult("i"+view,lastResult["i"+view]);
 }
 function markDone(j,on){
@@ -1296,7 +1299,7 @@ function renderBoard(){
   posData.notes.forEach(n=>{s+=dot(n,fing?n.fg:sc.lab[n.deg],n.deg===0?"rt":"sd",n.deg===0||n.m%12===mp);});
   document.getElementById("fretboard").innerHTML=s+"</svg>";
   const pb=document.getElementById("posPlay"),why=document.getElementById("posWhy"),lg=document.getElementById("lgExtra");
-  pb.dataset.idle=par?"▶ Listen (major shape, then the box)":"▶ Listen";if(!(play&&play.id==="pos"))pb.textContent=pb.dataset.idle;
+  pb.dataset.idle=par?"major shape, then the box":"the box";updateNowbar();
   lg.hidden=!par;
   why.hidden=!par;
   if(par){const kn=NOTE[S.keyPc];
@@ -1377,7 +1380,7 @@ function logTime(p){const sec=(performance.now()-p.t0)/1000;if(!today||sec<1)ret
 function stop(){if(!play)return;const P=play;setNowbar(false);clearInterval(play.timer);cancelAnimationFrame(play.raf);setBtn(play.id,play.ro,false,play.test);logTime(play);
   if(P.test){L.fmin=0;if(P.complete)setTimeout(()=>finishTest(P),300);else stoppedEarly(P);}
   try{if(wake){wake.release().catch(()=>{});wake=null;}}catch(e){}
-  document.querySelectorAll(".col.on,.dt.on").forEach(c=>c.classList.remove("on"));play=null;if(pendingRemote)setTimeout(applyRemote,700);}
+  document.querySelectorAll(".col.on,.dt.on").forEach(c=>c.classList.remove("on"));play=null;setNowbar();if(pendingRemote)setTimeout(applyRemote,700);}
 function start(id,ro,test){
   stop();audioCtx();
   const E=eventsFor(id,ro,test),ci=(S.countin||test)?(E.bpb<3?E.bpb*2:E.bpb):0;
@@ -1395,7 +1398,7 @@ function schedule(){
     if(play.pendingE){ // switch to the newly picked bars on the next bar line, so the groove never stumbles
       const cb=Math.max(play.clickBeat,0),B=cb+((play.bpb-((cb-play.base)%play.bpb))%play.bpb),tB=b2t(B);
       const nx=Math.min(play.evi<play.ev.length?b2t(play.base+play.ev[play.evi].b):Infinity,play.chi<play.ch.length?b2t(play.base+play.ch[play.chi].b):Infinity,play.dri<play.dr.length?b2t(play.base+play.dr[play.dri].b):Infinity);
-      if(play.clickBeat>=B&&nx>=tB-1e-4){const P=play.pendingE;play.pendingE=null;Object.assign(play,{ev:P.ev,ch:P.ch,dr:P.dr,total:P.total,bars:P.bars||null,base:B,evi:0,chi:0,dri:0});}
+      if(play.clickBeat>=B&&nx>=tB-1e-4){const P=play.pendingE;play.pendingE=null;Object.assign(play,{ev:P.ev,ch:P.ch,dr:P.dr,total:P.total,bars:P.bars||null,base:B,evi:0,chi:0,dri:0});setNowbar();}
     }
     const off=play.base;
     const tN=play.evi<play.ev.length?b2t(off+play.ev[play.evi].b):Infinity;
@@ -1443,10 +1446,16 @@ function startFollow(id){
   if(id==="pos"){const par=parentMajor();if(par&&!(play&&play.test)){followEl(document.querySelector("#fretboard svg"),true);return;}}
   if(first)followEl(first,true);
 }
-function setNowbar(on){
-  const nb=document.getElementById("nowbar");if(!nb)return;nb.hidden=!on;
+const mainId=()=>view==="box"?"pos":typeof view==="number"?"i"+view:null;
+function updateNowbar(){setNowbar();}
+function setNowbar(){
+  const nb=document.getElementById("nowbar");if(!nb)return;const m=mainId(),show=!!m||!!play;nb.hidden=!show;document.body.classList.toggle("hasbar",show);
+  const pb=document.getElementById("nbPlay");if(pb){pb.textContent=play?"■ Stop":"▶ Play";pb.classList.toggle("on",!!play);pb.disabled=!play&&!m;}
+  const sel=m&&m!=="pos"&&typeof barSel!=="undefined"?barSel[selKey(m)]:null,pp=document.getElementById("posPlay");
+  const what=m==="pos"?(pp&&pp.dataset.idle?pp.dataset.idle[0].toUpperCase()+pp.dataset.idle.slice(1):"The box"):m?`Exercise ${Number(m.slice(1))+1}${sel?(sel.a===sel.b?` · bar ${sel.a+1}`:` · bars ${sel.a+1}–${sel.b+1}`):""}`:"";
+  if(!play)document.getElementById("nbInfo").textContent=what;
   const a=document.getElementById("nbvDrums"),b=document.getElementById("nbvNotes");if(a)a.value=Math.round((S.vDrums||0)*100);if(b)b.value=Math.round((S.vNotes||0)*100);
-  if(on){document.getElementById("nbInfo").textContent=play&&play.test?"Listening to you…":"Playing";}
+  if(play){document.getElementById("nbInfo").textContent=play.test?"Listening to you…":play.ro==="groove"?"Drums only":play.ro?"Rhythm / chords only":play.bars?(play.bars.a===play.bars.b?`Looping bar ${play.bars.a+1}`:`Looping bars ${play.bars.a+1}–${play.bars.b+1}`):"Playing "+what.toLowerCase();}
 }
 function draw(){if(!play)return;let k=null,fin=false;
   let ek=null;while(play.vis.length&&play.vis[0][0]<=ctx.currentTime){const v=play.vis.shift();k=v[1];ek=v[3];if(v[2])fin=true;}
@@ -1869,6 +1878,7 @@ document.addEventListener("click",e=>{
     if(e.shiftKey&&cur)setBars(id,{a:Math.min(cur.a,b),b:Math.max(cur.b,b)});else if(cur&&cur.a===b&&cur.b===b)setBars(id,null);else setBars(id,{a:b,b});return;}
   const g=e.target.closest("[data-go]");if(g){const v=g.dataset.go;go(/^\d$/.test(v)?Number(v):v);return;}
   if(e.target.closest("[data-nbstop]")){stop();return;}
+  if(e.target.closest("[data-nbplay]")){if(play)stop();else{const m=mainId();if(m)start(m,false);}return;}
   if(e.target.closest("[data-resume]")){if(ctx)ctx.resume().catch(()=>{});return;}
   const wz=e.target.closest("[data-wiz]");if(wz){wiz(wz.dataset.wiz);return;}
   if(e.target.closest("[data-copydiag]")){const t=diagText();(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>{e.target.textContent="Copied";}).catch(()=>{const r=document.createRange(),pre=document.getElementById("diag");if(pre){r.selectNodeContents(pre);const sel=getSelection();sel.removeAllRanges();sel.addRange(r);}});return;}
@@ -1909,7 +1919,7 @@ document.addEventListener("submit",e=>{if(e.target.id!=="buildForm")return;e.pre
   document.getElementById("extra").innerHTML=seqCard("x",extra,0,true);requestAnimationFrame(fixClefs);});
 document.addEventListener("keydown",e=>{
   if(e.key!==" "||["INPUT","SELECT","TEXTAREA","BUTTON","SUMMARY"].includes(e.target.tagName))return;
-  const b=document.querySelector("#view [data-play]");if(!b)return;e.preventDefault();b.click();
+  const b=document.getElementById("nbPlay");if(!b||b.disabled||document.getElementById("nowbar").hidden)return;e.preventDefault();b.click();
 });
 document.addEventListener("visibilitychange",()=>{if(document.hidden)stop();else cloudSync();});
 setInterval(()=>{if(!document.hidden&&!play)cloudSync();},60000);
