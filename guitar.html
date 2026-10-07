@@ -541,6 +541,7 @@ function buildGroups(c,alt,N){ // one group per starting note: up through the sh
 }
 function buildSeq(c,alt,N){return buildGroups(c,alt,N).flat();}
 /* each group gets a slot that starts on a beat and never crosses a barline: 1 beat, half a bar, a bar, or whole bars */
+const gapFill=it=>((it.i||0)*7+(it.rh||0)*3)%2?"fill":"rest"; // half the sequences breathe between groups, half fill the gap
 function groupSlot(len,bpb){
   const c=[1];if(bpb%2===0&&bpb>2)c.push(bpb/2);c.push(bpb);
   for(const x of c)if(len<=x+1e-6)return x;
@@ -675,12 +676,21 @@ function seqEvents(it,ro){
       t+=s.d;pi++;}}
   else{
     // every repeat of the cell starts the rhythm afresh on a beat, so each group is heard and seen as one unit
-    const groups=buildGroups(EX[it.i]?EX[it.i].c:it.c,EX[it.i]?EX[it.i].alt:0,posData.notes.length);
-    groups.forEach((g,gi)=>{const t0=t;let k=0,pi=0;
-      while(k<g.length){const s=R.p[pi%L];
-        if(s.r)ev.push({rest:1,b:t,d:s.d});else{ev.push({n:g[k],b:t,d:s.d,a:k===0?Math.max(1,s.a||0):s.a,gs:k===0?gi+1:0});k++;}
-        t=Math.round((t+s.d)*48)/48;pi++;}
-      const slot=groupSlot(t-t0,bpb),end=t0+slot;
+    const groups=buildGroups(EX[it.i]?EX[it.i].c:it.c,EX[it.i]?EX[it.i].alt:0,posData.notes.length),fill=gapFill(it)==="fill";
+    const lay=(g,pi,t1,first)=>{const out=[];let k=0;while(k<g.length){const s=R.p[pi%L];
+        out.push(s.r?{rest:1,b:t1,d:s.d}:{n:g[k],b:t1,d:s.d,a:first&&k===0?Math.max(1,s.a||0):s.a,...(s.r?{}:{k0:k++})});
+        t1=Math.round((t1+s.d)*48)/48;pi++;}
+      return {out,pi,t:t1};};
+    groups.forEach((g,gi)=>{const t0=t;let r=lay(g,0,t,true);r.out.forEach(e=>{if(e.k0===0)e.gs=gi+1;delete e.k0;ev.push(e);});t=r.t;let pi=r.pi;
+      const end=t0+groupSlot(t-t0,bpb);
+      if(fill){
+        // the whole group again, as many times as it fits
+        for(;;){const x=lay(g,pi,t,false);if(x.t>end+1e-6)break;x.out.forEach(e=>{delete e.k0;e.rep=1;ev.push(e);});t=x.t;pi=x.pi;}
+        // one beat-step left: return to the group's first note
+        if(end>t+1e-6){const s=R.p[pi%L];if(!s.r&&t+s.d<=end+1e-6&&end-(t+s.d)<1e-6){ev.push({n:g[0],b:t,d:s.d,a:0,rep:1});t=Math.round((t+s.d)*48)/48;}}
+        // anything left: let the last note ring
+        const last=ev[ev.length-1];if(end>t+1e-6&&last&&!last.rest){last.d=Math.round((last.d+end-t)*48)/48;t=end;}
+      }
       if(end>t+1e-6){ev.push({rest:1,b:t,d:Math.round((end-t)*48)/48});t=end;}});
   }
   let end=Math.ceil(t-1e-6);
@@ -1062,7 +1072,8 @@ function seqCard(id,it,idx,isExtra){
       <p>${R.d}</p>
       <div class="rfoot"><span class="rcount"><span class="grid">${cycleGrid(R)}</span>${R.bpb?` <span class="gnote">${R.bpb} clicks per bar</span>`:""}</span>
       <button type="button" class="rbtn" data-rhy="${id}" aria-pressed="false">♪ Hear the rhythm</button></div>
-      <p class="glegend">Highlighted counts are where you play; underlined ones are accented.</p></div>
+      <p class="glegend">Highlighted counts are where you play; underlined ones are accented.</p>
+      <p class="glegend">${gapFill(it)==="fill"?"<b>Gaps filled:</b> each group starts on a beat. If there is room before the next group, the group plays again, returns to its first note, or lets its last note ring. A dotted line marks each new group.":"<b>Breathing room:</b> each group starts on a beat, with a rest before the next group if there is room. A dotted line marks each new group."}</p></div>
     ${groovePanel(id,grooveOf(id))}
     ${barsBar(id,E)}
     <div class="tabscroll"><div class="tab${barSel[selKey(id)]?" hassel":""}">${tabHTML(E,id)}</div></div></section>`;
