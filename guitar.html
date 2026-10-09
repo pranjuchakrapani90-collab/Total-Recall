@@ -360,6 +360,26 @@ body.hasbar .wrap{padding-bottom:96px}
 .nbmix{display:flex;align-items:center;gap:4px;flex:1;min-width:0;max-width:220px}
 .nbmix input{flex:1;min-width:0;width:60px}
 .nbmix label{font-size:14px}
+.nbtxt{display:flex;flex-direction:column;flex:1;min-width:0;line-height:1.3}
+.nbtxt .nbinfo{flex:none}
+.nbgoal{font:600 12px var(--mono);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nbtxt{overflow:hidden}
+.nowbar .nbmix{flex:0 1 170px}
+.nbgoal.met{color:var(--good)}
+#hTodayS.met b{color:#a7f3d0}
+.goal{border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.glhead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.glhead h3{margin:0}
+.glhead input{width:70px}
+.gbar{height:10px;border-radius:6px;background:var(--steel-soft);overflow:hidden}
+.gbar i{display:block;height:100%;background:var(--good);width:0;transition:width .5s}
+.goal .tnote{margin:0}
+.gweek{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.gd{display:flex;flex-direction:column;align-items:center;padding:6px 0;border-radius:8px;background:var(--bg);font-size:11px;color:var(--muted)}
+.gd b{font:700 15px var(--mono);color:var(--ink)}
+.gd.part{background:var(--brass-soft)}
+.gd.met{background:var(--good-soft)}.gd.met b{color:var(--good)}
+.gtoast{position:fixed;left:50%;transform:translateX(-50%);bottom:84px;z-index:30;background:var(--good);color:#fff;padding:10px 16px;border-radius:12px;font-weight:600;box-shadow:0 8px 24px #0003;max-width:calc(100% - 32px);text-align:center}
 </style>
 
 <header class="top"><div class="hin">
@@ -372,12 +392,14 @@ body.hasbar .wrap{padding-bottom:96px}
     <div class="stat"><b id="hStreak">0</b><span>day streak</span></div>
     <div class="stat"><b id="hSessions">0</b><span>sessions done</span></div>
     <div class="stat"><b id="hTime">0m</b><span>practice time</span></div>
+    <div class="stat" id="hTodayS"><b id="hToday">0/30</b><span>min today</span></div>
   </div>
 </div></header>
 <div class="wrap">
 <nav class="stepper" id="stepper" aria-label="Session steps"></nav>
 <div class="ctx" id="ctx" hidden></div>
-<div id="nowbar" class="nowbar" hidden><button type="button" class="play" id="nbPlay" data-nbplay="1">▶ Play</button><span id="nbInfo" class="nbinfo">Playing</span><span class="nbmix"><label for="nbvDrums">🥁</label><input type="range" id="nbvDrums" min="0" max="150" step="5" aria-label="Drums volume"><label for="nbvNotes">♪</label><input type="range" id="nbvNotes" min="0" max="100" step="5" aria-label="Guide notes volume"></span><button type="button" id="nbResume" data-resume="1" hidden>🔈 Restore sound</button></div>
+<div id="goalToast" class="gtoast" hidden role="status">🎸 Today's goal reached. Keep going if you like!</div>
+<div id="nowbar" class="nowbar" hidden><button type="button" class="play" id="nbPlay" data-nbplay="1">▶ Play</button><span class="nbtxt"><span id="nbInfo" class="nbinfo">Playing</span><span id="nbGoal" class="nbgoal"></span></span><span class="nbmix"><label for="nbvDrums">🥁</label><input type="range" id="nbvDrums" min="0" max="150" step="5" aria-label="Drums volume"><label for="nbvNotes">♪</label><input type="range" id="nbvNotes" min="0" max="100" step="5" aria-label="Guide notes volume"></span><button type="button" id="nbResume" data-resume="1" hidden>🔈 Restore sound</button></div>
 <main id="view"><div class="loading">Loading your session…</div></main>
 <p class="note" id="syncNote"></p>
 </div>
@@ -549,7 +571,7 @@ function groupSlot(len,bpb){
 }
 
 /* ===================== State ===================== */
-const S={keyPc:7,tempo:72,click:true,loop:true,countin:true,chords:true,labels:"fingers",listen:true,pass:100,latency:null,micId:"",guide:false,hearNotes:true,audioMode:"keep",drums:true,vDrums:1.2,vNotes:0.22,vChords:0.35,vClick:1,vMaster:1};
+const S={keyPc:7,tempo:72,click:true,loop:true,countin:true,chords:true,labels:"fingers",listen:true,pass:100,latency:null,micId:"",guide:false,hearNotes:true,audioMode:"keep",drums:true,vDrums:1.2,vNotes:0.22,vChords:0.35,vClick:1,vMaster:1,goalMin:30};
 let sessions={},today=null,posData=null,store=null,extra=null;
 const pad=n=>String(n).padStart(2,"0");
 const dkey=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
@@ -641,7 +663,7 @@ async function initStore(){
     _w(){try{localStorage.setItem("mss-sessions",JSON.stringify({ds:sessions,st:S}));}catch(e){}}};
 }
 let saving=Promise.resolve();
-function persistDay(){today.upd=Date.now();const d=JSON.parse(JSON.stringify(today));saving=saving.then(()=>store.saveDay(d)).catch(()=>{});scheduleSync();}
+function persistDay(quiet){today.upd=Date.now();const d=JSON.parse(JSON.stringify(today));saving=saving.then(()=>store.saveDay(d)).catch(()=>{});if(!quiet)scheduleSync();}
 let setT=null;function persistSettings(){S._upd=Date.now();clearTimeout(setT);setT=setTimeout(()=>{store.saveSettings({...S}).catch(()=>{});scheduleSync();},700);}
 
 /* ===================== Events ===================== */
@@ -1157,6 +1179,7 @@ function setupView(){
     <div class="num">Session ${n} · planned ${st.toLocaleDateString(undefined,{weekday:"short",day:"numeric",month:"short"})}</div>
     <h2>${fresh?"A new session is ready":"Welcome back"}</h2>
     <p class="lead">${fresh?"Check your settings, then work through the box and five exercises one at a time. Take as many days as you need; the session waits for you.":`You've done ${today.done.length} of 5 exercises in this session. Pick up where you left off.`}</p>
+    ${goalHTML()}
     ${stageHTML()}
     <div class="two">
       <div><h3>This session</h3><ol class="plan">${plan}</ol></div>
@@ -1295,7 +1318,7 @@ function render(){
   v.innerHTML=view==="setup"?setupView():view==="box"?boxView():view==="summary"?summaryView():itemView(view);
   if(view==="box")renderBoard();
   if(view==="setup")setTempoNote();
-  renderStepper();renderCtx();renderHeader();setNowbar();requestAnimationFrame(fixClefs);
+  renderStepper();renderCtx();renderHeader();setNowbar();paintGoal();requestAnimationFrame(fixClefs);
   if(view==="box")paintResult("pos",lastResult.pos);else if(typeof view==="number")paintResult("i"+view,lastResult["i"+view]);
 }
 function markDone(j,on){
@@ -1403,9 +1426,45 @@ function setBtn(id,ro,on,test){const b=document.querySelector(test?`[data-test="
     const voc=!!b.closest(".voc");b.textContent=on?"■ Stop":b.dataset.groove!=null?"🥁 Hear the groove":b.dataset.idle?b.dataset.idle:ro?(voc?"♪ Hear the phrase":"♪ Hear the rhythm"):(voc?"▶ Listen to the drill":"▶ Listen");}
   const c=document.getElementById("card-"+id);if(c)c.classList.toggle("playing",on);}
 let wake=null;
-function logTime(p){const sec=(performance.now()-p.t0)/1000;if(!today||sec<1)return;
-  const k=p.id==="pos"?"box":p.id==="x"?null:keyOf(today.items[Number(p.id.slice(1))]);if(!k)return;
-  today.time=today.time||{};today.time[k]=Math.round((today.time[k]||0)+sec);persistDay();}
+/* ----- Daily goal: every second the trainer is playing counts towards today's minutes ----- */
+function flushTime(p,final){ // add the time since the last flush to today's total and to the exercise
+  const now=performance.now();let sec=(now-(p.lf||p.t0))/1000;p.lf=now;if(!today||sec<=0)return;
+  sec=Math.min(sec,90); // ignore gaps where the device was asleep
+  const day=dkey(new Date()),r=x=>Math.round(x*10)/10;
+  today.days=today.days||{};today.days[day]=r((today.days[day]||0)+sec);
+  const k=p.id==="pos"?"box":p.id==="x"?null:keyOf(today.items[Number(p.id.slice(1))]);
+  if(k&&!p.ro){today.time=today.time||{};today.time[k]=r((today.time[k]||0)+sec);}
+  persistDay(!final);
+}
+function logTime(p){flushTime(p,true);}
+const goalSec=()=>(S.goalMin||30)*60;
+function todaySec(){const day=dkey(new Date());let s=Object.values(sessions).reduce((a,x)=>a+((x.days&&x.days[day])||0),0);
+  if(play)s+=Math.min(90,(performance.now()-(play.lf||play.t0))/1000);return s;}
+const mmss=s=>{s=Math.floor(s);return Math.floor(s/60)+":"+String(s%60).padStart(2,"0");};
+let goalToastDay=null;
+function paintGoal(){
+  const sec=todaySec(),g=goalSec(),met=sec>=g,pct=Math.min(100,sec/g*100);
+  const nb=document.getElementById("nbGoal");if(nb){nb.textContent=met?`✓ ${mmss(sec)} played`:`⏱ ${mmss(sec)} / ${mmss(g)}`;nb.classList.toggle("met",met);}
+  const h=document.getElementById("hToday");if(h)h.textContent=`${Math.floor(sec/60)}/${S.goalMin||30}`;
+  const hs=document.getElementById("hTodayS");if(hs)hs.classList.toggle("met",met);
+  const bar=document.getElementById("goalBar");if(bar)bar.style.width=pct+"%";
+  const gt=document.getElementById("goalTxt");if(gt)gt.innerHTML=met?`<b>Goal reached:</b> ${mmss(sec)} played today.`:`<b>${mmss(sec)}</b> played today. <b>${Math.ceil((g-sec)/60)} min</b> to go.`;
+  const day=dkey(new Date());
+  if(met&&play&&goalToastDay!==day){goalToastDay=day;const t=document.getElementById("goalToast");if(t){t.hidden=false;setTimeout(()=>{t.hidden=true;},5000);}}
+  else if(!met)goalToastDay=null;
+}
+setInterval(()=>{if(play&&performance.now()-(play.lf||play.t0)>15000)flushTime(play,false);paintGoal();},1000);
+function goalHTML(){
+  const g=S.goalMin||30,days=[...Array(7)].map((_,i)=>{const d=new Date();d.setDate(d.getDate()-6+i);return d;});
+  const secOf=d=>{const k=dkey(d);return Object.values(sessions).reduce((a,x)=>a+((x.days&&x.days[k])||0),0);};
+  return `<div class="goal"><div class="glhead"><h3>Daily goal</h3>
+      <label class="ctl" for="goalMin">Minutes a day <input type="number" id="goalMin" min="5" max="240" step="5" value="${g}" inputmode="numeric"></label></div>
+    <div class="gbar"><i id="goalBar"></i></div>
+    <p class="tnote" id="goalTxt"></p>
+    <div class="gweek" aria-label="Last 7 days">${days.map((d,i)=>{const m=Math.floor((i===6?todaySec():secOf(d))/60);
+      return `<span class="gd${m>=g?" met":m>0?" part":""}" title="${m} min"><b>${m}</b><small>${i===6?"Today":d.toLocaleDateString(undefined,{weekday:"short"})}</small></span>`;}).join("")}</div>
+    <p class="tnote">The timer counts only while the trainer is playing: Listen, rhythms, grooves and chords all count.</p></div>`;
+}
 function stop(){if(!play)return;const P=play;setNowbar(false);clearInterval(play.timer);cancelAnimationFrame(play.raf);setBtn(play.id,play.ro,false,play.test);logTime(play);
   if(P.test){L.fmin=0;if(P.complete)setTimeout(()=>finishTest(P),300);else stoppedEarly(P);}
   try{if(wake){wake.release().catch(()=>{});wake=null;}}catch(e){}
@@ -1930,6 +1989,7 @@ document.addEventListener("change",e=>{
   else if(["click","loop","countin","chords","guide","hearNotes","drums"].includes(t.id)){S[t.id]=t.checked;persistSettings();}
   else if(t.id==="listen"){S.listen=t.checked;persistSettings();render();}
   else if(t.id==="pass"){S.pass=Number(t.value);persistSettings();}
+  else if(t.id==="goalMin"){const v=Math.max(5,Math.min(240,Math.round(Number(t.value)||30)));if(v===S.goalMin)return;S.goalMin=v;persistSettings();setTimeout(render,0);}
   else if(t.id==="mic"){S.micId=t.value;persistSettings();stopListening();ensureListening().then(render);}
 });
 document.addEventListener("input",e=>{
