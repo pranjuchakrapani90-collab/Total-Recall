@@ -76,6 +76,13 @@ button:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visi
 .c i.acc{text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:3px}
 .cnt.acc{color:var(--ink);font-weight:700}
 .col.rest .cnt{font-style:italic}
+.cnt.e{color:#c4c9d4;font-weight:400}
+.tbar .col{width:clamp(15px,calc((min(100vw,940px) - 108px) / var(--n,8)),36px)}
+.tbar .col .c i{padding:0 1px;letter-spacing:-.5px}
+.col.bt .cnt.e{color:#9aa1ae}
+.c.hold::after{content:"";position:absolute;left:0;right:0;top:50%;border-top:3px solid var(--steel);opacity:.25;transform:translateY(-1px)}
+.col.tick{background:#eef0ff}
+.col.tick .cnt{color:var(--steel);font-weight:700}
 .rhy{margin-top:14px;padding:12px 14px;border-radius:10px;background:var(--brass-soft);display:flex;flex-direction:column;gap:6px}
 .rhy p{color:var(--ink);margin:0;max-width:70ch}
 .rtop{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
@@ -1052,22 +1059,38 @@ function describeCell(c,alt,scale){
 }
 
 /* ===================== Rendering ===================== */
+/* Tab on a fixed grid: every count of the bar (1 e & a 2 …) gets its own equal slot. Notes sit in the slot
+   where they start; empty slots still show their count, and a held note shows a faint line while it rings. */
+function gridOf(ev){for(const s of [2,3,4,6,12])if(ev.every(e=>Math.abs(e.b*s-Math.round(e.b*s))<1e-3))return s;return 12;}
+function tabNote(e){
+  const n=e.n!=null?posData.notes[e.n]:(posData.notes.find(x=>x.m===e.m&&e.sf===x.s+"-"+x.f)||(e.sf?null:posData.notes.find(x=>x.m===e.m))||{s:+e.sf.split("-")[0],f:+e.sf.split("-")[1],deg:e.dg!=null?e.dg:-1});
+  const n2=e.m2!=null?{s:+e.sf2.split("-")[0],f:+e.sf2.split("-")[1],deg:e.dg2}:null;return [n,n2];
+}
 function tabHTML(E,id){
   const {ev,ch,bpb,R}=E,labels={};ch.forEach(c=>{if(c.label)labels[Math.round(c.b/bpb)]=chordName(c.root,c.q);});
-  const SL=`<div class="clef" aria-hidden="true"><b>T</b><b>A</b><b>B</b></div>`;let h="",bar=-1;
-  ev.forEach((e,k)=>{
-    const br=Math.floor(e.b/bpb+1e-6);
-    if(br!==bar){const pick=id!=="pos";const sl=pick&&barSel[selKey(id)],on=sl&&br>=sl.a&&br<=sl.b;h+=(bar>=0?"</div>":"")+`<div class="tbar${pick?" pick":""}${on?" sel":""}"${pick?` data-bar="${br}" data-bid="${id}" title="Tap to loop this bar"`:""}>${labels[br]?`<span class="chd">${labels[br]}</span>`:""}${pick?`<span class="bno">${br+1}</span>`:""}${SL}`;bar=br;}
-    const w=Math.round(Math.max(24,18+e.d*44));
-    const gsc=e.gs&&ev[k-1]&&Math.floor(ev[k-1].b/bpb+1e-6)===br?" gs":"";
-    h+=`<div class="col${e.rest?" rest":""}${gsc}" style="width:${w}px" data-id="${id}" data-k="${k}"${e.gs?` title="Group ${e.gs}"`:""}>`;
-    if(e.rest){for(let s=1;s<=6;s++)h+=`<div class="c"></div>`;h+=`<div class="cnt">rest</div></div>`;return;}
-    const n=e.n!=null?posData.notes[e.n]:(posData.notes.find(x=>x.m===e.m&&e.sf===x.s+"-"+x.f)||(e.sf?null:posData.notes.find(x=>x.m===e.m))||{s:+e.sf.split("-")[0],f:+e.sf.split("-")[1],deg:e.dg!=null?e.dg:-1});
-    const n2=e.m2!=null?{s:+e.sf2.split("-")[0],f:+e.sf2.split("-")[1],deg:e.dg2}:null;
-    for(let s=1;s<=6;s++){const x=s===n.s?n:n2&&s===n2.s?n2:null;h+=`<div class="c">${x?`<i class="${x.deg===0?"r":""}${e.a?" acc":""}">${x.f}</i>`:""}</div>`;}
-    h+=`<div class="cnt${e.a?" acc":""}">${countLbl(e.b,R)}</div></div>`;
-  });
-  return h+"</div>";
+  const SL=`<div class="clef" aria-hidden="true"><b>T</b><b>A</b><b>B</b></div>`;
+  const sub=gridOf(ev),per=bpb*sub;
+  const end=Math.max(E.total||0,...ev.map(e=>e.b+e.d)),nb=Math.ceil(end/bpb-1e-6);
+  const at={};ev.forEach((e,k)=>{const sl=Math.round(e.b*sub);if(!(sl in at)||(!e.rest&&ev[at[sl]].rest))at[sl]=k;});
+  const pick=id!=="pos",sel=pick&&barSel[selKey(id)];let h="",ring=null;
+  for(let br=0;br<nb;br++){
+    const on=sel&&br>=sel.a&&br<=sel.b;
+    h+=`<div class="tbar${pick?" pick":""}${on?" sel":""}" style="--n:${per}"${pick?` data-bar="${br}" data-bid="${id}" title="Tap to loop this bar"`:""}>${labels[br]?`<span class="chd">${labels[br]}</span>`:""}${pick?`<span class="bno">${br+1}</span>`:""}${SL}`;
+    for(let i=0;i<per;i++){
+      const g=br*per+i,pos=g/sub,k=at[g],e=k!=null?ev[k]:null,beat=i%sub===0;
+      if(ring&&pos>=ring.b+ring.d-1e-6)ring=null;
+      const gsc=e&&e.gs&&i>0?" gs":"";
+      h+=`<div class="col${e&&!e.rest?"":" es"}${beat?" bt":""}${gsc}" data-id="${id}" data-s="${g}"${e?` data-k="${k}"`:""}${e&&e.gs?` title="Group ${e.gs}"`:""}>`;
+      if(e&&!e.rest){const [n,n2]=tabNote(e);ring=e.d>1/sub+1e-6?{b:e.b,d:e.d,s:[n.s,n2&&n2.s]}:null;
+        for(let s=1;s<=6;s++){const x=s===n.s?n:n2&&s===n2.s?n2:null;h+=`<div class="c">${x?`<i class="${x.deg===0?"r":""}${e.a?" acc":""}">${x.f}</i>`:""}</div>`;}
+        h+=`<div class="cnt${e.a?" acc":""}">${countLbl(pos,R)}</div></div>`;}
+      else{if(e&&e.rest)ring=null;
+        for(let s=1;s<=6;s++)h+=`<div class="c${ring&&ring.s.includes(s)?" hold":""}"></div>`;
+        h+=`<div class="cnt e">${countLbl(pos,R).replace("·","")}</div></div>`;}
+    }
+    h+="</div>";
+  }
+  return h;
 }
 function fixClefs(){ // show the TAB clef only at the start of each line of tab
   document.querySelectorAll(".tab").forEach(tab=>{const bars=[...tab.children].filter(b=>b.classList.contains("tbar"));
@@ -1468,12 +1491,13 @@ function goalHTML(){
 function stop(){if(!play)return;const P=play;setNowbar(false);clearInterval(play.timer);cancelAnimationFrame(play.raf);setBtn(play.id,play.ro,false,play.test);logTime(play);
   if(P.test){L.fmin=0;if(P.complete)setTimeout(()=>finishTest(P),300);else stoppedEarly(P);}
   try{if(wake){wake.release().catch(()=>{});wake=null;}}catch(e){}
-  document.querySelectorAll(".col.on,.dt.on").forEach(c=>c.classList.remove("on"));play=null;setNowbar();if(pendingRemote)setTimeout(applyRemote,700);}
+  document.querySelectorAll(".col.on,.dt.on,.col.tick").forEach(c=>c.classList.remove("on","tick"));play=null;setNowbar();if(pendingRemote)setTimeout(applyRemote,700);}
 function start(id,ro,test){
   stop();audioCtx();
   const E=eventsFor(id,ro,test),ci=(S.countin||test)?(E.bpb<3?E.bpb*2:E.bpb):0;
   play={id,ro,test:!!test,expected:[],...E,evi:0,chi:0,base:0,clickBeat:-ci,vis:[],lastT:ctx.currentTime+.12,lastB:-ci};
   play.dr=drumsOf(E,ro);play.dri=0;
+  play.sub=!ro&&id!=="pos"?gridOf(eventsFor(id,false,false,true).ev):0;play.tg=null;
   play.testStart=play.lastT;if(test)liveInit(play);
   play.t0=performance.now();try{if(navigator.wakeLock)navigator.wakeLock.request("screen").then(l=>{wake=l;}).catch(()=>{});}catch(e){}
   setBtn(id,ro,true,test);setNowbar(true);requestAnimationFrame(()=>{if(ro!=="groove")startFollow(id);});play.timer=setInterval(schedule,25);schedule();play.raf=requestAnimationFrame(draw);
@@ -1552,6 +1576,11 @@ function draw(){if(!play)return;let k=null,fin=false;
     if(play.id==="pos"&&e&&e.tk!=null){const tc=document.querySelector(`.col[data-id="pos"][data-k="${e.tk}"]`);if(tc)tc.classList.add("on");}
     followEl(play.id==="pos"?(e&&e.tk!=null?document.querySelector(`.col[data-id="pos"][data-k="${e.tk}"]`):document.querySelector("#fretboard svg")):c);
   }
+  if(play&&play.sub){ // moving count cursor: lights up every slot of the grid, including the silent ones
+    const b=play.lastB+(ctx.currentTime-play.lastT)/spb()-play.base,off=play.bars?play.bars.a*play.bpb:0;
+    const g=b>=0&&b<play.total?Math.floor((b+off)*play.sub+1e-6):null;
+    if(g!==play.tg){play.tg=g;document.querySelectorAll(".col.tick").forEach(c=>c.classList.remove("tick"));
+      if(g!=null){const el=document.querySelector(`.col[data-id="${play.id}"][data-s="${g}"]`);if(el)el.classList.add("tick");}}}
   if(play&&play.test)liveUpdate(play);
   if(play)play.raf=requestAnimationFrame(draw);}
 
