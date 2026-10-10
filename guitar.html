@@ -136,6 +136,8 @@ button:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visi
 .ex.mel{border-top:3px solid var(--good)}
 .mbox{background:var(--good-soft)}
 .mbox .rlab{color:var(--good)}
+.dsgap{margin-top:12px;display:block}
+.dsgap .tnote{display:inline}
 .stage{margin-top:18px;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:14px}
 .stHead{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:flex-start}
 .stHead > div:first-child{min-width:0;flex:1 1 300px}
@@ -578,7 +580,7 @@ function groupSlot(len,bpb){
 }
 
 /* ===================== State ===================== */
-const S={keyPc:7,tempo:72,click:true,loop:true,countin:true,chords:true,labels:"fingers",listen:true,pass:100,latency:null,micId:"",guide:false,hearNotes:true,audioMode:"keep",drums:true,vDrums:1.2,vNotes:0.22,vChords:0.35,vClick:1,vMaster:1,goalMin:30};
+const S={keyPc:7,tempo:72,click:true,loop:true,countin:true,chords:true,labels:"fingers",listen:true,pass:100,latency:null,micId:"",guide:false,hearNotes:true,audioMode:"keep",drums:true,vDrums:1.2,vNotes:0.22,vChords:0.35,vClick:1,vMaster:1,goalMin:30,dsGap:true};
 let sessions={},today=null,posData=null,store=null,extra=null;
 const pad=n=>String(n).padStart(2,"0");
 const dkey=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
@@ -850,7 +852,9 @@ function melBar(H,K,c,next,st,bi,pass){
   const pick=(deg,x)=>{let L=P.filter(p=>H.notes[p[0]].deg===deg);if(!L.length)L=P.filter(p=>c.tones.includes(H.notes[p[0]].deg)&&c.tones.includes(H.notes[p[1]].deg));if(!L.length)L=P;
     return L.reduce((b,p)=>b==null||Math.abs(p[0]-x)<Math.abs(b[0]-x)?p:b,null);};
   const A=pick(lo[0],st.cur),B=pick(lo[1],A[0]);st.cur=A[0];
-  const[x,y]=pass?[B,A]:[A,B];return [[x,1.5,2],[y,.5,0],[x,1,0],[y,1,0]];
+  const[x,y]=pass?[B,A]:[A,B];
+  if(S.dsGap!==false)return [[x,1,2],[null,1,0],[y,1,0],[null,1,0]]; // a beat of rest after each pair to move the fingers
+  return [[x,1.5,2],[y,.5,0],[x,1,0],[y,1,0]];
 }
 function melEvents(mi,ro){
   const M=MEL[mi],K={...MK[M.kd],id:M.kd},H=harm(),N=H.notes.length,ev=[],ch=[];let t=0;
@@ -859,8 +863,10 @@ function melEvents(mi,ro){
   const home=dchord(H,0,false),st={cur:(N-1)/2};
   if(K.free){
     const P=dsPairs(H,K),seq=[];
-    if(K.grp){for(let k=0;k+2<P.length;k++)seq.push([P[k],.5,1],[P[k+1],.5,0],[P[k+2],.5,0]);for(let k=P.length-1;k-2>=0;k--)seq.push([P[k],.5,1],[P[k-1],.5,0],[P[k-2],.5,0]);}
-    else{[...P,...P.slice(0,-1).reverse()].forEach(p=>seq.push([p,1,H.notes[p[0]].deg===0?2:0]));}
+    const gap=S.dsGap!==false;
+    const grp3=(a,b,c)=>gap?seq.push([a,.5,1],[null,.5],[b,.5,0],[null,.5],[c,.5,0],[null,1.5]):seq.push([a,.5,1],[b,.5,0],[c,.5,0]);
+    if(K.grp){for(let k=0;k+2<P.length;k++)grp3(P[k],P[k+1],P[k+2]);for(let k=P.length-1;k-2>=0;k--)grp3(P[k],P[k-1],P[k-2]);}
+    else{[...P,...P.slice(0,-1).reverse()].forEach(p=>{seq.push([p,1,H.notes[p[0]].deg===0?2:0]);if(gap)seq.push([null,1]);});}
     seq.forEach(([x,d,a])=>push(x,d,a));
     const end=Math.ceil(t/4-1e-6)*4;if(end>t+1e-6)push(null,end-t);st.cur=P.length?P[0][0]:st.cur;
   }else{
@@ -896,6 +902,7 @@ function melCard(id,it,idx){
     <div class="rhy mbox"><div class="rtop"><span class="rlab">Listen for</span><b>${K.l}</b></div>
       <p>${M.prog?`Over ${progTxt}.`:`Over a steady ${chordName(0,homeChord().q)} chord. Uses every ${K.iv===2?"3rd":"6th"} that fits in the ${shapeName(today.position)}${H.minor?", taken from the natural minor scale":""}.`} Tab notes in orange are the key note; underlined notes are the ones to land on.</p>
       ${M.prog?`<div class="rfoot"><span class="rcount">Hear the chords first, then play along.</span><button type="button" class="rbtn" data-rhy="${id}" data-idle="♪ Hear the chords" aria-pressed="false">♪ Hear the chords</button></div>`:""}</div>
+    ${K.t==="d"?`<label class="chk dsgap" for="dsGap"><input type="checkbox" id="dsGap"${S.dsGap!==false?" checked":""}> Breathing gap after each pair <span class="tnote">: a rest to move your fingers to the next pair. Turn it off once the changes feel easy.</span></label>`:""}
     ${groovePanel(id,grooveOf(id))}
     ${barsBar(id,E)}
     <div class="tabscroll"><div class="tab${barSel[selKey(id)]?" hassel":""}">${tabHTML(E,id)}</div></div></section>`;
@@ -2018,6 +2025,7 @@ document.addEventListener("change",e=>{
   else if(["click","loop","countin","chords","guide","hearNotes","drums"].includes(t.id)){S[t.id]=t.checked;persistSettings();}
   else if(t.id==="listen"){S.listen=t.checked;persistSettings();render();}
   else if(t.id==="pass"){S.pass=Number(t.value);persistSettings();}
+  else if(t.id==="dsGap"){S.dsGap=t.checked;persistSettings();Object.keys(barSel).forEach(k=>delete barSel[k]);setTimeout(render,0);}
   else if(t.id==="goalMin"){const v=Math.max(5,Math.min(240,Math.round(Number(t.value)||30)));if(v===S.goalMin)return;S.goalMin=v;persistSettings();setTimeout(render,0);}
   else if(t.id==="mic"){S.micId=t.value;persistSettings();stopListening();ensureListening().then(render);}
 });
