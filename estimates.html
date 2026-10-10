@@ -148,6 +148,36 @@ footer{margin-top:28px;color:var(--muted);font-size:.78rem;max-width:80ch}
 .matrix td{font-size:.8rem;min-width:130px}
 .matrix td:first-child{min-width:150px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+/* v3 additions */
+.stdbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:10px;font-size:.82rem;color:var(--muted)}
+.stdbar .seg button{padding:5px 10px;font-size:.8rem}
+.src{font:.74rem/1.45 var(--f-mono);color:var(--muted);margin:8px 0 0}
+.src b{color:var(--accent);font-weight:600}
+.cat{display:inline-block;font:600 .7rem var(--f-mono);letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:2px}
+.cat.c{background:var(--danger-soft);color:var(--danger);border:1px solid var(--danger)}
+.cat.m{background:var(--warn-soft);color:var(--warn);border:1px solid var(--warn)}
+.cat.n{background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent)}
+.qgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.drill{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:18px}
+.drill .q{font:600 1.25rem/1.3 var(--f-display);margin:6px 0 12px;text-wrap:pretty}
+.drill .choices{display:flex;flex-wrap:wrap;gap:8px}
+.drill .choices button{font:600 .95rem var(--f-display);letter-spacing:.05em;text-transform:uppercase;padding:8px 16px;border-radius:3px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+.drill .choices button.right{border-color:var(--ok);background:var(--ok-soft)}
+.drill .choices button.wrong{border-color:var(--danger);background:var(--danger-soft)}
+.cl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.cl label{display:flex;gap:8px;align-items:flex-start;font-size:.88rem;cursor:pointer;padding:3px 0}
+.cl input{margin-top:3px;accent-color:var(--accent);flex:none}
+.cl .k{font:.7rem var(--f-mono);color:var(--muted)}
+.subtabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.sec{margin-top:18px}
+.sec h3{font:700 1.3rem/1.1 var(--f-display);margin:0 0 8px;text-transform:uppercase;letter-spacing:.02em}
+.facts td:first-child{font-weight:500}
+.flash{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:18px;max-width:640px}
+.flash .a{margin-top:10px;padding:10px 12px;border-left:3px solid var(--accent);background:var(--accent-soft);border-radius:0 3px 3px 0}
+.kv{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+.kv .card h4{font-size:1.05rem}
+.form input,.form select{min-width:0;width:100%}
+.note.ok{border-color:var(--ok);background:var(--ok-soft)}
 .toprow{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding-top:14px}
 .backlink{color:var(--accent);text-decoration:none;font-size:.88rem;font-weight:500}
 .sbadge{font:500 .75rem var(--f-mono);padding:3px 8px;border-radius:3px;border:1px solid var(--line);color:var(--muted);cursor:default}
@@ -157,12 +187,15 @@ footer{margin-top:28px;color:var(--muted);font-size:.78rem;max-width:80ch}
 <div class="wrap">
 <div class="toprow"><a class="backlink" href="./">← Total Recall &amp; Melodies</a><span id="syncBadge" class="sbadge off" title="">☁ Sync off</span></div>
 <header class="top">
-  <div class="brand"><h1>Pole-to-BoQ Trainer</h1><p>APDCL · SoR 2021-22 · structure by structure</p></div>
+  <div class="brand"><h1>Pole-to-BoQ Trainer</h1><p>RDSS / REC drawings · QAM · APDCL SoR 2021-22</p>
+   <div class="stdbar"><span>Item pattern</span><div class="seg" role="group" aria-label="Item pattern" id="stdseg"><button data-std="rdss" aria-pressed="true">RDSS / REC drawing</button><button data-std="apdcl" aria-pressed="false">APDCL SoR</button></div></div></div>
   <nav class="tabs" role="tablist">
     <button role="tab" id="t-kits" aria-selected="true" data-view="kits">Structures</button>
     <button role="tab" id="t-comp" aria-selected="false" data-view="comp">What goes with what</button>
     <button role="tab" id="t-cond" aria-selected="false" data-view="cond">Conductors</button>
     <button role="tab" id="t-build" aria-selected="false" data-view="build">Line builder</button>
+    <button role="tab" id="t-qam" aria-selected="false" data-view="qam">Quality (QAM)</button>
+    <button role="tab" id="t-spec" aria-selected="false" data-view="spec">Ratings &amp; specs</button>
   </nav>
 </header>
 
@@ -175,44 +208,47 @@ footer{margin-top:28px;color:var(--muted);font-size:.78rem;max-width:80ch}
 </section>
 
 <section class="view" id="v-comp" hidden>
-  <p class="intro">Every main item drags a set of companions into the estimate. When you write the main item, write its companions in the same breath. Tap a card to test yourself before revealing.</p>
+  <p class="intro">Every main item pulls a set of companions into the estimate. When you write the main item, write its companions at the same time. Try to list them before you tap Reveal.</p>
   <div class="cards" id="cards"></div>
 </section>
 
 <section class="view" id="v-cond" hidden>
-  <p class="intro">Each conductor type brings its own accessories. Pick a family to see what it needs in every situation on the line, what never goes with it, and then test yourself.</p>
+  <p class="intro">Each conductor type brings its own accessories. Pick a family to see what it needs at each kind of location on the line and what never goes with it, then test yourself.</p>
   <div id="condbox"></div>
 </section>
 
 <section class="view" id="v-build" hidden>
-  <p class="intro">Give the field-visit picture (route length, special structures, DTR) and the builder adds up the structure kits into one bill of materials. It shows how each count was reached, so you can check it against the site.</p>
+  <p class="intro">Enter what you saw on the field visit: route length, special locations and any DT. The builder adds up the structure kits into one bill of materials and shows how it reached each count, so you can check it against the site.</p>
   <div class="bgrid">
     <form class="form" id="bform">
       <label for="b-sys">Line type
         <select id="b-sys">
-          <option value="hv11">11 kV overhead, PSC 9.75 m</option>
-          <option value="hv33">33 kV overhead, SP-76</option>
-          <option value="lt3">LT 3-ph 4-wire bare, PSC 8.5 m</option>
-          <option value="lt1">LT 1-ph 2-wire bare, PSC 8.5 m</option>
-          <option value="abc">LT AB cable 3-ph, PSC 8.5 m</option>
+          <option value="hv11">11 kV overhead, bare ACSR</option>
+          <option value="hv33">33 kV overhead, bare ACSR</option>
+          <option value="lt3">LT 3-ph 4-wire bare, horizontal</option>
+          <option value="lt1">LT 1-ph 2-wire bare, vertical</option>
+          <option value="abc">LT AB cable 3-ph</option>
         </select></label>
       <div class="row2">
         <label for="b-len">Route length (m)<input id="b-len" type="number" min="0" step="10" value="1000"></label>
-        <label for="b-span">Span (m)<input id="b-span" type="number" min="20" step="1" value="45"></label>
+        <label for="b-span">Span (m)<input id="b-span" type="number" min="20" step="1" value="60"></label>
       </div>
       <label for="b-cond">Conductor<select id="b-cond"></select></label>
-      <fieldset><legend>Special structures (count)</legend>
+      <fieldset><legend>Special locations (count)</legend>
         <div class="row2">
-          <label for="b-angle">Small angle (pin + stay)<input id="b-angle" type="number" min="0" value="2"></label>
-          <label for="b-cut">Cut-point, single pole<input id="b-cut" type="number" min="0" value="1"></label>
+          <label for="b-small">Angle up to 10°<input id="b-small" type="number" min="0" value="2"></label>
+          <label for="b-ang">Angle 10°–60°<input id="b-ang" type="number" min="0" value="1"></label>
+          <label for="b-heavy">Angle over 60° (DP)<input id="b-heavy" type="number" min="0" value="0"></label>
           <label for="b-dead">Dead-end<input id="b-dead" type="number" min="0" value="1"></label>
-          <label for="b-dp">DP cut-point<input id="b-dp" type="number" min="0" value="0"></label>
+          <label for="b-sw">AB-switch DP<input id="b-sw" type="number" min="0" value="0"></label>
+          <label for="b-tap">DO at tap-off<input id="b-tap" type="number" min="0" value="0"></label>
           <label for="b-guard">Guarding sets<input id="b-guard" type="number" min="0" value="0"></label>
-          <label for="b-tap">DO at tap-off<input id="b-tap" type="number" min="0" value="1"></label>
+          <label for="b-storm">Storm stay every Nth pole<input id="b-storm" type="number" min="0" value="6"></label>
         </div>
+        <label style="flex-direction:row;align-items:center;gap:8px"><input id="b-auto" type="checkbox" checked> Section DP every 1.6 km (11 kV)</label>
       </fieldset>
-      <label for="b-dtr">DTR at the far end
-        <select id="b-dtr"><option value="">None</option><option value="d25">25 kVA on DP</option><option value="d100">100 kVA on DP</option></select></label>
+      <label for="b-dtr">DT at the far end
+        <select id="b-dtr"><option value="">None</option><option value="d1">25 kVA on single pole</option><option value="d2">63/100 kVA on DP</option><option value="d3">200 kVA on DP</option></select></label>
       <label for="b-start">First pole
         <select id="b-start"><option value="new">New pole at start</option><option value="exist">Starts from an existing pole</option></select></label>
     </form>
@@ -220,9 +256,20 @@ footer{margin-top:28px;color:var(--muted);font-size:.78rem;max-width:80ch}
   </div>
 </section>
 
-<footer>Quantities are typical APDCL/Samaguri practice drawn from the office's own estimates, the DDUGJY/VEI BoQ kits and the 2026 Jamuguri 33 kV NIT. Rates are SoR 2021-22 ex-works, excluding GST. Site conditions, the circle's construction drawings and GTPs decide the final count. Items marked “—” in the SoR column are non-SoR or need the approved/market rate.</footer>
-</div>
+<section class="view" id="v-qam" hidden>
+  <p class="intro">The Quality Assurance Manual (QAM) is what NQM/RQM inspectors use to grade your work. Learn the three defect categories, drill on real defects, and use the checklists on site before you ask for an inspection.</p>
+  <div class="chips subtabs" id="qtabs"></div>
+  <div id="qbox"></div>
+</section>
 
+<section class="view" id="v-spec" hidden>
+  <p class="intro">Ratings and sizes from the RDSS technical specification, the REC amendments and the standard drawings. These are the numbers that decide which item goes into the estimate.</p>
+  <div class="chips subtabs" id="stabs"></div>
+  <div id="sbox"></div>
+</section>
+
+<footer id="foot">Built from: RDSS SBD Part-2 Technical Specification (2022), the RDSS/REC standard tender drawings (11KV, 33KV, DTR-SS, PSS, LT-ACC-ABC, GEN, LT-OH, Civil), REC construction-standard amendments (2004), the new specifications (Attachments I–M) and the DDUGJY Quality Assurance Manual. Rates are APDCL SoR 2021-22 ex-works, excluding GST; items shown “—” have no SoR rate here and need the approved or tender rate. In “RDSS / REC drawing” mode the kits follow the standard drawings; “APDCL SoR” mode swaps in the items APDCL estimates use (9.75 m PSC, T-arm, grouting jobs, CI pipes). The site, the circle's approved drawings and the GTPs decide the final count.</footer>
+</div>
 <script>
 /* ---------- Catalogue: id -> [SoR, item, unit, rate, group] ---------- */
 const G={pole:"Pole & foundation",arm:"Cross-arms & steel",ins:"Insulators & fittings",cond:"Conductor & jointing",stay:"Stay",earth:"Earthing",safe:"Safety",eq:"Equipment",cab:"Cables & metering",hw:"Hardware",job:"Labour-included jobs (E)"};
@@ -279,165 +326,562 @@ const C={
  cc10:["37","Control cable 10C×2.5","Mtr",484.16,"cab"], cc4:["35","Control cable 4C×2.5","Mtr",194,"cab"], cc14:["39","Control cable 14C×1.5","Mtr",843,"cab"],
  trench:["—","Cable trench 750×775","Rm",8231.70,"job"], gantry:["—","Switchyard gantry / equipment structure steel","MT",null,"arm"]
 };
+Object.assign(C,{
+ squirrel:["444","ACSR Squirrel","Km",18931.20,"cond"], dog:["448","ACSR Dog","Km",74628.64,"cond"], panther:["450","ACSR Panther","Km",163200,"cond"],
+ abc1_50:["14","LT AB cable 1C×50+1C×50 (1-ph)","Mtr",122,"cond"], abc1_70:["15","LT AB cable 1C×70+1C×70 (1-ph)","Mtr",144.15,"cond"], abc3120:["21","LT AB cable 3C×120+1C×95","Mtr",375,"cond"],
+ abcjoint:["801","Mid-span joint (ABC, insulated)","No",521.67,"cond"], ipc:["802","Insulation piercing connector (IPC) 50–70","No",117.33,"cond"],
+ ipcT:["804","IPC tee connector","No",91.50,"cond"], ipcDB:["805","IPC P2×95 (DB feed)","No",83,"cond"],
+ db1:["811","Distribution box 1-ph 140 A, 8 connections","No",2075,"eq"], db3:["813","Distribution box 3-ph 250 A, 10 connections","No",5950,"eq"],
+ sstrap:["809","Stainless steel strap","Mtr",63,"hw"], buckle:["808","Buckle for steel strap","No",22.67,"hw"],
+ mv11_50:["458","11 kV MVCC 1C×50","Mtr",336.50,"cond"], mv11:["461","11 kV MVCC 1C×120","Mtr",485,"cond"], mv33:["455","33 kV MVCC 1C×120","Mtr",586.25,"cond"],
+ mvTie:["904","MVCC cable tie (11 kV)","No",925,"ins"], mvTI:["928","MVCC tension insulator (11 kV)","No",1230,"ins"], mvTH:["916","MVCC tension hardware (11 kV)","Set",2200,"ins"],
+ mvJoint:["863","MVCC mid-span joint (11 kV)","No",2233.33,"cond"], mvTerm:["875","MVCC termination kit (11 kV)","No",3350,"cab"],
+ ugJoint:["—","Straight-through joint kit, 11 kV XLPE","No",null,"cab"], hdpe:["738","HDPE pipe 110 mm","Mtr",570,"cab"],
+ spun:["655","CI spun pipe class 1A, 300 mm × 5.5 m","No",12100,"cab"], socket:["475","Socket for CI spun pipe","No",853.65,"cab"],
+ hv400_33:["46","33 kV XLPE cable 1C×400 armoured","Mtr",2066.50,"cab"]
+});
 
-/* ---------- Structure kits ---------- */
+/* ---------- RDSS / REC items (no APDCL SoR rate here) and renamed items ---------- */
+Object.assign(C,{
+ cleat:["647","Top cleat / 33 kV pole top bracket (C100×50×6 × 415)","No",244.95,"arm"],
+ varm:["635","33 kV V cross-arm, C100×50×6 + C75×40×6, pin c/c 1525","No",1812.40,"arm"],
+ disc70:["622","Disc insulator 11 kV T&C (APDCL: 70 kN polymer; RDSS: 45 kN)","No",315,"ins"],
+ hw70:["850","Strain hardware 11 kV T&C: cross-arm strap, bolt, cotter & split pins","Set",395,"ins"],
+ tcRab:["834","Strain (tension) clamp, Rabbit","No",150,"ins"],
+ pclamp:["830","Pole clamp / back clamp (MS flat 50×8)","No",85.05,"arm"],
+ gipipe:["473","GI earth pipe 40 mm class B, 3 m","No",2346.75,"earth"],
+ swg8:["650","GI wire 8 SWG (4 mm)","Kg",93.15,"earth"],
+ htstay:["653","Stay set 16 mm (HT/11 kV)","Set",546.25,"stay"],
+ ltstay:["657","Stay set 16 mm (LT)","Set",409.40,"stay"],
+ guylt:["631","Guy insulator, LT (type A)","No",31.50,"stay"], guy11:["629","Guy insulator, 11 kV (type C)","No",52.50,"stay"],
+ guy33:["616","Guy insulator, 33 kV (RDSS: 2 × type C in series)","No",111.30,"stay"],
+ susp:["800","Suspension assembly / clamp (ABC)","No",226.67,"ins"], anchor:["806","Anchoring assembly / dead-end clamp (ABC)","No",378.33,"ins"],
+ la11:["676","11 kV lightning arrester 5 kA (set of 3)","Set",2646,"eq"],
+ goab:["518","11 kV GOAB / AB switch","Set",7783.33,"eq"],
+ pcc8:["—","PCC/PSC pole 8 m, 200 kg WL (REC std)","No",null,"pole"],
+ pcc75:["—","PCC pole 7.5 m (LT, LT-OH/10–12)","No",null,"pole"],
+ pcc9:["—","PCC/PSC pole 9 m (DT structure, DTR-SS/03)","No",null,"pole"],
+ basepl:["—","RCC base plate 450×450×75 (REC K-1)","No",null,"pole"],
+ fdnN:["—","Normal pole setting: pit 0.5×0.6×1.5 m, boulder 60% + soil 40%, rammed (GEN/02)","Job",null,"job"],
+ fdnC:["—","Pole foundation in CC 1:2:4, pit 0.5×0.6×1.5 m ≈ 0.45 m³ (GEN/01)","Job",null,"job"],
+ fdn33:["—","33 kV support foundation CC 1:3:6, shuttered & vibrated, with muffing","Job",null,"job"],
+ staycc:["—","Stay pit 500×500×1600, CC 1:2:4 ≈ 0.2 m³ round the anchor plate","Job",null,"job"],
+ varm11:["—","11 kV V cross-arm C75×40×6, pin c/c 1070 (REC A-6)","No",null,"arm"],
+ topbr:["—","11 kV pole top bracket C75×40×6 × 405 (REC A-7)","No",null,"arm"],
+ ch10050:["—","MS channel 100×50×6 (mounting pieces)","Mtr",null,"arm"],
+ ang35:["—","MS angle 35×35×5 (bracing / belting)","Mtr",null,"arm"],
+ acd:["—","Anti-climbing device: top & bottom clamps 40×5 with 6 mm spikes","Set",null,"safe"],
+ eknob:["—","Earth knob (CI) for neutral-cum-earth wire (IS 9511)","No",null,"ins"],
+ ucl:["—","U-clamp 30×6 with bolt, for LT shackle","No",null,"ins"],
+ eyebolt:["—","Eye bolt 16 mm (guard wire anchor)","No",null,"hw"],
+ wire712:["—","GI stay wire 7/2.5 mm (7/12 SWG), LT","Kg",null,"stay"],
+ wire78:["—","GI stay wire 7/4.0 mm (7/8 SWG), 33 kV","Kg",null,"stay"],
+ stay20:["—","Stay set 20 mm (33 kV): rod 20×1800, plate 300×300×8, 2 thimbles","Set",null,"stay"],
+ espike:["—","Spike earth: 20 mm GI rod 2.5 m with welded clamp (GEN/07)","Set",null,"earth"],
+ ecoil:["—","Earthing coil: 4 mm GI, 115 turns, 2.5 m tail, ≥1.85 kg (GEN/08)","No",null,"earth"],
+ disc45bs:["—","33 kV disc insulator 45 kN B&S, porcelain (3 per string)","No",null,"ins"],
+ abs11:["—","11 kV AB switch 200 A, 3-pole gang operated, 5.5 m operating rod (IS 9920)","Set",null,"eq"],
+ hgf:["—","11 kV horn-gap fuse set (DTR-SS/05)","Set",null,"eq"],
+ la11u:["—","11 kV LA 9 kV, 5 kA distribution class, with disconnector (per phase)","No",null,"eq"],
+ dtr63:["—","Distribution transformer 63 kVA 3-ph","No",null,"eq"],
+ dtr200:["—","Distribution transformer 200 kVA 3-ph","No",null,"eq"],
+ dt1:["—","1-ph DT 16 kVA, 11/√3 kV – 240 V, with LV MCCB","No",null,"eq"],
+ ltdb25:["—","LT DB 25 kVA 3-ph: 40 A TPN MCCB in, 6 × 25 A SP MCCB out","No",null,"eq"],
+ ltdb100:["—","LT DB 63/100 kVA: 200 A isolator, 3 HRC bases, 6 SP MCCB + 6 link disconnectors","No",null,"eq"],
+ ltdb200:["—","LT DB 200 kVA: 600 A isolator, 3 HRC 400 A bases, 9 SP MCCB + 9 link disconnectors","No",null,"eq"],
+ xl35:["—","LT XLPE cable 3.5C×35 Al","Mtr",null,"cab"], xl70:["—","LT XLPE cable 3.5C×70 Al armoured","Mtr",null,"cab"],
+ xl150:["—","LT XLPE cable 3.5C×150 Al armoured","Mtr",null,"cab"], xl300:["—","LT XLPE cable 3.5C×300 Al armoured","Mtr",null,"cab"],
+ bmlug:["—","Bimetallic lug (LT XLPE at DT bushing / DB)","No",null,"cab"],
+ bmc:["—","Bimetallic connector on DT HV bushing (11KV/20)","No",null,"eq"],
+ dtmeter:["—","DT meter 3-ph CT-operated 0.5S, 100/5 A CTs, in tamper-proof box","Set",null,"cab"],
+ gip100:["—","GI pipe 100 mm (LT cable riser / cable under track)","Mtr",null,"cab"],
+ hlc:["—","Hot-line clamp","No",null,"cond"],
+ svcab:["—","Service cable, twin-core PVC (2.5 mm² Cu up to 2 kW, 4 mm² above)","Mtr",null,"cab"],
+ bearer:["—","GI bearer wire 3.15 mm (10 SWG) for service","Kg",null,"cab"],
+ svpipe:["—","Service support: 20 mm GI pipe (medium) or angle 35×35×5, with 2 flat clamps","No",null,"cab"],
+ svconn:["—","Service connector (Type A/B) or IPC on ABC","No",null,"cond"],
+ meter1:["—","1-ph meter with metal meter box, DP MCB and meter board","Set",null,"cab"],
+ xl185:["—","11 kV XLPE cable 3C×185","Mtr",null,"cab"], kit185:["—","11 kV termination kit 3C×185 (outdoor)","Set",null,"cab"],
+ allug:["—","Al lug for HT cable termination","No",null,"cab"], marker:["—","Cable route marker (GI plate, 150 mm above ground)","No",null,"cab"],
+ trenchrail:["—","Sand-filled cable trench with brick bed, ≥1 m under tracks","Rm",null,"job"],
+ abc11:["—","11 kV AB cable 3×70 + 70 mm² messenger","Mtr",null,"cond"], abc11k:["—","11 kV AB cable termination kit","Set",null,"cab"],
+ htclamp:["—","HT tension clamp for AB cable messenger","No",null,"ins"], htsusp:["—","HT AB cable suspension clamp","No",null,"ins"],
+ ptr315:["—","Power transformer 3.15 MVA 33/11 kV, ONAN, OLTC","No",null,"eq"],
+ iso33es:["—","36 kV isolator DBCR with earth switch","Set",null,"eq"],
+ pt33:["—","33 kV/110 V PT (single-phase unit)","No",null,"eq"], ct33u:["—","33 kV CT 200-100/1 A (single-phase unit)","No",null,"eq"],
+ stx:["—","Station transformer 100 kVA 33/0.433 kV","No",null,"eq"],
+ sw11in:["—","11 kV 1250 A incomer / bus-coupler VCB panel (indoor)","Set",null,"eq"],
+ sw11out:["—","11 kV outgoing feeder VCB panel","Set",null,"eq"],
+ la9s:["—","9 kV station-class surge arrester (set of 3)","Set",null,"eq"],
+ gos200:["—","12 kV 200 A tilted gang-operated isolator (feeder DP)","Set",null,"eq"],
+ pt11:["—","11 kV/110 V PT (single-phase unit)","No",null,"eq"], capvcb:["—","Capacitor bank VCB panel","Set",null,"eq"],
+ batt:["—","Battery (Ni-Cd, 24/30 V) with float-cum-boost charger","Set",null,"eq"],
+ earthmat:["—","Earth mat: 75×8 MS flat grid ≥0.5 m deep, 25 mm rods & 40 mm GI pipes 3 m (≤2 Ω)","Job",null,"job"]
+});
+G.pole="Pole & foundation";
+
+/* ---------- Levels and the APDCL substitutions ---------- */
 const LEVELS=[
  {id:"blk",name:"0 · Building blocks"},{id:"lt",name:"1 · LT lines"},{id:"hv",name:"2 · 11 kV lines"},
- {id:"dtr",name:"3 · DTR substations"},{id:"ehv",name:"4 · 33 kV lines"},{id:"sp",name:"5 · Crossings & switchyard"}];
+ {id:"dtr",name:"3 · DT substations"},{id:"ehv",name:"4 · 33 kV lines"},{id:"sp",name:"5 · Crossings & substation"}];
+/* In "APDCL SoR" mode an item is swapped: string = same qty, null = dropped, [[id,factor]...] = replaced by these */
+const AP={
+ blk:{pcc8:"psc975",fdnN:"gr975",fdnC:"gr975",basepl:null,staycc:"grst",espike:"cipipe",ecoil:"cipipe",swg8:[["swg6",3]],acd:null},
+ lt:{pcc8:"psc85",pcc75:"psc85",fdnN:"gr85",fdnC:"gr85",basepl:null,acd:null,barbed:null,staycc:"grst",espike:"cipipe",ecoil:"cipipe",swg8:[["swg6",2]],wire712:"wire714",ucl:"strap",eknob:[["ltpin",1],["ltgipin",1]]},
+ hv:{pcc8:"psc975",pcc9:"psc975",fdnN:"gr975",fdnC:"gr975",basepl:null,acd:null,barbed:[["barbed",4]],staycc:"grst",espike:"cipipe",ecoil:"cipipe",gipipe:"cipipe",swg8:[["swg6",3]],varm11:"tarm",topbr:null,abs11:"goab",hgf:"do11",la11u:[["la11",1/3]],ucl:"strap",wire712:"wire714"},
+ dtr:{pcc8:"psc975",pcc9:"psc975",fdnN:"gr975",fdnC:"gr975",basepl:null,acd:null,barbed:[["barbed",4]],staycc:"grst",espike:"cipipe",gipipe:[["cipipe",5/3]],swg8:[["swg6",3]],varm11:"tarm",topbr:null,abs11:"goab",hgf:"do11",la11u:[["la11",1/3]],gistrip50:[["gistrip",3]],dtmeter:[["ltct",3],["cabinet",1]],bmlug:"lug120",ucl:"strap"},
+ ehv:{fdn33:"gr76",staycc:"grst",acd:null,barbed:[["barbed",3]],stay20:"htstay",wire78:"wire710",disc45bs:[["disc90",1/3]]},
+ sp:{pcc8:"psc975",fdnC:"gr975",staycc:"grst",gipipe:"cipipe",swg8:[["swg6",3]],eyebolt:[["ihook",2/3]]}
+};
 
+/* ---------- Structure kits: items [id, qty, why, optional] ---------- */
 const K={
-stayHT:{lv:"blk",t:"One HT stay",fig:"stay",scen:"Any 11 kV pole that has unbalanced pull on it (angle, cut-point, dead-end) gets a stay. What do you write in the estimate for one stay?",
- items:[["htstay",1,"Stay set: rod, anchor plate, thimbles, turnbuckle."],["guy11",1,"Guy (egg) insulator in the stay wire about 3 m above ground, so a fallen live wire can't make the lower stay live."],
- ["wire710",10,"7/10 SWG stay wire: about 10 kg for one HT stay (8–12 m run, plus wraps)."],["grst",1,"Every new stay is one stay-grouting job (428)."],["pclamp",1,"Clamp on the pole to take the stay wire."]],
- notes:[["tip","LT stay is the same pattern: 657 LT stay set + 631 LT guy insulator + 7/14 wire about 5–7 kg + 428."],["trap","Count check: stay sets = guy insulators = 428 jobs. Office sheets often get these three out of step."]]},
-earth:{lv:"blk",t:"One pole earthing",fig:"earth",scen:"An earthing point at a pole. What goes in?",
- items:[["cipipe",1,"CI earth pipe driven next to the pole."],["swg6",3,"6 SWG GI wire from the pins/cross-arm down the pole to the pipe: about 20 m, roughly 3 kg (6 SWG weighs about 0.15 kg/m)."]],
- notes:[["tip","Where earthing goes: every special structure (cut-point, dead-end, DP, DO/GOAB), every DTR, and on plain 11 kV runs about every 4th–5th pole. LT: both ends and roughly every 8–10 poles. 33 kV steel-pole lines are earthed far more often (Jamuguri NIT: 24 earth pipes per 34 poles) using GI pipe 473 with 8 SWG."],["tip","Chemical earthing (481) replaces CI pipes at DTRs where the soil is poor or the scheme asks for it."]]},
+/* ===== 0 Building blocks ===== */
+stay11:{lv:"blk",t:"One stay (guy) — 11 kV",fig:"stay",src:"GEN/09A-B (G-1), RDSS-TS stay set & stay wire, REC amd. G-1, QAM stay checks",
+ scen:"Any pole with an unbalanced pull (angle, dead-end, tapping, and every 6th pole on a long straight) gets a stay. What goes into the estimate for one 11 kV stay?",
+ items:[["htstay",1,"16 mm stay set (same set for LT and 11 kV): anchor rod 16×1800, anchor plate 200×200×6, turnbuckle with 450 mm eye bolt, bow welded to angle 50×50×6, thimble 75×22×40. Weld must hold 3100 kg."],
+  ["guy11",1,"Guy insulator type C (88 kN) for 11 kV, fitted in the stay wire well above ground so a fallen live wire can't make the lower stay live."],
+  ["wire710",10,"Stay wire 7/3.15 mm (= 7/10 SWG, 36.26 kN) for 11 kV. 7/3.15 weighs about 0.43 kg/m; office estimates allow about 10 kg per stay including the wraps and wastage."],
+  ["staycc",1,"Stay pit 500×500×1600 (REC amendment) with about 0.2 m³ of CC 1:2:4 round the anchor plate where the soil is not firm. In APDCL estimates this is stay grouting 428."],
+  ["pclamp",1,"Stay clamp on the pole: at least 50×6 flat with 12 mm bolts (QAM)."]],
+ notes:[["tip","LT stay: same 16 mm set, guy insulator type A (44 kN), stay wire 7/2.5 mm (7/12 SWG). APDCL estimates use 7/14 SWG for LT."],["tip","33 kV stay: 20 mm set (plate 300×300×8, 2 thimbles, weld 4900 kg), TWO type-C guy insulators in series, stay wire 7/4.0 mm (7/8 SWG, 58.45 kN)."],["trap","Count check: stay sets = guy insulators = stay pits (428 jobs). QAM also checks the thimble on the turnbuckle, the guy insulator, a tight stay wire, and that the stay is on the correct side, against the resultant pull."],["tip","Stay angle with the pole 30°–45°. Where there's no room for a stay, use a strut: an extra 8 m pole with clamps (GEN/10)."]]},
+earth:{lv:"blk",t:"One pole earthing",fig:"earth",src:"GEN/04, GEN/07, GEN/08, RDSS-TS 31/36 (earthing coil, GI pipe), QAM line checklists",
+ scen:"QAM wants every 11 kV and LT pole individually earthed with 8 SWG GI wire and an earth pit, coil or spike. What goes in for one pole?",
+ items:[["espike",1,"One electrode per pole. Pick the type that suits the soil. Spike: 20 mm GI rod 2.5 m with a welded clamp, top 500 mm below ground (GEN/07). Coil: 4 mm GI, 115 turns, 50 mm OD, 450 mm long, at 1.5 m depth (GEN/08). Pipe: 40 mm GI class B, 3 m, with funnel (GEN/04)."],
+  ["swg8",1,"8 SWG (4 mm) GI earth lead from the V-arm, top bracket and other steel down to the electrode. 8 SWG weighs about 0.1 kg/m, so roughly 10 m is 1 kg. QAM checks that the lead is dressed to every steel part."]],
+ notes:[["trap","No charcoal, coke or salt in marshy soil or where the water table is high (REC amendment J-1/J-2). Earth pipes must be augered in, not hammered (QAM)."],["tip","Where earthing is needed: QAM wants every 11 kV and LT pole earthed. Older APDCL sheets earthed only every 4th–5th pole, which inspectors now mark as a defect."],["tip","A DT substation needs 3 separate pits (neutral, LA, body). That is in the DT kits."]]},
+strain:{lv:"blk",t:"One 11 kV strain (dead-end) set",fig:"strain",src:"11KV/16, 11KV/17-19, RDSS-TS 20 & 25 (helical fittings)",
+ scen:"Wherever an 11 kV conductor is dead-ended (angle, dead-end, DP, DT), each phase gets one strain set per direction. What makes up one set?",
+ items:[["disc70",1,"Insulator: 45 kN porcelain disc (B&S or T&C, 320 mm creepage, 400 mm for heavy pollution) or a 45 kN composite long-rod. APDCL SoR uses a 70 kN polymer disc."],
+  ["hw70",1,"Hardware: cross-arm strap pair, 16×145 bolt and nut with spring washer, washers, cotter pins. 11KV/16 lists these separately; APDCL prices them as one set (850)."],
+  ["tcRab",1,"Strain clamp sized to the conductor, with aluminium liner. RDSS prefers a helical dead-end with thimble-clevis instead of the bolted clamp."]],
+ notes:[["trap","Match the types: T&C disc with T&C hardware, B&S with B&S. 33 kV strings are B&S only (3 × 45 kN discs per string)."],["tip","Helical dead-end colour codes: Squirrel blue, Weasel red, Rabbit yellow, Ant (AAC) grey. Guy grips: 7/3.15 green, 7/2.5 black."]]},
+fdnN:{lv:"blk",t:"Setting an intermediate pole",fig:"fdnN",src:"GEN/02, GEN/15, REC amd. A-4/A-5, RDSS-TS 72 (grouting provision)",
+ scen:"A plain straight-run PCC pole. Concrete or not? What goes in the estimate for setting it in the ground?",
+ items:[["pcc8",1,"The pole: 8 m PCC/PSC, 200 kg working load (REC standard for 11 kV and LT). Pole size is “as per state practice”, so APDCL uses 9.75 m for 11 kV."],
+  ["fdnN",1,"Pit 0.5×0.6×1.5 m (REC amendment: 600×500×1500), backfilled with boulders (≥100 mm, 60%) and compacted soil (40%), well rammed. No concrete on intermediates in rural areas."],
+  ["basepl",1,"RCC base plate 450×450×75 (K-1) at the bottom of the pit, so the pole doesn't sink."]],
+ notes:[["tip","Loose soil: backfill with jhama (burnt brick) and earth (REC amendment)."],["trap","Intermediate poles get boulder backfill plus a base plate, not concrete. Concrete is for special poles: next kit."]]},
+fdnC:{lv:"blk",t:"Concreting a special pole",fig:"fdnC",src:"GEN/01, CIVIL/15, CIVIL/17, RDSS-TS 72, QAM",
+ scen:"A tapping, dead-end, angle, DT, crossing or DP pole, or any 33 kV pole. How is it set?",
+ items:[["pcc8",1,"The pole."],["fdnC",1,"Pit 0.5×0.6×1.5 m, about 0.45 m³ of CC 1:2:4 round the pole, with muffing above ground. Shuttering and a mobile vibrator are used, and a level gauge to keep the pole vertical. No base plate is needed when the pole is concreted."]],
+ notes:[["tip","Concrete these (GEN/01 & RDSS 72): tapping, dead-end, DT and angle poles; crossings; DP, TP and 4-pole structures; cut points; poles in water-logged areas (with the PM's approval, marked at survey); ALL 33 kV poles (1:3:6, 40 mm aggregate)."],["tip","LT lines: only cut-point and water-logged PCC poles are concreted. Tubular and H-beam poles: 1:3:6 for every pole, with a 250 mm dia × 12″ muffing in 1:2:4 so rainwater can't run down the pole."]]},
 
-lt1:{lv:"lt",t:"LT 1-ph intermediate pole",fig:"lt2",scen:"Erect one 8.5 m PSC pole on a straight run of a single-phase, 2-wire LT line (bare ACSR).",
- items:[["psc85",1,"The pole. LT normally uses 8.5 m PSC (7.5 m on lanes with short spans)."],["gr85",1,"Every new pole is one grouting job of matching length."],
- ["ltarm",1,"One LT angle arm carries the two wires."],["ltpin",2,"One pin insulator per wire on a straight run."],["ltgipin",2,"Each LT pin insulator sits on its own GI pin."],
- ["pclamp",1,"One clamp to hold the arm on the pole."],["nb",1,"About 1 kg of nuts & bolts per LT pole."],["dpLT",1,"Danger plate on every pole."],
- ["cipipe",0,"Not on every LT pole: earth both ends and about every 8–10 poles.",1],["swg6",0,"Goes with an earth pipe if this is an earthing pole.",1]],
- notes:[["tip","Many Samaguri 1-ph estimates use a shackle + D-strap on every pole (vertical formation) instead of pins. Both are accepted; pick one and keep it consistent through the estimate."],["trap","No channel, no T-arm and no disc on an LT intermediate pole."]]},
-lt3:{lv:"lt",t:"LT 3-ph 4-wire intermediate pole",fig:"lt4",scen:"Erect one 8.5 m PSC pole on a straight run of a 3-phase, 4-wire LT line.",
- items:[["psc85",1,"The pole."],["gr85",1,"Grouting job for the pole."],["ltarm",2,"Two LT angle arms (two wires each)."],["ltpin",4,"One pin insulator per wire: R, Y, B, N."],["ltgipin",4,"A GI pin for every LT pin insulator."],
- ["pclamp",2,"One clamp per arm."],["nb",2,"About 2 kg for two arms."],["dpLT",1,"Danger plate."],["cipipe",0,"Only if this is one of the earthing poles.",1],["swg6",0,"Only with an earth pipe.",1]],
- notes:[["tip","Per span, not per pole: one LT spacer (718) per span keeps the four wires from clashing."],["tip","Conductor: route length × 4 wires × about 1.03 for sag and jumpers. A 100 m route needs about 0.42 km, not 0.1 km."]]},
-ltend:{lv:"lt",t:"LT 3-ph dead-end pole",fig:"ltend",scen:"The last pole of a 3-ph 4-wire LT line. The wires terminate here and pull only one way.",
- items:[["psc85",1,"The pole."],["gr85",1,"Grouting job."],["ltarm",2,"Two LT arms to take the shackles."],["shackle",4,"Wires terminate on shackle insulators, one per wire."],["strap",4,"Each shackle needs its D-strap pair to bolt it on."],
- ["ltstay",1,"Stay opposite to the pull of the wires."],["guylt",1,"Guy insulator in the stay wire."],["wire714",6,"7/14 stay wire, about 6 kg."],["grst",1,"Stay grouting."],
- ["pclamp",3,"Two for the arms, one for the stay."],["cipipe",1,"Line ends are always earthed; the neutral is bonded here."],["swg6",2,"Earth lead down an 8.5 m pole, about 2 kg."],
- ["nb",3,"About 3 kg (arms, straps, stay clamp)."],["dpLT",1,"Danger plate."]],
- notes:[["tip","A 1-ph dead-end is half of this: 1 arm, 2 shackles, 2 straps, same stay and earth."],["tip","An LT cut-point (straight-line tension point or sharp angle) takes shackles on both sides (8 + 8 straps for 3-ph) and two stays."]]},
-abc:{lv:"lt",t:"LT AB cable intermediate pole",fig:"abc",scen:"One 8.5 m PSC pole on a straight run of 3-ph LT aerial bunched cable.",
- items:[["psc85",1,"The pole (7.5 m also used in lanes)."],["gr85",1,"Grouting job."],["susp",1,"Suspension clamp carries the bundle on straight runs."],["eyehook",1,"Eye hook (or I-hook 654) to hang the suspension clamp."],
- ["pclamp",1,"Clamp for the hook."],["nb",0.5,"About 0.5 kg."],["dpLT",1,"Danger plate."]],
- notes:[["tip","At angles and ends the suspension clamp is replaced by anchor clamps (806): 1 at a dead-end, 2 at a cut-point or sharp angle, each with its own hook."],["tip","Per span and per service: ties (819) about 15 per span, distribution boxes, IPCs (802/805), end caps 2 per run, steel strap + buckles per DB."],["trap","No insulators, no cross-arm and no spacer on ABC. If you see LT pins in an ABC estimate, something was copied from a bare-line sheet."]]},
+/* ===== 1 LT ===== */
+abcI:{lv:"lt",t:"LT ABC intermediate pole",fig:"abc",src:"LT-OH/04, LT-ACC-ABC/07A-C, RDSS-TS 26, QAM LT checklist",
+ scen:"One 8 m PSC pole on a straight run of 3-phase LT aerial bunched cable.",
+ items:[["pcc8",1,"The pole: 8 m / 200 kg PSC (LT-OH/04). APDCL uses 8.5 m."],["fdnN",1,"Intermediate: boulder backfill, no concrete."],["basepl",1,"Base plate."],
+  ["susp",1,"Suspension assembly: Al-alloy bracket and suspension clamp with a movable link on the messenger. It takes line deviation up to 30°."],["eyehook",1,"Eye hook (forged GI, 20 kN) to hang the clamp. A universal pole bracket on SS strap can replace it."],["pclamp",1,"Clamp for the eye hook."],
+  ["espike",1,"Every LT pole earthed (QAM): spike earth set."],["swg8",1,"8 SWG earth lead."],["acd",1,"Anti-climbing device."],["barbed",0.5,"Barbed wire, 3.5 m on the pole."],["dpLT",1,"433 V danger board (200×150)."],["nb",1,"M16×65 ×3, M10×60 ×4, M8×60 ×2: about 1 kg."]],
+ notes:[["trap","No stay on an ABC intermediate pole, and no insulators, cross-arm, pins or spacers anywhere on ABC."],["tip","Per span: ties and spacing are not needed because the bundle is self-supporting on its insulated messenger."]]},
+abcD:{lv:"lt",t:"LT ABC dead-end pole",fig:"abcend",src:"LT-OH/03, LT-ACC-ABC/03A-B, RDSS-TS 26",
+ scen:"The last pole of an LT ABC run. The bundle pulls one way only.",
+ items:[["pcc8",1,"The pole."],["fdnC",1,"Dead-end pole: concreted."],
+  ["anchor",1,"Anchoring assembly: tension bracket with a wedge clamp on the messenger. No bolts on the conductor. Messenger 25–50 mm²: 10 kN; 70–95 mm²: 20 kN."],["eyehook",1,"Eye hook."],["pclamp",2,"Clamp for the eye hook and the stay clamp."],
+  ["ltstay",1,"Stay behind the pole."],["guylt",1,"Guy insulator type A."],["wire712",6,"Stay wire 7/2.5 mm (7/12 SWG)."],["staycc",1,"Stay pit."],
+  ["endcap",4,"End caps seal the four cut core ends."],["espike",1,"Earth spike: the messenger (neutral) is earthed at line ends."],["swg8",1,"8 SWG lead."],["acd",1,"Anti-climbing."],["barbed",0.5,"Barbed wire."],["dpLT",1,"Danger board."],["nb",1.2,"M16×65 ×5, M10×60 ×4, M8×60 ×2."]],
+ notes:[["tip","At a cut point or a sharp change of direction: 2 anchoring assemblies (one each way) and 2 stays."]]},
+abcT:{lv:"lt",t:"LT ABC tapping / junction pole",fig:"abctap",src:"LT-OH/02A-B, LT-ACC-ABC/05A-B, RDSS-TS 26 (IPC types)",
+ scen:"A branch ABC is tapped off the main ABC run at a pole.",
+ items:[["pcc8",1,"The pole."],["fdnC",1,"Tapping pole: concreted."],["susp",1,"Main run continues on a suspension assembly."],["anchor",1,"Branch starts on an anchoring (dead-end) assembly."],
+  ["eyehook",2,"One for each assembly."],["pclamp",3,"Clamps for the 2 eye hooks + stay."],["ltstay",1,"Stay against the branch pull."],["guylt",1,"Guy insulator."],["wire712",6,"Stay wire."],["staycc",1,"Stay pit."],
+  ["ipc",4,"Insulation piercing connectors, one per core (type 3: main 25–95, tap 25–95 for ABC-to-ABC tee). Service and street-light taps use type 1; DB feeds type 2."],
+  ["espike",1,"Earth."],["swg8",1,"Lead."],["acd",1,"Anti-climbing."],["barbed",0.5,"Barbed wire."],["dpLT",1,"Danger board."],["nb",1.2,"About 1.2 kg."]],
+ notes:[["trap","IPC tightening: shear-head bolt, max 20 N·m below 95 mm² and 30 N·m for 95–150 mm². No stripping of insulation, so no PG clamps on ABC."]]},
+lt1I:{lv:"lt",t:"LT 1-ph 2-wire, vertical, in-line",fig:"lt1v",src:"LT-OH/07A-B, LT-OH/09, LT-OH/28-30",
+ scen:"One pole on a straight run (0°–10°) of a single-phase bare LT line in vertical formation.",
+ items:[["pcc8",1,"8 m PCC pole, buried 1.5 m."],["fdnN",1,"Boulder backfill."],["basepl",1,"Base plate."],
+  ["ch7540",0.55,"Shackle mounting channel 75×40, 550 mm."],["shackle",2,"LT shackle type 1 (75 dia × 90). On in-line poles it works as a reel."],["ucl",2,"U-clamp 30×6 for each shackle."],["pclamp",1,"Top clamp for the shackle channel."],
+  ["espike",1,"Spike earth 20 mm × 2.5 m."],["swg8",1,"Lead."],["acd",1,"Anti-climbing."],["barbed",0.5,"Barbed wire."],["dpLT",1,"415 V danger board."],["nb",2.6,"Bolts per drawing about 2.6 kg."]],
+ notes:[["tip","Shackle spacing in vertical formation: 300 mm, the top one 75 mm from the arm; the neutral-cum-earth wire sits on the earth knob at the bottom."]]},
+lt1D:{lv:"lt",t:"LT 1-ph 2-wire, vertical, dead-end",fig:"lt1vd",src:"LT-OH/05, LT-OH/06",
+ scen:"The end pole of a single-phase bare LT line.",
+ items:[["pcc8",1,"The pole."],["fdnC",1,"Dead-end: concreted."],["ch7540",0.55,"Shackle channel 75×40 × 550."],["shackle",2,"Shackle type 1, one per wire."],["ucl",2,"U-clamps."],["pclamp",3,"Top and bottom clamps for the channel + stay clamp."],
+  ["ltstay",1,"Stay."],["guylt",1,"Guy insulator."],["wire712",6,"Stay wire."],["staycc",1,"Stay pit."],["espike",1,"Earth."],["swg8",1,"Lead."],["acd",1,"Anti-climbing."],["barbed",0.5,"Barbed wire."],["dpLT",1,"Danger board."],["nb",2.9,"About 2.9 kg."]],
+ notes:[["tip","At an angle (LT-OH/06) the kit is the same, with two sets of channel clamps."]]},
+lt3H:{lv:"lt",t:"LT 3-ph 4-wire, horizontal, tangent",fig:"lt3h",src:"LT-OH/12, LT-OH/08, LT-OH/10, LT-OH/16",
+ scen:"One pole on a straight run of a 3-phase 4-wire bare LT line with the wires side by side.",
+ items:[["pcc75",1,"7.5 m PCC (LT-OH/12). APDCL uses 8.5 m PSC."],["fdnN",1,"Boulder backfill."],["basepl",1,"Base plate."],["ch7540",1.2,"Cross-arm 75×40 (5.7 kg/m), about 1.2 m for spacing X 300 / Y 450."],["pclamp",1,"Back clamp."],
+  ["ltpin",3,"LT pin insulators for R, Y, B."],["ltgipin",3,"LT GI pins."],["eknob",1,"Earth knob carries the neutral-cum-earth wire."],["bind",0.15,"Binding wire."],
+  ["espike",1,"Earth."],["swg8",1,"Lead."],["acd",1,"Anti-climbing."],["barbed",0.5,"Barbed wire."],["dpLT",1,"Danger board."],["nb",1,"Bolts 16 mm ×2."]],
+ notes:[["tip","Max span on this structure: 67 m (LT-OH/10); ground clearance 4.6 m. Up to 10° deviation stays on pins (5° for 7/3.35 ACSR); 10°–90° needs shackles and stays."],["tip","APDCL practice puts the neutral on a fourth pin (two LT arms, 4 pins)."]]},
+lt3V:{lv:"lt",t:"LT 3-ph 4-wire, vertical, in-line",fig:"lt3v",src:"LT-OH/13, LT-OH/09",
+ scen:"One pole on a straight run of a 3-phase 4-wire bare LT line in vertical formation.",
+ items:[["pcc8",1,"8 m PCC."],["fdnN",1,"Boulder backfill."],["basepl",1,"Base plate."],["shackle",3,"Shackles (as reels) for R, Y, B at 300 mm spacing."],["ucl",3,"U-clamp per shackle."],["eknob",1,"Neutral-cum-earth knob at the bottom."],
+  ["espike",1,"Earth."],["swg8",1,"Lead."],["acd",1,"Anti-climbing."],["barbed",0.5,"Barbed wire."],["dpLT",1,"Danger board."],["nb",1,"Bolts 16 mm ×4."]],
+ notes:[["tip","PVC spacers can be fitted mid-span on bare LT (LT-OH/16)."]]},
+lt3D:{lv:"lt",t:"LT 3-ph 4-wire dead-end",fig:"lt3vd",src:"LT-OH/17-27 (angles & dead ends), LT-OH/28-30",
+ scen:"The end pole of a 3-phase 4-wire bare LT line.",
+ items:[["pcc8",1,"The pole."],["fdnC",1,"Concreted."],["shackle",4,"All four wires (including neutral) dead-ended on shackles. Heavy duty type 2 (100 dia) for larger conductors."],["ucl",4,"U-clamps or strap pairs."],
+  ["ltstay",1,"Stay against the resultant pull."],["guylt",1,"Guy insulator."],["wire712",6,"Stay wire."],["staycc",1,"Stay pit."],["pclamp",1,"Stay clamp."],
+  ["espike",1,"Earth: neutral bonded at line end."],["swg8",1,"Lead."],["acd",1,"Anti-climbing."],["barbed",0.5,"Barbed wire."],["dpLT",1,"Danger board."],["nb",2,"About 2 kg."]],
+ notes:[["tip","10°–60° angle: shackles both sides (8) and a stay on the bisector. 60°–90°: two stays, one against each line."]]},
+svc:{lv:"lt",t:"1-ph service connection",fig:"svc",src:"GEN/06, LT-OH/31-36, QAM BPL checklist, RDSS-TS 54",
+ scen:"A single-phase house connection taken from a bare LT line, up to 35 m from the pole.",
+ items:[["svcab",30,"Twin-core service cable, jointless: 2.5 mm² up to 2 kW, 4 mm² for 2–4 kW. Max service span 35 m."],["bearer",2.2,"GI bearer wire 3.15 mm (10 SWG): about 0.06 kg/m × 35 m. 3-ph services use 4 mm."],
+  ["svpipe",1,"Service support at the house: 20 mm medium GI pipe or angle 35×35×5, clamped at 2 places with 40×3 flats."],["svconn",2,"Service connector on each line wire (Type A/B by conductor size), or IPC on ABC."],
+  ["meter1",1,"Meter, metal meter box, DP MCB, meter board, earthing point."]],
+ notes:[["tip","Ground clearance of service: 5.8 m across a road, 5.5 m along a road, 4.0 m elsewhere."],["trap","QAM rejects inferior BPL kits and meters not tested at the licensee lab."]]},
 
-h1:{lv:"hv",t:"11 kV intermediate pole (9.75 m PSC)",fig:"tarm",scen:"You're given one 9.75 m PSC pole to erect on a straight run of an 11 kV Rabbit line. Channels? T-arm or V-arm? Pins? Earth?",
- items:[["psc975",1,"The pole. 11 kV uses 9.75 m PSC."],["gr975",1,"Grouting job 427 for a 9.75 m pole."],["tarm",1,"T cross-arm. Two pins on the arm, one at the top: that's three phases on one arm. V-arms are for 33 kV."],
- ["pin11",3,"One pin insulator per phase on a straight run."],["gipin11",3,"A GI pin for each pin insulator.","",0,"If the GTP or SoR item includes the pin with the insulator, drop 841."],["pclamp",1,"Clamp to fix the T-arm."],
- ["bind",0.25,"Binding wire to tie the conductor on the pin insulator, about 1 m per pin."],["dp11",1,"Danger plate on every HT pole."],["barbed",2,"Anti-climbing barbed wire, about 2 kg per pole."],
- ["nb",1.5,"About 1.5 kg."],["cipipe",0,"Plain intermediates are not all earthed; about every 4th–5th pole is.",1],["swg6",0,"Only with an earth pipe.",1]],
- notes:[["trap","Channels: none. A channel cross-arm appears only where the conductor is dead-ended on disc strings (cut-point, dead-end, DP, DTR)."],["tip","Raccoon line: same kit. Only tension clamps, PG clamps and sleeves change when the structure carries discs."]]},
-h2:{lv:"hv",t:"11 kV small-angle pole (up to ~10°)",fig:"tstay",scen:"A slight bend in the 11 kV route. The conductor still rides on pins, but the pole is pulled sideways.",
- items:[["psc975",1,"The pole."],["gr975",1,"Grouting job."],["tarm",1,"T-arm as on a straight pole."],["pin11",3,"Pins still carry the wire at small angles."],["gipin11",3,"GI pins."],
- ["htstay",1,"One stay on the outside of the bend, along the bisector of the angle."],["guy11",1,"Guy insulator."],["wire710",10,"Stay wire about 10 kg."],["grst",1,"Stay grouting."],
- ["pclamp",2,"One for the arm, one for the stay."],["bind",0.25,"Binding wire."],["dp11",1,"Danger plate."],["barbed",2,"Anti-climbing."],["nb",2,"About 2 kg."],
- ["cipipe",0,"Optional at a small angle; earth if it falls on the 4th–5th pole cycle.",1],["swg6",0,"With the earth pipe.",1]],
- notes:[["tip","Beyond about 10–15° the pin can't hold the side pull. Make it a cut-point (discs on channel arms) instead."]]},
-h3:{lv:"hv",t:"11 kV cut-point, single pole",fig:"cut",scen:"An angle of 30–60°, or a tension point you put every ~1 km on a long straight run. The conductor is cut, dead-ended on both sides and jumpered across.",
- items:[["psc975",1,"The pole."],["gr975",1,"Grouting job."],["ch2200",2,"Two channel cross-arms, one for each direction of pull."],["pclamp",4,"Two for the channel arms, two for the stays."],
- ["disc70",6,"Three strings each side = six disc insulators (polymer, one per string)."],["hw70",6,"Every disc needs its hardware fitting. Match the type: T&C disc → T&C hardware 850."],
- ["tcRab",6,"Every disc string ends in a tension clamp sized to the conductor."],["pgRab",6,"Jumper across each phase: a PG clamp at each end = 2 per phase."],
- ["pin11",1,"One pin on top to support the middle-phase jumper."],["gipin11",1,"GI pin for it."],
- ["htstay",2,"Two stays: on an angle, one along each line direction (or one on the bisector, by site); on a straight tension point, one each way in line."],
- ["guy11",2,"Guy insulators."],["wire710",20,"About 10 kg per stay."],["grst",2,"Stay grouting ×2."],
- ["cipipe",1,"Special structures are always earthed."],["swg6",3,"Earth lead."],["dp11",1,"Danger plate."],["barbed",2,"Anti-climbing."],["nb",4,"About 4 kg."]],
- notes:[["trap","Hardware must match the disc: T&C disc (622) with T&C hardware (850); B&S disc with B&S tension hardware (846/844). Never suspension-type 843 on a tension string."],["tip","With porcelain discs an 11 kV string uses 2 × 45 kN discs. Then the disc count doubles (12), but hardware and tension clamps stay at 6."]]},
-h4:{lv:"hv",t:"11 kV dead-end pole",fig:"dead",scen:"The last pole of an 11 kV line, or a terminal before a cable. Wires pull one way only.",
- items:[["psc975",1,"The pole."],["gr975",1,"Grouting job."],["ch2200",1,"One channel arm to take the three strings."],["pclamp",2,"Arm + stay."],
- ["disc70",3,"One string per phase."],["hw70",3,"Matching hardware per string."],["tcRab",3,"Tension clamp per phase."],
- ["htstay",1,"One stay in line, behind the pole, opposite the wires."],["guy11",1,"Guy insulator."],["wire710",10,"Stay wire."],["grst",1,"Stay grouting."],
- ["cipipe",1,"Line ends are earthed."],["swg6",3,"Earth lead."],["dp11",1,"Danger plate."],["barbed",2,"Anti-climbing."],["nb",3,"About 3 kg."]],
- notes:[["tip","If the line ends on a DTR or cable, the dead-end kit merges into that structure. Don't count it twice."]]},
-h5:{lv:"hv",t:"11 kV double-pole (DP) cut-point",fig:"dp",scen:"A heavy angle (over ~60°), a river or road crossing, or a section that needs more strength than one pole. You're given a DP to erect.",
- items:[["psc975",2,"Two poles."],["gr975",2,"Two grouting jobs."],["ch2800",2,"Two long channel arms spanning both poles, one per direction."],["ch7540",6,"75×40 channel for bracing between the poles, about 6 m."],
- ["pclamp",8,"Each arm is clamped to both poles (4) plus one clamp per stay (4)."],["disc70",6,"Three strings each side."],["hw70",6,"Matching T&C hardware."],["tcRab",6,"Tension clamps."],["pgRab",6,"Jumper PG clamps, 2 per phase."],
- ["pin11",3,"Pins on the bracing to carry the three jumpers clear of steel."],["gipin11",3,"GI pins."],
- ["htstay",4,"Four stays, two per pole, set against both directions of pull."],["guy11",4,"Guy insulators."],["wire710",40,"About 10 kg per stay."],["grst",4,"Stay grouting ×4."],
- ["cipipe",2,"One earth per pole."],["swg6",6,"Earth leads for both poles."],["dp11",2,"Danger plate on each pole."],["barbed",4,"Anti-climbing on both poles."],["nb",8,"About 8 kg."]],
- notes:[["tip","Pole spacing of a DP is normally about 2 m centre to centre; that is why the 2800 mm arm is used here rather than the 2200."]]},
-h6:{lv:"hv",t:"DO fuse set at a tap-off",fig:"tap",scen:"A new 11 kV branch is tapped off the main line and protected by a drop-out fuse set. Fittings only (the pole is counted in its own kit).",
- items:[["do11",1,"DO fuse set for the branch."],["ch2200",1,"Channel arm to mount the DO set."],["pin11",3,"Pins to carry the tap jumpers."],["gipin11",3,"GI pins."],
- ["pgRab",6,"Tap connection to the main line and DO terminals, 2 per phase."],["pclamp",4,"Clamps for the DO channel and pin arm."],["cipipe",1,"DO structure is earthed."],["swg6",2,"Earth lead."],["nb",4,"About 4 kg."]],
- notes:[["tip","DDUGJY norm: one DO set at each tapping, roughly one per 2 km of new 11 kV line."]]},
+/* ===== 2 · 11 kV ===== */
+h1:{lv:"hv",t:"11 kV tangent pole",fig:"varm11",src:"11KV/09, 11KV/03 (A-6, A-7), 11KV/15, GEN/02, QAM 11 kV line checklist",
+ scen:"You're given one pole to erect on a straight run of an 11 kV Rabbit line. Channels? T-arm or V-arm? Pins? Earth?",
+ items:[["pcc8",1,"8 m / 200 kg PCC (REC). Pole size is state practice: APDCL uses 9.75 m PSC."],["fdnN",1,"Intermediate pole: boulder backfill, no concrete."],["basepl",1,"RCC base plate 450×450×75."],
+  ["varm11",1,"V cross-arm (A-6): C75×40×6, 1070 mm pin centres, 50×50×6 plates welded at pin seats. Carries two phases. APDCL uses a T cross-arm (634)."],["topbr",1,"Pole top bracket (A-7) carries the third phase about 800 mm above the V-arm."],["pclamp",1,"Back clamp for the V-arm."],
+  ["pin11",3,"11 kV pin insulator per phase (porcelain 5 kN, 230 mm creepage, or composite pin 320 mm)."],["gipin11",3,"GI pin S165P: 165 mm stalk, small steel head."],["bind",0.25,"Binding wire, or a helical top tie per phase."],
+  ["espike",1,"QAM: every 11 kV pole earthed (spike, coil or pit)."],["swg8",1,"8 SWG lead dressed to the V-arm and top bracket."],["acd",1,"Anti-climbing device."],["barbed",0.5,"Barbed wire, 3.5 m."],["dp11",1,"11 kV danger board 250×200."],["nb",1.5,"About 1.5 kg."]],
+ notes:[["trap","No channel on a tangent pole. Channels appear only where the conductor is dead-ended or equipment is mounted."],["tip","Max span 107 m (REC); QAM questions any span under 50 m (record the reason). Construction without a continuous earth wire (A-2) is preferred."],["trap","Conductor goes in the top groove on a straight run, side groove at angles."]]},
+h2:{lv:"hv",t:"11 kV small angle (up to 10°)",fig:"varm11s",src:"11KV/09, 11KV/17-19 (side tie), GEN/01, GEN/09",
+ scen:"A slight bend in the route. The conductor still rides on pins but the pole is pulled sideways.",
+ items:[["pcc8",1,"The pole."],["fdnC",1,"Angle pole: concreted (GEN/01)."],["varm11",1,"V-arm."],["topbr",1,"Top bracket."],["pclamp",2,"V-arm back clamp + stay clamp."],
+  ["pin11",3,"Pins still carry the wire up to 10°."],["gipin11",3,"GI pins."],["bind",0.3,"Side tie (conductor in the side groove, helical side tie with chloroprene pad)."],
+  ["htstay",1,"One stay on the outside of the bend, on the bisector."],["guy11",1,"Guy insulator type C."],["wire710",10,"Stay wire 7/3.15."],["staycc",1,"Stay pit."],
+  ["espike",1,"Earth."],["swg8",1,"Lead."],["acd",1,"Anti-climbing."],["barbed",0.5,"Barbed wire."],["dp11",1,"Danger board."],["nb",2,"About 2 kg."]],
+ notes:[["tip","Above 10° a pin can't hold the side pull: dead-end the conductor (next kit)."]]},
+h3:{lv:"hv",t:"11 kV angle 10°–60°, single pole",fig:"ang",src:"11KV/13, 11KV/16, GEN/01, QAM",
+ scen:"A 10°–60° bend in the 11 kV route on one pole. The conductor is dead-ended on both sides and jumpered across.",
+ items:[["pcc8",1,"The pole."],["fdnC",1,"Concreted."],
+  ["disc70",6,"Each phase is dead-ended both ways: 3 phases × 2 = 6 strain sets. The strings are bolted straight to the pole, 900 mm apart vertically. No cross-arm."],["hw70",6,"Strain hardware per set."],["tcRab",6,"Strain clamp per set (or helical dead-end)."],
+  ["pgRab",6,"Jumper loop per phase made with 2 PG clamps. QAM: D-shaped jumpers, no joints in jumpers."],["pclamp",4,"One pole clamp per phase level for the strings + guy clamp."],
+  ["htstay",1,"One guy on the bisector of the angle, 30°–45° to the pole."],["guy11",1,"Guy insulator."],["wire710",10,"Stay wire."],["staycc",1,"Stay pit."],
+  ["espike",1,"Earth."],["swg8",1.2,"Lead."],["acd",1,"Anti-climbing."],["barbed",0.5,"Barbed wire."],["dp11",1,"Danger board."],["nb",3,"About 3 kg."]],
+ notes:[["tip","APDCL's older cut-point used two channel arms with strings on each and 2 stays. The REC drawing needs no cross-arm at all."],["tip","Over 60°: use a DP (11KV/14 & /04A)."]]},
+h4:{lv:"hv",t:"11 kV dead-end on DP",fig:"dpdead",src:"11KV/14, 11KV/04A (steel), GEN/01, QAM",
+ scen:"The last structure of an 11 kV line. REC puts it on a double pole with two guys.",
+ items:[["pcc8",2,"Two 8 m PCC poles, 1500 mm apart."],["fdnC",2,"Both concreted."],["ch2200",2,"Top channels 100×50 × 2200, front and back (pin holes 1070 c/c)."],["angle50",8.3,"Belting angle 50×50×6 (2 × 1.78 m) and cross bracing (2 × 2.38 m). Bend the angle and drill it; don't cut one side."],
+  ["pclamp",8,"Fish plates and clamps for channels, belting and stays."],["disc70",3,"One strain set per phase."],["hw70",3,"Hardware."],["tcRab",3,"Strain clamps."],
+  ["htstay",2,"Two guys, one per pole, in line behind the structure."],["guy11",2,"Guy insulators."],["wire710",20,"Stay wire."],["staycc",2,"Stay pits."],
+  ["gipipe",1,"Pipe earthing set for the DP."],["swg8",2,"Leads to both poles and the steel."],["acd",2,"Anti-climbing on each pole."],["barbed",1,"Barbed wire 7 m."],["dp11",1,"Danger board."],["nb",5.2,"M16×200 ×4, M16×65 ×12, M16×35 ×5, M10×60 ×8: about 5.2 kg."]],
+ notes:[["tip","If the line ends on a DT or a cable, the dead-end merges into that structure. Don't count it twice."]]},
+h5:{lv:"hv",t:"11 kV DP in-line (section point)",fig:"dp",src:"11KV/04A, GEN/01, QAM",
+ scen:"A tension DP put in a long straight run every 1.6 km for sectionalising, or at a heavy angle over 60°.",
+ items:[["pcc8",2,"Two 8 m PCC poles, 1500 mm apart."],["fdnC",2,"Concreted."],["ch2200",2,"Top channels 100×50 × 2200."],["angle50",8.3,"Belting 2 × 1780 + bracing 2 × 2383 (50×50×6)."],["pclamp",10,"6 fish plates 50×8 + belting and stay clamps."],
+  ["disc70",6,"Strain sets both ways: 6."],["hw70",6,"Hardware."],["tcRab",6,"Strain clamps."],["pin11",3,"Pins on the top channel carry the jumpers."],["gipin11",3,"GI pins."],["pgRab",6,"2 PG per jumper."],
+  ["htstay",4,"Four stays at 31°, two pairs at ±45° in plan."],["guy11",4,"Guy insulators."],["wire710",40,"Stay wire."],["staycc",4,"Stay pits."],
+  ["gipipe",1,"Pipe earthing 1 set."],["swg8",2,"Leads."],["acd",2,"Anti-climbing, 112 spikes in all."],["barbed",1,"Barbed wire 7 m."],["dp11",1,"Danger board."],["nb",5.2,"About 5.2 kg."]],
+ notes:[["tip","Steel weight per drawing about 97.8 kg + 5.2 kg nuts and bolts."]]},
+h6:{lv:"hv",t:"11 kV sectionaliser DP with AB switch",fig:"dpsw",src:"11KV/05A, RDSS-TS 28 (AB switch), QAM",
+ scen:"A DP with a gang-operated AB switch so a section of the feeder can be isolated.",
+ items:[["pcc8",2,"Two poles, 2440 mm apart."],["fdnC",2,"Concreted."],["ch2800",2,"Top channels 100×50 × 2800."],["ch7540",8.1,"AB-switch mounting channels 75×40 (2 × 2.7 m) + pin-insulator channel 2.7 m."],["angle50",10,"Belting and bracing 50×50×6."],["pclamp",14,"Many 50×8 clamps and fish plates."],
+  ["abs11",1,"AB switch 200 A, 3-pole, vertical break, gang operated, with GI operating rod and handle (padlockable)."],["disc70",6,"Strain sets both sides."],["hw70",6,"Hardware."],["tcRab",6,"Strain clamps."],
+  ["pin11",3,"Pin insulators with GI pins for jumpers."],["gipin11",3,"GI pins."],["pgRab",6,"Jumper connections."],
+  ["htstay",4,"Four stays."],["guy11",4,"Guy insulators."],["wire710",40,"Stay wire."],["staycc",4,"Stay pits."],
+  ["gipipe",1,"Pipe earthing set (pit 2500 deep)."],["swg8",3,"Leads, including the switch handle (flexible earth)."],["acd",2,"Anti-climbing."],["barbed",1,"Barbed wire 2 × 3.5 m."],["dp11",1,"Danger board."],["nb",6,"About 6 kg."]],
+ notes:[["trap","QAM checks: switch blades aligned, handle earthed with a flexible lead, no joint in the operating pipe, guide hook fitted, arcing horns intact."]]},
+h7:{lv:"hv",t:"11 kV spur-line tapping DP",fig:"tapsp",src:"11KV/11, GEN/01",
+ scen:"A new 11 kV spur is taken off the main line on a tapping DP with an AB switch.",
+ items:[["pcc8",2,"Two 8 m PCC, 2440 mm apart."],["fdnC",2,"Concreted (tapping pole)."],["ch2800",2,"Double 100×50 top channel."],["varm11",1,"V cross-arm channels for the main line."],["topbr",1,"Pole top bracket."],
+  ["ch7540",6.5,"Horizontal cross-arm 75×40 × 1150 + double 75×40 for the AB switch."],["angle50",6,"Cross bracing 50×50×6."],["ang35",2,"Bracing 35×35×5."],["pclamp",12,"Back clamps and fish plates."],
+  ["abs11",1,"AB switch on the spur."],["disc70",3,"Strain sets where the spur starts."],["hw70",3,"Hardware."],["tcRab",3,"Strain clamps."],["pin11",4,"Pin insulators with pins."],["gipin11",4,"GI pins."],["pgRab",9,"Tap and jumper connections."],
+  ["htstay",1,"Guy set against the spur pull."],["guy11",1,"Guy insulator."],["wire710",10,"Stay wire."],["staycc",1,"Stay pit."],
+  ["gipipe",1,"Pipe/rod earthing."],["swg8",3,"Leads."],["acd",2,"Anti-climbing."],["barbed",1,"Barbed wire."],["dp11",1,"Danger board."],["nb",6,"About 6 kg."]],
+ notes:[["tip","Max span from the tapping pole to the first spur pole: 50 m. Ground clearance at max sag about 4.6 m for 11 kV."]]},
+h8:{lv:"hv",t:"11 kV + LT on one pole",fig:"comp",src:"11KV/12",
+ scen:"A composite pole: 11 kV on top and an LT circuit below on the same 8 m PCC pole.",
+ items:[["pcc8",1,"8 m PCC, buried 1.5 m."],["fdnN",1,"Boulder backfill."],["basepl",1,"Base plate."],["topbr",1,"Top bracket."],["varm11",1,"V-arm."],["pin11",3,"11 kV pins."],["gipin11",3,"GI pins."],
+  ["shackle",4,"LT shackles: 3 phases + neutral-cum-earth, the top one 800 mm below the V-arm."],["ucl",4,"U-clamps."],["espike",1,"Earth."],["swg8",1,"Lead."],["acd",1,"Anti-climbing."],["barbed",0.5,"Barbed wire."],["dp11",1,"11 kV danger board."],["nb",2,"About 2 kg."]],
+ notes:[["tip","Minimum ground clearance 4.6 m for the lowest LT wire."]]},
+h9:{lv:"hv",t:"DO fuse set at a tap-off",fig:"tap",src:"RDSS-TS 29 (DO fuse), DDUGJY kit",
+ scen:"A new 11 kV branch is tapped off and protected by a drop-out fuse set. Fittings only; the pole is counted in its own kit.",
+ items:[["do11",1,"DO fuse set: 12 kV, 100 A, 8 kA, mounted 15°–20° from vertical."],["ch2200",1,"Channel 100×50 (or 75×40) to mount the DO set."],["pin11",3,"Pins to carry the tap jumpers."],["gipin11",3,"GI pins."],
+  ["pgRab",6,"Tap to main line and DO terminals, 2 per phase."],["pclamp",4,"Clamps."],["gipipe",1,"Earth."],["swg8",2,"Lead."],["nb",4,"About 4 kg."]],
+ notes:[["tip","DDUGJY norm: one DO set at each tapping."]]},
 
-d25:{lv:"dtr",t:"25 kVA DTR substation on DP",fig:"dtr",scen:"A new 25 kVA transformer on a double-pole structure at the end of an 11 kV tap.",
- items:[["dtr25",1,"The transformer."],["psc975",2,"Two 9.75 m PSC poles (DDUGJY kit allows 8.5 m for 25/63 kVA)."],["gr975",2,"Two grouting jobs."],
- ["ch2200",6,"Channel arms: HT dead-end, DO and LA mountings, and the transformer seat."],["angle50",2,"GI angle for the DTR seat / support, about 2 m."],["pclamp",12,"Two clamps per arm × 6 arms."],
- ["disc70",3,"Incoming HT dead-ended on the DP."],["hw70",3,"Matching hardware."],["tcRab",3,"Tension clamps."],["pin11",3,"Pins carry the jumpers down to the DO."],["gipin11",3,"GI pins."],
- ["do11",1,"DO fuse set on the HT side."],["la11",1,"Lightning arrester set on the HT side."],["rabbit",0.015,"Rabbit for HT jumpers, about 15 m."],["pgRab",6,"Jumper connections."],
- ["cab50",40,"LT leads from DTR bushings to the MCCB/LT line, about 40 m of 1C×50."],["lug50",12,"Lugs at both ends of each run."],["mccb100",1,"LT protection (25 kVA ≈ 35 A)."],
- ["ltct",3,"DT metering: one CT per phase."],["cabinet",1,"Meter cabinet."],
- ["cipipe",5,"Five earths: 2 for transformer body, 2 for neutral, 1 for LA."],["swg6",15,"About 3 kg per earth lead."],
- ["htstay",2,"Stays against the incoming line pull."],["guy11",2,"Guy insulators."],["wire710",20,"Stay wire."],["grst",2,"Stay grouting."],
- ["dp11",2,"Danger plate on each pole."],["barbed",4,"Anti-climbing on both poles."],["nb",15,"About 15 kg for a DTR structure."],["fence",1,"DTR fencing (CGM circular, March 2024)."]],
- notes:[["trap","Earth pipes at a DTR: 5 (or chemical earthing 481). A DTR estimate with 1–2 earth pipes will be returned."],["tip","Office sheets often show 4 LT CTs. Three-phase four-wire DT metering needs 3; the 4th is usually a spare. Say which in your notes."]]},
-d100:{lv:"dtr",t:"100 kVA DTR substation on DP",fig:"dtr",scen:"A consumer's 100 kVA DTR on a double pole with GOAB, DO, LA and LT CT metering (Samaguri office pattern).",
- items:[["dtr100",1,"The transformer."],["psc975",2,"Two 9.75 m PSC poles."],["gr975",2,"Two grouting jobs."],["ch2200",2,"Channel arms for HT dead-end and DO/LA."],
- ["ch7540",24,"75×40 channel for the DTR seat, belting and bracing, about 24 m."],["tarm",1,"Top arm for the GOAB / jumper pins."],["pclamp",12,"Clamps for arms and belting."],
- ["disc70",3,"Incoming HT dead-end."],["hw70",3,"Matching hardware."],["tcRab",3,"Tension clamps."],["pin11",3,"Jumper support."],["gipin11",3,"GI pins."],
- ["goab",1,"GOAB isolator on the HT side, so the DTR can be isolated without the line."],["do11",1,"DO fuse set."],["la11",1,"LA set."],["rabbit",0.02,"HT jumpers, about 20 m."],["pgRab",6,"Jumper connections."],
- ["cab120",35,"LT leads 1C×120 armoured, about 35 m (4 cores × ~8 m + spare)."],["lug120",16,"Lugs, 2 per run end."],["mccb200",1,"100 kVA ≈ 139 A, so a 200 A MCCB."],
- ["ltct",3,"Metering CTs, one per phase."],["cabinet",1,"Meter cabinet."],
- ["cipipe",5,"Five earths: body 2, neutral 2, LA 1."],["swg6",15,"Earth leads."],["gistrip",20,"GI strip for neutral and body earth connections, about 20 m."],
- ["htstay",2,"Stays."],["guy11",2,"Guy insulators."],["wire710",20,"Stay wire."],["grst",2,"Stay grouting."],
- ["dp11",2,"Danger plates."],["barbed",4,"Anti-climbing."],["nb",15,"About 15 kg."],["fence",1,"DTR fencing."]],
- notes:[["tip","Upgrading an existing DTR (say 100 → 250 kVA) also needs a dismantling estimate for the old transformer at 85% of SoR."],["trap","Temporary DTR on an existing DP from O&M stock: only labour is payable; put the materials in the Existing column."]]},
+/* ===== 3 · DT substations ===== */
+d1:{lv:"dtr",t:"25 kVA DT on a single pole",fig:"dt1p",src:"DTR-SS/11, DTR-SS/07, RDSS-TS 17 (LT DB), QAM DT checklist",
+ scen:"A new 25 kVA 3-phase DT mounted on one 8 m / 200 kg pole at the end of an 11 kV spur.",
+ items:[["dtr25",1,"25 kVA DT (no tapping up to 100 kVA; sealed type up to 63 kVA)."],["pcc8",1,"8 m / 200 kg PCC."],["fdnC",1,"DT pole: concreted."],
+  ["ch10050",3.1,"C100×50×6: DT mounting 1000 + DO mounting 600 + 2 × 150 + top arm for the dead-end and LAs."],["angle50",1,"L50×50×6: 600 (DT seat) + 400 (DO support)."],["pclamp",4,"Pole top and mounting clamps."],
+  ["disc70",3,"Incoming 11 kV dead-ended at the top."],["hw70",3,"Hardware."],["tcRab",3,"Strain clamps."],["la11u",3,"3 LAs at 700 mm spacing on top: 9 kV, 5 kA, with disconnector."],["do11",1,"DO fuse set (3 units at 400 mm)."],["bmc",3,"Bimetallic connectors on the HV bushings (QAM checks these)."],
+  ["ltdb25",1,"LT DB: 40 A TPN MCCB incoming, 6 × 25 A SP MCCB outgoing (2 feeders), space for the DT meter."],["xl35",10,"DT LV to the DB in 35 mm² Al cable."],["dtmeter",1,"DT meter."],
+  ["htstay",1,"Guy set against the incoming line."],["guy11",1,"Guy insulator."],["wire710",10,"Stay wire."],["staycc",1,"Stay pit."],
+  ["gipipe",3,"3 separate earth pits (DTR-SS/07, QAM): (1) DT neutral, (2) LAs by their own direct lead, (3) body: tank, DO, DB, steel."],["gistrip50",6,"50×6 GI flat risers from the pits."],["swg8",3,"8 SWG to each piece of equipment."],
+  ["acd",1,"Anti-climbing."],["barbed",0.5,"Barbed wire."],["dp11",1,"Danger board."],["nb",6,"About 6 kg."]],
+ notes:[["tip","Heights per drawing: DT platform about 2.44 m, MCCB about 1.5 m above ground."],["trap","QAM critical defects at a DT: LA not connected, neutral earth missing, earth electrodes not installed, low oil."]]},
+d2:{lv:"dtr",t:"63 / 100 kVA DT on DP",fig:"dtr",src:"DTR-SS/03, DTR-SS/07, DTR-SS/23, RDSS-TS 18 (LT DB), CIVIL/17, QAM",
+ scen:"A 100 kVA DT on a double-pole structure with AB switch, HG fuse, LAs and an LT DB.",
+ items:[["dtr100",1,"The DT (base channel 75×40 up to 100 kVA, 100×50 above)."],["pcc9",2,"Two 9 m supports, 2440 mm apart."],["fdnC",2,"Both concreted (CIVIL/17)."],["basepl",2,"Base plates (K-1), as listed in the BoM."],
+  ["ch2800",2,"Channel 100×50 × 2800: the DT platform."],["ch7540",18.2,"75×40: 2 × 1500 + 4 × 2800 cross-arms + 4 × 1000 for the AB switch."],["angle50",8.4,"50×50×6 × 2800, 3 nos (belting)."],["ang35",4,"35×35×5 AB-switch bracing (2 × 1000) and DT belting."],["pclamp",12,"Clamps for channels and belting."],
+  ["disc70",3,"Incoming 11 kV dead-ended on the structure."],["hw70",3,"Hardware."],["tcRab",3,"Strain clamps."],
+  ["abs11",1,"Horizontal AB switch."],["hgf",1,"HG fuse unit, 3-phase set."],["la11u",3,"3 LAs, each with its own direct earth lead."],["bmc",3,"Bimetallic connectors on the HV bushings."],
+  ["ltdb100",1,"LT DB 63/100 kVA: 200 A TP isolator, 3 HRC bases (links 100 A for 63 kVA, 160 A for 100 kVA), 6 SP MCCB + 6 link disconnectors for 2 outgoing feeders."],["xl150",10,"DT to DB: 3.5C×150 for 100 kVA (70 mm² for 63 kVA)."],["xl70",20,"2 outgoing feeders in 3.5C×70 to the first LT pole."],["bmlug",24,"Bimetallic lugs: 8 incoming + 16 outgoing cable ends."],["gip100",3,"LT cable runs through a 100 mm GI pipe."],["dtmeter",1,"DT meter with CTs."],
+  ["htstay",2,"Stays against the incoming line."],["guy11",2,"Guy insulators."],["wire710",20,"Stay wire."],["staycc",2,"Stay pits."],
+  ["gipipe",3,"3 earth pits: neutral, LA, body. Masonry chamber and funnel over each."],["gistrip50",6,"50×6 GI flat risers."],["swg8",4,"8 SWG to tank (2 points), AB handle, HG fuse, DB, steel."],
+  ["acd",2,"Anti-climbing."],["barbed",1,"Barbed wire."],["dp11",1,"Danger board."],["nb",15,"About 15 kg."]],
+ apAdd:[["fence",1,"DTR fencing (APDCL CGM circular, March 2024)."]],
+ notes:[["trap","APDCL estimates often show 5 earth pipes; RDSS/QAM need 3 separate pits, each with its own purpose. Never join the LA earth to the neutral pit."],["tip","QAM DT checks: DT bolted to the base channel with 12 mm bolts, silica gel blue, oil level, bimetallic clamps on the HV bushings, DB lockable with glands, lugs on all cable ends, cable loop length."]]},
+d3:{lv:"dtr",t:"200 kVA DT on DP",fig:"dtr",src:"DTR-SS/03, DTR-SS/21, RDSS-TS 3 & 18",
+ scen:"A 200 kVA DT on a DP. What changes from the 100 kVA kit?",
+ items:[["dtr200",1,"200 kVA DT: conservator, base channel 100×50, rollers from 200 kVA."],["pcc9",2,"Two 9 m supports."],["fdnC",2,"Concreted."],["basepl",2,"Base plates."],
+  ["ch2800",2,"DT platform channels."],["ch7540",18.2,"Cross-arms 75×40."],["angle50",8.4,"Belting."],["ang35",4,"Bracing."],["pclamp",12,"Clamps."],
+  ["disc70",3,"Incoming dead-end."],["hw70",3,"Hardware."],["tcRab",3,"Strain clamps."],["abs11",1,"AB switch."],["hgf",1,"HG fuse set."],["la11u",3,"3 LAs."],["bmc",3,"Bimetallic connectors."],
+  ["ltdb200",1,"LT DB 200 kVA: 600 A isolator, 3 HRC 400 A bases with 315 A links, 9 SP MCCB + 9 link disconnectors for 3 feeders."],["xl300",10,"DT to DB 3.5C×300."],["xl150",30,"3 outgoing feeders in 3.5C×150."],["bmlug",32,"8 incoming + 24 outgoing ends."],["gip100",3,"GI pipe for cables."],["dtmeter",1,"DT meter."],
+  ["htstay",2,"Stays."],["guy11",2,"Guy insulators."],["wire710",20,"Stay wire."],["staycc",2,"Stay pits."],["gipipe",3,"3 pits."],["gistrip50",6,"Risers."],["swg8",4,"Equipment leads."],["acd",2,"Anti-climbing."],["barbed",1,"Barbed wire."],["dp11",1,"Danger board."],["nb",15,"About 15 kg."]],
+ apAdd:[["fence",1,"DTR fencing."]],
+ notes:[["tip","LT DB by DT size (RDSS 18): 63 & 100 kVA → 2 feeders, 6 MCCBs; 200 kVA → 3 feeders, 9 MCCBs; 315 kVA → 4 feeders, 12 MCCBs (HRC 630 A base, 500 A link). Incoming lugs: 70 / 150 / 300 / 300 mm²."]]},
+d4:{lv:"dtr",t:"1-ph DT, phase-to-neutral",fig:"dt1ph",src:"DTR-SS/09, RDSS-TS 2, RDSS-TS 17",
+ scen:"A 16 kVA single-phase DT on one 8 m PCC pole, fed from one 11 kV phase.",
+ items:[["dt1",1,"1-ph DT 16 kVA (11/√3 kV – 240 V), pole-mounted on its lugs, with LV MCCB."],["pcc8",1,"8 m PCC."],["fdnC",1,"Concreted."],["topbr",1,"Pole bracket for the HV pin."],
+  ["pin11",1,"11 kV pin insulator."],["gipin11",1,"GI pin."],["shackle",1,"LT shackle for the neutral."],["ucl",1,"U-clamp."],["do11",1,"Fuse cut-out with fixture (one unit; price per unit if your SoR is per set)."],["la11u",1,"LA with fixture."],["hlc",1,"Hot-line clamp at the tap."],
+  ["ltdb16",0,"16 kVA 1-ph DB (80 A SPN in, 2 × 50 A out) where a separate DB is used.",1],
+  ["gipipe",3,"Earth pits for neutral, LA and body."],["swg8",2,"Leads."],["pclamp",3,"Pole clamps."],["acd",1,"Anti-climbing."],["barbed",0.5,"Barbed wire."],["dp11",1,"Danger board."],["nb",2,"About 2 kg."]],
+ notes:[["tip","Transformer bottom about 3.8 m above ground. Phase-to-phase version (DTR-SS/10) uses a V-arm with 2 pins, 2 cut-outs and 2 LAs on a 7.5 m pole."]]},
 
-v1:{lv:"ehv",t:"33 kV intermediate pole (SP-76)",fig:"varm",scen:"One SP-76 steel tubular pole on a straight run of a 33 kV Wolf line.",
- items:[["sp76",1,"The pole. 33 kV uses SP-76 steel tubular poles."],["gr76",1,"Grouting job 423 for SP-66/76 (not 427, which is for PSC)."],["varm",1,"33 kV V cross-arm carries two phases."],["cleat",1,"Top cleat carries the third phase on top."],
- ["pin33",3,"33 kV pin insulator per phase."],["gipin33",3,"33 kV GI pin per insulator."],["pclamp",1,"Clamp for the V-arm."],["bind",0.4,"Binding wire."],["dp33",1,"33 kV danger plate."],
- ["barbed",1.5,"Anti-climbing, about 1.5 kg."],["nb",3,"About 3 kg."],["gipipe",0,"Steel-pole lines are earthed on about 2 of every 3 poles (GI pipe 473).",1],["swg8",0,"8 SWG with GI pipe on 33 kV.",1]],
- notes:[["tip","Typical 33 kV span on SP-76: 30–33 m, so about 33–34 poles per km."]]},
-v2:{lv:"ehv",t:"33 kV tension / cut-point (SP-76)",fig:"cut33",scen:"An angle or tension point on a 33 kV Wolf line, dead-ended both sides and jumpered.",
- items:[["sp76",1,"The pole."],["gr76",1,"Grouting job 423."],["ch3200",2,"Two 3200 mm channel arms (wider phase spacing at 33 kV)."],["pclamp",4,"Arms and stays."],
- ["disc90",6,"Three strings each side, 90 kN polymer B&S."],["hw90",6,"B&S 90 kN tension hardware to match."],["tcWolf",6,"Wolf tension clamps."],["pgWolf",6,"Jumper PG clamps, 2 per phase."],
- ["pin33",1,"Top pin for the middle jumper."],["gipin33",1,"GI pin."],["htstay",2,"Two stays."],["guy33",2,"33 kV guy insulators (616, not the 11 kV 629)."],["wire710",32,"About 16 kg per 33 kV stay."],["grst",2,"Stay grouting."],
- ["gipipe",1,"Earthing."],["swg8",2,"Earth lead."],["dp33",1,"Danger plate."],["barbed",1.5,"Anti-climbing."],["nb",8,"About 8 kg."]],
- notes:[["trap","33 kV on Wolf: tension clamp 836, PG 828, sleeve 824. Using Rabbit fittings on a Wolf line is a common copy-paste slip."]]},
-v3:{lv:"ehv",t:"33 kV dead-end (SP-76)",fig:"dead33",scen:"End pole of a 33 kV line before a substation gantry or cable.",
- items:[["sp76",1,"The pole."],["gr76",1,"Grouting job 423."],["ch3200",1,"One channel arm."],["pclamp",2,"Arm and stay."],["disc90",3,"One string per phase."],["hw90",3,"Matching hardware."],["tcWolf",3,"Tension clamps."],
- ["htstay",1,"Stay behind the pole."],["guy33",1,"33 kV guy insulator."],["wire710",16,"Stay wire."],["grst",1,"Stay grouting."],["gipipe",1,"Earthing."],["swg8",2,"Earth lead."],["dp33",1,"Danger plate."],["barbed",1.5,"Anti-climbing."],["nb",5,"About 5 kg."]],
- notes:[]},
+/* ===== 4 · 33 kV ===== */
+v1:{lv:"ehv",t:"33 kV tangent pole",fig:"varm33",src:"33KV/03, 33KV/06-07, Att-I (V-arm), RDSS-TS 21 & 72",
+ scen:"One support on a straight run of a 33 kV line.",
+ items:[["sp76",1,"Support as per state practice: APDCL uses SP-76 steel tubular."],["fdn33",1,"ALL 33 kV supports in CC 1:3:6 with muffing (RDSS 72). APDCL: grouting 423."],["varm",1,"V cross-arm: C100×50×6 + C75×40×6, pin c/c 1525, MS strip 100×50×5 welded at the pin seats."],["cleat",1,"Pole top bracket C100×50×6 × 415 carries the top phase 1320 mm above the arm."],
+  ["pin33",3,"33 kV pin insulator (10 kN, 580 mm creepage)."],["gipin33",3,"GI pin L300N: large steel head, 300 mm stalk."],["pclamp",1,"Clamp."],["bind",0.4,"Binding wire."],
+  ["gipipe",1,"Earth (QAM: every pole)."],["swg8",1.5,"Lead."],["acd",1,"Anti-climbing."],["barbed",0.5,"Barbed wire."],["dp33",1,"Danger board 250×200."],["nb",3,"About 3 kg."]],
+ notes:[["tip","Ground clearance 5.2 m minimum for 33 kV."]]},
+v2:{lv:"ehv",t:"33 kV strain, 0°–10°, single pole",fig:"cut33",src:"33KV/05, RDSS-TS 21, GEN/09",
+ scen:"A 33 kV tension point on one pole: strain strings on both sides, jumpers across, two guys.",
+ items:[["sp76",1,"The support."],["fdn33",1,"CC foundation."],["varm",1,"V-arm takes the strings."],["cleat",1,"Top bracket for the top phase."],
+  ["disc45bs",18,"6 strings (3 phases × 2 sides) × 3 discs of 45 kN B&S. APDCL uses one 90 kN polymer B&S per string."],["hw90",6,"B&S string hardware: cross-arm strap, ball eye, socket eye."],["tcWolf",6,"Strain clamps for the conductor (UTS ≥41 kN)."],["pgWolf",6,"Jumper PG clamps."],
+  ["stay20",2,"Two guys in opposite directions along the line: 20 mm stay sets."],["guy33",2,"Guy insulators (2 × type C each)."],["wire78",32,"Stay wire 7/4.0 mm."],["staycc",2,"Stay pits."],
+  ["pclamp",3,"Clamps."],["gipipe",1,"Earth."],["swg8",1.5,"Lead."],["acd",1,"Anti-climbing."],["barbed",0.5,"Barbed wire."],["dp33",1,"Danger board."],["nb",6,"About 6 kg."]],
+ notes:[["trap","Size-specific items follow the conductor: Wolf clamps on a Wolf line. Copying Rabbit fittings is a common slip."]]},
+v3:{lv:"ehv",t:"33 kV dead-end",fig:"dead33",src:"APDCL practice; strings per RDSS-TS 21",
+ scen:"End pole of a 33 kV line before a substation gantry or cable.",
+ items:[["sp76",1,"The support."],["fdn33",1,"CC foundation."],["ch3200",1,"One channel arm."],["pclamp",2,"Arm and stay."],["disc45bs",9,"3 strings × 3 discs."],["hw90",3,"Hardware."],["tcWolf",3,"Strain clamps."],
+  ["stay20",1,"Stay behind the pole."],["guy33",1,"Guy insulator."],["wire78",16,"Stay wire."],["staycc",1,"Stay pit."],["gipipe",1,"Earth."],["swg8",1.5,"Lead."],["acd",1,"Anti-climbing."],["barbed",0.5,"Barbed wire."],["dp33",1,"Danger board."],["nb",5,"About 5 kg."]],
+ notes:[["tip","The RDSS drawing set has no single-pole 33 kV dead-end; heavy ends go on a DP with the DC cross-arm (11KV/21: C100×50 × 3240, phase spacing 1525)."]]},
 
-guard:{lv:"sp",t:"Guarding at a crossing (per set)",fig:"guard",scen:"An 11 kV line crosses a road, an LT line or a telephone line. A guard cradle is strung under it so a broken HT wire falls onto earthed steel.",
- items:[["angle50",5,"Two GI angle guard arms of 2.5 m."],["swg8",35,"8 SWG for the cradle: longitudinal guard wires and cross lacing."],["ihook",4,"I-hooks to anchor the guard wires."],
- ["swg6",6,"Bonding the guard to earth."],["cipipe",2,"Guarding is earthed at both ends."],["nb",2,"About 2 kg."]],
- notes:[["tip","DDUGJY kit per set: angle 2 × 2.5 m, 8 SWG lacing 35 kg, 6 SWG 6 kg, I-hook 4, CI pipe 2."],["tip","The crossing poles themselves are counted as cut-points or DPs in their own kits."]]},
-ptr:{lv:"sp",t:"33/11 kV PTR bay (indicative)",fig:"ptr",noqty:1,scen:"A power transformer bay in a 33/11 kV substation yard. Most of this is set by the yard layout drawing; use this to make sure nothing is forgotten, then measure lengths from the drawing.",
- items:[["ptr",1,"The power transformer. Non-SoR: use the approved/tender rate."],["ptrfdn",1,"Transformer plinth with oil soak pit (civil)."],
- ["iso33",1,"Bus-side isolator so the VCB can be isolated for maintenance."],["fdnIso",1,"Isolator foundation."],["vcb33",1,"33 kV VCB on the HV side of the PTR."],["fdnVcb",1,"VCB foundation."],
- ["ct33",1,"CTs for protection and metering of the bay."],["fdnCT",1,"CT foundation."],["la33s",1,"Station-class LA at the PTR HV bushings."],["fdnLA",1,"LA foundation."],
- ["la11s",1,"11 kV LA at the LV bushings."],["vcb11",1,"11 kV incomer breaker (or one unit of the indoor panel)."],
- ["hv300",120,"PTR LV to 11 kV incomer: 3 single-core runs × about 40 m (measure from layout)."],["kit300",6,"One termination per single-core cable end: 3 cables × 2 ends."],
- ["cr33",1,"Control & relay panel with differential protection for the PTR."],["cc10",150,"Control cables from CTs, VCB and PTR (OTI/WTI, Buchholz) to the C&R panel."],["cc4",100,"4-core control cable."],["cc14",60,"14-core for multi-function wiring."],
- ["trench",30,"Cable trench from yard to control room."],["gipipe",8,"Earths: PTR body 2, neutral 2, LAs 2, structures 2 (tie into the station earth mat)."],["gistrip50",80,"50×6 GI flat risers and equipment-to-mat connections."],
- ["disc90",6,"Strain strings where the bay conductor is dead-ended on the gantry."],["hw90",6,"Matching hardware."],["wolf",0.1,"Bus droppers and jumpers."],["pgWolf",12,"T-connectors / PG clamps on droppers."],
- ["gantry",1,"Gantry and equipment support structures (by weight from the drawing)."],["nb",30,"About 30 kg."],["dp33",2,"Danger plates."]],
- notes:[["tip","Bay chain from the bus: isolator → VCB → CT → LA → PTR → LA → 11 kV cable → 11 kV incomer → 11 kV bus. Walk this chain and you won't miss an item."],["tip","Battery bank + charger, ACDB, station transformer and yard lighting belong to the substation, not to one bay. Add them once per substation."],["trap","Equipment foundations (429, 430, 432, 433) are labour-included jobs. If plinths are reused, show them at 0 and say so."]]}
+/* ===== 5 · Crossings & substation ===== */
+guard:{lv:"sp",t:"Guarding at a road crossing",fig:"guard",src:"11KV/25, REC amd. A-1, QAM",
+ scen:"An 11 kV line crosses a village road. A guard cradle under the line catches a broken wire on earthed steel.",
+ items:[["ch7540",4.42,"Guarding cross-arms 75×40 (5.7 kg/m) × 2210, one on each crossing pole."],["eyebolt",6,"16 mm eye bolts: 3 guard wires × 2 ends."],["pclamp",2,"Back clamps 50×8 for the guard arms."],
+  ["swg8",14,"Guard wires 4 mm GI (breaking load ≥635 kg, IE rule 88(3)) plus cross-lacings about 1 per metre of road (1550 long), from 3.15 mm GI or scrap ACSR. For a 40 m span: 3 × 40 + 12 × 1.55 ≈ 140 m ≈ 14 kg."],
+  ["gipipe",2,"Pipe earthing for the poles on either side. QAM checks the cradle is earthed at each crossing."],["htstay",2,"Y-guys (stays) for the crossing poles."],["guy11",2,"Guy insulators."],["wire710",20,"Stay wire."],["staycc",2,"Stay pits."],["nb",1,"M16×65 ×4."]],
+ apAdd:[["swg6",6,"6 SWG bonding (APDCL DDUGJY kit)."]],
+ notes:[["tip","Ground clearance at a road: 6.1 m minimum; crossing angle ≥60°. Guarding is also needed where 11 kV passes over inhabited localities (REC amendment A-1). Rivers and highways need lattice structures."],["tip","The crossing poles themselves are counted in their own kits (concreted, often DP)."]]},
+rail:{lv:"sp",t:"Railway crossing with 11 kV XLPE cable",fig:"rail",src:"11KV/02A, 11KV/2B, 11KV/2D, RDSS-TS 51-52",
+ scen:"An 11 kV line crosses a railway by underground cable between two DPs: an AB-switch DP on one side and a plain cable-end DP on the other.",
+ items:[["xl185",108,"Two runs of 3C×185: (track width ~30 m + 2 × 12 m riser & slack) × 2 runs."],["kit185",4,"Termination kits: 2 per DP (one per run)."],["allug",6,"Al lugs per the BoM."],
+  ["gip100",60,"100 mm GI pipe under the tracks, two runs, each as long as the track width; up to the top belting angle on the poles."],["trenchrail",30,"Sand-filled trench with brick bed, 1 m below ground under tracks."],["marker",6,"Route markers every 30 m, at bends and on both sides of the crossing."]],
+ notes:[["tip","Count the two DPs separately: one AB-switch DP (11KV/2B, steel 187.6 kg, 2 stays) and one plain DP (11KV/2D, steel 107 kg, 2 stays)."],["tip","Keep slack for 2 straight-through joints on HT cable. Bending radius 12D."]]},
+ss33:{lv:"sp",t:"33/11 kV substation, Type A (1 × 3.15 MVA)",fig:"pss",noqty:1,src:"PSS/22A, PSS/11-13 (earthing), RDSS-TS 1, 13, 35; REC amd. L-1/L-2",
+ scen:"The equipment list for a new 1 × 3.15 MVA 33/11 kV substation with indoor 11 kV switchgear. Use it to make sure nothing is forgotten.",
+ items:[["ptr315",1,"3.15 MVA, ONAN, Dyn11, OLTC +5 to −15%. 33 kV breaker needed because the PTR is ≥1 MVA (REC amendment)."],["vcb33",2,"36 kV 1250 A outdoor VCB: line incomer and PTR HV."],["iso33es",1,"Isolator with earth switch (line side)."],["iso33",3,"Isolators without earth switch."],
+  ["ct33u",6,"33 kV CT 200-100/1 A: 2 bays × 3."],["pt33",3,"33 kV/110 V PT."],["la33s",3,"30 kV station-class SA (10 kA)."],["stx",1,"100 kVA station transformer."],
+  ["sw11in",3,"11 kV incomer and bus-coupler panels."],["sw11out",4,"4 outgoing feeder panels (CTs 300-150/5-5, 200-100/5-5, 100-50/5-5)."],["la9s",4,"9 kV station-class SA on each feeder DP."],["gos200",4,"200 A gang-operated isolator on each feeder DP."],["pt11",18,"11 kV/110 V PTs."],["capvcb",1,"Capacitor bank VCB."],
+  ["cr33",1,"33 kV control & relay panel (transformer: O/C + E/F + master trip 86; REF below 5 MVA)."],["batt",1,"Battery and charger."],["earthmat",1,"Earth mat ≤2 Ω (murram: 4-pipe pits for control room, neutral, LA; hard rock: bore earthing)."]],
+ notes:[["tip","Type B (1 × 5 MVA): 5 outgoing feeders. Type C (2 × 5 MVA): 2 PTRs, 3 × 33 kV VCB, 6 feeders, 2 capacitor VCBs."],["trap","No stays inside the switchyard; all supports are concreted (QAM). Fire wall between PTRs."]]},
+ptr:{lv:"sp",t:"33/11 kV PTR bay",fig:"ptr",noqty:1,src:"PSS/23, RDSS-TS 1 & 35 (IS 3043 earthing), APDCL SoR",
+ scen:"A power transformer bay in a 33/11 kV yard. Most of it comes from the layout drawing; use this to make sure nothing is forgotten, then measure lengths off the drawing.",
+ items:[["ptr",1,"Power transformer (non-SoR: approved/tender rate). Plinth 2.5 ft above ground."],["ptrfdn",1,"Plinth with oil soak pit."],["iso33",1,"Bus-side isolator."],["fdnIso",1,"Isolator foundation."],["vcb33",1,"33 kV VCB."],["fdnVcb",1,"VCB foundation."],
+  ["ct33",1,"CTs (metering 0.5 + protection 5P10)."],["fdnCT",1,"CT foundation."],["la33s",1,"30 kV station-class LA at the PTR."],["fdnLA",1,"LA foundation."],["la11s",1,"9 kV LA on the LV side."],["vcb11",1,"11 kV incomer."],
+  ["hv300",120,"PTR LV to 11 kV incomer (measure from layout)."],["kit300",6,"3 cables × 2 ends."],["cr33",1,"C&R panel with differential (87) and REF (64)."],["cc10",150,"Control cable to the C&R panel."],["cc4",100,"4-core control cable."],["cc14",60,"14-core."],
+  ["trench",30,"Cable trench."],["gipipe",8,"Earths tied to the mat: PTR tank 2 points, neutral by 2 × 50×6 flats to separate electrodes, LAs direct, structures."],["gistrip50",80,"50×6 GS flat for risers and equipment-to-mat connections."],
+  ["disc90",6,"Strain strings on the gantry."],["hw90",6,"Hardware."],["wolf",0.1,"Droppers and jumpers."],["pgWolf",12,"Connectors."],["gantry",1,"Gantry and equipment structures by weight."],["nb",30,"About 30 kg."],["dp33",2,"Danger boards."]],
+ notes:[["tip","Bay chain: bus → isolator → VCB → CT → LA → PTR → LA → 11 kV cable → incomer."],["tip","IS 3043: each structure earthed at 2 legs; isolator handle by 4 mm GI; every LA by its own lead; fence earthed separately; welded joints with weld length ≥2 × flat width."]]}
 };
 const ORDER=Object.keys(K);
+C.ltdb16=["—","LT DB 16 kVA 1-ph: 80 A SPN MCCB in, 2 × 50 A SP out","No",null,"eq"];
 
 /* ---------- Companion families ---------- */
 const FAM=[
- {h:"New pole",sor:"746–754",lead:"Whatever the voltage",c:["Grouting of matching length (425/426/427 PSC, 422/423 steel)","Danger plate of the line's voltage","Nuts & bolts","Anti-climbing barbed wire on HT poles","Something to carry the wires: arm + insulators"]},
- {h:"Pin insulator",sor:"630 / 626 / 613",lead:"Wire riding on top of the insulator",c:["GI pin of the same voltage (842 / 841 / 840)","Binding wire to tie the conductor","A cross-arm or top cleat to sit on"]},
- {h:"Disc insulator",sor:"622 / 607",lead:"Wire dead-ended on a string",c:["Hardware fitting of the same type (T&C → 850, B&S → 846/844)","Tension clamp sized to the conductor (834/835/836)","A channel cross-arm to hang from","At a cut-point: jumper + 2 PG clamps per phase","Almost always a stay on the pole"]},
- {h:"Shackle insulator",sor:"632",lead:"LT wire dead-ended",c:["D-strap pair (853) per shackle","LT angle arm","LT stay at ends and angles"]},
- {h:"Stay",sor:"653 / 657",lead:"One stay set means",c:["Guy insulator (629 11 kV, 616 33 kV, 631 LT)","Stay wire (7/10 HT ≈10 kg, 7/14 LT ≈6 kg)","Stay grouting 428","Pole clamp for the stay"]},
- {h:"Earth pipe",sor:"474 / 473 / 481",lead:"One earthing point",c:["Earth lead: 6 SWG ≈3 kg (8 SWG on 33 kV steel)","At DTRs: GI strip for body/neutral","Count 5 at a DTR, 2 at a guarding set, 1 at every special structure"]},
- {h:"Channel cross-arm",sor:"638 / 639 / 640",lead:"Steel on the pole",c:["Pole clamps (one per pole it touches)","Nuts & bolts","It exists because discs or equipment hang on it"]},
- {h:"Conductor",sor:"445–449",lead:"Per km of route",c:["Length × wires × 1.03 (11 kV and 33 kV: 3.3 km per route km)","Mid-span sleeves, about one per wire per km","PG clamps at every jumper and tap","LT bare 3-ph: one spacer per span"]},
- {h:"DTR",sor:"770–782",lead:"A transformer never comes alone",c:["DP structure: 2 poles, grouting, channels, clamps","HT dead-end strings + jumpers + PG","DO set + LA set (GOAB at 100 kVA and above)","LT cable + lugs + MCCB","LT CTs + meter cabinet","5 earths + earth leads","Fencing, danger plates, stays"]},
- {h:"AB cable",sor:"13–21",lead:"Per km of LT ABC",c:["Suspension clamp + eye hook per straight pole","Anchor clamps at ends and angles","Distribution boxes + steel strap + buckles","IPCs for service and DB taps","End caps, ties","LT stays"]},
- {h:"VCB / isolator / LA / CT in a yard",sor:"270 · 430–433",lead:"Equipment in a switchyard",c:["Its foundation job (433 VCB, 430 isolator, 432 LA, 429 CT)","Earthing to the mat (GI flat + pipe)","Control cable to the C&R panel","Droppers + PG / T-connectors"]},
- {h:"Line crossing",sor:"637 · 650",lead:"HT over road / LT / telecom",c:["Guard cradle: GI angle arms, 8 SWG lacing","I-hooks","Earthing both ends","Stronger crossing poles: cut-point or DP"]}
+ {h:"New pole",sor:"746–754",lead:"Whatever the voltage",c:["Foundation: boulder backfill + base plate (intermediate) or CC 1:2:4 (special). APDCL: grouting job of matching length","Earthing: every 11 kV and LT pole (QAM): electrode + 8 SWG lead","Anti-climbing device + barbed wire","Danger board of the line voltage (and a number plate 200×250)","Something to carry the wires: V-arm + top bracket, cross-arm, shackles or ABC clamp","Nuts & bolts"]},
+ {h:"Pin insulator",sor:"630 / 626 / 613",lead:"Wire riding on top of the insulator",c:["GI pin of the same voltage (11 kV S165P small head; 33 kV L300N large head)","Binding wire or a helical top tie (side tie with pad at angles up to 10°)","A V-arm, top bracket or cross-arm to sit on"]},
+ {h:"Strain set (disc)",sor:"622 / 607",lead:"Wire dead-ended",c:["Strain hardware: cross-arm straps, bolt, cotter & split pins (B&S: ball eye + socket eye)","Strain clamp sized to the conductor, or helical dead-end with thimble-clevis","Somewhere to hang: channel, V-arm or a clamp on the pole","At a pass-through point: jumper with 2 PG clamps per phase","A stay on the pole (and a concreted foundation)"]},
+ {h:"Shackle insulator",sor:"632",lead:"LT wire on a shackle",c:["U-clamp 30×6 or strap pair per shackle (type 1 light / type 2 heavy)","Shackle mounting channel 75×40 × 550 (vertical formation)","LT stay at ends and angles","Earth knob for the neutral-cum-earth wire"]},
+ {h:"Stay",sor:"653 / 657",lead:"One stay set means",c:["Guy insulator: type A for LT, type C for 11 kV, 2 × C for 33 kV","Stay wire: 7/2.5 LT, 7/3.15 11 kV, 7/4.0 33 kV","Stay pit 500×500×1600 with 0.2 m³ CC 1:2:4 (APDCL: stay grouting 428)","Stay clamp ≥50×6 with 12 mm bolts, thimble on the turnbuckle"]},
+ {h:"Earth electrode",sor:"473 / 474",lead:"One earthing point",c:["8 SWG GI lead dressed to every steel part","At a DT: 3 separate pits (neutral, LA, body) with 50×6 GI flat risers","Masonry chamber and funnel over DT pits","No salt/charcoal in marshy soil; pipe augered, not hammered"]},
+ {h:"Channel cross-arm",sor:"638 / 639 / 640",lead:"Steel on the pole",c:["Back clamps / fish plates (one per pole it touches)","Belting and bracing angle on a DP","Nuts & bolts (class 5.6) with spring washers","It exists because strain strings or equipment hang on it"]},
+ {h:"Conductor",sor:"445–450",lead:"Per km of route",c:["Length × wires × 1.03 (3.09 km per route km at 11 kV)","Mid-span compression joints: about one per wire per drum (ACSR drum 2 km+)","Repair sleeve only where ≤2 outer strands are broken","PG clamps at every jumper and tap; bimetallic connector at DT bushings"]},
+ {h:"Distribution transformer",sor:"770–782",lead:"A DT never comes alone",c:["Structure: single pole up to 25 kVA, DP above; concreted","Incoming strain sets + jumpers","AB switch + HG fuse (or DO set) + 3 LAs with disconnectors","Bimetallic connectors on HV bushings","LT DB sized to the kVA + LT XLPE cable + bimetallic lugs + GI pipe","DT meter with CTs","3 earth pits + risers + 8 SWG leads","Stays, anti-climbing, danger board"]},
+ {h:"LT AB cable",sor:"13–21",lead:"Per km of LT ABC",c:["Suspension assembly + eye hook on each straight pole","Anchoring assembly at ends and big direction changes","IPCs for taps, services and DB feeds (no PG clamps)","End caps at cut ends","Service distribution box on SS strap + buckles","LT stays only at ends, angles and taps"]},
+ {h:"Yard equipment (VCB, isolator, LA, CT)",sor:"270 · 429–433",lead:"In a switchyard",c:["Foundation (433 VCB, 430 isolator, 432 LA, 429 CT)","Earthing to the mat at 2 legs; LA by its own lead","Control cable to the C&R panel","Droppers + connectors (bimetallic where copper terminals)"]},
+ {h:"Line crossing",sor:"637 · 650",lead:"HT over a road or LT line",c:["Guard arms 75×40 × 2210 on both poles","3 guard wires (4 mm GI) on eye bolts + lacings","Pipe earthing both sides","Y-guys; crossing poles concreted (often DP)","Ground clearance 6.1 m at road"]}
 ];
+
+/* ---------- Conductors & their accessories ---------- */
+const SIT=[["support","Straight-run support"],["deadend","Dead-end / angle / cut-point"],["joint","Joint in mid-span"],["tap","Tap, branch or jumper"],
+ ["equip","Connection to DT or equipment"],["spacing","Keeping the phases apart"],["service","Consumer service"],["earth","Earthing"]];
+const ACSR_T=`<p class="hint" style="margin-top:12px"><b>AAAC equivalents (RDSS spec 5):</b> Squirrel 22 mm² 7/2.00 · Weasel 34 7/2.50 · Rabbit 55 7/3.15 · Raccoon 80 7/3.81 · Dog 100 7/4.26 · Wolf 173 19/3.40 · Panther 232 19/3.94. AAAC allows no joints in any layer; ACSR allows Al joints only in inner layers, 15 m apart, and no steel joints. Everyday tension 25% of UTS at 32 °C.</p>`;
+const CF={
+ bareLT:{n:"Bare ACSR · LT",what:"Bare aluminium strands round a steel core, on LT pins (horizontal formation) or shackles (vertical formation), with the neutral-cum-earth wire on an earth knob.",
+  hdr:["Stranding","Al mm²","Dia mm","UTS kN","R Ω/km"],
+  sizes:[["squirrel","6/1/2.11","20.98","6.33","7.61","1.374","Short 1-ph rural runs"],["weasel","6/1/2.59","31.61","7.77","11.12","0.929","LT standard"],["rabbit","6/1/3.35","52.88","10.05","18.25","0.552","Heavier LT trunk near the DT"]],
+  rule:"Conductor km = route km × wires (2 for 1-ph, 4 for 3-ph) × 1.03.",
+  s:{support:[["ltpin","ltgipin","bind"],"Horizontal: LT pin insulator on an LT GI pin, binding wire. Vertical: shackle with U-clamp at 300 mm spacing. Neutral on an earth knob (LT-OH/12-13)."],
+   deadend:[["shackle","ucl"],"Shackle with U-clamp or straps, or a helical dead-end round the shackle. LT stay on the pole."],
+   joint:[["slRab"],"Compression sleeve of the same size or a helical splice (core + filler rods + outer splice), one per joint per wire."],
+   tap:[["pgRab"],"PG clamps: 2 per wire per jumper; helical tap connector is the RDSS alternative."],
+   equip:[["pgRab","bmlug"],"At the DT end the LT cable is lugged into the DB; the overhead line joins the cable by PG clamps on the first pole."],
+   spacing:[["spacer"],"PVC spacers mid-span on 3-ph bare LT (LT-OH/16)."],
+   service:[["svconn","bearer"],"Service connector Type A (Weasel/Rabbit/Ant with 2.5–10 mm² Al) or Type B (Squirrel/Weasel/Gnat), or an epoxy-encapsulated T-joint; service cable carried on a 3.15 mm bearer wire."],
+   earth:[["eknob","espike","swg8"],"Neutral-cum-earth wire on earth knobs; every LT pole earthed (QAM)."]},
+  never:["disc70","tcRab","susp","ipcDB","mvTerm"],
+  notes:[["trap","No strain discs, tension clamps or channel arms on LT bare lines."]]},
+ bareHT:{n:"Bare ACSR · 11 kV & 33 kV",what:"Carried on pin insulators on straight runs and on strain sets wherever it is dead-ended.",
+  hdr:["Stranding","Al mm²","Dia mm","UTS kN","R Ω/km"],
+  sizes:[["rabbit","6/1/3.35","52.88","10.05","18.25","0.552","11 kV rural feeders and spurs"],["raccoon","6/1/4.09","78.83","12.27","26.91","0.371","11 kV trunk, reconductoring"],["dog","6/4.72 + 7/1.57","105","14.15","32.41","0.279","Heavier 11 kV trunk"],
+   ["wolf","30/2.59 + 7/2.59","158.1","18.13","67.34","0.187","33 kV lines"],["panther","30/3.00 + 7/3.00","212.1","21.00","89.67","0.139","Heavier 33 kV, yard bus"]],
+  extra:ACSR_T,
+  rule:"About 3.09 km of conductor per route km (3 phases × 1.03 for sag, jumpers and wastage).",
+  s:{support:[["pin11","gipin11","bind"],"Pin insulator on a GI pin of the line voltage; top tie on straight runs, side tie with chloroprene pad at angles up to 10°."],
+   deadend:[["disc70","hw70","tcRab"],"Per phase per direction: insulator + strain hardware + strain clamp (or helical dead-end). Stay and concreted foundation on the pole."],
+   joint:[["slRab"],"Mid-span compression joint: steel sleeve on the core + Al sleeve, holds ≥95% UTS, resistance <75% of the same length of conductor. Repair sleeve only for ≤2 broken outer strands."],
+   tap:[["pgRab","do11"],"Jumper at a pass-through: 2 PG per phase. Branch line: PG at the tee and a DO set or AB switch on the branch."],
+   equip:[["bmc","la11u"],"Bimetallic connector on the DT HV bushing (copper stud to aluminium conductor); LAs at every DT."],
+   spacing:[[],"Spacing comes from the V-arm (1070 at 11 kV, 1525 at 33 kV). No spacers on HT."],
+   service:[[],"No direct service except HT consumers with CT-PT metering."],
+   earth:[["espike","swg8"],"Every pole earthed (QAM); guard cradles earthed at each crossing."]},
+  never:["shackle","spacer","susp","ipc","mvTie"],
+  notes:[["trap","Size-specific items change with the conductor: strain clamp, PG clamp and joint sleeve."],["tip","Raccoon and Rabbit use the same pins, discs and hardware; only clamps and sleeves change."]]},
+ abc:{n:"LT AB cable",what:"Insulated XLPE phase cores twisted round an insulated messenger-cum-neutral that carries the weight (IS 14255). The RDSS standard for LT.",
+  hdr:["Cores","—","—","—","—"],
+  sizes:[["abc1_50","1C×50 + 1C×50","","","","","1-ph lanes"],["abc1_70","1C×70 + 1C×70","","","","","1-ph heavier"],["abc3","3C×70 + 1C×50","","","","","3-ph standard"],["abc395","3C×95 + 1C×70","","","","","3-ph near DT"],["abc3120","3C×120 + 1C×95","","","","","3-ph trunk off 100+ kVA DT"]],
+  rule:"Cable m = route m × 1.03. One bundle carries all phases: don't multiply by wires.",
+  s:{support:[["susp","eyehook","pclamp"],"Suspension assembly: Al-alloy bracket on 2 SS straps (or eye hook) + clamp with movable link; takes deviation up to 30°."],
+   deadend:[["anchor","eyehook"],"Anchoring assembly: bracket + wedge-type tension clamp on the messenger, no bolts. 1 at a dead-end, 2 at a cut point."],
+   joint:[["abcjoint"],"Pre-insulated junction sleeve per core (phase, neutral, street light)."],
+   tap:[["ipc","ipcT"],"IPCs bite through the insulation: type 1 (tap 2.5–10) for service/street light, type 2 (4–35) for DB feed, type 3 (25–95) for ABC tee."],
+   equip:[["bmlug","ipc"],"At the DT: pre-insulated lugs (bimetallic if the bus is copper) into the DB."],
+   spacing:[[],"Cores are insulated and bundled: no spacers."],
+   service:[["db3","ipcDB","sstrap","buckle"],"Service distribution box (IP44, 4–6 outputs) strapped to the pole with SS strap and buckles, fed by IPC; service clamp (≥3 kN) holds the service cable."],
+   earth:[["espike","swg8"],"Messenger earthed with an IPC-type earthing connector at ends and DBs; every pole earthed (QAM)."]},
+  never:["ltpin","disc70","shackle","pgRab","spacer","bind"],
+  notes:[["tip","Anchor clamp UTS 15 kN for 50/70 mm² messenger, 10 kN for 25/35; slip ≥3/2 kN. Accessories rated ≥90% of the cable."],["trap","LT pins, shackles or spacers in an ABC estimate means it was copied from a bare-line sheet."]]},
+ abcHT:{n:"HT AB cable (11 kV)",what:"Three XLPE-insulated, screened cores twisted round a bare 70 mm² AA messenger. Used where trees or congestion rule out bare conductor.",
+  hdr:["Size","—","—","—","—"],
+  sizes:[["abc11","3×70 + 70 (59 mm, 1900 kg/km)","","","","","First 4–5 km from the S/S (156 A, load ≤145 A)"]],
+  extra:`<p class="hint" style="margin-top:12px">3×35 + 70 (53 mm, 1450 kg/km, 106 A) is used beyond the first 4–5 km. Messenger 70 mm² AA 7/3.5, breaking load 20 kN. Drum 1000 m; bending radius 10D. 33 kV ABC is 3 × 95 on a 120 mm² messenger.</p>`,
+  rule:"Cable m = route m × 1.03.",
+  s:{support:[["htsusp","eyehook"],"Suspension clamp on the messenger, hung from an eye hook."],
+   deadend:[["htclamp","eyehook"],"Messenger anchored by an HT tension clamp on an eye hook (11KV/01)."],
+   joint:[[],"Cable joints only by kit; plan drum lengths to avoid them."],
+   tap:[[],"Branch only at a termination structure."],
+   equip:[["abc11k","la11u"],"At every bare↔ABC transition: termination DP with C75×40 channels, AB cable supporting angle 50×50×6 × 2200 with U-clamps, 2 termination kits, LAs; Dog conductor joined by crimped lugs."],
+   spacing:[[],"Not applicable."],service:[[],"Not applicable."],
+   earth:[["gipipe","swg8"],"Screens and messenger earthed at terminations (pipe earthing)."]},
+  never:["pin11","disc70","pgRab","ipc"],notes:[]},
+ mvcc:{n:"MVCC (covered conductor)",what:"An APDCL SoR item, not in the RDSS spec. Polymer-covered conductor on pins, used in elephant corridors, forests and crowded bazaars.",
+  hdr:["Size","—","—","—","—"],
+  sizes:[["mv11_50","1C×50 AAAC covered","","","","","11 kV taps"],["mv11","1C×120 AAAC covered","","","","","11 kV feeders"],["mv33","1C×120 AAAC covered","","","","","33 kV lines"]],
+  rule:"3,300 m per route km (3 phases × 1.1). Spans about 30 m.",
+  s:{support:[["pin11","gipin11","mvTie"],"Pins with preformed MVCC ties instead of binding wire."],
+   deadend:[["mvTI","mvTH"],"MVCC tension insulator + MVCC tension hardware per phase per direction (replaces disc + tension clamp)."],
+   joint:[["mvJoint"],"MVCC mid-span joint."],tap:[["ipc"],"IPC; no PG clamps on covered conductor."],
+   equip:[["mvTerm","la11"],"Termination kit at every bare↔MVCC transition, LA set there."],
+   spacing:[[],"From the cross-arm."],service:[[],"Not used for services."],earth:[["cipipe","swg6"],"Pole earthing as for any HT line."]},
+  never:["disc70","tcRab","pgRab","shackle","spacer"],notes:[["trap","Don't charge disc strings and MVCC tension insulators for the same dead-end."]]},
+ ug:{n:"HT underground cable (XLPE)",what:"Armoured XLPE cable in the ground or in pipes: railway and road crossings, substation exits.",
+  hdr:["Size","—","—","—","—"],
+  sizes:[["hv300","11 kV 1C×300 armoured","","","","","Feeder exits"],["xl185","11 kV 3C×185","","","","","Railway crossing (11KV/02A)"],["hv400_33","33 kV 1C×400 armoured","","","","","33 kV crossings"]],
+  rule:"Cable m = (route + 10–15 m per end for riser and slack) × runs (× 3 for single-core). Keep slack for 2 joints on HT.",
+  s:{support:[["gip100","trenchrail","marker"],"Sand-filled trench with brick bed, GI/spun pipe ≥1 m deep under roads and tracks; route markers every 30 m and at bends; bending radius 12D."],
+   deadend:[["kit185","la11u"],"At each riser pole: outdoor termination kit per cable end, LAs, cable clamps and a GI guard pipe."],
+   joint:[["ugJoint"],"Straight-through joint kit (heat-shrink: stress control tubing, mastic, crimp lugs, Cu braids)."],
+   tap:[[],"No taps on UG cable."],equip:[["kit300"],"Indoor kit at a panel, outdoor kit at a pole."],spacing:[[],"Trefoil spacing 3 × diameter."],service:[[],"Not applicable."],
+   earth:[["gipipe","swg8"],"Armour and screen bonded to earth at both ends."]},
+  never:["pin11","disc70","pgRab","susp","ipc"],notes:[["tip","Termination kits for single-core: runs × 3 cores × 2 ends."]]}
+};
+
+/* ---------- QAM ---------- */
+const QCAT={c:"Critical",m:"Major",n:"Minor"};
+const QRULE=[
+ {k:"c",t:"Critical: rectify before charging",d:"Endangers life or property. Dangerous deficiencies on safety, ground clearance, equipment earthing and protection. The Electrical Inspector would not allow charging; if already charged, de-energise and rectify.",ex:"LA not connected · DT neutral earth missing · earth electrodes not installed · ground clearance not per IE rules · low oil in DT"},
+ {k:"m",t:"Major: rectify before O&M handover",d:"Serious deviation from drawings, specification or contract. Can be charged temporarily, but better fixed first.",ex:"Pole not set to proper depth · inadequate foundation / brick-bats · undersized earth wire · precariously loose electrical connections or mechanical fittings"},
+ {k:"n",t:"Minor: rectify, can be charged",d:"Very minor; the kind that keeps surfacing in O&M.",ex:"Danger board not proper · meter not installed before handover · missing barbed wire · loose stay wire · loose fasteners · vegetation close to the line"}];
+const QMAT=[
+ ["c","Material","Any of the 6 major materials (DT, conductor, cable, energy meter, pole, insulator) installed without inspection (TPIA / RQM)."],
+ ["m","Material","Major materials (DT, conductor, poles, cable, shackle, pin & disc insulators, meter, DB, BPL meter board, LA, AB switch, DO, earthing set) damaged in storage or erection."],
+ ["n","Material","Poor quality of bought-out items such as channels and PG clamps."],
+ ["c","Quantity","Fewer DTs installed than in the BoQ; line length built with undersized conductor."],
+ ["m","Quantity","More than the BoQ/drawing installed; or fewer LAs, AB switches, HG/DO fuses, DBs, meters, pipe earthings, 11 kV strain sets than BoQ."],
+ ["n","Quantity","Bought-out items short of the drawing: HT/LT stay sets, guy insulators, danger boards, PG clamps, channels, jointing sleeves, LT earthing sets."]];
+/* defects for drill: [text, cat, why] ; categories from the manual's own definitions and examples */
+const QDEF=[
+ ["LA on one phase of a DT not connected","c","The manual's own example of a critical defect (protection)."],
+ ["DT neutral not earthed","c","The manual's example: neutral earth missing."],
+ ["Earth electrodes not installed at a DT substation","c","The manual's example."],
+ ["11 kV ground clearance below the IE-rule value at a road","c","Ground clearance is listed as critical."],
+ ["Oil level low in a distribution transformer","c","The manual's example."],
+ ["DT body (tank) earth missing","c","Equipment earthing deficiencies fall in the critical class."],
+ ["No guard wires where an 11 kV line crosses a road","c","Safety deficiency that endangers life, so critical by the definition."],
+ ["MCCB not installed in the LT DB","c","Protection deficiency, so critical by the definition."],
+ ["DT installed without any TPIA / RQM inspection","c","Material: one of the 6 major items installed uninspected."],
+ ["Pole set at less than the proper depth","m","The manual's example of a major defect."],
+ ["Inadequate foundation / brick-bats at a pole","m","The manual's example."],
+ ["8 SWG specified, but thinner wire used for earthing","m","Undersized earth wire is the manual's example."],
+ ["Jumper connection precariously loose","m","Precariously loose electrical connection: major."],
+ ["Cotter pins missing in the disc strings","m","Precariously loose mechanical fitting: major."],
+ ["Disc insulator cracked during erection","m","Major material damaged in erection."],
+ ["More poles installed than the BoQ and drawing","m","Quantity more than BoQ is classed major."],
+ ["Danger board missing or improperly fixed","n","The manual's example of a minor defect."],
+ ["Barbed wire missing on a pole","n","The manual's example."],
+ ["Stay wire slack","n","The manual's example."],
+ ["Loose nuts on a cross-arm clamp","n","Loose fasteners: minor."],
+ ["Tree branches close to the LT line","n","Vegetation near the line: minor."],
+ ["Energy meter not installed before contractual handover","n","The manual's example."],
+ ["Channels supplied are poor quality bought-out items","n","Material: bought-out items class as minor."],
+ ["Fewer LT stay sets than the BoQ","n","Quantity: stay sets short is minor in the LT line table."]];
+const QCHK={
+ dt:{t:"DT substation",items:["DT capacity and serial no. match the BoQ; S/S numbered","DT fixed to base channel with 12 mm bolts; belting and bracing done","No oil leakage; oil level OK; silica gel blue; oil in breather cup","Bimetallic clamps on the 11 kV bushings","LT DB per drawing (isolator, fuses, busbar, MCCB); lockable; gland plate and glands; unused holes closed","Lugs on every cable termination; MCCB rating per BoQ; cable loop length OK","DT meter healthy, at proper height","Danger plate at proper height and clamped; anti-climbing on each support","Poles vertical, spacing right, CC grouting of S/S supports; muffing on steel supports","Insulators unbroken; disc cotter pins in place; jumpers without bends; PG clamps on jumpers","Stay plates grouted; stay tight; thimble on turnbuckle; guy insulator fitted","3 earth pits with 50×6 GI flat risers: (1) neutral, (2) LA, (3) body; masonry chamber + funnel","Each LA with its own dedicated earth; every 11 kV equipment earthed with 8 SWG","Flat-to-flat joints with 2 bolts; GI wire joints with 12 mm bolts; earth pipe augered","AB switch aligned; handle earthed with flexible lead; no joint in operating pipe; guide hook; arcing horns","LTDB earthed at two points with 8 SWG"]},
+ hv:{t:"11 kV line",items:["Survey and SLD available; pole numbering and scheme name painted","Pole type per BoQ; vertical; PCC finish good (no honeycombing, no exposed wires)","Span not less than 50 m (record reason if less)","Every 11 kV pole earthed: 8 SWG + pit/coil/spike; earth wire dressed to V-arm, channel and top clamp","Anti-climbing device on each pole; danger plate quality and height","Cross-bracing on DPs; steel poles painted","CC grouting of end, angle, tapping and DP supports; water-logged poles grouted","Not more than one joint per span; no knots; correct tension","Phase clearances; bird-fault clearance at end sectionaliser","Guard cradle and guard wires at every road crossing, earthed on each side","Stay sets on every 6th pole in a section; stays at angles and ends; stay plates grouted","Stay clamp with 12 mm bolts and ≥50×6 flat; thimble and guy insulator in every stay","Conductor in the correct groove; binding sound; no deflecting pull on pin insulators","D-shaped jumper loops with PG clamps","Tree clearance done"]},
+ lt:{t:"LT line",items:["Pole-to-pole schedule; poles vertical, numbered","Span per drawing (QAM flags spans under 50 m)","Each LT pole earthed with 8 SWG","Muffing on steel / rail / RSJ poles; CC grouting of end supports","ABC: no surface damage; piercing connectors for all take-offs","Stays at ends and angles and every 6th pole","Cradle guard earthed on both sides at crossings","Danger plates, anti-climbing, barbed wire"]},
+ svc:{t:"Service connection (BPL)",items:["Service cable 2.5 mm² twin-core, jointless","Bearer wire 3.15 mm (10 SWG) GI","GI pipe or angle 35×35×5 support clamped at 2 places with 40×3 flats","Meter tested at licensee lab; metal meter box; DP MCB; meter board","Earthing point at the premises","Reel/egg insulators; ISI socket, switch, holder; LED lamp","Board at correct height, protected from sun and rain"]},
+ ss:{t:"33/11 kV substation",items:["Major equipment inspected and per spec; construction per drawing","Pre-commissioning tests: CB, CT, PT, PTR, charger, battery, relays, panels, cables","PTR oil tested; WTI/OTI working","Earth mat per design; equipment and fence earthed; earthing conductor size right","Gravel spread; fencing; no stays inside the switchyard","Cable trench with trays and slope; cables tied; glands and lugs","Acid-proof floor and exhaust fan in battery room; rubber mats","Feeder names on panels and outgoing DPs; name board; permit book","Fire wall between PTRs; working platform at VCBs; area lighting"]}
+};
+
+/* ---------- Ratings & specs ---------- */
+const SPEC={
+ ltdb:{t:"LT distribution boxes",src:"RDSS-TS 17 & 18, Att-J, DTR-SS/17-24",
+  table:[["DT","FLC","Incoming","Outgoing","Cable lugs (in / out)"],
+   ["10 kVA 1-ph","43 A","45 A SPN MCCB","2 × 32 A SP","16 mm² Al"],["16 kVA 1-ph","70 A","80 A SPN MCCB","2 × 50 A SP","16 mm² Al"],
+   ["16 kVA 3-ph","22 A","25 A TPN MCCB","6 × 16 A SP (2 feeders)","16 mm² Al"],["25 kVA 3-ph","34 A","40 A TPN MCCB","6 × 25 A SP (2 feeders)","35 mm² Al"],
+   ["63 kVA","84 A","200 A isolator + HRC base 200 A, link 100 A","6 SP MCCB (2 feeders), 60 A setting","70 / 50–70 mm²"],
+   ["100 kVA","133 A","200 A isolator + HRC base 200 A, link 160 A","6 SP MCCB (2 feeders), 90 A","150 / 50–70 mm²"],
+   ["200 kVA","270 A","600 A isolator + HRC base 400 A, link 315 A","9 SP MCCB (3 feeders), 120 A","300 / 150 mm²"],
+   ["315 kVA","440 A","600 A isolator + HRC base 630 A, link 500 A","12 SP MCCB (4 feeders), 120 A","300 / 150 mm²"]],
+  facts:[["Box (63/100 kVA)","CRCA 2 mm, 1000×1010×325, IP33, 2 doors, fixed on a DP by clamps at 4 places; spares per box: 3 MCCBs + 3 HRC links"],["Small DB","CRCA 18 SWG (1-ph) / 16 SWG (3-ph), IP33, glass window, two M10 earth bolts, “RDSS” embossed"],["MCCB in DB (alt. spec)","63 kVA 90 A · 100 kVA 140 A · 200 kVA 300 A · 315 kVA 450 A; 3-pole"],["TPN switch fuse","200 / 320 / 400 A with HRC 200 / 315 / 400 A; 40 kA 1 s; door interlock; earthed at 2 places"],["ABC DBs","3-ph 418×300×120, in up to 4C×35, 4 out 4C×16, IP54 · 1-ph 225×285×120, 8 out 2C×10"]]},
+ dt:{t:"Distribution transformers",src:"RDSS-TS 2 & 3, REC amd. letters",
+  facts:[["Ratings (3-ph, 11 kV)","16, 25, 63, 100, 160, 200, 250, 315, 400, 500, 630 kVA …; Dyn11, 433–250 V, ONAN"],["Tapping","None up to 100 kVA; above, off-circuit ±2.5% steps"],["Sealed / conservator","Sealed (N₂/dry air) up to 63 kVA; conservator for 63 kVA and above"],["Base channel","75×40 up to 100 kVA, 100×50 above, 460 mm long; rollers from 200 kVA"],["LA","Not in DT scope: 9 kV 5 kA metal oxide, one per phase on the pole or on the tank, GI strip 25×4 to body"],["Cable boxes","Only above 200 kVA"],["Silica gel breather","500 g up to 200 kVA, 1 kg above"],["Losses","Energy efficiency level 2, IS 1180-1:2014"],["Vacuum test (amd.)","Tank at 80 kPa for 30 min and 250 mmHg vacuum for 30 min"],["Guarantee","60 months from commissioning (DT and PTR); CT, PT, VCB, panels, battery, LT/HT cables 36 months"]]},
+ ins:{t:"Insulators & fittings",src:"RDSS-TS 20-25, REC amd. letters, 11KV/08, 11KV/15",
+  facts:[["11 kV pin","Porcelain 5 kN, creepage 230 mm; GI pin S165P (stalk 165, small head)"],["11 kV disc","45 kN, B&S or T&C, creepage 320 mm (400 heavy pollution); 255 × 145"],["33 kV pin","10 kN, creepage 580 mm; GI pin L300N large head"],["33 kV string","3 × 45 kN discs, B&S only; strain clamp UTS ≥41 kN"],["Composite long-rod","11 kV: 45 kN (blue ring), 320 mm creepage, shed 75–100 mm (amd.); 33 kV 70 kN (red), 900 mm"],["Composite pin/post","11 kV 5 kN 320 mm; 33 kV 10 kN 900 mm"],["Guy insulators","LT type A (44 kN) · 11 kV type C (88 kN) · 33 kV 2 × type C"],["LT shackles","Type 1: 75 dia × 90, 15 mm hole · Type 2: 100/115 dia × 100, 20 mm hole"],["Helical colour codes","Squirrel blue · Weasel red · Rabbit yellow · Ant grey · guy grip 7/3.15 green, 7/2.5 black"],["Post insulators","12 kV: 320 mm creepage, 75 kVp · 36 kV: 900 mm, 170 kVp"]]},
+ sw:{t:"Switches, fuses & LAs",src:"RDSS-TS 27-30, REC amd. letters",
+  facts:[["AB switch","200 A, 2 posts per phase, vertical break, gang operated; air gap ≥400 mm (11 kV) / 500 mm (33 kV); 1 post insulator per stack allowed at 11 kV (amd.)"],["AB switch accessories","GI operating rod 5.5 m (25 mm at 11 kV, 40 mm at 33 kV), phase coupling rod, handle with padlock, base channel 450×75×40 (11 kV)"],["Station isolator","3 posts per phase, double break; 400 A (11 kV), 630 A (33 kV); 25 kA 3 s; phase c/c 75 cm / 120 cm"],["DO fuse","12 kV, 100 A, 8 kA, porcelain creepage ≥320 mm, mounted 15°–20° from vertical on 75×40 or 100×50"],["LA, 11 kV distribution class","9 kV, COV 7.65 kV, 5 kA, with disconnector: DT substations"],["LA, 11 kV station class","9 kV, 10 kA, class 2: substations"],["LA, 33 kV station class","30 kV, COV 25 kV, 10 kA, creepage ≥900 mm"]]},
+ stay:{t:"Stays, wires & earthing",src:"RDSS-TS 31-38, 53-55, GEN/04-09, IS 3043",
+  facts:[["Stay set 16 mm (LT & 11 kV)","Rod 16×1800, plate 200×200×6, eye bolt 450 (300 threaded), bow + angle 50×50×6, thimble; 7.7–8.45 kg; weld 3100 kg"],["Stay set 20 mm (33 kV)","Rod 20×1800, plate 300×300×8, channel 100×50, 2 thimbles; 14.5–15.6 kg; weld 4900 kg"],["Stay wire","7/2.5 (22.86 kN) LT · 7/3.15 (36.26 kN) 11 kV · 7/4.0 (58.45 kN) 33 kV"],["Stay pit","500×500×1600; 0.2 m³ CC 1:2:4 round the plate where soil is not firm"],["GI wire uses","3.15 mm bearer for 1-ph service, 4 mm for 3-ph; 4 mm for earthing DTs, poles & fittings; 4 mm continuous earth wire for 11 kV; guarding 3.15/4/5 mm"],["Earth pipe","40 mm GI class B, 3 m, 12 mm holes, 2 clamps 50×6 (one welded), zinc ≥400 g/m²"],["Earthing coil","4 mm GI, 115 turns, 50 mm OD, 460 mm long, 2.5 m tail, ≥1.85 kg"],["Spike","20 mm GI rod 2.5 m, top 500 mm below ground"],["DT S/S earthing","3 pits: neutral, LA, body; 50×6 GI flat risers"],["33/11 S/S earthing","≤2 Ω; grid 75×8 MS flat ≥0.5 m deep + 25 mm rods & 40 mm pipes 3 m; rocky ground: 2 bores ≥10 m apart"],["Earth knob","Cast iron, ≤200 mΩ, neck ≥11,500 kg; carries LT neutral-cum-earth wire"]]},
+ pole:{t:"Poles & foundations",src:"RDSS-TS 6-9, 72, 73; GEN/01-02; REC amd.",
+  facts:[["PCC/PSC","As per state practice (REC drawings use 8 m / 200 kg; APDCL 8.5 m LT, 9.75 m 11 kV)"],["Tubular 9 m 540 SP 28","Planting 1.5 m, 113 kg, WL 191 kgf"],["Tubular 11 m 540 SP 52","Planting 1.8 m, 175 kg, WL 227 kgf"],["Tubular 13 m 540 SP 72","Planting 2.0 m, 343 kg, WL 435 kgf"],["WPB GI 160×160","11 m & 13 m; 30.44 kg/m (tf 9, tw 6) or 23.84 kg/m (tf 7, tw 4.5); base plate 300×300×12; HDG ≥785 g/m²"],["RS joists","116×100 (23 kg/m) · MB 125×70 · MB 175×85 · SC/UC 152×152 (37 kg/m)"],["Steel members","ISMC 100×50, 75×40; ISA 50×50×6, 65×65×6; HDG ≥610 g/m²; bolts class 5.6"],["Intermediate pole","Pit 0.5×0.6×1.5 m; base plate 450×450×75; boulder 60% + soil 40%"],["Concreted poles","Tapping, dead-end, DT, angle, crossing, DP/TP, cut point, water-logged; all 33 kV (1:3:6)"],["Muffing","250 mm dia × 12″ in 1:2:4 on tubular and H-beam poles"]]},
+ cab:{t:"Cables",src:"RDSS-TS 14-16, 51-52, 56",
+  table:[["LT XLPE 3.5C Al","In ground (A)","In air (A)","SC 1 s (kA)"],["25 mm²","95","97","2.42"],["35 mm²","117","116","3.37"],["50 mm²","140","134","4.79"],["70 mm²","176","167","6.68"],["95 mm²","221","199","9.03"],["120 mm²","258","227","11.4"],["150 mm²","294","255","—"],["185 mm²","339","287","—"],["240 mm²","402","333","—"],["300 mm²","461","375","—"]],
+  facts:[["Drums","LT XLPE ≥500 m; HT XLPE 200/300/500 m; 11 kV ABC 1000 m; 33 kV ABC 250 m"],["Bending radius","Power 12D, control 10D; ABC 10D"],["Buried cable","≥1 m under roads/tracks in pipe; markers every 30 m, at bends and both sides of crossings"],["Slack","Enough for 1 joint (LT) or 2 joints (HT)"],["Tags","Aluminium: rectangular for power, round for control, tied with 20 SWG GI"],["Heat-shrink kit","Insulating & stress tubes, breakouts, sheds, mastic, crimp lugs, Cu braids; shelf life 3 years"]]},
+ safe:{t:"Plates & safety",src:"RDSS-TS 49-50, 11KV/24, LT-OH/01",
+  facts:[["Danger plate 415 V","200×150 mm"],["Danger plate 11 kV and above","250×200 mm"],["Material","MS ≥1.6 mm, vitreous enamel white, signal-red letters and skull & bones; Hindi/English + local language (IE Rule 35)"],["Pole number plate","200×250×1.6, red digits ≥25 mm, fixed with 25×3 GI flat clamp and ≥6 mm bolts"],["S/S naming","Yellow base, black 25 mm digits, black border strip, local language + English"],["Paint for steel","Epoxy zinc, single coat 100–125 µm, 6.5 m²/l, 7-day cure"]]}
+};
 
 /* ---------- helpers ---------- */
 const $=s=>document.querySelector(s);
 const fmt=n=>n==null?"—":n.toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
 const fq=q=>{if(q===0)return"0";return Number.isInteger(q)?String(q):(+q.toFixed(3)).toString()};
 const esc=s=>String(s).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
-let PROG={};try{PROG=JSON.parse(localStorage.getItem("p2b-prog")||"{}")}catch(e){PROG={}}
-function saveProg(){try{localStorage.setItem("p2b-prog",JSON.stringify(PROG))}catch(e){};scheduleSync()}
-let cur="h1",mode="study";
-try{const s=localStorage.getItem("p2b-cur");if(s&&K[s])cur=s}catch(e){}
+const lsGet=(k,d)=>{try{const v=localStorage.getItem(k);return v==null?d:v}catch(e){return d}};
+const lsSet=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
+let PROG={};try{PROG=JSON.parse(lsGet("p2b-prog","{}"))||{}}catch(e){PROG={}}
+function saveProg(){lsSet("p2b-prog",JSON.stringify(PROG))}
+let STD=lsGet("p2b-std","rdss")==="apdcl"?"apdcl":"rdss";
+let cur=lsGet("p2b-cur","h1");if(!K[cur])cur="h1";
+let mode="study";
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 
-/* ---------- SVG schematics ---------- */
+/* apply the APDCL swaps to a list of rows */
+function swapRows(rows,lv,kit){
+ if(STD!=="apdcl")return rows;
+ const m=Object.assign({},AP[lv]||{},(kit&&kit.ap)||{});const out=[];
+ rows.forEach(r=>{if(!(r.id in m)){out.push(r);return}const v=m[r.id];if(v===null)return;
+  if(typeof v==="string")out.push({...r,id:v,from:r.id});else v.forEach(([id,f])=>out.push({...r,id,q:+(r.q*f).toFixed(3),from:r.id}))});
+ if(kit&&kit.apAdd)kit.apAdd.forEach(r=>out.push({id:r[0],q:r[1],why:r[2],opt:false,apd:true}));
+ const by={},res=[];out.forEach(r=>{if(by[r.id]){by[r.id].q=+(by[r.id].q+r.q).toFixed(3);if(r.why&&by[r.id].why!==r.why)by[r.id].why+=" "+r.why}else{by[r.id]={...r};res.push(by[r.id])}});
+ return res;
+}
+function kitRows(k){const kit=K[k];return swapRows(kit.items.map(r=>({id:r[0],q:r[1],why:r[2],opt:!!r[3]})),kit.lv,kit)}
+function grouped(rows){const by={};rows.forEach(r=>{const g=C[r.id][4];(by[g]=by[g]||[]).push(r)});return Object.keys(G).filter(g=>by[g]).map(g=>[g,by[g]])}
+
+/* ---------- SVG sketches ---------- */
 const GY=230;
 function pole(x,top=30,steel=false){return `<polygon class="${steel?'s-steel':'s-pole'}" points="${x-5},${GY} ${x+5},${GY} ${x+3},${top} ${x-3},${top}"/><rect class="s-grout" x="${x-10}" y="${GY}" width="20" height="30"/><line x1="${x}" y1="${GY}" x2="${x}" y2="${GY+26}" stroke="var(--muted)" stroke-dasharray="2 2"/>`}
 function ground(){return `<line class="s-ground" x1="6" y1="${GY}" x2="254" y2="${GY}"/>`}
@@ -445,37 +889,62 @@ function pin(x,y,s=1){return `<rect class="s-ins" x="${x-3.5*s}" y="${y-11*s}" w
 function dplate(x,y=165){return `<rect class="s-dp" x="${x-6}" y="${y}" width="12" height="9"/>`}
 function barbs(x){let s="";for(let i=0;i<4;i++){s+=`<path class="s-barb" d="M${x-9} ${188+i*4} l18 2"/>`}return s}
 function stay(x,y,dir=1){const gx=x+dir*78;return `<line class="s-stay" x1="${x}" y1="${y}" x2="${gx}" y2="${GY}"/><rect class="s-ins" x="${x+dir*30-4}" y="${y+(GY-y)*0.38-3}" width="8" height="6" rx="3"/><line x1="${gx}" y1="${GY}" x2="${gx+dir*6}" y2="${GY+22}" stroke="var(--muted)" stroke-width="2"/><rect class="s-grout" x="${gx+dir*6-8}" y="${GY+18}" width="16" height="8"/>`}
-function earthL(x,dir=-1){const ex=x+dir*22;return `<path class="s-earth" d="M${x+dir*4} 60 L${x+dir*4} ${GY-6} L${ex} ${GY-6} L${ex} ${GY+18}"/><rect fill="var(--earth)" x="${ex-2}" y="${GY+2}" width="4" height="24"/><path class="s-earth" d="M${ex-8} ${GY+28} h16 M${ex-5} ${GY+32} h10 M${ex-2} ${GY+36} h4"/>`}
-function hlabel(x,t){return `<text class="s-t" x="${x+10}" y="${GY-6}">${t}</text>`}
-function discString(x,y,dir){let s="";for(let i=0;i<3;i++){s+=`<ellipse class="s-disc" cx="${x+dir*(6+i*5)}" cy="${y}" rx="2.4" ry="5"/>`}s+=`<rect class="s-arm" x="${dir>0?x+21:x-27}" y="${y-2}" width="6" height="4"/>`;s+=`<line class="s-cond" x1="${x+dir*27}" y1="${y}" x2="${x+dir*110}" y2="${y+6}"/>`;return s}
+function earthL(x,dir=-1,top=60){const ex=x+dir*22;return `<path class="s-earth" d="M${x+dir*4} ${top} L${x+dir*4} ${GY-6} L${ex} ${GY-6} L${ex} ${GY+18}"/><rect fill="var(--earth)" x="${ex-2}" y="${GY+2}" width="4" height="24"/><path class="s-earth" d="M${ex-8} ${GY+28} h16 M${ex-5} ${GY+32} h10 M${ex-2} ${GY+36} h4"/>`}
+function lbl(x,y,t,b){return `<text class="${b?'s-tb':'s-t'}" x="${x}" y="${y}">${t}</text>`}
+function discString(x,y,dir,n=3,len=110){let s="";for(let i=0;i<n;i++){s+=`<ellipse class="s-disc" cx="${x+dir*(6+i*5)}" cy="${y}" rx="2.4" ry="5"/>`}const e=6+n*5;s+=`<rect class="s-arm" x="${dir>0?x+e-6:x-e}" y="${y-2}" width="6" height="4"/>`;s+=`<line class="s-cond" x1="${x+dir*e}" y1="${y}" x2="${x+dir*len}" y2="${y+6}"/>`;return s}
+function vArm(x,y,w=52){return `<path stroke="var(--steel)" stroke-width="4.5" fill="none" d="M${x-w} ${y} L${x} ${y+20} L${x+w} ${y}"/>`+pin(x-w+4,y)+pin(x+w-4,y)}
+function topBr(x,y){return `<rect class="s-arm" x="${x-3}" y="${y}" width="6" height="12"/>`+pin(x,y)}
+function acdS(x,y=150){return `<path stroke="var(--danger)" stroke-width="1" fill="none" d="M${x-8} ${y} h16 M${x-8} ${y+16} h16 M${x-6} ${y} v-4 M${x} ${y} v-4 M${x+6} ${y} v-4 M${x-6} ${y+16} v4 M${x} ${y+16} v4 M${x+6} ${y+16} v4"/>`}
 function svg(inner,vb="0 0 260 270"){return `<svg viewBox="${vb}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Structure sketch">${inner}</svg>`}
+function shk(x,y){return `<circle class="s-ins" cx="${x}" cy="${y}" r="4"/>`}
+function knob(x,y){return `<rect fill="var(--earth)" x="${x-3}" y="${y-3}" width="6" height="6" rx="1"/>`}
+function dpFrame(a,b,top=36){return pole(a,top)+pole(b,top)+`<rect class="s-arm" x="${a-14}" y="${top+12}" width="${b-a+28}" height="5"/><path stroke="var(--steel)" stroke-width="2.5" fill="none" d="M${a} 96 H${b} M${a} 96 L${b} 140 M${b} 96 L${a} 140 M${a} 140 H${b}"/>`}
 function draw(kind){
  const x=130;let s="";
  switch(kind){
- case"lt2":s=ground()+pole(x,70)+`<rect class="s-arm" x="${x-28}" y="82" width="56" height="5"/>`+pin(x-22,82)+pin(x+22,82)+dplate(x)+hlabel(x,"PSC 8.5 m");break;
- case"lt4":s=ground()+pole(x,70)+`<rect class="s-arm" x="${x-30}" y="82" width="60" height="5"/><rect class="s-arm" x="${x-30}" y="102" width="60" height="5"/>`+pin(x-24,82)+pin(x+24,82)+pin(x-24,102)+pin(x+24,102)+dplate(x)+hlabel(x,"PSC 8.5 m");break;
- case"ltend":s=ground()+pole(x,70);[82,94,106,118].forEach(y=>{s+=`<circle class="s-ins" cx="${x-9}" cy="${y}" r="4"/><line class="s-cond" x1="${x-13}" y1="${y}" x2="20" y2="${y+4}"/>`});s+=stay(x,90,1)+earthL(x,-1)+dplate(x)+`<text class="s-t" x="16" y="70">wires →</text>`;break;
- case"abc":s=ground()+pole(x,70)+`<path class="s-cond" d="M10 96 Q70 104 ${x-8} 92 Q190 104 250 96" stroke-width="4"/><rect class="s-box" x="${x-12}" y="86" width="12" height="9" rx="2"/><circle cx="${x-4}" cy="84" r="3" fill="none" stroke="var(--ink)"/>`+dplate(x)+hlabel(x,"PSC 8.5 m");break;
- case"tarm":case"tstay":s=ground()+pole(x,36)+`<rect class="s-arm" x="${x-52}" y="50" width="104" height="5"/>`+pin(x-46,50)+pin(x+46,50)+pin(x,36)+dplate(x)+barbs(x)+hlabel(x,"PSC 9.75 m");if(kind==="tstay")s+=stay(x,60,1);break;
- case"cut":s=ground()+pole(x,36)+`<rect class="s-arm" x="${x-6}" y="48" width="12" height="6"/><rect class="s-arm" x="${x-6}" y="66" width="12" height="6"/>`;[51,69,40].forEach(y=>{s+=discString(x-5,y,-1)+discString(x+5,y,1)});s+=`<path class="s-cond" d="M${x-27} 51 Q${x} 62 ${x+27} 51 M${x-27} 69 Q${x} 82 ${x+27} 69"/>`+pin(x,32)+stay(x,60,1)+stay(x,60,-1)+earthL(x,-1)+dplate(x)+barbs(x);break;
- case"dead":s=ground()+pole(x,36)+`<rect class="s-arm" x="${x-6}" y="48" width="12" height="6"/>`;[44,51,58].forEach(y=>s+=discString(x-5,y,-1));s+=stay(x,56,1)+earthL(x,-1)+dplate(x)+barbs(x);break;
- case"dp":{const a=95,b=165;s=ground()+pole(a,36)+pole(b,36)+`<rect class="s-arm" x="${a-14}" y="48" width="${b-a+28}" height="5"/><rect class="s-arm" x="${a-14}" y="64" width="${b-a+28}" height="5"/><path stroke="var(--steel)" stroke-width="3" fill="none" d="M${a} 90 L${b} 130 M${b} 90 L${a} 130 M${a} 110 H${b}"/>`;s+=pin(a+20,64)+pin(x,64)+pin(b-20,64)+`<line class="s-stay" x1="${a}" y1="60" x2="18" y2="${GY}"/><line class="s-stay" x1="${b}" y1="60" x2="242" y2="${GY}"/>`+dplate(a)+dplate(b)+earthL(a,-1)+`<text class="s-t" x="${a-10}" y="28">DP · 2 × 9.75 m</text>`;break}
- case"tap":s=ground()+pole(x,36)+`<line class="s-cond" x1="10" y1="40" x2="250" y2="40"/><rect class="s-arm" x="${x-44}" y="78" width="88" height="5"/>`;[-30,0,30].forEach(d=>{s+=`<line class="s-cond" x1="${x+d}" y1="40" x2="${x+d}" y2="62"/><rect class="s-box" x="${x+d-3}" y="62" width="6" height="16" rx="1"/><line class="s-cond" x1="${x+d}" y1="83" x2="${x+d+40}" y2="130"/>`});s+=`<text class="s-t" x="10" y="34">main 11 kV line</text><text class="s-tb" x="${x+48}" y="74">DO set</text>`+earthL(x,-1);break;
+ case"stay":s=ground()+pole(70,36)+stay(70,60,1)+lbl(116,100,"stay wire 7/3.15",1)+lbl(100,132,"guy insulator (C)",1)+lbl(140,GY+38,"stay pit 1:2:4");break;
+ case"earth":s=ground()+pole(x,36)+vArm(x,50,40)+earthL(x,-1,56)+lbl(16,140,"8 SWG lead",1)+lbl(150,GY+22,"spike / coil / pipe",1);break;
+ case"strain":{s=pole(40,10)+`<rect class="s-arm" x="44" y="96" width="14" height="8"/>`+lbl(30,88,"strap")+`<line stroke="var(--ink)" x1="58" y1="100" x2="72" y2="100"/>`;for(let i=0;i<1;i++)s+=`<ellipse class="s-disc" cx="86" cy="100" rx="7" ry="22"/>`;
+  s+=`<path stroke="var(--ink)" fill="none" d="M93 100 h16"/><rect class="s-box" x="109" y="92" width="34" height="16" rx="3"/><line class="s-cond" x1="143" y1="100" x2="250" y2="104"/>`+lbl(70,138,"disc 45 kN")+lbl(102,84,"strain clamp")+lbl(160,96,"conductor")+lbl(30,180,"strap + bolt + cotter pins = hardware",1);return svg(s,"0 0 260 200")}
+ case"fdnN":s=ground()+pole(x,40)+`<rect fill="none" stroke="var(--muted)" stroke-dasharray="3 2" x="${x-26}" y="${GY}" width="52" height="34"/><rect fill="var(--conc)" x="${x-20}" y="${GY+30}" width="40" height="5"/>`;for(let i=0;i<12;i++)s+=`<circle cx="${x-20+(i%6)*8}" cy="${GY+8+Math.floor(i/6)*12}" r="3" fill="var(--line)" stroke="var(--muted)"/>`;s+=lbl(x+30,GY+14,"boulders + soil")+lbl(x+30,GY+34,"RCC base plate");return svg(s,"0 0 260 275");
+ case"fdnC":s=ground()+pole(x,40)+`<rect fill="var(--conc)" opacity=".55" x="${x-26}" y="${GY}" width="52" height="34"/><rect fill="var(--conc)" x="${x-12}" y="${GY-10}" width="24" height="10"/>`+lbl(x+30,GY+16,"CC 1:2:4 ≈ 0.45 m³")+lbl(x+20,GY-14,"muffing");return svg(s,"0 0 260 275");
+ case"abc":s=ground()+pole(x,70)+`<path class="s-cond" d="M10 96 Q70 104 ${x-8} 92 Q190 104 250 96" stroke-width="4"/><rect class="s-box" x="${x-12}" y="86" width="12" height="9" rx="2"/><circle cx="${x-4}" cy="84" r="3" fill="none" stroke="var(--ink)"/>`+dplate(x)+acdS(x)+earthL(x,1,90)+lbl(x+10,80,"suspension assembly");break;
+ case"abcend":s=ground()+pole(x,70)+`<path class="s-cond" d="M10 100 Q60 108 ${x-14} 92" stroke-width="4"/><rect class="s-box" x="${x-16}" y="87" width="10" height="9" rx="2"/>`+stay(x,90,1)+dplate(x)+acdS(x)+earthL(x,-1,92)+lbl(12,84,"anchoring assembly");break;
+ case"abctap":s=ground()+pole(x,70)+`<path class="s-cond" d="M10 96 Q70 104 ${x-8} 92 Q190 104 250 96" stroke-width="4"/><path class="s-cond" d="M${x+6} 110 Q${x+60} 122 ${x+110} 150" stroke-width="3.5"/><rect class="s-box" x="${x+2}" y="105" width="10" height="9" rx="2"/>`;[0,1,2,3].forEach(i=>s+=`<rect fill="var(--accent)" x="${x+18+i*6}" y="100" width="4" height="7"/>`);s+=stay(x,110,-1)+dplate(x)+lbl(x+16,94,"IPCs")+lbl(x+50,140,"branch ABC");break;
+ case"lt1v":s=ground()+pole(x,70)+`<rect class="s-arm" x="${x+4}" y="78" width="16" height="34"/>`+shk(x+24,86)+shk(x+24,104)+`<line class="s-cond" x1="10" y1="86" x2="250" y2="86"/><line class="s-cond" x1="10" y1="104" x2="250" y2="104"/>`+dplate(x)+acdS(x)+earthL(x,-1,80)+lbl(x+34,82,"shackles 300 c/c");break;
+ case"lt1vd":s=ground()+pole(x,70)+`<rect class="s-arm" x="${x-20}" y="78" width="16" height="34"/>`+shk(x-24,86)+shk(x-24,104)+`<line class="s-cond" x1="10" y1="88" x2="${x-28}" y2="86"/><line class="s-cond" x1="10" y1="106" x2="${x-28}" y2="104"/>`+stay(x,96,1)+dplate(x)+acdS(x)+earthL(x,-1,80);break;
+ case"lt3h":s=ground()+pole(x,64)+`<rect class="s-arm" x="${x-44}" y="76" width="88" height="5"/>`+pin(x-38,76)+pin(x,76)+pin(x+38,76)+knob(x+8,104)+lbl(x+14,108,"earth knob (N)")+dplate(x)+acdS(x)+earthL(x,-1,80)+lbl(x+10,GY-6,"PCC 7.5 m");break;
+ case"lt3v":s=ground()+pole(x,64)+shk(x+10,76)+shk(x+10,94)+shk(x+10,112)+knob(x+8,130)+lbl(x+18,80,"R")+lbl(x+18,98,"Y")+lbl(x+18,116,"B")+lbl(x+16,134,"N (earth knob)")+dplate(x)+acdS(x)+earthL(x,-1,80);break;
+ case"lt3vd":s=ground()+pole(x,64);[76,94,112,130].forEach(y=>{s+=shk(x-10,y)+`<line class="s-cond" x1="10" y1="${y+3}" x2="${x-14}" y2="${y}"/>`});s+=stay(x,100,1)+dplate(x)+acdS(x)+earthL(x,-1,80);break;
+ case"svc":s=ground()+pole(40,60)+`<rect class="s-box" x="180" y="120" width="70" height="110"/><path fill="none" stroke="var(--ink)" d="M180 120 l35 -26 l35 26"/><line stroke="var(--muted)" stroke-width="2" x1="190" y1="120" x2="190" y2="86"/><path class="s-cond" d="M44 76 Q115 104 190 90"/><path stroke="var(--muted)" stroke-dasharray="3 2" fill="none" d="M44 72 Q115 100 190 86"/><rect class="s-box" x="200" y="150" width="20" height="26"/>`+lbl(70,74,"service cable + 3.15 mm bearer")+lbl(198,190,"meter, MCB")+lbl(60,120,"≤ 35 m");break;
+ case"varm11":case"varm11s":s=ground()+pole(x,30)+topBr(x,30)+vArm(x,58)+dplate(x)+acdS(x)+barbs(x)+earthL(x,-1,60)+lbl(x+10,GY-6,"PCC 8 m")+lbl(x+44,76,"V-arm 1070");if(kind==="varm11s")s+=stay(x,70,1);break;
+ case"ang":s=ground()+pole(x,30);[48,66,84].forEach(y=>{s+=discString(x-5,y,-1,1,100)+discString(x+5,y,1,1,100)+`<path class="s-cond" d="M${x-16} ${y} Q${x} ${y+12} ${x+16} ${y}"/>`});s+=stay(x,70,1)+dplate(x,170)+acdS(x,190)+earthL(x,-1,90)+lbl(12,40,"strings 900 apart, no arm");break;
+ case"dpdead":{const a=100,b=160;s=ground()+dpFrame(a,b);[a+8,x,b-8].forEach(px=>{s+=`<ellipse class="s-disc" cx="${px}" cy="62" rx="2.4" ry="5"/><line class="s-cond" x1="${px}" y1="67" x2="${px-60}" y2="80"/>`});s+=`<line class="s-stay" x1="${a}" y1="60" x2="${a+90}" y2="${GY}"/><line class="s-stay" x1="${b}" y1="60" x2="${b+70}" y2="${GY}"/>`+dplate(a)+earthL(a,-1)+lbl(10,28,"← line   dead-end on DP, 2 guys");break}
+ case"dp":{const a=100,b=160;s=ground()+dpFrame(a,b)+pin(a+10,48)+pin(x,48)+pin(b-10,48);[54,64,74].forEach(y=>{s+=discString(a-14,y,-1,1,80)+discString(b+14,y,1,1,80)});s+=`<line class="s-stay" x1="${a}" y1="60" x2="22" y2="${GY}"/><line class="s-stay" x1="${b}" y1="60" x2="238" y2="${GY}"/>`+dplate(a)+earthL(a,-1)+lbl(a-6,26,"DP 1500 c/c, 4 stays");break}
+ case"dpsw":{const a=95,b=165;s=ground()+dpFrame(a,b);[a+12,x,b-12].forEach(px=>s+=`<rect class="s-box" x="${px-3}" y="64" width="6" height="14" rx="1"/><line stroke="var(--ink)" x1="${px}" y1="64" x2="${px+8}" y2="58"/>`);s+=`<line stroke="var(--muted)" stroke-width="2" x1="${b+6}" y1="80" x2="${b+6}" y2="${GY-20}"/><rect class="s-box" x="${b}" y="${GY-26}" width="12" height="8"/>`+lbl(b+16,GY-20,"handle (earthed)")+lbl(a-10,26,"AB switch on DP 2440 c/c")+dplate(a)+earthL(a,-1);break}
+ case"tapsp":{const a=95,b=165;s=ground()+dpFrame(a,b)+`<line class="s-cond" x1="10" y1="40" x2="250" y2="40"/>`;[a+12,x,b-12].forEach(px=>{s+=`<line class="s-cond" x1="${px}" y1="40" x2="${px}" y2="62"/><rect class="s-box" x="${px-3}" y="62" width="6" height="14" rx="1"/><line class="s-cond" x1="${px}" y1="80" x2="${px+60}" y2="120"/>`});s+=lbl(10,34,"main 11 kV line")+lbl(b+20,112,"spur ≤50 m to 1st pole")+stay(b,90,1)+earthL(a,-1);break}
+ case"comp":s=ground()+pole(x,30)+topBr(x,30)+vArm(x,58);[100,114,128,142].forEach((y,i)=>s+=shk(x+10,y)+`<line class="s-cond" x1="10" y1="${y}" x2="250" y2="${y}" stroke-width=".8"/>`);s+=lbl(x+18,96,"LT, 800 below V-arm")+dplate(x,170)+acdS(x,190)+earthL(x,-1,60);break;
+ case"tap":s=ground()+pole(x,36)+`<line class="s-cond" x1="10" y1="40" x2="250" y2="40"/><rect class="s-arm" x="${x-44}" y="78" width="88" height="5"/>`;[-30,0,30].forEach(d=>{s+=`<line class="s-cond" x1="${x+d}" y1="40" x2="${x+d}" y2="62"/><rect class="s-box" x="${x+d-3}" y="62" width="6" height="16" rx="1"/><line class="s-cond" x1="${x+d}" y1="83" x2="${x+d+40}" y2="130"/>`});s+=lbl(10,34,"main 11 kV line")+lbl(x+48,74,"DO set",1)+earthL(x,-1);break;
+ case"dt1p":s=ground()+pole(x,24)+`<rect class="s-arm" x="${x-36}" y="34" width="72" height="5"/>`;[-28,0,28].forEach(d=>s+=`<rect class="s-box" x="${x+d-3}" y="22" width="6" height="12" rx="1"/>`);s+=`<rect class="s-arm" x="${x-30}" y="66" width="60" height="4"/>`;[-20,0,20].forEach(d=>s+=`<rect class="s-box" x="${x+d-3}" y="70" width="6" height="14" rx="1"/>`);
+  s+=`<rect class="s-arm" x="${x}" y="150" width="44" height="5"/><rect class="s-dtr" x="${x+6}" y="118" width="40" height="32" rx="3"/><text class="s-tb" x="${x+26}" y="138" text-anchor="middle">25</text><rect class="s-box" x="${x-30}" y="168" width="22" height="26"/>`+lbl(x+40,30,"LAs")+lbl(x+34,82,"DO")+lbl(x-60,206,"LT DB")+stay(x,40,-1)+lbl(150,GY+38,"3 earth pits");break;
  case"dtr":{const a=95,b=165;s=ground()+pole(a,36)+pole(b,36)+`<rect class="s-arm" x="${a-14}" y="46" width="${b-a+28}" height="5"/><rect class="s-arm" x="${a-14}" y="78" width="${b-a+28}" height="5"/><rect class="s-arm" x="${a-6}" y="148" width="${b-a+12}" height="5"/>`;
   [a+12,x,b-12].forEach(px=>{s+=`<rect class="s-box" x="${px-3}" y="60" width="6" height="16" rx="1"/><line class="s-cond" x1="${px}" y1="83" x2="${px}" y2="110"/>`});
-  s+=`<rect class="s-dtr" x="${a+10}" y="110" width="${b-a-20}" height="38" rx="3"/><text class="s-tb" x="${x}" y="133" text-anchor="middle">DTR</text><text class="s-t" x="${b+10}" y="70">DO</text><text class="s-t" x="${b+10}" y="54">dead-end</text>`;
-  s+=`<rect class="s-box" x="${b+12}" y="170" width="22" height="28"/><text class="s-t" x="${b+10}" y="210">MCCB/meter</text><path class="s-cond" d="M${b-14} 140 Q${b+6} 150 ${b+20} 170"/>`;
-  s+=`<rect x="${a-26}" y="196" width="${b-a+52}" height="34" fill="none" stroke="var(--muted)" stroke-dasharray="4 3"/><text class="s-t" x="${a-24}" y="${GY+38}">fence · 5 earths</text>`+dplate(a,175)+dplate(b,175);break}
- case"varm":s=ground()+pole(x,22,true)+`<path stroke="var(--steel)" stroke-width="5" fill="none" d="M${x-58} 40 L${x} 64 L${x+58} 40"/><rect class="s-arm" x="${x-4}" y="20" width="8" height="10"/>`+pin(x-54,40,1.2)+pin(x+54,40,1.2)+pin(x,20,1.2)+dplate(x)+barbs(x)+hlabel(x,"SP-76 · 14.5 m");break;
- case"cut33":case"dead33":s=ground()+pole(x,22,true)+`<rect class="s-arm" x="${x-6}" y="40" width="12" height="6"/>`;[36,46,56].forEach(y=>{s+=discString(x-5,y,-1);if(kind==="cut33")s+=discString(x+5,y,1)});if(kind==="cut33"){s+=pin(x,20,1.2)+stay(x,52,-1)}s+=stay(x,52,1)+earthL(x,-1)+dplate(x)+barbs(x)+`<text class="s-t" x="12" y="22">SP-76 · Wolf</text>`;break;
- case"guard":{const a=40,b=220;s=ground()+pole(a,36)+pole(b,36)+`<line class="s-cond" x1="${a}" y1="44" x2="${b}" y2="44"/><line class="s-cond" x1="${a}" y1="52" x2="${b}" y2="52"/><path stroke="var(--earth)" stroke-width="1" fill="none" d="M${a} 78 Q130 92 ${b} 78 M${a} 90 Q130 104 ${b} 90"/>`;for(let i=0;i<9;i++){const gx=a+20+i*18;s+=`<line stroke="var(--earth)" stroke-width=".8" x1="${gx}" y1="${80+ (i>4?8-i:i)*1.2}" x2="${gx}" y2="${94+(i>4?8-i:i)*1.2}"/>`}
-  s+=`<rect fill="var(--line)" x="70" y="${GY-14}" width="120" height="14"/><text class="s-t" x="108" y="${GY-4}">ROAD</text><text class="s-tb" x="${a+30}" y="74">guard cradle (8 SWG)</text>`+earthL(a,-1)+earthL(b,1);break}
- case"stay":s=ground()+pole(70,36)+stay(70,60,1)+`<text class="s-tb" x="120" y="100">stay wire 7/10</text><text class="s-tb" x="102" y="132">guy insulator</text><text class="s-t" x="150" y="${GY+38}">stay set + 428</text>`;break;
- case"earth":s=ground()+pole(x,36)+earthL(x,-1)+`<text class="s-tb" x="20" y="140">6 SWG lead</text><text class="s-tb" x="50" y="${GY+44}">CI pipe</text>`;break;
+  s+=`<rect class="s-dtr" x="${a+10}" y="110" width="${b-a-20}" height="38" rx="3"/><text class="s-tb" x="${x}" y="133" text-anchor="middle">DT</text>`+lbl(b+10,70,"HG / AB")+lbl(b+10,54,"dead-end + LA");
+  s+=`<rect class="s-box" x="${b+12}" y="170" width="22" height="28"/>`+lbl(b+6,210,"LT DB")+`<path class="s-cond" d="M${b-14} 140 Q${b+6} 150 ${b+20} 170"/>`;
+  [60,130,200].forEach((ex,i)=>s+=`<rect fill="var(--earth)" x="${ex-2}" y="${GY+4}" width="4" height="22"/>`+lbl(ex-14,GY+38,["neutral","LA","body"][i]));s+=dplate(a,175);break}
+ case"dt1ph":s=ground()+pole(x,30)+topBr(x,30)+`<rect class="s-box" x="${x+8}" y="52" width="6" height="16" rx="1"/><rect class="s-dtr" x="${x+6}" y="110" width="34" height="40" rx="10"/><text class="s-tb" x="${x+23}" y="134" text-anchor="middle">1φ</text>`+shk(x-10,90)+lbl(x+18,60,"cut-out")+lbl(x-60,94,"neutral")+lbl(x+44,130,"16 kVA")+earthL(x,-1,100);break;
+ case"varm33":s=ground()+pole(x,22,true)+topBr(x,20)+vArm(x,46,62)+dplate(x)+acdS(x)+barbs(x)+earthL(x,-1,60)+lbl(x+10,GY-6,"33 kV support")+lbl(x+30,82,"V-arm 1525");break;
+ case"cut33":case"dead33":s=ground()+pole(x,22,true)+`<rect class="s-arm" x="${x-6}" y="40" width="12" height="6"/>`;[36,46,56].forEach(y=>{s+=discString(x-5,y,-1,3);if(kind==="cut33")s+=discString(x+5,y,1,3)});if(kind==="cut33"){s+=stay(x,52,-1)}s+=stay(x,52,1)+earthL(x,-1)+dplate(x)+barbs(x)+lbl(12,22,"3 × 45 kN B&S per string");break;
+ case"guard":{const a=40,b=220;s=ground()+pole(a,36)+pole(b,36)+`<line class="s-cond" x1="${a}" y1="44" x2="${b}" y2="44"/><line class="s-cond" x1="${a}" y1="52" x2="${b}" y2="52"/><path stroke="var(--earth)" stroke-width="1" fill="none" d="M${a} 78 Q130 92 ${b} 78 M${a} 90 Q130 104 ${b} 90"/>`;for(let i=0;i<9;i++){const gx=a+20+i*18;s+=`<line stroke="var(--earth)" stroke-width=".8" x1="${gx}" y1="${80+(i>4?8-i:i)*1.2}" x2="${gx}" y2="${94+(i>4?8-i:i)*1.2}"/>`}
+  s+=`<rect fill="var(--line)" x="70" y="${GY-14}" width="120" height="14"/>`+lbl(108,GY-4,"ROAD")+lbl(a+30,74,"guard wires 4 mm + lacing",1)+lbl(90,GY-22,"≥ 6.1 m")+earthL(a,-1)+earthL(b,1);break}
+ case"rail":{const a=40,b=220;s=ground()+pole(a,40)+pole(b,40)+`<path class="s-cond" stroke-width="2" d="M${a+6} 60 V${GY+20} H${b-6} V60"/><rect fill="none" stroke="var(--muted)" stroke-dasharray="3 2" x="80" y="${GY+12}" width="100" height="14"/>`;for(let i=0;i<5;i++)s+=`<rect fill="var(--steel)" x="${90+i*20}" y="${GY-4}" width="10" height="4"/>`;s+=lbl(96,GY-10,"TRACKS")+lbl(84,GY+40,"GI pipe ≥1 m deep")+lbl(a-30,30,"AB-switch DP")+lbl(b-50,30,"cable-end DP");return svg(s,"0 0 260 280")}
+ case"pss":{const st=["33 kV line","ISO","VCB","CT","PTR","11 kV panels","Feeder DP"];let o="";st.forEach((t,i)=>{const row=i<4?0:1,col=row?i-4:i,xx=row?20+col*80:12+col*62,yy=row?140:40,w=row?70:52;
+   o+=`<rect class="${t==='PTR'?'s-dtr':'s-box'}" x="${xx}" y="${yy}" width="${w}" height="34" rx="3"/><text class="s-tb" x="${xx+w/2}" y="${yy+20}" text-anchor="middle" style="font-size:7.5px">${t}</text>`});
+   o+=`<path class="s-cond" d="M64 57 H74 M126 57 H136 M188 57 H198 M224 74 V110 H55 V140 M90 157 H100 M170 157 H180"/>`+lbl(12,28,"Type A: 1 × 3.15 MVA")+lbl(12,206,"+ station transformer, C&R, battery,")+lbl(12,218,"earth mat ≤ 2 Ω, fencing");return svg(o,"0 0 260 230")}
  case"ptr":{const st=["33 kV bus","Isolator","VCB","CT","LA","PTR","LA","11 kV cable","Incomer"];let o="";st.forEach((t,i)=>{const row=i<5?0:1,col=row?i-5:i,xx=row?20+col*58:12+col*48,yy=row?150:40;
    const w=t==="PTR"?50:40;o+=`<rect class="${t==='PTR'?'s-dtr':'s-box'}" x="${xx}" y="${yy}" width="${w}" height="34" rx="3"/><text class="s-tb" x="${xx+w/2}" y="${yy+20}" text-anchor="middle" style="font-size:7.5px">${t}</text>`;
    if(i<4)o+=`<line class="s-cond" x1="${xx+40}" y1="${yy+17}" x2="${xx+48}" y2="${yy+17}"/>`;if(i>=5&&i<8)o+=`<line class="s-cond" x1="${xx+w}" y1="${yy+17}" x2="${xx+58}" y2="${yy+17}"/>`});
-   o+=`<path class="s-cond" d="M224 74 V110 H45 V150"/><text class="s-t" x="12" y="28">33 kV side</text><text class="s-t" x="20" y="140">11 kV side</text><text class="s-t" x="12" y="214">+ C&amp;R panel, control cables,</text><text class="s-t" x="12" y="226">earth mat, foundations</text>`;return svg(o,"0 0 260 240")}
+   o+=`<path class="s-cond" d="M224 74 V110 H45 V150"/>`+lbl(12,28,"33 kV side")+lbl(20,140,"11 kV side")+lbl(12,214,"+ C&amp;R panel, control cables,")+lbl(12,226,"earth mat, foundations");return svg(o,"0 0 260 240")}
  }
  return svg(s);
 }
@@ -493,11 +962,7 @@ function buildRail(){
  $("#rail").querySelectorAll("button").forEach(b=>b.onclick=()=>pick(b.dataset.k));
 }
 $("#railsel").onchange=e=>pick(e.target.value);
-function pick(k){cur=k;try{localStorage.setItem("p2b-cur",k)}catch(e){};buildRail();renderKit()}
-
-function kitRows(k){return K[k].items.map(r=>({id:r[0],q:r[1],why:r[2],opt:!!r[3],alt:r[5]||""}))}
-function grouped(rows){const by={};rows.forEach(r=>{const g=C[r.id][4];(by[g]=by[g]||[]).push(r)});return Object.keys(G).filter(g=>by[g]).map(g=>[g,by[g]])}
-
+function pick(k){cur=k;lsSet("p2b-cur",k);buildRail();renderKit()}
 function renderKit(){
  const k=K[cur],lvl=LEVELS.find(l=>l.id===k.lv).name;
  const noqty=!!k.noqty;if(noqty&&mode==="qty")mode="study";
@@ -506,54 +971,55 @@ function renderKit(){
   <button data-m="study" aria-pressed="${mode==='study'}">Study</button>
   <button data-m="check" aria-pressed="${mode==='check'}">What goes on it?</button>
   ${noqty?"":`<button data-m="qty" aria-pressed="${mode==='qty'}">How many?</button>`}</div></div>
- <div class="body"><div class="figure">${draw(k.fig)}<div class="cap">Sketch, not to scale.</div></div><div id="pane" style="min-width:0"></div></div>`;
+ <div class="body"><div class="figure">${draw(k.fig)}<div class="cap">Sketch, not to scale.</div></div><div id="pane" style="min-width:0"></div></div>
+ <p class="src"><b>Source</b> ${esc(k.src||"")}${STD==="apdcl"?" · items swapped to APDCL SoR equivalents":""}</p>`;
  $("#kit").innerHTML=h;
  $("#kit").querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{mode=b.dataset.m;renderKit()});
  if(mode==="study")study();else if(mode==="check")checklist();else qtyQuiz();
 }
-function notesHtml(){const n=K[cur].notes||[];return n.length?`<div class="notes">`+n.map(([t,x])=>`<div class="note ${t==='trap'?'trap':''}"><b>${t==='trap'?'Watch out':'Note'}</b>${esc(x)}</div>`).join("")+`</div>`:""}
+function notesHtml(n){n=n||K[cur].notes||[];return n.length?`<div class="notes">`+n.map(([t,x])=>`<div class="note ${t==='trap'?'trap':''}"><b>${t==='trap'?'Watch out':'Note'}</b>${esc(x)}</div>`).join("")+`</div>`:""}
+function tagOf(r){return (r.opt?'<span class="opt">optional</span>':'')+(r.from?`<span class="opt" style="color:var(--accent);background:var(--accent-soft)">for ${esc(C[r.from][1].split(" (")[0].split(",")[0])}</span>`:'')+(r.apd?'<span class="opt">APDCL only</span>':'')}
 function study(){
  const rows=kitRows(cur);let mat=0,job=0,miss=0;
  let h=`<div class="tbl-wrap"><table><thead><tr><th>SoR</th><th>Item</th><th>Unit</th><th class="num">Qty</th><th class="num">Rate</th><th class="num">Amount</th></tr></thead><tbody>`;
  grouped(rows).forEach(([g,rs])=>{h+=`<tr class="grp"><td colspan="6">${G[g]}</td></tr>`;rs.forEach(r=>{const c=C[r.id],amt=c[3]==null?null:c[3]*r.q;
   if(amt==null&&r.q>0)miss++;else if(g==="job")job+=amt||0;else mat+=amt||0;
-  h+=`<tr><td class="sor">${c[0]}</td><td>${esc(c[1])}${r.opt?'<span class="opt">if earthing pole</span>':''}<div class="why">${esc(r.why)}${r.alt?' '+esc(r.alt):''}</div></td><td>${c[2]}</td><td class="num">${fq(r.q)}</td><td class="num">${fmt(c[3])}</td><td class="num">${amt==null?'—':fmt(amt)}</td></tr>`})});
- h+=`<tr class="tot"><td colspan="5">Materials (goes into A)</td><td class="num">${fmt(mat)}</td></tr>`;
+  h+=`<tr><td class="sor">${c[0]}</td><td>${esc(c[1])}${tagOf(r)}<div class="why">${esc(r.why)}</div></td><td>${c[2]}</td><td class="num">${fq(r.q)}</td><td class="num">${fmt(c[3])}</td><td class="num">${amt==null?'—':fmt(amt)}</td></tr>`})});
+ h+=`<tr class="tot"><td colspan="5">Materials with an SoR rate (goes into A)</td><td class="num">${fmt(mat)}</td></tr>`;
  if(job)h+=`<tr class="tot"><td colspan="5">Labour-included jobs (goes into E)</td><td class="num">${fmt(job)}</td></tr>`;
- h+=`</tbody></table></div>`;if(miss)h+=`<p class="hint">${miss} item(s) have no SoR rate here; price them at the approved or tender rate.</p>`;
+ h+=`</tbody></table></div>`;if(miss)h+=`<p class="hint">${miss} item(s) have no SoR rate here; price them at the approved or tender rate${STD==="rdss"?", or switch to “APDCL SoR” to see the local equivalents":""}.</p>`;
  $("#pane").innerHTML=h+notesHtml();
 }
-/* checklist */
 let sel=new Set(),checked=false,pool=[];
+function allIdsNow(){const s=new Set();ORDER.forEach(k=>kitRows(k).forEach(r=>s.add(r.id)));return s}
 function checklist(){
  sel=new Set();checked=false;
- const need=kitRows(cur).filter(r=>!r.opt&&r.q>0).map(r=>r.id);
- const others=[...new Set(ORDER.filter(k=>k!==cur&&K[k].lv===K[cur].lv||["blk"].includes(K[k].lv)).flatMap(k=>kitRows(k).map(r=>r.id)))].filter(id=>!need.includes(id));
- const near=["ch2200","tarm","varm","disc70","hw70","shackle","ltpin","pin11","pin33","htstay","cipipe","ch7540","goab","la11","spacer","susp","guy33","gr85","gr975","gr76","dp11","dpLT","barbed","pgRab","tcRab"].filter(id=>!need.includes(id));
- const dist=shuffle([...new Set([...others,...near])]).slice(0,Math.max(6,Math.round(need.length*0.6)));
+ const rows=kitRows(cur),need=rows.filter(r=>!r.opt&&r.q>0).map(r=>r.id);
+ const sameLv=[...new Set(ORDER.filter(k=>k!==cur&&(K[k].lv===K[cur].lv||K[k].lv==="blk")).flatMap(k=>kitRows(k).map(r=>r.id)))].filter(id=>!need.includes(id));
+ const all=allIdsNow();
+ const near=["ch2200","tarm","varm11","topbr","varm","disc70","hw70","shackle","ltpin","pin11","pin33","htstay","ltstay","espike","gipipe","cipipe","ch7540","abs11","goab","la11u","susp","anchor","guy33","guy11","fdnN","fdnC","basepl","gr975","gr85","dp11","dpLT","acd","pgRab","tcRab","eknob","staycc","spacer","ipc","bmc"].filter(id=>all.has(id)&&!need.includes(id));
+ const dist=shuffle([...new Set([...shuffle(near).slice(0,6),...sameLv])]).slice(0,Math.max(6,Math.round(need.length*0.6)));
  pool=shuffle([...need,...dist]);
  $("#pane").innerHTML=`<p class="hint" style="margin-top:0">Tap every item that belongs in the estimate for this structure (quantities come later). ${need.length} items are needed; some tiles are traps.</p>
  <div class="tiles" id="tiles">`+pool.map(id=>`<button class="tile" data-id="${id}" aria-pressed="false">${esc(C[id][1])}<small>SoR ${C[id][0]}</small></button>`).join("")+`</div>
  <div class="actions"><button class="btn" id="chk">Check</button><button class="btn ghost" id="again">Shuffle again</button><span id="sc" class="score"></span></div><div id="fb"></div>`;
  $("#tiles").querySelectorAll(".tile").forEach(t=>t.onclick=()=>{if(checked)return;const id=t.dataset.id;sel.has(id)?sel.delete(id):sel.add(id);t.setAttribute("aria-pressed",sel.has(id))});
  $("#again").onclick=checklist;
- $("#chk").onclick=()=>{checked=true;let ok=0,miss=[],extra=[];
+ $("#chk").onclick=()=>{if(checked)return;checked=true;let ok=0,miss=[],extra=[];
   $("#tiles").querySelectorAll(".tile").forEach(t=>{const id=t.dataset.id,n=need.includes(id),s=sel.has(id);
    t.classList.add(n&&s?"r-ok":n?"r-miss":s?"r-extra":"x");if(n&&s)ok++;if(n&&!s)miss.push(id);if(!n&&s)extra.push(id);
    if(n||s)t.insertAdjacentHTML("beforeend",`<span class="verdict">${n&&s?"✓ correct":n?"✗ missed":"✗ not needed"}</span>`)});
   const score=Math.max(0,(ok-extra.length)/need.length);record(score);
   const scEl=$("#sc");scEl.textContent=`${ok}/${need.length} found · ${extra.length} wrong picks`;scEl.className="score "+(score>=.9?"good":score>=.6?"mid":"bad");
-  const why=Object.fromEntries(kitRows(cur).map(r=>[r.id,r.why]));
+  const why=Object.fromEntries(rows.map(r=>[r.id,r.why]));
   let fb="";if(miss.length)fb+=`<div class="notes"><div class="note trap"><b>Missed</b><ul style="margin:4px 0 0;padding-left:18px">`+miss.map(id=>`<li><b style="text-transform:none;font-family:var(--f-body);font-size:.88rem">${esc(C[id][1])}</b> ${esc(why[id])}</li>`).join("")+`</ul></div></div>`;
   if(extra.length)fb+=`<div class="notes"><div class="note"><b>Not on this structure</b>${extra.map(id=>esc(C[id][1])).join(" · ")}</div></div>`;
   $("#fb").innerHTML=fb||`<p class="hint">Clean sweep. Try “How many?” next.</p>`};
 }
-function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
-/* quantity quiz */
-function tolOf(u){return u==="Kg"?0.35:u==="Mtr"||u==="Km"?0.25:0}
+function tolOf(u){return u==="Kg"?0.35:u==="Mtr"||u==="Km"||u==="Rm"?0.25:0}
 function qtyQuiz(){
  const rows=kitRows(cur);
- let h=`<p class="hint" style="margin-top:0">Enter the quantity for each item. Kg and metre items pass within a reasonable band (±35% kg, ±25% m); counts must be exact. “Optional” rows accept either 0 or 1.</p><div class="tbl-wrap"><table><thead><tr><th>SoR</th><th>Item</th><th>Unit</th><th class="num">Your qty</th><th>Answer</th></tr></thead><tbody>`;
+ let h=`<p class="hint" style="margin-top:0">Enter the quantity for each item. Kg and metre items pass within a band (±35% kg, ±25% m); counts must be exact. Optional rows accept 0 or 1.</p><div class="tbl-wrap"><table><thead><tr><th>SoR</th><th>Item</th><th>Unit</th><th class="num">Your qty</th><th>Answer</th></tr></thead><tbody>`;
  grouped(rows).forEach(([g,rs])=>{h+=`<tr class="grp"><td colspan="5">${G[g]}</td></tr>`;rs.forEach(r=>{const c=C[r.id];
   h+=`<tr><td class="sor">${c[0]}</td><td>${esc(c[1])}${r.opt?'<span class="opt">optional</span>':''}<div class="why" hidden id="w-${r.id}">${esc(r.why)}</div></td><td>${c[2]}</td><td class="num"><input class="qty" id="q-${r.id}" inputmode="decimal" aria-label="Quantity of ${esc(c[1])}"></td><td><span class="ans" id="a-${r.id}"></span></td></tr>`})});
  h+=`</tbody></table></div><div class="actions"><button class="btn" id="qchk">Check</button><button class="btn ghost" id="qclr">Clear</button><span id="qsc" class="score"></span></div>`;
@@ -562,9 +1028,9 @@ function qtyQuiz(){
  $("#qchk").onclick=()=>{let ok=0,n=0;rows.forEach(r=>{const inp=$("#q-"+r.id),v=parseFloat(inp.value);const u=C[r.id][2],t=tolOf(u);let good;
    if(r.opt){good=isNaN(v)||v===0||v===1}else{n++;good=!isNaN(v)&&(t?Math.abs(v-r.q)<=Math.max(t*r.q,0.01):v===r.q)}
    if(good&&!r.opt)ok++;inp.className="qty "+(good?"ok":"bad");const a=$("#a-"+r.id);a.className="ans "+(good?"ok":"bad");a.textContent=(good?"✓ ":"✗ ")+(r.opt?"0 or 1":fq(r.q));$("#w-"+r.id).hidden=false});
-  const s=ok/n;record(s);const e=$("#qsc");e.textContent=`${ok}/${n} right`;e.className="score "+(s>=.9?"good":s>=.6?"mid":"bad");$("#qnotes").hidden=false};
+  const s=n?ok/n:0;record(s);const e=$("#qsc");e.textContent=`${ok}/${n} right`;e.className="score "+(s>=.9?"good":s>=.6?"mid":"bad");$("#qnotes").hidden=false};
 }
-function record(s){const p=PROG[cur]||{best:0,n:0};p.n++;p.upd=Date.now();p.best=Math.max(p.best,s);PROG[cur]=p;saveProg();buildRail()}
+function record(s){const p=PROG[cur]||{best:0,n:0,upd:0};p.n++;p.best=Math.max(p.best,s);p.upd=Date.now();PROG[cur]=p;saveProg();buildRail();if(typeof scheduleSync==="function")scheduleSync()}
 
 /* ---------- Companions ---------- */
 function renderCards(){
@@ -573,186 +1039,22 @@ function renderCards(){
  $("#cards").querySelectorAll("button").forEach(b=>b.onclick=()=>{const u=$("#fc"+b.dataset.i);u.hidden=!u.hidden;b.textContent=u.hidden?"Reveal":"Hide"});
 }
 
-/* ---------- Line builder ---------- */
-const SYS={
- hv11:{span:45,wires:3,cond:[["rabbit","Rabbit"],["raccoon","Raccoon"]],inter:"h1",angle:"h2",cut:"h3",dead:"h4",dp:"h5",earthEvery:5,earthKit:["cipipe","swg6"]},
- hv33:{span:32,wires:3,cond:[["wolf","Wolf"]],inter:"v1",angle:"v1+stay33",cut:"v2",dead:"v3",dp:"v2x2",earthEvery:1.5,earthKit:["gipipe","swg8"]},
- lt3:{span:45,wires:4,cond:[["weasel","Weasel"],["rabbit","Rabbit"]],inter:"lt3",angle:"lt3+ltstay",cut:"ltend+cut",dead:"ltend",dp:null,earthEvery:9,earthKit:["cipipe","swg6"]},
- lt1:{span:45,wires:2,cond:[["weasel","Weasel"],["rabbit","Rabbit"]],inter:"lt1",angle:"lt1+ltstay",cut:"ltend1+cut",dead:"ltend1",dp:null,earthEvery:9,earthKit:["cipipe","swg6"]},
- abc:{span:33,wires:1,cond:[["abc3","3C×70+1C×50"],["abc395","3C×95+1C×70"]],inter:"abc",angle:"abc+ltstay+anch",cut:"abc+cutabc",dead:"abc+deadabc",dp:null,earthEvery:9,earthKit:["cipipe","swg6"]}
-};
-const STAYHT=[["htstay",1],["guy11",1],["wire710",10],["grst",1],["pclamp",1]],STAY33=[["htstay",1],["guy33",1],["wire710",16],["grst",1],["pclamp",1]],STAYLT=[["ltstay",1],["guylt",1],["wire714",6],["grst",1],["pclamp",1]];
-function kitList(code){
- const base=k=>kitRows(k).filter(r=>!r.opt).map(r=>[r.id,r.q]);
- switch(code){
-  case"v1+stay33":return base("v1").concat(STAY33);
-  case"v2x2":return base("v2").map(([i,q])=>[i,["sp76","gr76"].includes(i)?q*2:i==="htstay"||i==="guy33"||i==="grst"?q*2:i==="wire710"?q*2:i==="pclamp"?8:q]);
-  case"lt3+ltstay":return base("lt3").concat(STAYLT);
-  case"lt1+ltstay":return base("lt1").concat(STAYLT);
-  case"ltend+cut":return base("ltend").concat([["shackle",4],["strap",4],["ltarm",2],["pclamp",2]],STAYLT);
-  case"ltend1":return base("ltend").map(([i,q])=>[i,["shackle","strap"].includes(i)?2:i==="ltarm"?1:i==="pclamp"?2:i==="nb"?2:q]);
-  case"ltend1+cut":return kitList("ltend1").concat([["shackle",2],["strap",2],["ltarm",1],["pclamp",1]],STAYLT);
-  case"abc+ltstay+anch":return base("abc").filter(r=>r[0]!=="susp").concat([["anchor",2],["eyehook",1]],STAYLT);
-  case"abc+cutabc":return base("abc").filter(r=>r[0]!=="susp").concat([["anchor",2],["eyehook",1]],STAYLT,STAYLT,[["cipipe",1],["swg6",2]]);
-  case"abc+deadabc":return base("abc").filter(r=>r[0]!=="susp").concat([["anchor",1],["endcap",4]],STAYLT,[["cipipe",1],["swg6",2]]);
-  default:return base(code);
- }
-}
-function swapCond(id,cond){
- const m={rabbit:{tcRab:"tcRab",pgRab:"pgRab"},raccoon:{tcRab:"tcRac",pgRab:"pgRac",rabbit:"raccoon"}};
- return (m[cond]&&m[cond][id])||id;
-}
-function fillCond(){const s=SYS[$("#b-sys").value];$("#b-cond").innerHTML=s.cond.map(([v,t])=>`<option value="${v}">${t}</option>`).join("");$("#b-span").value=s.span;
- const hv=$("#b-sys").value.startsWith("hv");["b-dp","b-guard","b-tap"].forEach(i=>{$("#"+i).disabled=!hv;if(!hv)$("#"+i).value=0});$("#b-dtr").disabled=$("#b-sys").value!=="hv11";if($("#b-sys").value!=="hv11")$("#b-dtr").value="";}
-function build(){
- const sk=$("#b-sys").value,s=SYS[sk],cond=$("#b-cond").value;
- const L=Math.max(0,+$("#b-len").value||0),span=Math.max(20,+$("#b-span").value||s.span);
- const n={angle:+$("#b-angle").value||0,cut:+$("#b-cut").value||0,dead:+$("#b-dead").value||0,dp:+$("#b-dp").value||0,guard:+$("#b-guard").value||0,tap:+$("#b-tap").value||0};
- const dtr=$("#b-dtr").value,exist=$("#b-start").value==="exist";
- const spans=Math.ceil(L/span),positions=spans+1-(exist?1:0);
- const special=n.angle+n.cut+n.dead+n.dp+(dtr?1:0);
- const inter=positions-special;
- const tally={};const add=(id,q)=>{id=swapCond(id,cond);tally[id]=(tally[id]||0)+q};
- const lines=[];
- lines.push(`Spans = ⌈${L} m ÷ ${span} m⌉ = ${spans}`);
- lines.push(`Pole positions = ${spans} + 1${exist?" − 1 (start pole exists)":""} = ${positions}`);
- lines.push(`Special positions = ${n.angle} angle + ${n.cut} cut-point + ${n.dead} dead-end${s.dp?` + ${n.dp} DP`:""}${dtr?" + 1 DTR DP":""} = ${special}`);
- let warn="";
- if(inter<0)warn=`More special structures (${special}) than pole positions (${positions}). Reduce the specials or lengthen the route.`;
- const I=Math.max(0,inter);lines.push(`Intermediate poles = ${positions} − ${special} = ${I}`);
- const use=(code,count)=>{if(!count)return;kitList(code).forEach(([id,q])=>add(id,q*count))};
- use(s.inter,I);use(s.angle,n.angle);use(s.cut,n.cut);use(s.dead,n.dead);if(s.dp)use(s.dp,n.dp);if(dtr)use(dtr,1);if(n.guard)use("guard",n.guard);if(n.tap)use("h6",n.tap);
- const ne=Math.ceil(I/s.earthEvery);if(ne){add(s.earthKit[0],ne);add(s.earthKit[1],ne*(s.earthKit[1]==="swg8"?1:3))}
- lines.push(`Extra earthing on intermediates: ⌈${I} ÷ ${s.earthEvery}⌉ = ${ne}${sk==="hv33"?" (steel poles: about 2 in 3)":""}`);
- if(sk==="abc"){const m=Math.round(L*1.03);add(cond,m);add("tie",Math.round(spans*15));add("endcap",2);lines.push(`AB cable = ${L} × 1.03 ≈ ${m} m · ties ≈ 15 per span`)}
- else{const km=+(L/1000*s.wires*1.03).toFixed(3);add(cond,km);lines.push(`Conductor = ${L/1000} km × ${s.wires} wires × 1.03 = ${km} km`);
-  if(sk==="lt3"){add("spacer",spans);lines.push(`LT spacers = 1 per span = ${spans}`)}
-  if(sk.startsWith("hv")){const sl=Math.max(0,Math.ceil(L/1000)*s.wires-(L<1000?s.wires:0));if(sl){add(cond==="wolf"?"slWolf":cond==="raccoon"?"slRac":"slRab",sl);lines.push(`Mid-span sleeves ≈ 1 per wire per km beyond the first drum = ${sl}`)}}}
- if(dtr)lines.push(`DTR structure counted as the last pole position.`);
- const ids=Object.keys(tally).filter(i=>tally[i]>0);
- const rows=ids.map(id=>({id,q:+tally[id].toFixed(3)}));
- let mat=0,job=0,unpriced=0;
- let h=`<h2 style="font:700 1.5rem var(--f-display);margin:0 0 10px">Bill of materials</h2><pre class="derive">${lines.map(esc).join("\n")}${warn?`\n<span class="warnline">${esc(warn)}</span>`:""}</pre>
- <div class="tbl-wrap"><table id="btbl"><thead><tr><th>SoR</th><th>Item</th><th>Unit</th><th class="num">Qty</th><th class="num">Rate</th><th class="num">Amount</th></tr></thead><tbody>`;
- grouped(rows).forEach(([g,rs])=>{h+=`<tr class="grp"><td colspan="6">${G[g]}</td></tr>`;rs.forEach(r=>{const c=C[r.id];let q=r.q;if(["No","Set","Job"].includes(c[2]))q=Math.ceil(q-1e-9);r.q=q;
-  const amt=c[3]==null?null:c[3]*q;if(amt==null)unpriced++;else if(g==="job")job+=amt;else mat+=amt;
-  h+=`<tr><td class="sor">${c[0]}</td><td>${esc(c[1])}</td><td>${c[2]}</td><td class="num">${fq(q)}</td><td class="num">${fmt(c[3])}</td><td class="num">${amt==null?"—":fmt(amt)}</td></tr>`})});
- h+=`<tr class="tot"><td colspan="5">A · Materials</td><td class="num">${fmt(mat)}</td></tr><tr class="tot"><td colspan="5">E · Labour-included jobs</td><td class="num">${fmt(job)}</td></tr></tbody></table></div>
- <div class="actions"><button class="btn" id="copy">Copy table for Excel</button><span class="hint" id="copied" style="margin:0"></span></div>
- <p class="hint">Next steps in the estimate format: B = 5% of A (T&amp;S), C = A + B, D = 15% of C (labour), then E jobs, contingency and supervision per who pays, then GST 9% + 9%.${unpriced?` ${unpriced} item(s) need an approved rate.`:""}</p>`;
- $("#bout").innerHTML=h;
- $("#copy").onclick=()=>{const tsv=["SoR\tItem\tUnit\tQty\tRate\tAmount"].concat(rows.map(r=>{const c=C[r.id];return [c[0],c[1],c[2],r.q,c[3]??"",c[3]==null?"":(c[3]*r.q).toFixed(2)].join("\t")})).join("\n");
-  const done=m=>{$("#copied").textContent=m};
-  try{navigator.clipboard.writeText(tsv).then(()=>done("Copied. Paste into Excel."),()=>fallback())}catch(e){fallback()}
-  function fallback(){const ta=document.createElement("textarea");ta.value=tsv;ta.style.width="100%";ta.rows=6;$("#bout").appendChild(ta);ta.select();done("Select-all is ready below; press Ctrl/Cmd+C.")}};
-}
-$("#b-sys").onchange=()=>{fillCond();build()};
-$("#bform").addEventListener("input",e=>{if(e.target.id!=="b-sys")build()});
-$("#bform").addEventListener("submit",e=>e.preventDefault());
-
-/* ---------- Conductors & their accessories ---------- */
-Object.assign(C,{
- squirrel:["444","ACSR Squirrel","Km",18931.20,"cond"], dog:["448","ACSR Dog","Km",74628.64,"cond"], panther:["450","ACSR Panther","Km",163200,"cond"],
- abc1_50:["14","LT AB cable 1C×50+1C×50 (1-ph)","Mtr",122,"cond"], abc1_70:["15","LT AB cable 1C×70+1C×70 (1-ph)","Mtr",144.15,"cond"], abc3120:["21","LT AB cable 3C×120+1C×95","Mtr",375,"cond"],
- abcjoint:["801","Mid-span joint (ABC, insulated)","No",521.67,"cond"], ipc:["802","Insulation piercing connector (IPC) 50–70","No",117.33,"cond"],
- ipcT:["804","IPC tee connector","No",91.50,"cond"], ipcDB:["805","IPC P2×95 (DB feed)","No",83,"cond"],
- db1:["811","Distribution box 1-ph 140 A, 8 connections","No",2075,"eq"], db3:["813","Distribution box 3-ph 250 A, 10 connections","No",5950,"eq"],
- sstrap:["809","Stainless steel strap","Mtr",63,"hw"], buckle:["808","Buckle for steel strap","No",22.67,"hw"],
- mv11_50:["458","11 kV MVCC 1C×50","Mtr",336.50,"cond"], mv11:["461","11 kV MVCC 1C×120","Mtr",485,"cond"], mv33:["455","33 kV MVCC 1C×120","Mtr",586.25,"cond"],
- mvTie:["904","MVCC cable tie (11 kV)","No",925,"ins"], mvTI:["928","MVCC tension insulator (11 kV)","No",1230,"ins"], mvTH:["916","MVCC tension hardware (11 kV)","Set",2200,"ins"],
- mvJoint:["863","MVCC mid-span joint (11 kV)","No",2233.33,"cond"], mvTerm:["875","MVCC termination kit (11 kV)","No",3350,"cab"],
- ugJoint:["—","Straight-through joint kit, 11 kV XLPE","No",null,"cab"], hdpe:["738","HDPE pipe 110 mm","Mtr",570,"cab"],
- spun:["655","CI spun pipe class 1A, 300 mm × 5.5 m","No",12100,"cab"], socket:["475","Socket for CI spun pipe","No",853.65,"cab"],
- hv400_33:["46","33 kV XLPE cable 1C×400 armoured","Mtr",2066.50,"cab"]
-});
-const SIT=[["support","Straight-run support"],["deadend","Dead-end / angle / cut-point"],["joint","Joint in mid-span"],["tap","Tap, branch or jumper"],
- ["equip","Connection to DTR, DO or another conductor type"],["spacing","Keeping the phases apart"],["service","Consumer service"],["earth","Earthing"]];
-const CF={
- bareLT:{n:"Bare ACSR · LT",what:"Bare aluminium strands round a steel core, strung on LT pins and shackles. The everyday LT line on PSC 8.5 m poles.",
-  sizes:[["squirrel","6/1/2.11 mm","20.98","13","80","Short 1-ph rural runs"],["weasel","6/1/2.59 mm","31.61","20","128","Office standard for LT, 1-ph→3-ph conversion"],["rabbit","6/1/3.35 mm","52.88","30","214","Heavier LT trunk near the DTR"]],
-  rule:"Conductor km = route km × wires (2 for 1-ph, 4 for 3-ph) × 1.03. A 100 m 3-ph route needs about 0.42 km.",
-  s:{support:[["ltpin","ltgipin","bind"],"LT pin insulator on an LT GI pin, wire tied with binding wire. Many Samaguri 1-ph sheets use shackle + D-strap on every pole instead."],
-   deadend:[["shackle","strap"],"Wire wrapped round a shackle bolted with a D-strap pair. The pole gets an LT stay."],
-   joint:[["slRab"],"Compression sleeve of the same size, one per joint per wire. Weasel needs a Weasel sleeve; pick the size to match."],
-   tap:[["pgRab"],"PG clamps: 2 per wire per jumper, 1 per wire at a tee-off."],
-   equip:[["pgRab","lug120"],"DTR LT leads are lugged at the MCCB end and PG-clamped to the line. Bare LT to ABC: PG or IPC per core at the junction pole, anchor clamp on the ABC side."],
-   spacing:[["spacer"],"One LT spacer per span on 3-ph 4-wire so the wires can't clash in wind."],
-   service:[["pgRab"],"Service cable tapped off the bare line with a PG/service connector per conductor."],
-   earth:[["cipipe","swg6"],"Neutral earthed at both ends and about every 8–10 poles."]},
-  never:["disc70","tcRab","susp","ipcDB","mvTerm"],
-  notes:[["trap","No disc insulators, tension clamps or channel arms on LT bare lines. Those belong to 11 kV."]]},
- bareHT:{n:"Bare ACSR · 11 kV & 33 kV",what:"Same family of conductor, bigger sizes, carried on pins on straight runs and on disc strings where it is dead-ended.",
-  sizes:[["rabbit","6/1/3.35 mm","52.88","30","214","11 kV rural feeders and taps"],["raccoon","6/1/4.09 mm","78.84","50","319","11 kV trunk feeders, reconductoring"],["dog","6/4.72 + 7/1.57 mm","105","65","394","Heavier 11 kV trunk"],
-   ["wolf","30/2.59 + 7/2.59 mm","158","95","726","33 kV lines"],["panther","30/3.00 + 7/3.00 mm","212","130","974","Heavier 33 kV"]],
-  rule:"About 3.3 km of conductor per route km (3 phases + sag + jumpers + wastage).",
-  s:{support:[["pin11","gipin11","bind"],"Polymer pin insulator on a GI pin of the line voltage (841 at 11 kV, 840 + 613 at 33 kV); conductor tied with binding wire."],
-   deadend:[["disc70","hw70","tcRab"],"Per phase per direction: disc insulator + matching hardware + tension clamp sized to the conductor. Hung from a channel arm, with a stay on the pole."],
-   joint:[["slRab"],"Compression mid-span sleeve sized to the conductor (822 Rabbit, 823 Raccoon, 824 Wolf). Roughly one per wire per km (drum length)."],
-   tap:[["pgRab","do11"],"Jumper at a cut-point: 2 PG per phase. Branch line: PG clamps at the tee and a DO set on the branch."],
-   equip:[["pgRab","la11"],"Jumpers down to DO, GOAB and DTR bushings with PG clamps; LA at the DTR. Where bare meets MVCC or cable, use their termination kits."],
-   spacing:[[],"Phase spacing comes from the cross-arm. No spacers on HT."],
-   service:[[],"No direct service from an 11 kV bare line except HT consumers, who get CT-PT metering."],
-   earth:[["cipipe","swg6"],"Every special structure and about every 4th–5th pole; guard cradles at road and LT crossings."]},
-  never:["shackle","spacer","susp","ipc","mvTie"],
-  notes:[["trap","Size-specific items change with the conductor: tension clamp, PG clamp and sleeve. Rabbit fittings on a Raccoon line is a common copy-paste slip."],["tip","Raccoon and Rabbit use the same pins, discs and hardware. Only clamps and sleeves change."]]},
- abc:{n:"LT AB cable",what:"Insulated phase cores twisted round an insulated neutral messenger that carries the weight. Theft-resistant and safe to touch; the standard for RDSS LT conversion.",
-  sizes:[["abc1_50","1C×50 + 1C×50","—","—","—","1-ph lanes"],["abc1_70","1C×70 + 1C×70","—","—","—","1-ph heavier"],["abc3","3C×70 + 1C×50","—","—","—","3-ph standard"],["abc395","3C×95 + 1C×70","—","—","—","3-ph near DTR"],["abc3120","3C×120 + 1C×95","—","—","—","3-ph trunk off 100+ kVA DTR"]],
-  rule:"Cable m = route m × 1.03. One bundle carries all phases, so don't multiply by wires.",
-  s:{support:[["susp","eyehook","pclamp"],"The bundle hangs in a suspension clamp on an eye hook (or I-hook 654) clamped to the pole."],
-   deadend:[["anchor","eyehook"],"Anchor clamp grips the neutral messenger: 1 at a dead-end, 2 at a cut-point or sharp angle. LT stay on the pole."],
-   joint:[["abcjoint"],"Insulated mid-span joint, one per core."],
-   tap:[["ipc","ipcT"],"Insulation piercing connectors bite through the insulation without stripping it. That is why ABC has no PG clamps."],
-   equip:[["ipc","lug120"],"At the DTR: cores lugged into the MCCB. Joining an old bare line: IPC/PG per core at the junction pole."],
-   spacing:[["tie"],"Cores are already insulated and bundled. Ties (819), about 15 per span, keep the bundle neat."],
-   service:[["db1","db3","ipcDB","sstrap","buckle"],"Distribution box strapped to the pole (steel strap + 2 buckles) and fed by IPC P2×95; consumers' service cables leave from the DB."],
-   earth:[["cipipe","swg6"],"Neutral messenger earthed at both ends and at DBs."]},
-  never:["ltpin","disc70","shackle","pgRab","spacer","bind"],
-  notes:[["tip","End caps (807) seal every cut core end at the end of a run and at DBs."],["trap","If an ABC estimate shows LT pins, shackles or spacers, it was copied from a bare-line sheet."]]},
- mvcc:{n:"MVCC (covered conductor, 11 kV & 33 kV)",what:"A conductor with a polymer covering. It still looks like an overhead line on pins, but the covering cuts faults from branches and birds. Used in elephant corridors, forests and congested bazaars.",
-  sizes:[["mv11_50","1C×50 AAAC covered","—","—","—","11 kV taps, PHE/JJM supplies"],["mv11","1C×120 AAAC covered","—","—","—","11 kV feeders"],["mv33","1C×120 AAAC covered","—","—","—","33 kV lines"]],
-  rule:"3,300 m per route km (3 phases × 1.1). Spans about 30 m, so about 32 poles per km.",
-  s:{support:[["pin11","gipin11","mvTie"],"Still on pin insulators, but fixed with a preformed MVCC tie instead of bare binding wire (about 3–4 ties per pole)."],
-   deadend:[["mvTI","mvTH"],"MVCC tension insulator + MVCC tension hardware per phase per direction. These replace the disc string and tension clamp."],
-   joint:[["mvJoint"],"MVCC mid-span joint (863 at 11 kV, 857 at 33 kV)."],
-   tap:[["ipc"],"Tap with insulation piercing connectors. No PG clamps on covered conductor."],
-   equip:[["mvTerm","la11"],"Termination kit on every phase end where MVCC meets bare conductor, a DO, GOAB or DTR; LA set at that point."],
-   spacing:[[],"Spacing comes from the cross-arm, as on bare lines."],
-   service:[[],"Not used for consumer services."],
-   earth:[["cipipe","swg6"],"Pole earthing as for any 11 kV/33 kV line."]},
-  never:["disc70","tcRab","pgRab","shackle","spacer"],
-  notes:[["trap","Don't charge disc strings and MVCC tension insulators for the same dead-end. One replaces the other."],["tip","Count termination kits at every bare↔MVCC transition, both ends of the MVCC section."]]},
- ug:{n:"HT underground cable (XLPE)",what:"Armoured XLPE cable laid in the ground or in pipes. Used at railway and road crossings, substation exits and where overhead is impossible.",
-  sizes:[["hv300","11 kV 1C×300 armoured","—","—","—","Railway/road crossings, feeder exits"],["hv400_33","33 kV 1C×400 armoured","—","—","—","33 kV crossings"]],
-  rule:"Cable m = (route + 10–15 m per end for riser and slack) × runs × 3 for single-core. Railway crossing: 2 runs × 3 phases ≈ 600–660 m.",
-  s:{support:[["hdpe","spun","socket"],"Laid in a trench, HDPE pipe, or CI spun pipe with sockets under roads and tracks (or horizontal boring)."],
-   deadend:[["kit300","la11"],"At each riser pole: outdoor termination kit per core end, LA set, cable clamps on the pole and a GI guard pipe."],
-   joint:[["ugJoint"],"Straight-through joint kit where two drum lengths meet."],
-   tap:[[],"No taps on UG cable. Branch at a riser pole or an RMU."],
-   equip:[["kit300"],"Indoor termination kit at a panel, outdoor kit at a pole."],
-   spacing:[[],"Not applicable."],
-   service:[[],"Not applicable."],
-   earth:[["cipipe","swg6"],"Armour and screen bonded to the riser-pole earth at both ends."]},
-  never:["pin11","disc70","pgRab","susp","ipc"],
-  notes:[["tip","Termination kit count for single-core: runs × 3 cores × 2 ends. One 11 kV crossing with 2 runs = 12 kits."],["trap","Lugs come inside the termination kit. Don't add separate lugs for HT cable."]]}
-};
+/* ---------- Conductors ---------- */
 let cfam="bareHT";
 function renderCond(){
- const f=CF[cfam];
+ const f=CF[cfam],full=f.hdr[1]!=="—";
  let h=`<div class="chips" role="group" aria-label="Conductor family">`+Object.keys(CF).map(k=>`<button data-f="${k}" aria-pressed="${k===cfam}">${esc(CF[k].n)}</button>`).join("")+`</div>`;
  h+=`<div class="kit" style="margin-top:14px"><div class="eyebrow">Conductor family</div><h2>${esc(f.n)}</h2><p class="scenario">${esc(f.what)}</p>`;
- h+=`<div class="tbl-wrap" style="margin-top:14px"><table><thead><tr><th>SoR</th><th>Size</th><th>Stranding</th><th class="num">Al mm²</th><th class="num">Cu eq.</th><th class="num">kg/km</th><th class="num">Rate</th><th>Typical use</th></tr></thead><tbody>`+
-  f.sizes.map(([id,st,al,cu,kg,use])=>{const c=C[id];return `<tr><td class="sor">${c[0]}</td><td>${esc(c[1])}</td><td>${esc(st)}</td><td class="num">${al}</td><td class="num">${cu}</td><td class="num">${kg}</td><td class="num">${fmt(c[3])}/${c[2]==="Km"?"km":"m"}</td><td>${esc(use)}</td></tr>`}).join("")+`</tbody></table></div>`;
- h+=`<p class="hint"><b>Length rule:</b> ${esc(f.rule)}</p>`;
+ h+=`<div class="tbl-wrap" style="margin-top:14px"><table><thead><tr><th>SoR</th><th>Item</th>${full?f.hdr.map((x,i)=>`<th class="${i?'num':''}">${x}</th>`).join(""):`<th>${f.hdr[0]}</th>`}<th class="num">Rate</th><th>Typical use</th></tr></thead><tbody>`+
+  f.sizes.map(z=>{const c=C[z[0]];const cols=full?z.slice(1,6).map((v,i)=>`<td class="${i?'num':''}">${esc(v)}</td>`).join(""):`<td>${esc(z[1])}</td>`;return `<tr><td class="sor">${c[0]}</td><td>${esc(c[1])}</td>${cols}<td class="num">${c[3]==null?"—":fmt(c[3])+"/"+(c[2]==="Km"?"km":"m")}</td><td>${esc(z[6])}</td></tr>`}).join("")+`</tbody></table></div>`;
+ h+=(f.extra||"")+`<p class="hint"><b>Length rule:</b> ${esc(f.rule)}</p>`;
  h+=`<div class="sits">`+SIT.map(([k,lab])=>{const [ids,txt]=f.s[k];return `<div class="sit"><h4>${lab}</h4>${ids.length?`<ul>`+ids.map(i=>`<li>${esc(C[i][1])} <span class="sorchip">${C[i][0]}</span></li>`).join("")+`</ul>`:`<p class="none">Nothing extra</p>`}<p class="why">${esc(txt)}</p></div>`}).join("")+`</div>`;
  h+=`<div class="never"><h4>Never with ${esc(f.n.split(" (")[0])}</h4><div>`+f.never.map(i=>`<span class="nchip">${esc(C[i][1])}</span>`).join("")+`</div></div>`;
- h+=(f.notes||[]).length?`<div class="notes">`+f.notes.map(([t,x])=>`<div class="note ${t==='trap'?'trap':''}"><b>${t==='trap'?'Watch out':'Note'}</b>${esc(x)}</div>`).join("")+`</div>`:"";
- h+=`</div>`;
- /* matrix */
+ h+=notesHtml(f.notes)+`</div>`;
  const fams=Object.keys(CF);
  h+=`<div class="kit" style="margin-top:16px"><div class="eyebrow">Side by side</div><h2>What goes with what</h2><div class="tbl-wrap"><table class="matrix"><thead><tr><th>Situation</th>`+fams.map(k=>`<th>${esc(CF[k].n.split(" (")[0])}</th>`).join("")+`</tr></thead><tbody>`+
   SIT.map(([k,lab])=>`<tr><td><b>${lab}</b></td>`+fams.map(fk=>{const ids=CF[fk].s[k][0];return `<td>${ids.length?ids.map(i=>esc(shortN(i))).join("<br>"):'<span class="none">—</span>'}</td>`}).join("")+`</tr>`).join("")+`</tbody></table></div></div>`;
- /* quiz */
- h+=`<div class="kit" style="margin-top:16px"><div class="eyebrow">Test yourself</div><h2 id="cq-title"></h2><p class="hint" style="margin-top:0">Tap everything that this conductor needs in this situation. Some tiles belong to other conductor types.</p><div class="tiles" id="cq-tiles"></div>
+ h+=`<div class="kit" style="margin-top:16px"><div class="eyebrow">Test yourself</div><h2 id="cq-title"></h2><p class="hint" style="margin-top:0">Tap everything this conductor needs in this situation. Some tiles belong to other conductor types.</p><div class="tiles" id="cq-tiles"></div>
  <div class="actions"><button class="btn" id="cq-chk">Check</button><button class="btn ghost" id="cq-next">Next question</button><span class="score" id="cq-sc"></span></div><div id="cq-fb"></div></div>`;
  $("#condbox").innerHTML=h;
  $("#condbox").querySelectorAll(".chips button").forEach(b=>b.onclick=()=>{cfam=b.dataset.f;renderCond()});
@@ -775,19 +1077,156 @@ function condQ(){
  $("#cq-chk").onclick=()=>{if(cqDone)return;cqDone=true;let ok=0,ex=0;
   $("#cq-tiles").querySelectorAll(".tile").forEach(t=>{const id=t.dataset.id,n=need.includes(id),s=cqSel.has(id);t.classList.add(n&&s?"r-ok":n?"r-miss":s?"r-extra":"x");
    if(n&&s)ok++;if(!n&&s)ex++;if(n||s)t.insertAdjacentHTML("beforeend",`<span class="verdict">${n&&s?"✓ correct":n?"✗ missed":"✗ not here"}</span>`)});
-  const full=ok===need.length&&ex===0;CQS.n++;if(full)CQS.ok++;
-  const e=$("#cq-sc");e.textContent=`${CQS.ok} of ${CQS.n} answered fully right`;e.className="score "+(full?"good":"bad");
-  $("#cq-fb").innerHTML=`<div class="notes"><div class="note ${full?'':'trap'}"><b>${full?'Right':'Answer'}</b>${esc(CF[f].s[k][1])}</div></div>`};
+  const fullOk=ok===need.length&&ex===0;CQS.n++;if(fullOk)CQS.ok++;
+  const e=$("#cq-sc");e.textContent=`${CQS.ok} of ${CQS.n} answered fully right`;e.className="score "+(fullOk?"good":"bad");
+  $("#cq-fb").innerHTML=`<div class="notes"><div class="note ${fullOk?'ok':'trap'}"><b>${fullOk?'Right':'Answer'}</b>${esc(CF[f].s[k][1])}</div></div>`};
 }
 
-/* ---------- tabs ---------- */
+/* ---------- Line builder ---------- */
+const SYS={
+ hv11:{span:{rdss:60,apdcl:45},wires:3,cond:[["rabbit","Rabbit"],["raccoon","Raccoon"],["dog","Dog"]],inter:"h1",small:"h2",ang:"h3",heavy:"h5",dead:"h4",sw:"h6",stay:"hv",max:107,min:50},
+ hv33:{span:{rdss:45,apdcl:32},wires:3,cond:[["wolf","Wolf"],["panther","Panther"]],inter:"v1",small:"v1+st",ang:"v2",heavy:"v2+st",dead:"v3",sw:null,stay:"ehv",max:0,min:0},
+ lt3:{span:{rdss:45,apdcl:45},wires:4,cond:[["weasel","Weasel"],["rabbit","Rabbit"]],inter:"lt3H",small:"lt3H+st",ang:"lt3D+cut",heavy:"lt3D+cut+st",dead:"lt3D",sw:null,stay:"lt",max:67,min:50},
+ lt1:{span:{rdss:45,apdcl:45},wires:2,cond:[["weasel","Weasel"],["squirrel","Squirrel"],["rabbit","Rabbit"]],inter:"lt1I",small:"lt1I+st",ang:"lt1D+cut",heavy:"lt1D+cut+st",dead:"lt1D",sw:null,stay:"lt",max:67,min:50},
+ abc:{span:{rdss:40,apdcl:40},wires:1,cond:[["abc3","3C×70 + 1C×50"],["abc395","3C×95 + 1C×70"],["abc3120","3C×120 + 1C×95"]],inter:"abcI",small:"abcI+st",ang:"abcD+cut",heavy:"abcD+cut+st",dead:"abcD",sw:null,stay:"lt",max:0,min:0}
+};
+const STAYL={hv:{lv:"hv",r:[["htstay",1],["guy11",1],["wire710",10],["staycc",1],["pclamp",1]]},lt:{lv:"lt",r:[["ltstay",1],["guylt",1],["wire712",6],["staycc",1],["pclamp",1]]},ehv:{lv:"ehv",r:[["stay20",1],["guy33",1],["wire78",16],["staycc",1],["pclamp",1]]}};
+const sub=(list,lv)=>swapRows(list.map(([id,q])=>({id,q})),lv).map(r=>[r.id,r.q]);
+function kitList(code,sys){
+ const base=k=>kitRows(k).filter(r=>!r.opt).map(r=>[r.id,r.q]);
+ const [k,...mods]=code.split("+");let L=base(k);const lv=K[k].lv;
+ mods.forEach(m=>{
+  if(m==="st")L=L.concat(sub(STAYL[sys.stay].r,STAYL[sys.stay].lv));
+  if(m==="cut"){if(k==="lt3D")L=L.concat(sub([["shackle",4],["ucl",4]],lv));else if(k==="lt1D")L=L.concat(sub([["shackle",2],["ucl",2],["pclamp",1]],lv));else if(k==="abcD")L=L.filter(r=>r[0]!=="endcap").concat(sub([["anchor",1],["eyehook",1],["pclamp",1]],lv))}
+ });
+ return L;
+}
+function swapCond(id,cond){
+ const m={raccoon:{tcRab:"tcRac",pgRab:"pgRac",slRab:"slRac"},dog:{tcRab:"tcRac",pgRab:"pgRac",slRab:"slRac"},panther:{tcWolf:"tcWolf",pgWolf:"pgWolf"}};
+ return (m[cond]&&m[cond][id])||id;
+}
+function fillCond(){const k=$("#b-sys").value,s=SYS[k];$("#b-cond").innerHTML=s.cond.map(([v,t])=>`<option value="${v}">${t}</option>`).join("");$("#b-span").value=s.span[STD];
+ const hv=k==="hv11";["b-sw","b-tap","b-guard"].forEach(i=>{$("#"+i).disabled=!hv;if(!hv)$("#"+i).value=0});$("#b-auto").disabled=!hv;$("#b-dtr").disabled=!hv;if(!hv)$("#b-dtr").value="";}
+let BROWS=[];
+function build(){
+ const sk=$("#b-sys").value,s=SYS[sk],cond=$("#b-cond").value;
+ const L=Math.max(0,+$("#b-len").value||0),span=Math.max(20,+$("#b-span").value||s.span[STD]);
+ const g=id=>Math.max(0,Math.floor(+$("#"+id).value||0));
+ const n={small:g("b-small"),ang:g("b-ang"),heavy:g("b-heavy"),dead:g("b-dead"),sw:g("b-sw"),tap:g("b-tap"),guard:g("b-guard")};
+ const storm=g("b-storm"),dtr=$("#b-dtr").value,exist=$("#b-start").value==="exist";
+ const sect=sk==="hv11"&&$("#b-auto").checked?Math.floor(L/1600):0;
+ const spans=Math.ceil(L/span),positions=spans+1-(exist?1:0);
+ const special=n.small+n.ang+n.heavy+n.dead+n.sw+sect+(dtr?1:0);
+ const inter=positions-special;
+ const tally={};const add=(id,q)=>{id=swapCond(id,cond);tally[id]=(tally[id]||0)+q};
+ const lines=[],warns=[];
+ lines.push(`Spans = ⌈${L} m ÷ ${span} m⌉ = ${spans}`);
+ lines.push(`Pole positions = ${spans} + 1${exist?" − 1 (start pole exists)":""} = ${positions}`);
+ if(sect)lines.push(`Section DPs = ⌊${L} ÷ 1600⌋ = ${sect} (11KV/04A)`);
+ lines.push(`Special positions = ${n.small} small angle + ${n.ang} angle + ${n.heavy} heavy-angle DP + ${n.dead} dead-end${n.sw?` + ${n.sw} AB-switch DP`:""}${sect?` + ${sect} section DP`:""}${dtr?" + 1 DT":""} = ${special}`);
+ if(inter<0)warns.push(`More special locations (${special}) than pole positions (${positions}). Reduce the specials or lengthen the route.`);
+ const I=Math.max(0,inter);lines.push(`Intermediate poles = ${positions} − ${special} = ${I}`);
+ if(s.max&&span>s.max)warns.push(`Span ${span} m is over the ${s.max} m allowed for this structure (${sk==="hv11"?"REC 11 kV":"LT-OH/10"}).`);
+ if(s.min&&span<s.min)lines.push(`Note: QAM asks for the reason when spans are under ${s.min} m.`);
+ if(dtr&&n.dead)warns.push(`The line ends on the DT, so its dead-end is part of the DT kit. Set dead-end to 0 unless there's another end.`);
+ const use=(code,count)=>{if(!count)return;kitList(code,s).forEach(([id,q])=>add(id,q*count))};
+ use(s.inter,I);use(s.small,n.small);use(s.ang,n.ang);use(s.heavy,n.heavy);use(s.dead,n.dead);if(s.sw)use(s.sw,n.sw);if(sect)use("h5",sect);
+ if(dtr)use(dtr,1);if(n.guard)use("guard",n.guard);if(n.tap)use("h9",n.tap);
+ const ns=storm?Math.floor(I/storm):0;if(ns){sub(STAYL[s.stay].r,STAYL[s.stay].lv).forEach(([id,q])=>add(id,q*ns));lines.push(`Storm stays on intermediates = ⌊${I} ÷ ${storm}⌋ = ${ns} (QAM: every 6th pole in a section)`)}
+ lines.push(`Earthing: in every pole kit (QAM: each 11 kV and LT pole earthed)`);
+ if(sk==="abc"){const m=Math.round(L*1.03);add(cond,m);lines.push(`AB cable = ${L} × 1.03 ≈ ${m} m`)}
+ else{const km=+(L/1000*s.wires*1.03).toFixed(3);add(cond,km);lines.push(`Conductor = ${L/1000} km × ${s.wires} wires × 1.03 = ${km} km`);
+  if(sk==="lt3"){add("spacer",spans);lines.push(`PVC spacers = 1 per span = ${spans}`)}
+  const perWire=L/1000*1.03,jw=Math.max(0,Math.ceil(perWire/2)-1);if(jw&&sk.startsWith("hv")){const sl=jw*s.wires;add(sk==="hv33"?"slWolf":"slRab",sl);lines.push(`Mid-span joints ≈ ${jw} per wire (2 km drums) × ${s.wires} = ${sl}`)}}
+ if(dtr)lines.push(`DT structure counted as the last pole position.`);
+ const ids=Object.keys(tally).filter(i=>tally[i]>0);
+ BROWS=ids.map(id=>({id,q:+tally[id].toFixed(3)}));
+ let mat=0,job=0,unpriced=0;
+ let h=`<h2 style="font:700 1.5rem var(--f-display);margin:0 0 10px">Bill of materials</h2><pre class="derive">${lines.map(esc).join("\n")}${warns.map(w=>`\n<span class="warnline">${esc(w)}</span>`).join("")}</pre>
+ <div class="tbl-wrap"><table id="btbl"><thead><tr><th>SoR</th><th>Item</th><th>Unit</th><th class="num">Qty</th><th class="num">Rate</th><th class="num">Amount</th></tr></thead><tbody>`;
+ grouped(BROWS).forEach(([gk,rs])=>{h+=`<tr class="grp"><td colspan="6">${G[gk]}</td></tr>`;rs.forEach(r=>{const c=C[r.id];let q=r.q;if(["No","Set","Job"].includes(c[2]))q=Math.ceil(q-1e-9);r.q=q;
+  const amt=c[3]==null?null:c[3]*q;if(amt==null)unpriced++;else if(gk==="job")job+=amt;else mat+=amt;
+  h+=`<tr><td class="sor">${c[0]}</td><td>${esc(c[1])}</td><td>${c[2]}</td><td class="num">${fq(q)}</td><td class="num">${fmt(c[3])}</td><td class="num">${amt==null?"—":fmt(amt)}</td></tr>`})});
+ h+=`<tr class="tot"><td colspan="5">A · Materials (priced items)</td><td class="num">${fmt(mat)}</td></tr><tr class="tot"><td colspan="5">E · Labour-included jobs</td><td class="num">${fmt(job)}</td></tr></tbody></table></div>
+ <div class="actions"><button class="btn" id="copy">Copy table for Excel</button><span class="hint" id="copied" style="margin:0"></span></div>
+ <p class="hint">Next steps in the estimate format: B = 5% of A (T&amp;S), C = A + B, D = 15% of C (labour), then E jobs, contingency and supervision per who pays, then GST 9% + 9%.${unpriced?` ${unpriced} item(s) need an approved rate${STD==="rdss"?" (or switch to APDCL SoR at the top)":""}.`:""}</p>`;
+ $("#bout").innerHTML=h;
+ $("#copy").onclick=()=>{const tsv=["SoR\tItem\tUnit\tQty\tRate\tAmount"].concat(BROWS.map(r=>{const c=C[r.id];return [c[0],c[1],c[2],r.q,c[3]??"",c[3]==null?"":(c[3]*r.q).toFixed(2)].join("\t")})).join("\n");
+  const done=m=>{$("#copied").textContent=m};
+  function fallback(){const ta=document.createElement("textarea");ta.value=tsv;ta.style.width="100%";ta.rows=6;$("#bout").appendChild(ta);ta.select();done("Selected below; press Ctrl/Cmd+C.")}
+  try{navigator.clipboard.writeText(tsv).then(()=>done("Copied. Paste into Excel."),fallback)}catch(e){fallback()}};
+}
+$("#b-sys").onchange=()=>{fillCond();build()};
+$("#bform").addEventListener("input",e=>{if(e.target.id!=="b-sys")build()});
+$("#bform").addEventListener("change",e=>{if(e.target.type==="checkbox")build()});
+$("#bform").addEventListener("submit",e=>e.preventDefault());
+
+/* ---------- QAM ---------- */
+let qtab="rules",QS={ok:0,n:0},qOrder=[],qi=0;
+let QCK={};try{QCK=JSON.parse(lsGet("p2b-qck","{}"))||{}}catch(e){QCK={}}
+function renderQ(){
+ const tabs=[["rules","Defect categories"],["drill","Defect drill"],["dt","DT checklist"],["hv","11 kV line"],["lt","LT line"],["svc","Service"],["ss","33/11 S/S"]];
+ $("#qtabs").innerHTML=tabs.map(([k,t])=>`<button data-q="${k}" aria-pressed="${k===qtab}">${t}</button>`).join("");
+ $("#qtabs").querySelectorAll("button").forEach(b=>b.onclick=()=>{qtab=b.dataset.q;renderQ()});
+ let h="";
+ if(qtab==="rules"){
+  h=`<div class="qgrid">`+QRULE.map(r=>`<div class="card"><span class="cat ${r.k}">${QCAT[r.k]}</span><h4>${esc(r.t)}</h4><p class="lead">${esc(r.d)}</p><p style="margin:0;font-size:.85rem"><b>Examples:</b> ${esc(r.ex)}</p></div>`).join("")+`</div>`;
+  h+=`<div class="kit sec"><div class="eyebrow">Material and quantity checks</div><h2>How inspectors grade what you supplied</h2><div class="tbl-wrap"><table><thead><tr><th>Class</th><th>Check</th><th>When</th></tr></thead><tbody>`+QMAT.map(([k,a,b])=>`<tr><td><span class="cat ${k}">${QCAT[k]}</span></td><td>${a}</td><td>${esc(b)}</td></tr>`).join("")+`</tbody></table></div>
+  <p class="hint">The report also needs a village SLD with every DT, HT pole and LT pole numbered (H1…, L1…, DTR1…), and each defect photo numbered against it.</p></div>`;
+ }else if(qtab==="drill"){
+  if(!qOrder.length){qOrder=shuffle(QDEF.map((_,i)=>i));qi=0}
+  const d=QDEF[qOrder[qi%qOrder.length]];
+  h=`<div class="drill"><div class="eyebrow">Defect ${qi%qOrder.length+1} of ${qOrder.length}</div><p class="q">${esc(d[0])}</p><div class="choices">`+["c","m","n"].map(k=>`<button data-k="${k}">${QCAT[k]}</button>`).join("")+`</div><div id="qfb"></div>
+  <div class="actions"><button class="btn ghost" id="qnext">Next defect</button><span class="score" id="qsc">${QS.n?`${QS.ok} of ${QS.n} right`:""}</span></div></div>`;
+ }else{
+  const c=QCHK[qtab],st=QCK[qtab]||{};
+  h=`<div class="kit"><div class="eyebrow">Self-check before inspection</div><h2>${esc(c.t)}</h2><ul class="cl">`+c.items.map((t,i)=>`<li><label><input type="checkbox" data-i="${i}" ${st[i]?"checked":""}><span>${esc(t)}</span></label></li>`).join("")+`</ul>
+  <div class="actions"><button class="btn ghost" id="qclear">Clear ticks</button><span class="hint" id="qcount" style="margin:0"></span></div><p class="hint">Ticks stay on this device only.</p></div>`;
+ }
+ $("#qbox").innerHTML=h;
+ if(qtab==="drill"){const d=QDEF[qOrder[qi%qOrder.length]];let done=false;
+  $("#qbox").querySelectorAll(".choices button").forEach(b=>b.onclick=()=>{if(done)return;done=true;const ok=b.dataset.k===d[1];QS.n++;if(ok)QS.ok++;
+   $("#qbox").querySelectorAll(".choices button").forEach(x=>{if(x.dataset.k===d[1])x.classList.add("right");else if(x===b)x.classList.add("wrong")});
+   $("#qfb").innerHTML=`<div class="notes"><div class="note ${ok?'ok':'trap'}"><b>${ok?'Right':'It is '+QCAT[d[1]]}</b>${esc(d[2])}</div></div>`;$("#qsc").textContent=`${QS.ok} of ${QS.n} right`});
+  $("#qnext").onclick=()=>{qi++;if(qi%qOrder.length===0)qOrder=shuffle(qOrder);renderQ()};}
+ else if(QCHK[qtab]){const upd=()=>{const st=QCK[qtab]||{};const n=Object.values(st).filter(Boolean).length;$("#qcount").textContent=`${n} of ${QCHK[qtab].items.length} ticked`};upd();
+  $("#qbox").querySelectorAll(".cl input").forEach(i=>i.onchange=()=>{QCK[qtab]=QCK[qtab]||{};QCK[qtab][i.dataset.i]=i.checked;lsSet("p2b-qck",JSON.stringify(QCK));upd()});
+  $("#qclear").onclick=()=>{QCK[qtab]={};lsSet("p2b-qck",JSON.stringify(QCK));renderQ()};}
+}
+
+/* ---------- Ratings & specs ---------- */
+let stab="ltdb",fcards=[],fi=0,FS={k:0,n:0};
+function renderSpec(){
+ const tabs=Object.keys(SPEC).map(k=>[k,SPEC[k].t]).concat([["drill","Fact drill"]]);
+ $("#stabs").innerHTML=tabs.map(([k,t])=>`<button data-s="${k}" aria-pressed="${k===stab}">${esc(t)}</button>`).join("");
+ $("#stabs").querySelectorAll("button").forEach(b=>b.onclick=()=>{stab=b.dataset.s;renderSpec()});
+ let h="";
+ if(stab==="drill"){
+  if(!fcards.length){Object.keys(SPEC).forEach(k=>SPEC[k].facts.forEach(([q,a])=>fcards.push([SPEC[k].t,q,a])));shuffle(fcards);fi=0}
+  const f=fcards[fi%fcards.length];
+  h=`<div class="flash"><div class="eyebrow">${esc(f[0])} · card ${fi%fcards.length+1} of ${fcards.length}</div><p class="q" style="font:600 1.3rem/1.3 var(--f-display);margin:6px 0">${esc(f[1])}?</p><p class="hint" style="margin:0">Say the number or rule out loud, then reveal.</p>
+  <div class="a" id="fa" hidden>${esc(f[2])}</div><div class="actions"><button class="btn" id="frev">Reveal</button><button class="btn ghost" id="fyes" hidden>I knew it</button><button class="btn ghost" id="fno" hidden>Didn't know</button><span class="score">${FS.n?`${FS.k} of ${FS.n} known`:""}</span></div></div>`;
+ }else{
+  const S=SPEC[stab];h=`<div class="kit"><div class="eyebrow">${esc(S.src)}</div><h2>${esc(S.t)}</h2>`;
+  if(S.table)h+=`<div class="tbl-wrap" style="margin-top:10px"><table><thead><tr>${S.table[0].map(x=>`<th>${esc(x)}</th>`).join("")}</tr></thead><tbody>`+S.table.slice(1).map(r=>`<tr>${r.map(x=>`<td>${esc(x)}</td>`).join("")}</tr>`).join("")+`</tbody></table></div>`;
+  h+=`<div class="tbl-wrap" style="margin-top:12px"><table class="facts"><tbody>`+S.facts.map(([a,b])=>`<tr><td>${esc(a)}</td><td>${esc(b)}</td></tr>`).join("")+`</tbody></table></div></div>`;
+ }
+ $("#sbox").innerHTML=h;
+ if(stab==="drill"){const nx=k=>{FS.n++;if(k)FS.k++;fi++;renderSpec()};
+  $("#frev").onclick=()=>{$("#fa").hidden=false;$("#frev").hidden=true;$("#fyes").hidden=false;$("#fno").hidden=false};
+  $("#fyes").onclick=()=>nx(1);$("#fno").onclick=()=>{fcards.splice(fi%fcards.length+3,0,fcards[fi%fcards.length]);nx(0)};}
+}
+
+/* ---------- pattern toggle & tabs ---------- */
+function setStd(v){STD=v;lsSet("p2b-std",v);document.querySelectorAll("#stdseg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.std===v));renderKit();fillCond();build()}
+document.querySelectorAll("#stdseg button").forEach(b=>b.onclick=()=>setStd(b.dataset.std));
+const VIEWS=["kits","comp","cond","build","qam","spec"];
 document.querySelectorAll("nav.tabs button").forEach(b=>b.onclick=()=>{
  document.querySelectorAll("nav.tabs button").forEach(x=>x.setAttribute("aria-selected",x===b));
- ["kits","comp","cond","build"].forEach(v=>$("#v-"+v).hidden=v!==b.dataset.view);
+ VIEWS.forEach(v=>$("#v-"+v).hidden=v!==b.dataset.view);
  if(b.dataset.view==="build")build();
 });
-
-
+document.querySelectorAll("#stdseg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.std===STD));
 /* ---------- Device sync (shares Total Recall's sync code and encrypted cloud bridge) ---------- */
 const SYNC_KEY="totalRecallSyncCode_v1";let SYNC_URL="https://total-recall-ticktick.pranjuchakrapani90.workers.dev";
 try{SYNC_URL=localStorage.getItem("totalRecallTickTickUrl")||SYNC_URL}catch(e){}
@@ -816,9 +1255,8 @@ async function cloudSync(){const code=syncCode();if(!code){setSync("off");return
  catch(e){setSync("err",String(e&&e.message||e))}
  finally{SY.busy=false;if(SY.again){SY.again=false;scheduleSync()}}}
 
-buildRail();renderKit();renderCards();renderCond();fillCond();build();
+buildRail();renderKit();renderCards();renderCond();fillCond();build();renderQ();renderSpec();
 setSync(syncCode()?"busy":"off");cloudSync();
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)cloudSync()});
 </script>
 </body></html>
-
