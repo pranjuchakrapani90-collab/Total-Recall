@@ -1,0 +1,200 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#2f5d7c">
+<title>APDCL BoM Kits · Total Recall &amp; Melodies</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one column register — filter bar, then a ruled list of kits that open into BoM tables and a cost abstract */
+:root{
+  --bg:#f4f6f8; --surface:#ffffff; --fg:#1b2530; --muted:#5b6b7a; --line:#d5dde5;
+  --accent:#c9501c; --accent-soft:#fbe9df; --steel:#2f5d7c; --steel-soft:#e3edf4; --warn:#9a6a00; --warn-soft:#fdf3d6;
+  --display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --body:"Barlow","Segoe UI",Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111820; --surface:#18222c; --fg:#e4eaf0; --muted:#93a4b4; --line:#2b3846;
+  --accent:#f0814e; --accent-soft:#3a2219; --steel:#8cbad8; --steel-soft:#1d3142; --warn:#e8c15a; --warn-soft:#352b10; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111820; --surface:#18222c; --fg:#e4eaf0; --muted:#93a4b4; --line:#2b3846;
+  --accent:#f0814e; --accent-soft:#3a2219; --steel:#8cbad8; --steel-soft:#1d3142; --warn:#e8c15a; --warn-soft:#352b10; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.5}
+.wrap{max-width:1040px;margin:0 auto;padding-inline:16px;padding-block:24px 48px}
+header{display:grid;gap:6px;margin-bottom:18px}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(30px,6vw,44px);line-height:1.05;margin:0;text-wrap:balance}
+.lede{color:var(--muted);max-width:68ch;margin:0}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:10px;display:grid;gap:10px;border-bottom:1px solid var(--line)}
+.search{width:100%;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--fg)}
+.search:focus-visible,.chip:focus-visible,summary:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:600 13px var(--body);padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--steel);border-color:var(--steel);color:var(--surface)}
+.list{display:grid;margin-top:8px}
+details{border-bottom:1px solid var(--line)}
+summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:44px 1fr auto;gap:12px;align-items:baseline;padding:14px 4px}
+summary::-webkit-details-marker{display:none}
+.kno{font-family:var(--mono);font-size:13px;color:var(--accent)}
+.kt{min-width:0}
+.kt b{font-family:var(--display);font-weight:600;font-size:20px;letter-spacing:.01em;display:block;line-height:1.2}
+.kt span{color:var(--muted);font-size:13px}
+.kc{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:14px;text-align:right;white-space:nowrap}
+.kc small{display:block;color:var(--muted);font-size:11px}
+details[open] summary{background:var(--steel-soft)}
+.body{padding:12px 4px 22px;display:grid;gap:14px}
+.ctrl{display:flex;flex-wrap:wrap;gap:14px;align-items:end}
+.ctrl label{display:grid;gap:4px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.ctrl input,.ctrl select{font:500 15px var(--mono);padding:7px 9px;border:1px solid var(--line);border-radius:5px;background:var(--surface);color:var(--fg)}
+.ctrl input{width:110px}
+.src{font-size:13px;color:var(--muted);max-width:75ch}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:13.5px}
+th,td{padding:7px 9px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font:600 11px var(--body);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);background:var(--bg)}
+td.n,th.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+td.sor{font-family:var(--mono);color:var(--steel)}
+td .note{display:block;color:var(--muted);font-size:12px}
+.tag{font:600 10px var(--mono);padding:1px 5px;border-radius:3px;margin-left:6px;vertical-align:1px}
+.tag.e{background:var(--steel-soft);color:var(--steel)}
+.tag.f{background:var(--warn-soft);color:var(--warn)}
+tr:last-child td{border-bottom:0}
+.abs{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.abs table{min-width:0}
+.abs td:first-child{font-family:var(--mono);color:var(--accent);width:28px}
+.abs tr.tot td{font-weight:600;border-top:2px solid var(--fg)}
+.words{font-size:13px;color:var(--muted)}
+.empty{padding:28px 4px;color:var(--muted)}
+footer{margin-top:28px;font-size:13px;color:var(--muted);display:grid;gap:6px;max-width:80ch}
+@media (max-width:520px){summary{grid-template-columns:34px 1fr}.kc{grid-column:2;text-align:left}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<style>body{margin:0}[hidden]{display:none!important}</style>
+</head><body>
+
+<div class="wrap">
+  <header>
+    <a href="index.html" style="color:var(--steel);font-size:13px;text-decoration:none">← Total Recall</a>
+    <div class="eyebrow">APDCL · SoR 2021-22 · per-unit bill of material</div>
+    <h1>APDCL BoM Kits</h1>
+    <p class="lede">Standard items and quantities for one unit of work — a stay, a pole, a route-km, a substation. Set the number of units and the work type to get quantities and a cost abstract in the office A–L format.</p>
+  </header>
+
+  <div class="bar">
+    <input id="q" class="search" type="search" placeholder="Search kits or items — e.g. Raccoon, 100 kVA, stay, 427" aria-label="Search kits">
+    <div class="chips" id="chips" role="group" aria-label="Filter by category"></div>
+  </div>
+
+  <div class="list" id="list"></div>
+
+  <footer>
+    <div>Rates are ex-works SoR 2021-22, excl. GST. <span class="tag f">CHECK</span> marks a rate where your notes and the office estimate sheets disagree — confirm against the SoR booklet. <span class="tag e">E</span> marks a labour-included job item (grouting, fencing, plinth, boring) that belongs in row E, not row A.</div>
+    <div>Quantity sources: REC construction standards via APDCL DDUGJY/VEI tender BoQ, the 2026 Jamuguri 33 kV NIT, and Samaguri ESD office estimates. Departmental work: F = G = 0. Deposit work: F = 3% of C, G = 15% of (D+E). Railway way-leave and non-SoR items are not included.</div>
+  </footer>
+</div>
+
+<script>
+const DATA = {"rates": {"425": ["Grouting of PSC pole 7.5 m (1.5 m depth)", "Job", 1646.68, ""], "426": ["Grouting of PSC pole 8.5 m (1.5 m depth)", "Job", 1787.97, ""], "427": ["Grouting of PSC pole 9.75 m (1.8 m depth)", "Job", 1894.28, ""], "423": ["Grouting of steel pole SP-66/76 (2.15 m)", "Job", 4950.94, ""], "428": ["Grouting of stay", "Job", 1000.0, ""], "420": ["DTR fencing (REC Type-II)", "Job", 36304.8, ""], "746": ["PSC pole 7.5 m", "No.", 4675.65, ""], "747": ["PSC pole 8.5 m", "No.", 5315.1, "5,850"], "748": ["PSC pole 9.75 m", "No.", 7030.8, ""], "754": ["Steel tubular pole SP-76 (14.5 m)", "No.", 39590.67, ""], "446": ["ACSR Rabbit conductor", "Km.", 47299.44, ""], "449": ["ACSR Wolf conductor", "Km.", 185640.0, ""], "18": ["LT AB cable 3Cx70+1Cx50 sqmm", "Mtr.", 215.5, ""], "124": ["LT cable 1C x 50 sqmm", "Mtr.", 75.03, ""], "653": ["HT stay set complete", "Set", 546.25, ""], "657": ["LT stay set complete", "Set", 409.4, ""], "629": ["Guy insulator 11 kV", "No.", 52.5, ""], "616": ["Guy insulator 33 kV", "No.", 111.3, ""], "631": ["Guy insulator LT", "No.", 31.5, ""], "651": ["Stay wire 7/10 SWG", "Kg.", 87.4, ""], "652": ["Stay wire 7/14 SWG", "Kg.", 98.9, ""], "830": ["Pole clamp", "No.", 85.05, ""], "474": ["CI earth pipe 1.8 m", "No.", 1312.5, ""], "473": ["GI earth pipe 3 m", "No.", 2346.75, ""], "649": ["GI wire 6 SWG", "Kg.", 79.35, ""], "650": ["GI wire 8 SWG", "Kg.", 93.15, ""], "633": ["GI barbed wire", "Kg.", 93.15, ""], "646": ["Nuts & bolts", "Kg.", 93.15, ""], "645": ["LT angle cross arm 500 mm", "No.", 197.8, ""], "630": ["LT pin insulator", "No.", 31.5, ""], "842": ["LT GI pin", "No.", 41.5, ""], "634": ["11 kV T-cross arm", "No.", 862.5, ""], "635": ["33 kV V-cross arm", "No.", 1812.4, ""], "647": ["Top cleat", "No.", 244.95, ""], "626": ["11 kV pin insulator, polymeric", "No.", 262.5, ""], "841": ["11 kV GI pin", "No.", 98.6, ""], "613": ["33 kV polymeric pin insulator (FRP 34 mm)", "No.", 735.0, ""], "644": ["MS channel 75x40x6", "Mtr.", 548.55, ""], "642": ["MS channel 100x50x6", "Mtr.", 794.65, ""], "638": ["Channel cross arm 100x50x6x2200", "No.", 2012.5, ""], "640": ["Channel cross arm 100x50x6x3200", "No.", 2702.5, ""], "637": ["GI angle 50x50x6", "Mtr.", 432.4, ""], "622": ["Disc insulator polymeric 70 kN", "No.", 315.0, ""], "850": ["Hardware T&C 70 kN tension", "Set", 395.0, ""], "607": ["Disc insulator polymeric 90 kN B&S", "No.", 840.0, ""], "844": ["Hardware B&S 90 kN tension", "Set", 565.0, ""], "834": ["Tension clamp, Rabbit", "No.", 150.0, ""], "822": ["Mid-span sleeve, Rabbit", "No.", 82.33, ""], "824": ["Mid-span sleeve, Wolf", "No.", 308.33, ""], "826": ["PG clamp, Rabbit", "No.", 63.75, ""], "828": ["PG clamp, Wolf", "No.", 188.0, ""], "654": ["I-hook", "No.", 80.5, ""], "720": ["Danger plate 33 kV", "No.", 57.5, ""], "721": ["Danger plate 11 kV", "No.", 57.5, ""], "722": ["Danger plate LT", "No.", 46.0, ""], "513": ["11 kV DO fuse 150 A", "Set", 3300.0, ""], "519": ["11 kV GOAB 400 A", "Set", 8450.0, ""], "676": ["11 kV lightning arrester 5 kA", "Set", 2646.0, ""], "597": ["LT CT", "No.", 1560.0, ""], "507": ["Metering cabinet", "No.", 6720.0, ""], "683": ["Cable lug 50 sqmm", "No.", 12.6, ""], "771": ["DTR 11/0.433 kV 25 kVA", "No.", 75995.76, ""], "819": ["ABC cable tie", "No.", 7.67, ""], "800": ["ABC suspension clamp", "No.", 226.67, ""], "806": ["ABC anchor clamp", "No.", 378.33, ""], "807": ["ABC end cap", "No.", 19.0, ""], "811": ["ABC distribution box 1-ph 8-conn", "No.", 2075.0, ""], "809": ["Stainless steel strap", "Mtr.", 63.0, ""], "808": ["Buckle", "No.", 22.67, ""], "802": ["IPC 50-70 sqmm", "No.", 117.33, ""], "801": ["ABC mid-span joint", "No.", 521.67, ""], "447": ["ACSR Raccoon conductor", "Km.", 76160.0, "1,12,500"], "448": ["ACSR Dog conductor", "Km.", 74628.64, "1,38,000"], "445": ["ACSR Weasel conductor", "Km.", 32770.56, "52,400"], "15": ["LT AB cable 1Cx70+1Cx70 sqmm", "Mtr.", 144.15, ""], "810": ["Eye hook", "No.", 71.0, ""], "632": ["LT shackle insulator", "No.", 47.25, ""], "853": ["LT GI shackle strap", "Set", 85.0, ""], "718": ["LT spacer", "No.", 46.0, ""], "835": ["Tension clamp, Raccoon", "No.", 350.0, ""], "827": ["PG clamp, Raccoon", "No.", 105.25, ""], "823": ["Mid-span sleeve, Raccoon", "No.", 122.67, ""], "772": ["DTR 11/0.433 kV 63 kVA", "No.", 153136.0, "1,18,500"], "774": ["DTR 11/0.433 kV 100 kVA (Al)", "No.", 201000.0, "1,55,200"], "782": ["DTR 11/0.433 kV 250 kVA (Cu)", "No.", 572805.0, "2,85,000"], "71": ["LT cable 1C x 120 sqmm armoured", "Mtr.", 306.0, ""], "686": ["Cable lug 120 sqmm", "No.", 29.4, ""], "357": ["MCCB 200 A", "No.", 34366.38, ""], "356": ["MCCB 100 A 4P", "No.", 24738.02, ""], "481": ["Chemical earthing", "Set", 3650.0, ""], "476": ["GI strip 25x3", "Mtr.", 64.05, ""], "514": ["11 kV DO fuse 200 A", "Set", 3400.0, ""], "440": ["DTR plinth / pad (civil)", "Job", 34797.0, ""], "461": ["11 kV MVCC 1C x 120 sqmm", "Mtr.", 485.0, ""], "863": ["11 kV MVCC mid-span joint 120 sq", "No.", 2233.33, ""], "875": ["11 kV MVCC termination kit 120 sq", "No.", 3350.0, ""], "904": ["11 kV MVCC cable tie 120 sq", "No.", 925.0, ""], "916": ["11 kV MVCC tension hardware 120 sq", "Set", 2200.0, ""], "928": ["11 kV MVCC tension insulator 120 sq", "No.", 1230.0, ""], "641": ["Channel cross arm 100x50x6x5000", "No.", 3975.55, ""], "655": ["CI spun pipe class 1A 300 mm, 5.5 m", "No.", 12100.0, ""], "475": ["Socket for CI spun pipe", "No.", 853.65, ""], "58": ["11 kV XLPE cable 1C x 300 sqmm", "Mtr.", 1115.2, ""], "214": ["11 kV 1C x 300 cable termination kit", "No.", 3826.0, ""], "738": ["HDPE pipe 110 mm", "Mtr.", 570.0, ""], "455": ["33 kV MVCC 1C x 120 sqmm", "Mtr.", 586.25, ""], "639": ["Channel cross arm 100x50x6x2800", "No.", 2221.8, ""], "910": ["33 kV MVCC tension hardware 120 sq", "Set", 2333.33, ""], "922": ["33 kV MVCC tension insulator 120 sq", "No.", 3200.0, ""], "898": ["33 kV MVCC cable tie 120 sq", "No.", 1012.5, ""], "869": ["33 kV MVCC termination kit 120 sq", "No.", 7400.0, ""], "857": ["33 kV MVCC mid-span joint 120 sq", "No.", 3300.0, ""], "660": ["33 kV TPGO-DBCR isolator 800 A with earth switch & GI mounting", "Set", 78037.5, ""], "636": ["GI angle 40x40x5", "Mtr.", 396.75, ""], "HMB": ["Horizontal machine boring 400 mm dia at 1.5 m below GL (job item)", "Mtr.", 8600.0, ""], "SC2": ["Service cable 2C x 4 sqmm (SoR no. — fill in)", "Mtr.", 32.0, ""], "SC4": ["Service cable 4C x 4 sqmm (SoR no. — fill in)", "Mtr.", 58.0, ""]}, "kits": [{"id": 1, "title": "HT stay (11 / 33 kV), one stay", "basis": "per stay", "source": "Office practice (Samaguri estimates); 1 stay set = 1 guy insulator = 1 stay grouting", "cat": "Structures", "items": [["653", 1, ""], ["629", 1, "Use 616 for 33 kV"], ["651", 10, "7-10 kg per HT stay"], ["830", 1, ""], ["428", 1, ""]]}, {"id": 2, "title": "LT stay, one stay", "basis": "per stay", "source": "Office practice / DDUGJY LT ABC kit", "cat": "Structures", "items": [["657", 1, ""], ["631", 1, ""], ["652", 5, "5-7 kg per LT stay"], ["830", 1, ""], ["428", 1, ""]]}, {"id": 3, "title": "Pole earthing point", "basis": "per earth", "source": "Office practice; DTR S/S needs min 3 separate pits", "cat": "Structures", "items": [["474", 1, ""], ["649", 3, "~20 m run cross-arm to pipe"]]}, {"id": 4, "title": "LT 1-ph 2-wire intermediate pole (PSC 8.5 m)", "basis": "per pole", "source": "Office practice (Samaguri 1-ph extension estimates)", "cat": "Structures", "items": [["747", 1, ""], ["426", 1, ""], ["645", 1, ""], ["830", 1, ""], ["630", 2, ""], ["842", 2, ""], ["646", 2, ""]]}, {"id": 5, "title": "LT 3-ph 4-wire intermediate pole (PSC 8.5 m)", "basis": "per pole", "source": "Office practice (1-ph to 3-ph conversion template 2025)", "cat": "Structures", "items": [["747", 1, ""], ["426", 1, ""], ["645", 2, ""], ["830", 2, ""], ["630", 4, ""], ["842", 4, ""], ["646", 3, ""]]}, {"id": 6, "title": "11 kV intermediate pole (PSC 9.75 m)", "basis": "per pole", "source": "Office practice; REC A-series pin-type construction", "cat": "Structures", "items": [["748", 1, ""], ["427", 1, ""], ["634", 1, ""], ["830", 1, ""], ["626", 3, ""], ["841", 3, ""], ["646", 2.5, ""]]}, {"id": 7, "title": "11 kV line, Rabbit on PSC 8.5 m", "basis": "per route-km", "source": "APDCL DDUGJY/VEI BoQ (Spec APDCL/DDUGJY-New/VEI/2021/01), REC-based", "cat": "Lines per km", "items": [["747", 20, "~50 m span"], ["426", 20, "Added: 1 grouting per new pole"], ["634", 14, ""], ["644", 17.6, "8 Nos x 2.2 m"], ["638", 1, ""], ["626", 51, ""], ["622", 18, ""], ["850", 18, "T&C disc -> T&C hardware"], ["834", 18, ""], ["446", 3.3, "3 wires x 1.1 sag/jumper"], ["653", 12, ""], ["629", 12, ""], ["651", 96, "8 kg per stay"], ["428", 12, "Added: 1 per stay"], ["637", 40, ""], ["649", 12, ""], ["474", 4, ""], ["822", 3, ""], ["826", 18, ""], ["830", 16, ""], ["633", 40, "Anti-climb"], ["721", 20, "1 per pole"], ["646", 30, ""]]}, {"id": 8, "title": "LT AB cable 3-ph, PSC 7.5 m", "basis": "per route-km", "source": "APDCL DDUGJY/VEI BoQ", "cat": "Lines per km", "items": [["746", 30, "~33 m span"], ["425", 30, "Added: 1 grouting per new pole"], ["18", 1100, "1.1 km incl. sag/drops"], ["819", 500, ""], ["830", 72, "36 pairs"], ["654", 36, ""], ["806", 10, "Terminals / angles"], ["800", 20, "Intermediate poles"], ["807", 12, ""], ["811", 15, "Size DB to consumers"], ["809", 15, ""], ["808", 30, ""], ["802", 68, ""], ["801", 8, ""], ["657", 10, ""], ["631", 10, ""], ["652", 50, ""], ["428", 10, "Added: 1 per stay"], ["474", 3, ""], ["649", 9, ""], ["722", 30, ""], ["638", 1, ""]]}, {"id": 9, "title": "11 kV DO at tapping point", "basis": "per set (1 per ~2 km)", "source": "APDCL DDUGJY/VEI BoQ", "cat": "Structures", "items": [["513", 1, ""], ["626", 3, ""], ["644", 2.2, "1 No x 2.2 m"], ["638", 1, ""], ["646", 4, ""], ["830", 4, ""], ["826", 6, ""], ["649", 2, ""], ["474", 1, ""]]}, {"id": 10, "title": "GOAB set", "basis": "per set", "source": "APDCL DDUGJY/VEI BoQ", "cat": "Structures", "items": [["519", 1, ""], ["638", 3, ""], ["830", 7, ""], ["474", 1, ""], ["649", 3, ""], ["646", 4, ""], ["826", 6, ""], ["654", 1, ""], ["642", 0.5, "1 No x 500 mm"]]}, {"id": 11, "title": "25 kVA DTR substation on DP (2 x PSC 8.5 m)", "basis": "per substation", "source": "APDCL DDUGJY/VEI BoQ; earthing per CEA Regs", "cat": "Substations", "items": [["771", 1, "Change to 63/100 kVA as needed"], ["747", 2, "Added: DP poles"], ["426", 2, "Added"], ["638", 6, ""], ["830", 12, ""], ["626", 3, ""], ["513", 1, ""], ["676", 1, ""], ["474", 5, "Min 3 separate pits"], ["649", 15, ""], ["637", 2, "Assumed 2 m"], ["646", 15, ""], ["622", 3, ""], ["850", 3, ""], ["834", 3, ""], ["721", 2, ""], ["446", 0.015, "Jumpers"], ["826", 6, ""], ["124", 50, "LT lead cable"], ["683", 15, ""], ["597", 4, ""], ["507", 1, ""], ["633", 4, ""], ["420", 1, "Fencing (or APWD chain-link sheet)"]]}, {"id": 12, "title": "Line crossing guarding", "basis": "per crossing set", "source": "APDCL DDUGJY/VEI BoQ", "cat": "Structures", "items": [["637", 5, "2 Nos x 2.5 m"], ["650", 35, "Lacing"], ["649", 6, ""], ["654", 4, ""], ["474", 2, ""]]}, {"id": 13, "title": "33 kV line, Wolf on SP-76", "basis": "per route-km", "source": "APDCL NIT 2026, Jahajduba-Jamuguri 33 kV line (CAR) - tender averages", "cat": "Lines per km", "items": [["754", 33.9, "~30 m span"], ["423", 33.9, "1 per pole"], ["449", 3.28, ""], ["607", 33.7, ""], ["844", 33.7, "B&S disc -> B&S hardware"], ["613", 96, ""], ["828", 36, ""], ["647", 29, ""], ["635", 25.6, ""], ["640", 18.3, ""], ["653", 12.5, ""], ["616", 17.9, ""], ["651", 199, ""], ["428", 14, ""], ["650", 24, ""], ["473", 24, "GI earthing pipe"], ["637", 23.7, ""], ["720", 34, "1 per pole"], ["633", 48, ""], ["824", 14, ""], ["830", 45, ""], ["646", 187, ""]]}, {"id": 14, "title": "11 kV new line, Raccoon on PSC 9.75 m", "basis": "per route-km", "source": "K7 DDUGJY kit scaled to 9.75 m PSC + Raccoon (office practice for trunk/spur lines)", "cat": "Lines per km", "items": [["748", 20, "~50 m span"], ["427", 20, "1 per pole"], ["634", 14, ""], ["644", 17.6, "8 Nos x 2.2 m"], ["638", 1, ""], ["626", 51, ""], ["841", 51, "GI pins for pin insulators"], ["622", 18, ""], ["850", 18, "T&C disc -> T&C hardware"], ["835", 18, ""], ["447", 3.3, "Swap to 448 for Dog"], ["653", 12, ""], ["629", 12, ""], ["651", 96, ""], ["428", 12, ""], ["637", 40, ""], ["649", 12, ""], ["474", 4, ""], ["823", 3, ""], ["827", 18, ""], ["830", 16, ""], ["633", 40, ""], ["721", 20, ""], ["646", 30, ""]]}, {"id": 15, "title": "11 kV reconductoring to Raccoon on existing poles", "basis": "per route-km", "source": "Office reconductoring estimates (Samaguri) — assumes ~8 pole replacements/km", "cat": "Lines per km", "items": [["447", 3.3, ""], ["748", 8, "Replace rotten/short poles only"], ["427", 8, ""], ["626", 27, ""], ["634", 8, ""], ["622", 6, ""], ["850", 6, ""], ["638", 2, ""], ["827", 3, ""], ["653", 3, ""], ["629", 3, ""], ["651", 30, ""], ["428", 3, ""], ["474", 8, ""], ["649", 56, ""], ["633", 24, ""], ["646", 20, ""]]}, {"id": 16, "title": "LT bare 1-ph 2-wire, Weasel on PSC 8.5 m", "basis": "per route-km", "source": "Built from K4 pole kit x 22 poles (~45 m span) + office stay/earthing rules", "cat": "Lines per km", "items": [["747", 22, "~45 m span"], ["426", 22, ""], ["445", 2.1, "2 wires x 1.05; or Rabbit 446"], ["645", 22, ""], ["830", 28, "22 + 6 stays"], ["630", 36, "Intermediate poles"], ["842", 36, ""], ["632", 8, "Angle/terminal poles"], ["853", 8, ""], ["657", 6, ""], ["631", 6, ""], ["652", 36, "6 kg/stay"], ["428", 6, ""], ["474", 3, ""], ["649", 9, ""], ["722", 22, ""], ["646", 44, "2 kg/pole"]]}, {"id": 17, "title": "LT bare 3-ph 4-wire, Weasel on PSC 8.5 m", "basis": "per route-km", "source": "Built from K5 pole kit x 22 poles + office stay/earthing rules", "cat": "Lines per km", "items": [["747", 22, "~45 m span"], ["426", 22, ""], ["445", 4.2, "4 wires x 1.05; or Rabbit 446"], ["645", 44, ""], ["830", 52, "44 + 8 stays"], ["630", 72, "Intermediate poles"], ["842", 72, ""], ["632", 16, "Angle/terminal poles"], ["853", 16, ""], ["718", 22, "1 per span"], ["657", 8, ""], ["631", 8, ""], ["652", 48, "6 kg/stay"], ["428", 8, ""], ["474", 3, ""], ["649", 9, ""], ["722", 22, ""], ["646", 66, "3 kg/pole"]]}, {"id": 18, "title": "LT AB cable 1-ph, PSC 7.5 m", "basis": "per route-km", "source": "K8 DDUGJY kit with 1-ph cable and DBs", "cat": "Lines per km", "items": [["746", 30, "~33 m span"], ["425", 30, ""], ["15", 1100, ""], ["819", 300, ""], ["830", 72, "36 pairs"], ["810", 36, "Eye hook (or I-hook 654)"], ["806", 10, ""], ["800", 20, ""], ["807", 12, ""], ["811", 15, "1 per 4-5 consumers"], ["809", 15, ""], ["808", 30, ""], ["802", 68, ""], ["801", 6, ""], ["657", 10, ""], ["631", 10, ""], ["652", 50, ""], ["428", 10, ""], ["474", 3, ""], ["649", 9, ""], ["722", 30, ""]]}, {"id": 19, "title": "63 kVA DTR substation on DP (2 x PSC 9.75 m)", "basis": "per substation", "source": "K11 DDUGJY kit with 9.75 m DP and 1C x 120 lead", "cat": "Substations", "items": [["772", 1, "Rate conflict — see Notes"], ["748", 2, ""], ["427", 2, ""], ["638", 6, ""], ["830", 12, ""], ["626", 3, ""], ["841", 3, ""], ["513", 1, ""], ["676", 1, ""], ["474", 5, "Min 3 separate pits"], ["649", 15, ""], ["646", 15, ""], ["622", 3, ""], ["850", 3, ""], ["835", 3, ""], ["721", 2, ""], ["447", 0.02, "Jumpers"], ["827", 6, ""], ["71", 40, "LT lead"], ["686", 16, ""], ["356", 1, ""], ["597", 4, ""], ["507", 1, ""], ["653", 2, "End stays"], ["629", 2, ""], ["651", 20, ""], ["428", 2, ""], ["420", 1, ""]]}, {"id": 20, "title": "100 kVA DTR substation on DP (2 x PSC 9.75 m)", "basis": "per substation", "source": "Office consumer-DTR estimates (Samaguri) + DDUGJY kit", "cat": "Substations", "items": [["774", 1, "Al-wound; Cu = 775"], ["748", 2, ""], ["427", 2, ""], ["638", 2, ""], ["644", 24, "Channel 75x40 bracing/mounting"], ["634", 1, ""], ["830", 12, ""], ["626", 9, ""], ["841", 9, ""], ["622", 6, ""], ["850", 6, ""], ["835", 6, ""], ["827", 6, ""], ["447", 0.03, "Jumpers"], ["513", 2, ""], ["519", 1, ""], ["676", 1, ""], ["481", 3, "Office sheets use up to 7"], ["476", 20, ""], ["721", 2, ""], ["71", 40, "LT lead"], ["686", 16, ""], ["357", 1, ""], ["597", 4, ""], ["507", 1, ""], ["653", 2, ""], ["629", 2, ""], ["651", 20, ""], ["428", 2, ""], ["646", 15, ""], ["420", 1, ""]]}, {"id": 21, "title": "250 kVA DTR substation (plinth + DP for HT side)", "basis": "per substation", "source": "Assumed layout — confirm APDCL standard for 250 kVA before use", "cat": "Substations", "items": [["782", 1, "Cu-wound; rate conflict — see Notes"], ["440", 1, "Plinth"], ["748", 2, "HT termination DP"], ["427", 2, ""], ["638", 4, ""], ["644", 24, ""], ["830", 12, ""], ["626", 9, ""], ["841", 9, ""], ["622", 6, ""], ["850", 6, ""], ["835", 6, ""], ["827", 6, ""], ["447", 0.03, ""], ["514", 1, "200 A DO"], ["519", 1, ""], ["676", 1, "Or 10 kA LA 677"], ["481", 4, ""], ["476", 30, ""], ["721", 2, ""], ["71", 100, "2 runs/phase + neutral"], ["686", 28, ""], ["597", 4, "LT CT — size to 400/5"], ["507", 1, ""], ["653", 2, ""], ["629", 2, ""], ["651", 20, ""], ["428", 2, ""], ["646", 20, ""], ["420", 1, ""]]}, {"id": 22, "title": "11 kV MVCC 1C x 120 on PSC 9.75 m", "basis": "per route-km", "source": "Office MVCC standard estimate 2025 (33 kV pattern applied to 11 kV)", "cat": "Lines per km", "items": [["748", 32, "~31 m span"], ["427", 32, "PSC -> 427, not 423"], ["461", 3300, "3 cores x 1.1"], ["638", 12, ""], ["634", 20, ""], ["626", 78, ""], ["841", 78, ""], ["916", 30, "Tension insulator replaces disc string"], ["928", 30, ""], ["904", 108, ""], ["875", 6, "At bare/MVCC transitions"], ["863", 3, ""], ["474", 6, ""], ["649", 30, ""], ["653", 4, ""], ["629", 4, ""], ["651", 40, ""], ["428", 4, ""], ["721", 32, ""], ["830", 24, ""], ["637", 80, ""], ["646", 40, ""]]}, {"id": 23, "title": "11 kV railway track crossing (UG through CI spun pipe)", "basis": "per crossing", "source": "Office RTC estimates (Rupahi / Singimari 2026). Railway way-leave (~Rs 2.5 L) is extra and not material", "cat": "Special works", "items": [["748", 4, "Or SP-76 754 with 423"], ["427", 4, ""], ["641", 8, ""], ["644", 20, ""], ["655", 12, ""], ["475", 6, ""], ["58", 630, "2 runs x 3 ph + spare"], ["214", 12, ""], ["676", 2, ""], ["738", 120, ""], ["653", 6, ""], ["629", 6, ""], ["651", 60, ""], ["428", 6, ""], ["649", 20, ""], ["721", 4, ""], ["830", 40, ""], ["474", 2, ""], ["626", 24, ""], ["841", 24, ""], ["622", 6, ""], ["850", 6, ""], ["646", 40, ""], ["HMB", 20, "Job item — goes in row E, not A"]]}, {"id": 24, "title": "33 kV MVCC 1C x 120 on SP-76", "basis": "per route-km", "source": "Office 33 kV MVCC standard estimate 2025", "cat": "Lines per km", "items": [["754", 32, "~31 m span"], ["423", 32, ""], ["455", 3300, "3 cores x 1.1"], ["639", 12, ""], ["635", 20, ""], ["647", 20, ""], ["613", 78, ""], ["910", 30, "Tension insulator replaces disc string"], ["922", 30, ""], ["898", 108, ""], ["869", 6, ""], ["857", 3, ""], ["474", 6, ""], ["649", 30, ""], ["653", 4, ""], ["616", 4, ""], ["651", 40, ""], ["428", 4, ""], ["720", 32, ""], ["830", 24, ""], ["637", 80, ""], ["646", 40, ""]]}, {"id": 25, "title": "33 kV sectionalizing isolator on DP", "basis": "per location", "source": "Office isolator estimates (Kulidunga / Sibasthan / Rangagora 2026)", "cat": "Structures", "items": [["660", 1, "Some sheets cite SoR 664"], ["748", 2, "4 poles for terminal-tension location"], ["427", 2, ""], ["640", 13, ""], ["636", 48, "Bracing"], ["830", 20, ""], ["613", 9, ""], ["449", 0.03, "Jumpers"], ["828", 12, ""], ["474", 2, "Added: isolator earthing"], ["649", 10, ""], ["720", 2, ""], ["646", 15, ""]]}, {"id": 26, "title": "1-ph to 3-ph LT conversion on existing line", "basis": "per route-km", "source": "Office 1-ph->3-ph conversion template 2025, scaled to 1 km (assumes ~5 extra poles/km)", "cat": "Lines per km", "items": [["445", 2.1, "2 extra wires x 1.05"], ["747", 5, "Inserted / replacement poles"], ["426", 5, ""], ["645", 22, "Extra arm per pole"], ["830", 26, ""], ["630", 44, ""], ["842", 44, ""], ["632", 8, ""], ["853", 8, ""], ["718", 22, ""], ["657", 4, "Extra stays for unbalanced pull"], ["631", 4, ""], ["652", 28, ""], ["428", 4, ""], ["646", 22, ""]]}, {"id": 27, "title": "Service connection from LT ABC (1-ph house)", "basis": "per connection", "source": "APDCL DDUGJY/VEI BoQ (SoR items only)", "cat": "Special works", "items": [["SC2", 37, "Use SC4 for 3-ph"], ["802", 1, "Tap on ABC"], ["474", 1, "Earthing"]]}], "jobs": ["420", "423", "425", "426", "427", "428", "440", "HMB"]};
+const JOBS = new Set(DATA.jobs);
+const CATS = ["All","Structures","Lines per km","Substations","Special works"];
+const state = {cat:"All", q:"", units:{}, mode:{}};
+try{ const s = JSON.parse(localStorage.getItem("bomkits")||"{}"); Object.assign(state.units, s.units||{}); Object.assign(state.mode, s.mode||{}); }catch(e){}
+function save(){ try{ localStorage.setItem("bomkits", JSON.stringify({units:state.units, mode:state.mode})); }catch(e){} }
+
+const inr = v => v.toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
+const qty = v => (Math.round(v*1000)/1000).toLocaleString("en-IN",{maximumFractionDigits:3});
+const lakh = v => v >= 100000 ? "₹" + (v/100000).toFixed(2) + " L" : "₹" + Math.round(v).toLocaleString("en-IN");
+
+function words(n){
+  n = Math.ceil(n);
+  const a=["","One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten","Eleven","Twelve","Thirteen","Fourteen","Fifteen","Sixteen","Seventeen","Eighteen","Nineteen"];
+  const b=["","","Twenty","Thirty","Forty","Fifty","Sixty","Seventy","Eighty","Ninety"];
+  const two = x => x<20 ? a[x] : b[Math.floor(x/10)] + (x%10 ? " " + a[x%10] : "");
+  const three = x => (x>=100 ? a[Math.floor(x/100)] + " Hundred" + (x%100 ? " " : "") : "") + (x%100 ? two(x%100) : "");
+  if(n===0) return "Zero";
+  let out=[], cr=Math.floor(n/1e7); n%=1e7; let lk=Math.floor(n/1e5); n%=1e5; let th=Math.floor(n/1e3); n%=1e3;
+  if(cr) out.push(two(cr)+" Crore"); if(lk) out.push(two(lk)+" Lakh"); if(th) out.push(two(th)+" Thousand"); if(n) out.push(three(n));
+  return out.join(" ");
+}
+
+function calc(k){
+  const u = Number(state.units[k.id] ?? 1) || 0;
+  let A=0,E=0;
+  const rows = k.items.map(([s,q,note])=>{
+    const r = DATA.rates[s]; const amt = q*r[2]*u;
+    if(JOBS.has(s)) E+=amt; else A+=amt;
+    return {s,q,note,r,amt,tq:q*u,job:JOBS.has(s)};
+  });
+  const dep = (state.mode[k.id]||"dept")==="dep";
+  const B=.05*A, C=A+B, D=.15*C, F=dep?.03*C:0, G=dep?.15*(D+E):0, H=C+D+E+F+G, J=.09*H, K=.09*H, L=H+J+K;
+  const unitCost = u ? (A+E)/u : k.items.reduce((t,[s,q])=>t+q*DATA.rates[s][2],0);
+  return {u,rows,A,B,C,D,E,F,G,H,J,K,L,dep,unitCost};
+}
+
+function kitHTML(k){
+  const c = calc(k);
+  const rows = c.rows.map(x=>`<tr>
+    <td class="sor">${x.s}</td>
+    <td>${x.r[0]}${x.job?'<span class="tag e">E</span>':''}${x.r[3]?`<span class="tag f" title="Your notes: ₹${x.r[3]}">CHECK</span>`:''}${x.note?`<span class="note">${x.note}</span>`:''}</td>
+    <td>${x.r[1]}</td><td class="n">${qty(x.q)}</td><td class="n">${inr(x.r[2])}</td><td class="n">${qty(x.tq)}</td><td class="n">${inr(x.amt)}</td></tr>`).join("");
+  const ab = [["A","Materials (excl. GST)",c.A],["B","T&S 5% of A",c.B],["C","Total materials",c.C],["D","Labour 15% of C",c.D],
+    ["E","Job items, labour incl.",c.E],["F",c.dep?"Contingency 3% of C":"Contingency (departmental)",c.F],
+    ["G",c.dep?"Supervision 15% of (D+E)":"Supervision (departmental)",c.G],["H","Gross C+D+E+F+G",c.H],["J","CGST 9% on H",c.J],["K","SGST 9% on H",c.K]];
+  return `<div class="body">
+    <div class="ctrl">
+      <label for="u${k.id}">No. of units (${k.basis})<input id="u${k.id}" type="number" min="0" step="any" value="${c.u}" data-u="${k.id}"></label>
+      <label for="m${k.id}">Work type<select id="m${k.id}" data-m="${k.id}">
+        <option value="dept"${c.dep?'':' selected'}>Departmental (F = G = 0)</option>
+        <option value="dep"${c.dep?' selected':''}>Deposit, APDCL executes</option></select></label>
+    </div>
+    <div class="src">Source: ${k.source}</div>
+    <div class="tbl"><table>
+      <thead><tr><th>SoR</th><th>Item</th><th>Unit</th><th class="n">Qty / unit</th><th class="n">Rate ₹</th><th class="n">Total qty</th><th class="n">Amount ₹</th></tr></thead>
+      <tbody>${rows}</tbody></table></div>
+    <div class="abs">
+      <div class="tbl"><table><tbody>${ab.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td class="n">${inr(r[2])}</td></tr>`).join("")}
+        <tr class="tot"><td>L</td><td>Total H+J+K</td><td class="n">${inr(c.L)}</td></tr>
+        <tr><td>P</td><td>Rounded</td><td class="n">${Math.ceil(c.L).toLocaleString("en-IN")}</td></tr></tbody></table></div>
+      <div class="words">Rupees ${words(c.L)} only.<br><br>Before deductions for party supply, Board supply, O&amp;M stock or reusable material (row M), and before any metering credit (row N).</div>
+    </div></div>`;
+}
+
+function summaryHTML(k){
+  const c = calc(k);
+  return `<summary><span class="kno">K${k.id}</span><span class="kt"><b>${k.title}</b><span>${k.cat} · ${k.basis}</span></span>
+    <span class="kc">${lakh(c.unitCost)}<small>A+E per unit</small></span></summary>`;
+}
+
+const list = document.getElementById("list");
+function render(){
+  const q = state.q.trim().toLowerCase();
+  const open = new Set([...list.querySelectorAll("details[open]")].map(d=>d.dataset.id));
+  const shown = DATA.kits.filter(k=>{
+    if(state.cat!=="All" && k.cat!==state.cat) return false;
+    if(!q) return true;
+    const hay = (k.title+" "+k.basis+" "+k.items.map(([s])=>s+" "+DATA.rates[s][0]).join(" ")).toLowerCase();
+    return q.split(/\s+/).every(t=>hay.includes(t));
+  });
+  list.innerHTML = shown.length ? shown.map(k=>`<details data-id="${k.id}"${open.has(String(k.id))?" open":""}>${summaryHTML(k)}${kitHTML(k)}</details>`).join("")
+    : `<div class="empty">No kit matches “${state.q}”. Try a conductor name, a kVA rating or an SoR number.</div>`;
+}
+function refresh(id){
+  const k = DATA.kits.find(x=>x.id==id); const d = list.querySelector(`details[data-id="${id}"]`); if(!k||!d) return;
+  const focusId = document.activeElement && document.activeElement.id;
+  d.innerHTML = summaryHTML(k) + kitHTML(k);
+  if(focusId){ const el=document.getElementById(focusId); if(el){ el.focus(); if(el.type==="number"){ const v=el.value; el.value=""; el.value=v; } } }
+}
+list.addEventListener("change", e=>{
+  const t=e.target;
+  if(t.dataset.u){ state.units[t.dataset.u]=Math.max(0,Number(t.value)||0); save(); refresh(t.dataset.u); }
+  if(t.dataset.m){ state.mode[t.dataset.m]=t.value; save(); refresh(t.dataset.m); }
+});
+const chips = document.getElementById("chips");
+chips.innerHTML = CATS.map(c=>`<button class="chip" type="button" aria-pressed="${c===state.cat}" data-c="${c}">${c}</button>`).join("");
+chips.addEventListener("click", e=>{ const c=e.target.dataset.c; if(!c) return; state.cat=c;
+  chips.querySelectorAll(".chip").forEach(b=>b.setAttribute("aria-pressed", b.dataset.c===c)); render(); });
+document.getElementById("q").addEventListener("input", e=>{ state.q=e.target.value; render(); });
+render();
+const first = list.querySelector("details"); if(first) first.open = true;
+</script>
+
+</body></html>
