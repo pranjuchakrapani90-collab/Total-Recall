@@ -393,7 +393,7 @@ body.hasbar .wrap{padding-bottom:96px}
 
 <header class="top"><div class="hin">
   <div>
-    <div class="toprow"><a class="backlink" href="./">← Total Recall &amp; Melodies</a><span id="syncBadge" class="sbadge off">☁ Sync off</span></div>
+    <div class="toprow"><a class="backlink" href="./">← Total Recall &amp; Melodies</a><a class="backlink" href="fingerstyle.html">🎶 Fingerstyle trainer</a><span id="syncBadge" class="sbadge off">☁ Sync off</span></div>
     <div class="eyebrow">Guitar · Melody practice</div>
     <h1>Guitar Melody Trainer</h1>
   </div>
@@ -1468,7 +1468,8 @@ function flushTime(p,final){ // add the time since the last flush to today's tot
 }
 function logTime(p){flushTime(p,true);}
 const goalSec=()=>(S.goalMin||30)*60;
-function todaySec(){const day=dkey(new Date());let s=Object.values(sessions).reduce((a,x)=>a+((x.days&&x.days[day])||0),0);
+const fsSec=k=>{try{const f=JSON.parse(localStorage.getItem("fs-v1")||"null");return (f&&f.days&&f.days[k])||0;}catch(e){return 0;}}; // fingerstyle trainer minutes
+function todaySec(){const day=dkey(new Date());let s=Object.values(sessions).reduce((a,x)=>a+((x.days&&x.days[day])||0),0)+fsSec(day);
   if(play)s+=Math.min(90,(performance.now()-(play.lf||play.t0))/1000);return s;}
 const mmss=s=>{s=Math.floor(s);return Math.floor(s/60)+":"+String(s%60).padStart(2,"0");};
 let goalToastDay=null;
@@ -1486,14 +1487,14 @@ function paintGoal(){
 setInterval(()=>{if(play&&performance.now()-(play.lf||play.t0)>15000)flushTime(play,false);paintGoal();},1000);
 function goalHTML(){
   const g=S.goalMin||30,days=[...Array(7)].map((_,i)=>{const d=new Date();d.setDate(d.getDate()-6+i);return d;});
-  const secOf=d=>{const k=dkey(d);return Object.values(sessions).reduce((a,x)=>a+((x.days&&x.days[k])||0),0);};
+  const secOf=d=>{const k=dkey(d);return Object.values(sessions).reduce((a,x)=>a+((x.days&&x.days[k])||0),0)+fsSec(k);};
   return `<div class="goal"><div class="glhead"><h3>Daily goal</h3>
       <label class="ctl" for="goalMin">Minutes a day <input type="number" id="goalMin" min="5" max="240" step="5" value="${g}" inputmode="numeric"></label></div>
     <div class="gbar"><i id="goalBar"></i></div>
     <p class="tnote" id="goalTxt"></p>
     <div class="gweek" aria-label="Last 7 days">${days.map((d,i)=>{const m=Math.floor((i===6?todaySec():secOf(d))/60);
       return `<span class="gd${m>=g?" met":m>0?" part":""}" title="${m} min"><b>${m}</b><small>${i===6?"Today":d.toLocaleDateString(undefined,{weekday:"short"})}</small></span>`;}).join("")}</div>
-    <p class="tnote">The timer counts only while the trainer is playing: Listen, rhythms, grooves and chords all count.</p></div>`;
+    <p class="tnote">The timer counts only while the trainer is playing: Listen, rhythms, grooves and chords all count, and so does the <a href="fingerstyle.html">Fingerstyle Trainer</a>.</p></div>`;
 }
 function stop(){if(!play)return;const P=play;setNowbar(false);clearInterval(play.timer);cancelAnimationFrame(play.raf);setBtn(play.id,play.ro,false,play.test);logTime(play);
   if(P.test){L.fmin=0;if(P.complete)setTimeout(()=>finishTest(P),300);else stoppedEarly(P);}
