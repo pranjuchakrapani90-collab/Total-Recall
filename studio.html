@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#4f46e5">
+<title>Guitar Studio · Total Recall &amp; Melodies</title>
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+:root{--bg:#f4f7fb;--paper:#fff;--ink:#172033;--muted:#697386;--line:#e5e7eb;--steel:#4f46e5;--steel-soft:#eef0ff;--brass:#7c3aed;--brass-soft:#f5f3ff;--good:#059669;--good-soft:#ecfdf5;
+  --body:system-ui,-apple-system,"Segoe UI",sans-serif;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color-scheme:light}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 var(--body)}
+header{background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;padding:22px 16px 26px}
+.hin{max-width:980px;margin:0 auto}
+.backlink{font-size:13px;color:#fff;opacity:.9;text-decoration:none}
+.eyebrow{font:600 11px/1 var(--body);letter-spacing:.14em;text-transform:uppercase;color:#e0e7ff;margin-top:12px}
+h1{font:750 clamp(28px,6vw,40px)/1.1 var(--body);margin:6px 0 4px}
+header p{margin:0;color:#e0e7ff;max-width:60ch}
+.wrap{max-width:980px;margin:0 auto;padding:20px 16px 48px;display:flex;flex-direction:column;gap:16px}
+.goal{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:16px 18px;display:flex;flex-direction:column;gap:10px}
+.goal h2{font:700 17px var(--body);margin:0}
+.gtop{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.gtop b{font:700 20px var(--mono)}
+.gbar{height:10px;border-radius:6px;background:var(--steel-soft);overflow:hidden}
+.gbar i{display:block;height:100%;background:var(--good);width:0}
+.gweek{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.gd{display:flex;flex-direction:column;align-items:center;padding:6px 0;border-radius:8px;background:var(--bg);font-size:11px;color:var(--muted)}
+.gd b{font:700 15px var(--mono);color:var(--ink)}
+.gd.part{background:var(--brass-soft)}.gd.met{background:var(--good-soft)}.gd.met b{color:var(--good)}
+.sections{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media(max-width:720px){.sections{grid-template-columns:1fr}}
+a.sec{display:flex;flex-direction:column;gap:12px;background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:20px;color:inherit;text-decoration:none;box-shadow:0 5px 18px #141e3710;transition:transform .15s,box-shadow .15s,border-color .15s;position:relative;overflow:hidden}
+a.sec:hover,a.sec:focus-visible{transform:translateY(-2px);box-shadow:0 10px 26px #141e371c;border-color:var(--steel);outline:none}
+a.sec::before{content:"";position:absolute;left:0;top:0;right:0;height:5px;background:var(--steel)}
+a.sec.fs::before{background:var(--brass)}
+.ico{font-size:34px;line-height:1}
+.sec h2{font:750 24px/1.15 var(--body);margin:0}
+.sec p{margin:0;color:var(--muted)}
+.tags{display:flex;gap:6px;flex-wrap:wrap}
+.tag{font:600 11px/1 var(--body);letter-spacing:.05em;text-transform:uppercase;padding:6px 8px;border-radius:999px;background:var(--steel-soft);color:#3730a3}
+.fs .tag{background:var(--brass-soft);color:#5b21b6}
+.now{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.now div{background:var(--bg);border-radius:10px;padding:8px 10px}
+.now b{display:block;font:700 18px var(--mono)}
+.now span{font-size:11px;color:var(--muted)}
+.go{margin-top:auto;display:flex;justify-content:space-between;align-items:center;gap:10px;border-top:1px solid var(--line);padding-top:12px}
+.go span{font-size:13px;color:var(--muted)}
+.go b{background:var(--steel);color:#fff;border-radius:10px;padding:10px 16px;font-size:15px;white-space:nowrap}
+.fs .go b{background:var(--brass)}
+</style></head><body>
+<header><div class="hin">
+  <a class="backlink" href="./">← Total Recall &amp; Melodies</a>
+  <div class="eyebrow">Guitar practice</div>
+  <h1>Guitar Studio</h1>
+  <p>Two ways to practise, one daily goal. Pick a section to start.</p>
+</div></header>
+<main class="wrap">
+  <section class="goal" aria-label="Daily goal">
+    <div class="gtop"><h2>Today</h2><span><b id="tMin">0</b> of <span id="tGoal">30</span> min</span></div>
+    <div class="gbar"><i id="tBar"></i></div>
+    <div class="gweek" id="week"></div>
+  </section>
+  <div class="sections">
+    <a class="sec" href="guitar.html">
+      <div class="ico">🎸</div>
+      <h2>Melodic Lead</h2>
+      <p>Scale boxes, melodic sequences, arpeggios over chords, chord-tone targeting and double stops in CAGED shapes, with tab, rhythms and play-along drums.</p>
+      <div class="tags"><span class="tag">5 exercises a session</span><span class="tag">tempo ladder</span><span class="tag">drums</span></div>
+      <div class="now"><div><b id="lStage">–</b><span>stage</span></div><div><b id="lTempo">–</b><span>bpm</span></div><div><b id="lDone">–</b><span>this session</span></div></div>
+      <div class="go"><span id="lNext">Open your current session</span><b>Open ▸</b></div>
+    </a>
+    <a class="sec fs" href="fingerstyle.html">
+      <div class="ico">🎶</div>
+      <h2>Fingerstyle Solo</h2>
+      <p>Thumb on the bass, fingers on the melody: from p-i-m-a and Travis picking to complete solo arrangements, in eight levels you unlock.</p>
+      <div class="tags"><span class="tag">8 levels</span><span class="tag">35 lessons</span><span class="tag">songs</span></div>
+      <div class="now"><div><b id="fLevel">1</b><span>level</span></div><div><b id="fDone">0</b><span>lessons done</span></div><div><b id="fLeft">35</b><span>to go</span></div></div>
+      <div class="go"><span id="fNext">Start with lesson 1a</span><b>Open ▸</b></div>
+    </a>
+  </div>
+</main>
+<script>
+"use strict";
+const get=k=>{try{return JSON.parse(localStorage.getItem(k)||"null");}catch(e){return null;}};
+const mel=get("mss-sessions")||{},fs=get("fs-v1")||{};
+const pad=n=>String(n).padStart(2,"0"),dkey=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const sessions=Object.values(mel.ds||{});
+function secOn(k){let s=sessions.reduce((a,x)=>a+((x.days&&x.days[k])||0),0);s+=(fs.days&&fs.days[k])||0;Object.values(fs.odays||{}).forEach(d=>{s+=d[k]||0;});return s;}
+const goal=(mel.st&&mel.st.goalMin)||30,today=secOn(dkey(new Date()));
+document.getElementById("tMin").textContent=Math.floor(today/60);
+document.getElementById("tGoal").textContent=goal;
+document.getElementById("tBar").style.width=Math.min(100,today/60/goal*100)+"%";
+document.getElementById("week").innerHTML=[...Array(7)].map((_,i)=>{const d=new Date();d.setDate(d.getDate()-6+i);const m=Math.floor(secOn(dkey(d))/60);
+  return `<span class="gd${m>=goal?" met":m>0?" part":""}" title="${m} min"><b>${m}</b><small>${i===6?"Today":d.toLocaleDateString(undefined,{weekday:"short"})}</small></span>`;}).join("");
+// Melodic Lead: the open session
+const open=sessions.filter(x=>!x.finished).sort((a,b)=>(b.done||[]).length-(a.done||[]).length)[0];
+if(open){document.getElementById("lStage").textContent=["I","II","III"][open.stage||0]||"✓";
+  document.getElementById("lTempo").textContent=open.tempo||"–";
+  document.getElementById("lDone").textContent=`${(open.done||[]).length}/5`;
+  document.getElementById("lNext").textContent=(open.done||[]).length?"Continue your session":"A new session is ready";}
+else document.getElementById("lNext").textContent="Start your first session";
+// Fingerstyle Solo: levels are finished lesson by lesson
+const LV=[["1a","1b","1c","1d","1e"],["2a","2b","2c","2d","2e"],["3a","3b","3c","3d","3e"],["4a","4b","4c","4d"],["5a","5b","5c"],["6a","6b","6c","6d"],["7a","7b","7c","7d","7e"],["8a","8b","8c","8d"]];
+const done=fs.done||{},all=LV.flat(),n=all.filter(id=>done[id]).length;
+let lvl=LV.findIndex(l=>!l.every(id=>done[id]));if(lvl<0)lvl=LV.length-1;
+const nx=all.find((id,i)=>!done[id]&&LV.findIndex(l=>l.includes(id))<=lvl);
+document.getElementById("fLevel").textContent=lvl+1;
+document.getElementById("fDone").textContent=n;
+document.getElementById("fLeft").textContent=all.length-n;
+document.getElementById("fNext").textContent=n===all.length?"Course complete: review any lesson":nx?`Next: lesson ${nx}`:"Start with lesson 1a";
+</script>
+</body></html>
