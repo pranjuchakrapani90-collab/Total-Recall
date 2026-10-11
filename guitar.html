@@ -1,5 +1,5 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
-<title>Guitar Melody Trainer · Total Recall &amp; Melodies</title>
+<title>Melodic Lead · Guitar Studio</title>
 <style>
 /* Layout: header with today's date + progress; sticky settings bar; today's position card; five exercise sheets; history + extra builder */
 :root{
@@ -389,13 +389,18 @@ body.hasbar .wrap{padding-bottom:96px}
 .gd.part{background:var(--brass-soft)}
 .gd.met{background:var(--good-soft)}.gd.met b{color:var(--good)}
 .gtoast{position:fixed;left:50%;transform:translateX(-50%);bottom:84px;z-index:30;background:var(--good);color:#fff;padding:10px 16px;border-radius:12px;font-weight:600;box-shadow:0 8px 24px #0003;max-width:calc(100% - 32px);text-align:center}
+.studio{display:inline-flex;gap:4px;margin-top:12px;background:#ffffff2e;border-radius:12px;padding:4px;flex-wrap:wrap}
+.studio a{color:#fff;text-decoration:none;font:650 14px var(--body);padding:8px 14px;border-radius:9px;white-space:nowrap}
+.studio a.on{background:#fff;color:#3730a3}
+.studio a:not(.on):hover{background:#ffffff1f}
 </style>
 
 <header class="top"><div class="hin">
   <div>
-    <div class="toprow"><a class="backlink" href="./">← Total Recall &amp; Melodies</a><a class="backlink" href="fingerstyle.html">🎶 Fingerstyle trainer</a><span id="syncBadge" class="sbadge off">☁ Sync off</span></div>
-    <div class="eyebrow">Guitar · Melody practice</div>
-    <h1>Guitar Melody Trainer</h1>
+    <div class="toprow"><a class="backlink" href="./">← Total Recall &amp; Melodies</a><span id="syncBadge" class="sbadge off">☁ Sync off</span></div>
+    <div class="eyebrow">Scales · sequences · arpeggios</div>
+    <h1>Guitar Studio</h1>
+    <nav class="studio" aria-label="Guitar Studio sections"><a href="guitar.html" class="on" aria-current="page">🎸 Melodic Lead</a><a href="fingerstyle.html">🎶 Fingerstyle Solo</a></nav>
   </div>
   <div class="stats" aria-label="Your practice so far">
     <div class="stat"><b id="hStreak">0</b><span>day streak</span></div>
@@ -414,6 +419,7 @@ body.hasbar .wrap{padding-bottom:96px}
 </div>
 
 <script>
+
 /* ===================== Music data ===================== */
 const OPEN={1:64,2:59,3:55,4:50,5:45,6:40};
 const SNAME={1:"e",2:"B",3:"G",4:"D",5:"A",6:"E"};
@@ -1494,7 +1500,7 @@ function goalHTML(){
     <p class="tnote" id="goalTxt"></p>
     <div class="gweek" aria-label="Last 7 days">${days.map((d,i)=>{const m=Math.floor((i===6?todaySec():secOf(d))/60);
       return `<span class="gd${m>=g?" met":m>0?" part":""}" title="${m} min"><b>${m}</b><small>${i===6?"Today":d.toLocaleDateString(undefined,{weekday:"short"})}</small></span>`;}).join("")}</div>
-    <p class="tnote">The timer counts only while the trainer is playing: Listen, rhythms, grooves and chords all count, and so does the <a href="fingerstyle.html">Fingerstyle Trainer</a>.</p></div>`;
+    <p class="tnote">The timer counts only while the trainer is playing: Listen, rhythms, grooves and chords all count, and so does <a href="fingerstyle.html">Fingerstyle Solo</a>.</p></div>`;
 }
 function stop(){if(!play)return;const P=play;setNowbar(false);clearInterval(play.timer);cancelAnimationFrame(play.raf);setBtn(play.id,play.ro,false,play.test);logTime(play);
   if(P.test){L.fmin=0;if(P.complete)setTimeout(()=>finishTest(P),300);else stoppedEarly(P);}

@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Fingerstyle Trainer · Total Recall &amp; Melodies</title>
+<title>Fingerstyle Solo · Guitar Studio</title>
 <link rel="manifest" href="manifest.webmanifest">
 <style>
 :root{
@@ -101,10 +101,14 @@ input{accent-color:var(--steel)}
 .nbtempo button{padding:6px 10px}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:84px;z-index:30;background:var(--good);color:#fff;padding:10px 16px;border-radius:12px;font-weight:600;max-width:calc(100% - 32px);text-align:center}
 .navf{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;border-top:1px solid var(--line);padding-top:12px}
+.studio{display:inline-flex;gap:4px;margin-top:12px;background:#ffffff2e;border-radius:12px;padding:4px;flex-wrap:wrap}
+.studio a{color:#fff;text-decoration:none;font:650 14px var(--body);padding:8px 14px;border-radius:9px;white-space:nowrap}
+.studio a.on{background:#fff;color:#3730a3}
+.studio a:not(.on):hover{background:#ffffff1f}
 </style></head><body>
 <header class="top"><div class="hin">
-  <div><div class="toprow"><a class="backlink" href="./">← Total Recall &amp; Melodies</a><a class="backlink" href="guitar.html">🎸 Melody trainer</a><span id="syncBadge" class="backlink">☁ Sync off</span></div>
-    <div class="eyebrow">Guitar · Fingerstyle</div><h1>Fingerstyle Trainer</h1></div>
+  <div><div class="toprow"><a class="backlink" href="./">← Total Recall &amp; Melodies</a><span id="syncBadge" class="backlink">☁ Sync off</span></div>
+    <div class="eyebrow">Bass · chords · melody</div><h1>Guitar Studio</h1><nav class="studio" aria-label="Guitar Studio sections"><a href="guitar.html">🎸 Melodic Lead</a><a href="fingerstyle.html" class="on" aria-current="page">🎶 Fingerstyle Solo</a></nav></div>
   <div class="stats"><div class="stat"><b id="hLevel">1</b><span>level</span></div><div class="stat"><b id="hDone">0</b><span>lessons done</span></div><div class="stat" id="hTodayS"><b id="hToday">0/30</b><span>min today</span></div></div>
 </div></header>
 <main class="wrap" id="view"></main>
@@ -303,7 +307,7 @@ function finish(ev){ // one note per string per moment; fingers: thumb on bass, 
 }
 const eventsOf=L=>L.mel?songEvents(L):patternEvents(L);
 
-/* ===================== State (shared daily timer with the melody trainer) ===================== */
+/* ===================== State (daily timer shared with Melodic Lead) ===================== */
 const KEY="fs-v1";
 let st={done:{},tempo:{},days:{},last:null,set:{click:true,countin:true,loop:true}};
 try{const x=JSON.parse(localStorage.getItem(KEY)||"null");if(x)st={...st,...x,set:{...st.set,...(x.set||{})}};}catch(e){}
@@ -365,7 +369,7 @@ function syncCard(){const on=!!syncCode();return `<section class="card"><div cla
   <p id="syncState">${syncText()}</p>
   ${on?`<div class="row"><button type="button" data-syncnow="1">Sync now</button><button type="button" class="linkb" data-syncoff="1">Turn sync off on this device</button></div>`
   :`<div class="row"><input type="password" id="syncIn" placeholder="Your Total Recall sync code" autocomplete="off" style="flex:1;min-width:0;font:500 14px var(--body);border:1px solid var(--line);border-radius:8px;padding:8px"><button type="button" class="play" data-syncon="1">Turn on sync</button></div>
-    <p>If you set the code in Total Recall or the melody trainer on this device, sync is already on here.</p>`}</section>`;}
+    <p>If you set the code in Total Recall or Melodic Lead on this device, sync is already on here.</p>`}</section>`;}
 
 /* ===================== Audio ===================== */
 let ctx=null,MASTER=null;const cache={};
@@ -443,7 +447,7 @@ function paintGoal(){const k=dkey(new Date()),g=goalMin()*60;let s=daySec(k);if(
   const nb=document.getElementById("nbGoal");nb.textContent=met?`✓ ${mmss(s)} played`:`⏱ ${mmss(s)} / ${mmss(g)}`;nb.classList.toggle("met",met);
   document.getElementById("hToday").textContent=`${Math.floor(s/60)}/${goalMin()}`;document.getElementById("hTodayS").classList.toggle("met",met);
   const gb=document.getElementById("goalBar");if(gb)gb.style.width=Math.min(100,s/g*100)+"%";
-  const gt=document.getElementById("goalTxt");if(gt)gt.innerHTML=met?`<b>Goal reached:</b> ${mmss(s)} played today (melody + fingerstyle).`:`<b>${mmss(s)}</b> played today across both trainers. <b>${Math.ceil((g-s)/60)} min</b> to go.`;
+  const gt=document.getElementById("goalTxt");if(gt)gt.innerHTML=met?`<b>Goal reached:</b> ${mmss(s)} played today in Guitar Studio.`:`<b>${mmss(s)}</b> played today across Guitar Studio. <b>${Math.ceil((g-s)/60)} min</b> to go.`;
   if(met&&play&&toastDay!==k){toastDay=k;const t=document.getElementById("toast");t.hidden=false;setTimeout(()=>t.hidden=true,5000);}}
 
 /* ===================== Rendering ===================== */
@@ -468,7 +472,7 @@ function tabHTML(E){
 function fixClefs(){document.querySelectorAll(".tab").forEach(t=>{let last=null;[...t.children].forEach(b=>{b.classList.toggle("nc",b.offsetTop===last);last=b.offsetTop;});});}
 window.addEventListener("resize",()=>setTimeout(fixClefs,100));
 function header(){document.getElementById("hLevel").textContent=curLevel()+1;document.getElementById("hDone").textContent=Object.keys(st.done).length;}
-function goalCard(){return `<div class="card goal"><div class="row between"><h3>Daily goal · ${goalMin()} min</h3><span class="num">shared with the melody trainer</span></div>
+function goalCard(){return `<div class="card goal"><div class="row between"><h3>Daily goal · ${goalMin()} min</h3><span class="num">Melodic Lead + Fingerstyle Solo</span></div>
   <div class="gbar"><i id="goalBar"></i></div><p id="goalTxt"></p></div>`;}
 function homeView(){
   const nx=nextLesson(),doneIds=ALL.filter(x=>st.done[x.id]),rev=doneIds.length?doneIds[Math.floor(Date.now()/864e5)%doneIds.length]:null;
