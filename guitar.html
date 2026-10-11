@@ -1468,7 +1468,7 @@ function flushTime(p,final){ // add the time since the last flush to today's tot
 }
 function logTime(p){flushTime(p,true);}
 const goalSec=()=>(S.goalMin||30)*60;
-const fsSec=k=>{try{const f=JSON.parse(localStorage.getItem("fs-v1")||"null");return (f&&f.days&&f.days[k])||0;}catch(e){return 0;}}; // fingerstyle trainer minutes
+const fsSec=k=>{try{const f=JSON.parse(localStorage.getItem("fs-v1")||"null");if(!f)return 0;return ((f.days&&f.days[k])||0)+Object.values(f.odays||{}).reduce((x,d)=>x+(d[k]||0),0);}catch(e){return 0;}}; // fingerstyle trainer minutes
 function todaySec(){const day=dkey(new Date());let s=Object.values(sessions).reduce((a,x)=>a+((x.days&&x.days[day])||0),0)+fsSec(day);
   if(play)s+=Math.min(90,(performance.now()-(play.lf||play.t0))/1000);return s;}
 const mmss=s=>{s=Math.floor(s);return Math.floor(s/60)+":"+String(s%60).padStart(2,"0");};

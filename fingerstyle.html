@@ -103,7 +103,7 @@ input{accent-color:var(--steel)}
 .navf{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;border-top:1px solid var(--line);padding-top:12px}
 </style></head><body>
 <header class="top"><div class="hin">
-  <div><div class="toprow"><a class="backlink" href="./">← Total Recall &amp; Melodies</a><a class="backlink" href="guitar.html">🎸 Melody trainer</a></div>
+  <div><div class="toprow"><a class="backlink" href="./">← Total Recall &amp; Melodies</a><a class="backlink" href="guitar.html">🎸 Melody trainer</a><span id="syncBadge" class="backlink">☁ Sync off</span></div>
     <div class="eyebrow">Guitar · Fingerstyle</div><h1>Fingerstyle Trainer</h1></div>
   <div class="stats"><div class="stat"><b id="hLevel">1</b><span>level</span></div><div class="stat"><b id="hDone">0</b><span>lessons done</span></div><div class="stat" id="hTodayS"><b id="hToday">0/30</b><span>min today</span></div></div>
 </div></header>
@@ -307,15 +307,65 @@ const eventsOf=L=>L.mel?songEvents(L):patternEvents(L);
 const KEY="fs-v1";
 let st={done:{},tempo:{},days:{},last:null,set:{click:true,countin:true,loop:true}};
 try{const x=JSON.parse(localStorage.getItem(KEY)||"null");if(x)st={...st,...x,set:{...st.set,...(x.set||{})}};}catch(e){}
-const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(st));}catch(e){}};
+st.dev=st.dev||Math.random().toString(36).slice(2,10);st.odays=st.odays||{};st.doneT=st.doneT||{};st.offT=st.offT||{};st.tUpd=st.tUpd||0;
+Object.keys(st.done).forEach(id=>{if(!st.doneT[id])st.doneT[id]=Date.now();});
+const save=quiet=>{try{localStorage.setItem(KEY,JSON.stringify(st));}catch(e){}if(!quiet)scheduleSync();};
 const pad=n=>String(n).padStart(2,"0"),dkey=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 function melodyData(){try{return JSON.parse(localStorage.getItem("mss-sessions")||"null")||{};}catch(e){return {};}}
 const goalMin=()=>{const m=melodyData();return (m.st&&m.st.goalMin)||30;};
-function daySec(k){const m=melodyData();let s=(st.days&&st.days[k])||0;Object.values(m.ds||{}).forEach(x=>{s+=(x.days&&x.days[k])||0;});return s;}
+function daySec(k){const m=melodyData();let s=((st.days&&st.days[k])||0)+Object.values(st.odays||{}).reduce((a,d)=>a+(d[k]||0),0);Object.values(m.ds||{}).forEach(x=>{s+=(x.days&&x.days[k])||0;});return s;}
 const levelDone=li=>LEVELS[li].ls.every(x=>st.done[x.id]);
 const unlockedLv=li=>li===0||levelDone(li-1);
 const curLevel=()=>{for(let i=0;i<LEVELS.length;i++)if(!levelDone(i))return i;return LEVELS.length-1;};
 const nextLesson=()=>ALL.find(x=>unlockedLv(x.lv)&&!st.done[x.id])||ALL[ALL.length-1];
+
+/* ===================== Device sync: your Total Recall sync code, encrypted, its own slot for fingerstyle ===================== */
+const SYNC_KEY="totalRecallSyncCode_v1",SYNC_URL=localStorage.getItem("totalRecallTickTickUrl")||"https://total-recall-ticktick.pranjuchakrapani90.workers.dev";
+const SY={busy:false,again:false,timer:0,state:"off",msg:"",last:null};
+const syncCode=()=>{try{return localStorage.getItem(SYNC_KEY)||"";}catch(e){return "";}};
+const b64=a=>{let s="";new Uint8Array(a).forEach(x=>s+=String.fromCharCode(x));return btoa(s);};
+const unb64=s=>{const r=atob(s),u=new Uint8Array(r.length);for(let i=0;i<r.length;i++)u[i]=r.charCodeAt(i);return u;};
+async function keyOf(code){const h=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(code+"#fingerstyle"));return crypto.subtle.importKey("raw",h,{name:"AES-GCM"},false,["encrypt","decrypt"]);}
+async function enc(o,code){const iv=crypto.getRandomValues(new Uint8Array(12)),c=await crypto.subtle.encrypt({name:"AES-GCM",iv},await keyOf(code),new TextEncoder().encode(JSON.stringify(o)));return JSON.stringify({v:1,iv:b64(iv),data:b64(c)});}
+async function dec(blob,code){const x=JSON.parse(blob||"{}"),p=await crypto.subtle.decrypt({name:"AES-GCM",iv:unb64(x.iv)},await keyOf(code),unb64(x.data));return JSON.parse(new TextDecoder().decode(p));}
+function payload(){const done={};Object.keys(st.doneT).forEach(id=>{if(st.done[id])done[id]={d:st.done[id],t:st.doneT[id]};});
+  return {v:1,done,off:st.offT,tempo:st.tempo,tUpd:st.tUpd,days:{...st.odays,[st.dev]:st.days}};}
+function merge(R){
+  let ch=false;
+  Object.entries(R.done||{}).forEach(([id,x])=>{if(!st.doneT[id]||x.t>st.doneT[id]){st.doneT[id]=x.t;st.done[id]=x.d;ch=true;}});
+  Object.entries(R.off||{}).forEach(([id,t])=>{if(!st.offT[id]||t>st.offT[id]){st.offT[id]=t;ch=true;}});
+  Object.keys(st.offT).forEach(id=>{if(st.done[id]&&(st.offT[id]||0)>(st.doneT[id]||0)){delete st.done[id];ch=true;}});
+  if((R.tUpd||0)>st.tUpd){st.tempo={...R.tempo};st.tUpd=R.tUpd;ch=true;}
+  Object.entries(R.days||{}).forEach(([dev,days])=>{const tgt=dev===st.dev?st.days:(st.odays[dev]=st.odays[dev]||{});
+    Object.entries(days||{}).forEach(([k,v])=>{if(v>(tgt[k]||0)){tgt[k]=v;ch=true;}});});
+  return ch;
+}
+function setSync(state,msg){SY.state=state;SY.msg=msg||"";if(state==="ok")SY.last=new Date();
+  const b=document.getElementById("syncBadge");if(b){b.textContent=state==="busy"?"☁ Syncing…":state==="ok"?"☁ Synced":state==="err"?"☁ Sync problem":"☁ Sync off";b.title=SY.msg;}
+  const t=document.getElementById("syncState");if(t)t.innerHTML=syncText();}
+function syncText(){if(!syncCode())return "Sync is off. Progress stays on this device.";if(SY.state==="err")return `Couldn't sync: ${SY.msg.replace(/</g,"&lt;")}. It will retry automatically.`;if(SY.state==="busy")return "Syncing…";
+  return SY.last?`Synced at ${SY.last.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"})}. Lessons, tempos and minutes appear on your other devices.`:"Sync is on.";}
+function scheduleSync(){if(!syncCode())return;clearTimeout(SY.timer);SY.timer=setTimeout(cloudSync,1500);}
+async function cloudSync(){
+  const code=syncCode();if(!code){setSync("off");return false;}if(SY.busy){SY.again=true;return false;}
+  SY.busy=true;setSync("busy");let ch=false;
+  try{const url=SYNC_URL+(SYNC_URL.indexOf("?")>=0?"&":"?")+"mode=sync",headers={"Content-Type":"application/json","X-Total-Recall-Sync":code+"#fingerstyle"};
+    const r=await fetch(url,{method:"POST",headers,body:JSON.stringify({state:{app:"fingerstyle"}}),cache:"no-store"});if(!r.ok)throw new Error("the sync bridge answered HTTP "+r.status);
+    const data=await r.json();if(data.error)throw new Error(data.error);
+    if(data.blob)ch=merge(await dec(data.blob,code));
+    if(ch)save(true);
+    const w=await fetch(url,{method:"PUT",headers,body:await enc(payload(),code),cache:"no-store"});if(!w.ok)throw new Error("upload failed with HTTP "+w.status);
+    setSync("ok");
+  }catch(e){setSync("err",String(e&&e.message||e));}
+  finally{SY.busy=false;if(SY.again){SY.again=false;scheduleSync();}}
+  if(ch&&!play)render();
+  return ch;
+}
+function syncCard(){const on=!!syncCode();return `<section class="card"><div class="row between"><h3>Device sync</h3><span class="num">same code as Total Recall</span></div>
+  <p id="syncState">${syncText()}</p>
+  ${on?`<div class="row"><button type="button" data-syncnow="1">Sync now</button><button type="button" class="linkb" data-syncoff="1">Turn sync off on this device</button></div>`
+  :`<div class="row"><input type="password" id="syncIn" placeholder="Your Total Recall sync code" autocomplete="off" style="flex:1;min-width:0;font:500 14px var(--body);border:1px solid var(--line);border-radius:8px;padding:8px"><button type="button" class="play" data-syncon="1">Turn on sync</button></div>
+    <p>If you set the code in Total Recall or the melody trainer on this device, sync is already on here.</p>`}</section>`;}
 
 /* ===================== Audio ===================== */
 let ctx=null,MASTER=null;const cache={};
@@ -357,7 +407,7 @@ function start(){
   play.timer=setInterval(sched,25);sched();play.raf=requestAnimationFrame(draw);setBar();
   try{if(navigator.wakeLock)navigator.wakeLock.request("screen").then(l=>{play&&(play.wake=l);}).catch(()=>{});}catch(e){}
 }
-function stop(){if(!play)return;flush(true);clearInterval(play.timer);cancelAnimationFrame(play.raf);try{play.wake&&play.wake.release();}catch(e){}
+function stop(){if(!play)return;flush(true);scheduleSync();clearInterval(play.timer);cancelAnimationFrame(play.raf);try{play.wake&&play.wake.release();}catch(e){}
   play=null;document.querySelectorAll(".col.on,.col.tick").forEach(c=>c.classList.remove("on","tick"));setBar();}
 const bt=b=>play.t0+(b+play.ci)*spb();
 function sched(){
@@ -385,7 +435,7 @@ let SUB=2;const slotOf=b=>Math.round(b*SUB);
 
 /* ----- time played: counts towards the shared daily goal ----- */
 function flush(){if(!play)return;const now=performance.now();let s=Math.min(90,(now-play.lf)/1000);play.lf=now;if(s<=0)return;
-  const k=dkey(new Date());st.days[k]=Math.round(((st.days[k]||0)+s)*10)/10;save();}
+  const k=dkey(new Date());st.days[k]=Math.round(((st.days[k]||0)+s)*10)/10;save(true);}
 const mmss=s=>{s=Math.floor(s);return Math.floor(s/60)+":"+pad(s%60);};
 let toastDay=null;
 setInterval(()=>{if(play&&performance.now()-play.lf>15000)flush();paintGoal();},1000);
@@ -427,6 +477,7 @@ function homeView(){
     <h2>${Object.keys(st.done).length?"Pick up where you left off":"Start your fingerstyle journey"}</h2>
     <p>Each lesson has a goal tempo. Practise it with bar practice and the tempo buttons, and mark it done when you can play it cleanly at the goal. Finishing every lesson in a level opens the next.</p>
     <div class="row">${rev?`<button type="button" data-open="${rev.id}">↺ Warm up: ${rev.t}</button>`:""}<button type="button" class="play big" data-open="${nx.id}">Lesson ${nx.id}: ${nx.t} ▸</button></div></section>
+  ${syncCard()}
   <section class="card"><h3>The course</h3><div class="levels">${LEVELS.map((L,li)=>{const un=unlockedLv(li),fin=levelDone(li),cur=li===curLevel()&&!fin;
     return `<div class="lvl${un?"":" lock"}${fin?" fin":""}${cur?" cur":""}"><div class="lvh"><b>Level ${li+1}: ${L.n}</b><span>${fin?"✓ complete":un?`${L.ls.filter(x=>st.done[x.id]).length} of ${L.ls.length} done`:"🔒 finish the level before"}</span></div>
       <p>${L.d}</p><div class="lessons">${L.ls.map(x=>`<button type="button" class="les${st.done[x.id]?" ok":x.id===nx.id?" next":""}" ${un?`data-open="${x.id}"`:"disabled"}>${st.done[x.id]?"✓ ":""}${x.id} ${x.t}</button>`).join("")}</div></div>`;}).join("")}</div></section>`;
@@ -468,24 +519,29 @@ document.addEventListener("click",e=>{
   const o=e.target.closest("[data-open]");if(o){open(o.dataset.open);return;}
   if(e.target.closest("[data-home]")){view={k:"home"};sel=null;render();window.scrollTo({top:0});return;}
   if(e.target.closest("#nbPlay")){play?stop():start();return;}
-  const td=e.target.closest("[data-tdelta]");if(td){const L=byId(view.id);st.tempo[L.id]=Math.max(30,Math.min(160,tempoOf(L)+Number(td.dataset.tdelta)));save();
+  const td=e.target.closest("[data-tdelta]");if(td){const L=byId(view.id);st.tempo[L.id]=Math.max(30,Math.min(160,tempoOf(L)+Number(td.dataset.tdelta)));st.tUpd=Date.now();save();
     const r=document.getElementById("tempo");if(r){r.value=tempoOf(L);document.getElementById("tempoV").textContent=tempoOf(L);}if(play){const was=true;stop();start();}else setBar();return;}
-  const d=e.target.closest("[data-done]");if(d){st.done[d.dataset.done]=dkey(new Date());save();const L=byId(d.dataset.done),nx=ALL[ALL.indexOf(L)+1];
+  const d=e.target.closest("[data-done]");if(d){st.done[d.dataset.done]=dkey(new Date());st.doneT[d.dataset.done]=Date.now();save();const L=byId(d.dataset.done),nx=ALL[ALL.indexOf(L)+1];
     if(nx&&unlockedLv(nx.lv))open(nx.id);else{view={k:"home"};render();}return;}
-  const u=e.target.closest("[data-undone]");if(u){delete st.done[u.dataset.undone];save();render();return;}
+  const u=e.target.closest("[data-undone]");if(u){delete st.done[u.dataset.undone];st.offT[u.dataset.undone]=Date.now();save();render();return;}
+  if(e.target.closest("[data-syncnow]")){cloudSync();return;}
+  if(e.target.closest("[data-syncoff]")){try{localStorage.removeItem(SYNC_KEY);}catch(x){}setSync("off");render();return;}
+  if(e.target.closest("[data-syncon]")){const v=(document.getElementById("syncIn").value||"").trim();if(v.length<8){setSync("err","use a sync code of at least 8 characters");return;}try{localStorage.setItem(SYNC_KEY,v);}catch(x){}cloudSync().then(render);return;}
   const bb=e.target.closest("[data-bars]");if(bb){const L=byId(view.id),E=eventsOf(L),n=Math.ceil(E.total/E.meter-1e-6),op=bb.dataset.bars;
     if(op==="all")setSel(null);else if(op==="add")setSel(sel?{a:sel.a,b:Math.min(n-1,sel.b+1)}:{a:0,b:Math.min(n-1,1)});
     else{const x=sel?Math.min(n-1,sel.b+1):0;setSel({a:x,b:x});}return;}
   const tb=e.target.closest(".tbar");if(tb){const b=Number(tb.dataset.bar);
     if(e.shiftKey&&sel)setSel({a:Math.min(sel.a,b),b:Math.max(sel.b,b)});else if(sel&&sel.a===b&&sel.b===b)setSel(null);else setSel({a:b,b});return;}
 });
-document.addEventListener("input",e=>{if(e.target.id==="tempo"){const L=byId(view.id);st.tempo[L.id]=Number(e.target.value);document.getElementById("tempoV").textContent=e.target.value;document.getElementById("nbT").textContent=e.target.value;save();}});
+document.addEventListener("input",e=>{if(e.target.id==="tempo"){const L=byId(view.id);st.tempo[L.id]=Number(e.target.value);st.tUpd=Date.now();document.getElementById("tempoV").textContent=e.target.value;document.getElementById("nbT").textContent=e.target.value;save();}});
 document.addEventListener("change",e=>{const t=e.target;if(t.id==="tempo"&&play){stop();start();}
   if(["click","countin","loop"].includes(t.id)){st.set[t.id]=t.checked;save();}});
 document.addEventListener("keydown",e=>{if(e.key!==" "||["INPUT","BUTTON"].includes(e.target.tagName)||view.k!=="lesson")return;e.preventDefault();play?stop():start();});
-document.addEventListener("visibilitychange",()=>{if(document.hidden)stop();});
+document.addEventListener("visibilitychange",()=>{if(document.hidden)stop();else cloudSync();});
+setInterval(()=>{if(!document.hidden&&!play)cloudSync();},60000);
 const q=new URLSearchParams(location.search).get("lesson");
 if(q&&byId(q))view={k:"lesson",id:q};
 render();
+cloudSync();
 </script>
 </body></html>
