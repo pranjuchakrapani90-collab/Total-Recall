@@ -398,7 +398,7 @@ body.hasbar .wrap{padding-bottom:96px}
 <header class="top"><div class="hin">
   <div>
     <div class="toprow"><a class="backlink" href="studio.html">← Guitar Studio</a><span id="syncBadge" class="sbadge off">☁ Sync off</span></div>
-    <div class="eyebrow">Scales · sequences · arpeggios</div>
+    <div class="eyebrow">270 melodic sequence patterns</div>
     <h1><a href="studio.html" style="color:inherit;text-decoration:none">Guitar Studio</a></h1>
     <nav class="studio" aria-label="Guitar Studio sections"><a href="guitar.html" class="on" aria-current="page">🎸 Melodic Lead</a><a href="fingerstyle.html">🎶 Fingerstyle Solo</a></nav>
   </div>
@@ -440,10 +440,10 @@ const STAGES=[
 function ladder(st){const S_=STAGES[st],out=[];for(let x=S_.from;x<S_.to;x+=S_.step)out.push(x,x+S_.step,x);out.push(S_.to);return out;}
 const stageOf=d=>d.stage==null?0:d.stage;
 function coverage(st){ // what has been done within one stage
-  const seq=new Set(),voc=new Set(),rh=new Set(),mel=new Set();
+  const seq=new Set(),voc=new Set(),rh=new Set(),mel=new Set(),pm=new Set(),pp=new Set();
   Object.values(sessions).filter(d=>stageOf(d)===st).forEach(d=>d.done.forEach(k=>{
-    if(k[0]==="v")voc.add(k);else if(k[0]==="m")mel.add(k);else{seq.add(k);const it=d.items.find(x=>keyOf(x)===k);if(it&&it.rh!=null)rh.add(it.rh);}}));
-  return {seq:seq.size,voc:voc.size,rh:rh.size,mel:mel.size,full:seq.size>=EX.length&&voc.size>=VOC.length&&rh.size>=RHY.length&&mel.size>=MEL.length};
+    if(k[0]==="M")pm.add(k);else if(k[0]==="P")pp.add(k);else if(k[0]==="v")voc.add(k);else if(k[0]==="m")mel.add(k);else{seq.add(k);const it=d.items.find(x=>keyOf(x)===k);if(it&&it.rh!=null)rh.add(it.rh);}}));
+  return {seq:seq.size,voc:voc.size,rh:rh.size,mel:mel.size,pm:pm.size,pp:pp.size,full:pm.size>=PAT.length&&pp.size>=PAT.length};
 }
 
 /* ----- Sequences (cells moved through the position) ----- */
@@ -593,7 +593,7 @@ const dkey=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 const fmt=k=>{const[y,m,d]=k.split("-").map(Number);return new Date(y,m-1,d).toLocaleDateString(undefined,{weekday:"short",day:"numeric",month:"short"});};
 function rng(seed){let h=1779033703^seed.length;for(let i=0;i<seed.length;i++){h=Math.imul(h^seed.charCodeAt(i),3432918353);h=h<<13|h>>>19;}
   return()=>{h=Math.imul(h^h>>>16,2246822507);h=Math.imul(h^h>>>13,3266489909);return((h^=h>>>16)>>>0)/4294967296;};}
-const keyOf=it=>(it.k==="v"?"v":it.k==="m"?"m":"s")+it.i;
+const keyOf=it=>it.k==="p"?it.set+it.i:(it.k==="v"?"v":it.k==="m"?"m":"s")+it.i;
 
 function normalize(x){ // sessions saved by earlier versions of the page
   if(!x.items){x.items=(x.ex||[]).map((i,j)=>({k:"s",i,rh:x.rh?x.rh[j]:j}));}
@@ -613,7 +613,7 @@ function planSession(){
   const tempo=stage<STAGES.length?ladder(stage)[step]:null;
   const inStage=past.filter(d=>stageOf(d)===Math.min(stage,STAGES.length-1));
   const doneSet=new Set();inStage.forEach(d=>d.done.forEach(k=>doneSet.add(k)));
-  const fresh=sc=>EX.some((e,i)=>CATS[e.cat].scales.includes(sc)&&!doneSet.has("s"+i))||VOC.some((v,i)=>v.s===sc&&!doneSet.has("v"+i));
+  const fresh=sc=>PAT.some((e,i)=>!doneSet.has(patSet(sc)+i));
   let cyc=prev?((prev.cyc!=null?prev.cyc:0)+1)%SCALE_CYCLE.length:0;
   for(let t=0;t<SCALE_CYCLE.length&&!fresh(SCALE_CYCLE[cyc]);t++)cyc=(cyc+1)%SCALE_CYCLE.length;
   const scale=SCALE_CYCLE[cyc];
@@ -626,26 +626,15 @@ function planSession(){
   const plays={},last={},prevKeys=new Set(prev?prev.items.map(keyOf):[]);
   inStage.forEach(d=>d.done.forEach(k=>{plays[k]=(plays[k]||0)+1;if(!last[k]||d.started>last[k])last[k]=d.started;}));
   const rank=(a,b)=>a.p-b.p||(a.l<b.l?-1:a.l>b.l?1:0)||a.x-b.x;
-  // two sequences, from groups that suit the scale, all different groups
-  const seqC=EX.map((e,i)=>({i,cat:e.cat,k:"s"+i,x:r()})).filter(o=>CATS[o.cat].scales.includes(scale)&&!prevKeys.has(o.k))
-    .map(o=>({...o,p:plays[o.k]||0,l:last[o.k]||""})).sort(rank);
-  const seq=[],used=new Set();
-  for(const o of seqC){if(seq.length===2)break;if(!used.has(o.cat)){seq.push(o.i);used.add(o.cat);}}
-  for(const o of seqC){if(seq.length===2)break;if(!seq.includes(o.i))seq.push(o.i);}
-  seq.sort((a,b)=>EX[a].cat-EX[b].cat||a-b);
-  // three rhythms, none from the previous session
-  const rUsed={},prevR=new Set(prev?prev.items.filter(x=>x.k==="s").map(x=>x.rh):[]);
-  inStage.forEach(d=>d.items.forEach(x=>{if(x.k==="s"&&d.done.includes(keyOf(x)))rUsed[x.rh]=(rUsed[x.rh]||0)+1;}));
-  const rh=RHY.map((_,i)=>({i,p:prevR.has(i)?1:0,u:rUsed[i]||0,x:r()})).sort((a,b)=>a.p-b.p||a.u-b.u||a.x-b.x).slice(0,2).map(o=>o.i);
-  // two vocabulary phrases for this scale
-  const voc=VOC.map((v,i)=>({i,k:"v"+i,s:v.s,x:r()})).filter(o=>o.s===scale&&!prevKeys.has(o.k))
-    .map(o=>({...o,p:plays[o.k]||0,l:last[o.k]||""})).sort(rank).slice(0,1).map(o=>o.i);
-  // one chord-work drill (arpeggios and chord-tone targeting take turns) and one double-stop drill
-  const melC=types=>MEL.map((m,i)=>({i,k:"m"+i,t:melType(i),x:r()})).filter(o=>types.includes(o.t)&&!prevKeys.has(o.k)).map(o=>({...o,p:plays[o.k]||0,l:last[o.k]||""}));
-  const prevCW=prev&&(prev.items||[]).find(x=>x.k==="m"&&melType(x.i)!=="d"),want=prevCW&&melType(prevCW.i)==="a"?"t":"a";
-  const cw=melC(["a","t"]).sort((a,b)=>a.p-b.p||(a.t===want?0:1)-(b.t===want?0:1)||(a.l<b.l?-1:a.l>b.l?1:0)||a.x-b.x)[0];
-  const ds=melC(["d"]).sort(rank)[0];
-  const items=[...seq.map((i,j)=>({k:"s",i,rh:rh[j]})),{k:"m",i:cw.i},{k:"m",i:ds.i},...voc.map(i=>({k:"v",i}))];
+  // five patterns from this session's set: least played first, simpler ones first, from different groups where possible
+  const set=patSet(scale);
+  const pc=PAT.map((P,i)=>({i,cat:P.cat,k:set+i,p:plays[set+i]||0,l:last[set+i]||"",o:P.k,x:r()})).filter(o=>!prevKeys.has(o.k))
+    .sort((a,b)=>a.p-b.p||a.o-b.o||(a.l<b.l?-1:a.l>b.l?1:0)||a.x-b.x);
+  const pick=[],usedC=new Set();
+  for(const o of pc){if(pick.length===5)break;if(o.p===pc[0].p&&!usedC.has(o.cat)){pick.push(o);usedC.add(o.cat);}}
+  for(const o of pc){if(pick.length===5)break;if(!pick.includes(o))pick.push(o);}
+  pick.sort((a,b)=>a.i-b.i);
+  const items=pick.map(o=>({k:"p",set,i:o.i}));
   const gUse={},taken=new Set();past.forEach(d=>{(d.items||[]).forEach(x=>{if(x.gr!=null)gUse[x.gr]=(gUse[x.gr]||0)+1;});if(d.boxGr!=null)gUse[d.boxGr]=(gUse[d.boxGr]||0)+1;});
   const pickG=(fam,pref)=>{const best=GROOVES.map((g,i)=>({i,g})).filter(o=>o.g.fam===fam)
       .map(o=>({i:o.i,s:(gUse[o.i]||0)+(taken.has(o.i)?5:0)-(pref&&o.g.n===pref?0.6:0)+r()*0.5})).sort((a,b)=>a.s-b.s)[0].i;
@@ -913,13 +902,62 @@ function melCard(id,it,idx){
     ${barsBar(id,E)}
     <div class="tabscroll"><div class="tab${barSel[selKey(id)]?" hassel":""}">${tabHTML(E,id)}</div></div></section>`;
 }
+/* ===================== The pattern library: 135 one-bar sequences, played in major and in pentatonic =====================
+   Each pattern is a cell of scale steps (0 = the starting note). It is played as a group on the beat, then the same group
+   from the next scale note up, all the way up the shape and back down: the classic melodic-sequence drill.
+   The rhythm comes with the pattern: triplets for threes and sixes, sixteenths for fours and eights, eighths for slow fours. */
+const PCATS=[{"n": "Three-note groups", "d": "Triplets: three notes to every beat, the group starting again one scale note higher on the next beat.", "dur": 0.3333333333333333, "cells": [[0, -1, 0], [0, 1, 0], [0, -1, -2], [0, 1, 2], [0, -1, 1], [0, 1, -1], [0, -2, -1], [0, 2, 1], [0, -2, 0], [0, 2, 0], [0, -1, -3], [0, 1, 3], [0, -2, -3], [0, 2, 3], [0, -1, 2], [0, 1, -2], [0, -3, -2], [0, 3, 2], [0, -2, 1], [0, 2, -1], [0, -3, -1], [0, 3, 1], [0, -3, 0], [0, 3, 0], [0, 1, 4], [0, 2, 4], [0, 3, 4], [0, -1, 3], [0, 1, -3], [0, 4, 3]]}, {"n": "Four-note groups", "d": "Sixteenth notes: four notes to every beat, mostly by step.", "dur": 0.25, "cells": [[0, -1, 0, 1], [0, 1, 0, -1], [0, -1, -2, -1], [0, 1, 2, 1], [0, -1, 0, -2], [0, 1, 0, 2], [0, -1, 1, 0], [0, 1, -1, 0], [0, -1, -2, 0], [0, 1, 2, 0], [0, -2, -1, 0], [0, 2, 1, 0], [0, -2, -1, -2], [0, 2, 1, 2], [0, -1, 1, -1], [0, 1, -1, 1], [0, -2, 0, -1], [0, 2, 0, 1], [0, -1, -2, -3], [0, 1, 2, 3], [0, -1, 0, 2], [0, 1, 0, -2], [0, -1, 1, 2], [0, 1, -1, -2], [0, -1, -3, -2], [0, 1, 3, 2], [0, -2, -3, -2], [0, 2, 3, 2], [0, -1, 0, -3], [0, 1, 0, 3], [0, -1, -2, 1], [0, -1, 2, 1], [0, 1, -2, -1], [0, 1, 2, -1], [0, -1, -3, -1], [0, 1, 3, 1], [0, -2, 0, 1], [0, 2, 0, -1], [0, 2, 1, -1], [0, -2, -1, -3], [0, -2, -3, -1], [0, 2, 3, 1], [0, -3, -2, -1], [0, 3, 2, 1], [0, -3, -2, -3]]}, {"n": "Leaps in fours", "d": "Sixteenth notes with skips: 3rds, 4ths and chord shapes inside each group.", "dur": 0.25, "cells": [[0, 2, 4, 2], [0, 2, 4, 7], [0, 4, 2, 4], [0, 2, 1, 3], [0, 3, 2, 4], [0, 4, 3, 2], [0, -2, -1, 1], [0, 2, 4, 3], [0, 4, 2, 0], [0, 3, 1, 2], [0, -3, -1, 1], [0, 2, -1, 1], [0, 5, 4, 2], [0, 4, 5, 2], [0, 2, 4, 6]]}, {"n": "Six-note triplet runs", "d": "Triplets over two beats: each six-note group lasts two beats before moving up a step.", "dur": 0.3333333333333333, "cells": [[0, 1, 2, 3, 4, 5], [0, 1, 2, 1, 2, 3], [0, 2, 1, 3, 2, 4], [0, 1, 0, 2, 1, 3], [0, -1, 0, 1, 2, 3], [0, 2, 4, 2, 1, 0], [0, 1, 2, 3, 2, 1], [0, 4, 3, 2, 1, 0], [0, 2, 1, 2, 3, 1], [0, 1, 2, 4, 3, 2], [0, -1, -2, -1, 0, 1], [0, 2, 4, 3, 1, 2], [0, 3, 2, 1, 2, 3], [0, 1, 3, 2, 4, 3], [0, 4, 2, 3, 1, 2]]}, {"n": "Eight-note runs", "d": "Sixteenth notes over two beats: an eight-note shape, then the same shape from the next note.", "dur": 0.25, "cells": [[0, 1, 2, 3, 4, 3, 2, 1], [0, 2, 3, 4, 5, 4, 3, 2], [0, 1, 2, 3, 2, 1, 0, 1], [0, 4, 3, 2, 1, 2, 3, 4], [0, 1, 2, 0, 1, 2, 3, 1], [0, 2, 1, 3, 2, 4, 3, 1], [0, 1, 2, 3, 4, 5, 6, 7], [0, -1, 0, 1, 2, 3, 4, 2], [0, 4, 2, 3, 1, 2, 0, 1], [0, 1, 0, -1, 0, 1, 2, 3], [0, 2, 4, 5, 4, 2, 1, 0], [0, 1, 2, 4, 3, 2, 1, 2], [0, 3, 2, 1, 0, 1, 2, 3], [0, 1, 2, 3, 1, 2, 3, 4], [0, 2, 1, 0, 1, 3, 2, 1], [0, 1, 3, 2, 1, 0, -1, 0], [0, 4, 5, 4, 3, 2, 1, 2], [0, 2, 3, 1, 2, 4, 3, 1], [0, -1, 1, 0, 2, 1, 3, 2], [0, 1, 2, 1, 3, 2, 4, 3]]}, {"n": "Fours in eighth notes", "d": "Eighth notes: two notes to a beat, so each four-note group takes two beats. Slow and clear.", "dur": 0.5, "cells": [[0, 4, 3, 1], [0, 2, 5, 4], [0, 3, 1, 4], [0, -2, 2, 0], [0, 5, 3, 4], [0, -1, 3, 2], [0, 4, 1, 2], [0, 3, 5, 4], [0, -3, 0, 2], [0, 2, -2, 1]]}];
+const PAT=[];PCATS.forEach((ct,ci)=>ct.cells.forEach((c,k)=>PAT.push({c,cat:ci,dur:ct.dur,k})));
+const PSET={M:"Major",P:"Pentatonic"};
+const patSet=scale=>scale==="major"?"M":"P";
+const patName=it=>`${it.set}${it.i+1}`;
+const plab=c=>{const m=Math.min(...c);return c.map(o=>o-m+1).join("-");};
+const rhyName=d=>d===1/3?"Triplets":d===1/4?"Sixteenths":"Eighths";
+function patEvents(it,ro){
+  const P=PAT[it.i],c=P.c,d=P.dur,N=posData.notes.length,root=rootIdx(),bpb=4,ev=[];let t=0;
+  const glen=Math.round(c.length*d*48)/48;
+  if(ro){for(let k=0;k<Math.round(2*bpb/glen);k++)c.forEach((o,j)=>{ev.push({n:root,b:t,d,a:j===0?2:0});t=Math.round((t+d)*48)/48;});
+    return {ev,ch:[{b:0,d:bpb,...homeChord()},{b:bpb,d:bpb,...homeChord()}],total:2*bpb,bpb,R:null};}
+  const mx=Math.max(...c),mn=Math.min(...c);
+  // start on the lowest root that leaves room for the cell, climb to the top, then come back down
+  const roots=posData.notes.map((n,i)=>i).filter(i=>posData.notes[i].deg===0&&i+mn>=0&&i+mx<=N-1);
+  const start=roots.length?roots[0]:Math.max(0,-mn),groups=[];
+  for(let i=start;i+mx<=N-1;i++)groups.push(c.map(o=>i+o));
+  for(let i=N-1;i-mx>=0;i--){if(i-mn>N-1)continue;groups.push(c.map(o=>i-o));}
+  groups.forEach((g,gi)=>g.forEach((n,j)=>{ev.push({n,b:t,d,a:j===0?1:0,gs:j===0?gi+1:0});t=Math.round((t+d)*48)/48;}));
+  let end=Math.ceil(t-1e-6);if(end>t+1e-6){ev.push({rest:1,b:t,d:Math.round((end-t)*48)/48});t=end;}
+  const r=nearestRoot(ev.length?ev[ev.length-1].n:root);ev.push({n:r,b:t,d:1,a:2,last:true});t+=1;
+  const total=Math.ceil(t/bpb-1e-6)*bpb,ch=[];if(total>t+1e-6)ev.push({rest:1,b:t,d:total-t});for(let b=0;b<total;b+=bpb)ch.push({b,d:bpb,...homeChord()});
+  return {ev,ch,total,bpb,R:null};
+}
+function nearestRoot(n){const rs=posData.notes.map((x,i)=>i).filter(i=>posData.notes[i].deg===0);return rs.reduce((b,i)=>Math.abs(i-n)<Math.abs(b-n)?i:b,rs[0]);}
+function patCard(id,it,idx){
+  const P=PAT[it.i],ct=PCATS[P.cat],E=patEvents(it),done=today.done.includes(keyOf(it)),nn=E.ev.filter(e=>!e.rest).length;
+  const d=describeCell(P.c,0,today.scale),glen=P.c.length*P.dur;
+  const cnt=P.dur===1/3?"1 tri let":P.dur===1/4?"1 e & a":"1 &";
+  return `<section class="ex${done?" done":""}" id="card-${id}">
+    <div class="exhead"><div>
+      <div class="num">${idx+1} of 5 · Pattern ${patName(it)} · ${ct.n} · ${PSET[it.set]}</div>
+      <h2>${plab(P.c)}</h2>
+      <div class="meta"><span class="chip">${rhyName(P.dur)}</span><span class="chip m">group of ${P.c.length}</span><span class="chip t">${nn} notes</span></div>
+      <p class="pdesc"><b>Pattern ${patName(it)}</b> is ${d[0].toLowerCase()+d.slice(1)}</p>
+      <p>${ct.d}</p>
+    </div><div class="btns">${testBtn(id)}</div></div>
+    <div class="rhy"><div class="rtop"><span class="rlab">Rhythm</span><b>${rhyName(P.dur)}</b><span class="rtag">${glen===1?"one group per beat":"one group every two beats"}</span></div>
+      <p>Count <b>${cnt}</b>${glen===2?` twice`:""} for each group. The first note of every group lands on the beat and is accented; the next group starts one scale note ${"higher"} (lower on the way down).</p>
+      <div class="rfoot"><span class="rcount">The first bar of the tab is the pattern itself; every bar after it is the same shape moved along the scale.</span>
+      <button type="button" class="rbtn" data-rhy="${id}" aria-pressed="false">♪ Hear the rhythm</button></div></div>
+    ${groovePanel(id,grooveOf(id))}
+    ${barsBar(id,E)}
+    <div class="tabscroll"><div class="tab${barSel[selKey(id)]?" hassel":""}">${tabHTML(E,id)}</div></div></section>`;
+}
 function eventsFor(id,ro,test,whole){
   const gr=grooveOf(id);
   if(ro==="groove"){const G=GROOVES[gr],T=2*G.bpb;return {ev:[{rest:1,b:0,d:T}],ch:[],total:T,bpb:G.bpb,R:null,gr};}
   let E;
   if(id==="pos")E=posEvents(test);
   else if(id==="x")E=seqEvents(extra,ro);
-  else{const it=today.items[Number(id.slice(1))];E=it.k==="v"?vocEvents(it.i,ro):it.k==="m"?melEvents(it.i,ro):seqEvents(it,ro);}
+  else{const it=today.items[Number(id.slice(1))];E=it.k==="p"?patEvents(it,ro):it.k==="v"?vocEvents(it.i,ro):it.k==="m"?melEvents(it.i,ro):seqEvents(it,ro);}
   E.gr=gr;
   const sel=id!=="pos"&&!ro&&!test&&!whole?barSel[selKey(id)]:null;
   if(sel)E=sliceBars(E,sel.a,sel.b);
@@ -990,8 +1028,9 @@ const GROOVES=[
  {n:"Dadra feel",g:"Indian light classical, film songs",fam:"six8",sub:3,bpb:2,d:"The 6-beat Dadra taal (Dha Dhi Na | Dha Ti Na) on drums: bass on each Dha, high tom on Dhi and Ti, rim on Na.",p:{t:".x..x.",r:"..x..x",k:"x..x.."}},
 ];
 function grooveFamily(R){return R&&R.compound?"six8":R&&(R.swing||R.n==="Triplets")?"swing":"straight";}
-function famOfItem(it){return it.k==="m"?(MK[MEL[it.i].kd].fam||"straight"):it.k==="v"?(VOC[it.i].ph.indexOf("/3")>=0?"swing":"straight"):grooveFamily(RHY[it.rh]);}
+function famOfItem(it){return it.k==="p"?(PAT[it.i].dur===1/3?"swing":"straight"):it.k==="m"?(MK[MEL[it.i].kd].fam||"straight"):it.k==="v"?(VOC[it.i].ph.indexOf("/3")>=0?"swing":"straight"):grooveFamily(RHY[it.rh]);}
 function prefOfItem(it){
+  if(it.k==="p")return PAT[it.i].dur===1/4?"Funk sixteenths":PAT[it.i].dur===1/3?"Shuffle":null;
   if(it.k==="m")return MK[MEL[it.i].kd].gp||null;
   if(it.k==="s")return {"Tresillo 3+3+2":"Dembow","Son clave 3-2":"Bossa nova","Off-beat push":"Funk sixteenths","Sixteenth notes":"Funk sixteenths","Swing eighths":"Shuffle","Phrase and breathe":"Half-time","Gallop":"Rock beat"}[RHY[it.rh].n]||null;
   const g=VOC[it.i].g;return /Indian/.test(g)?"Keherwa feel":/Funk/.test(g)?"Funk sixteenths":/Country/.test(g)?"Train beat":/Latin/.test(g)?"Bossa nova":/Jazz|bebop/i.test(g)?"Jazz swing":/Gospel|Soul/.test(g)?"Motown":null;
@@ -1170,8 +1209,8 @@ function firstOpen(){if(!today.boxDone)return "box";const j=today.items.findInde
 function go(v){stop();view=v;render();window.scrollTo({top:0,behavior:"smooth"});}
 const fmtMin=sec=>{const m=Math.round((sec||0)/60);return m<60?`${m}m`:`${Math.floor(m/60)}h ${m%60}m`;};
 const sesTime=d=>Object.values(d.time||{}).reduce((a,b)=>a+b,0);
-const itemName=it=>it.k==="v"?VOC[it.i].n:it.k==="m"?MK[MEL[it.i].kd].n:EX[it.i].t;
-const itemKind=it=>it.k==="v"?"Phrase":it.k==="m"?MTYPE[melType(it.i)].n:"Sequence";
+const itemName=it=>it.k==="p"?`Pattern ${patName(it)} · ${plab(PAT[it.i].c)}`:it.k==="v"?VOC[it.i].n:it.k==="m"?MK[MEL[it.i].kd].n:EX[it.i].t;
+const itemKind=it=>it.k==="p"?`${PCATS[PAT[it.i].cat].n} · ${rhyName(PAT[it.i].dur)}`:it.k==="v"?"Phrase":it.k==="m"?MTYPE[melType(it.i)].n:"Sequence";
 const posLabel=(d)=>`${NOTE[S.keyPc]} ${SCALES[d.scale].name}, ${shapeName(d.position)}`;
 
 function mixHTML(){return [["vMaster","🔊 Overall",200],["vDrums","🥁 Drums",150],["vClick","Click",150],["vNotes","♪ Guide notes",100],["vChords","Chords",100]].map(([k,l,mx])=>
@@ -1183,7 +1222,7 @@ function setTempoNote(){
 function stageHTML(){
   const st=today.stage==null?0:today.stage,fin=st>=STAGES.length,si=Math.min(st,STAGES.length-1),S_=STAGES[si];
   const cv=coverage(si),L=ladder(si),top=today.step===L.length-1;
-  const left=[EX.length-cv.seq?`${EX.length-cv.seq} sequences`:"",VOC.length-cv.voc?`${VOC.length-cv.voc} phrases`:"",RHY.length-cv.rh?`${RHY.length-cv.rh} rhythms`:"",MEL.length-cv.mel?`${MEL.length-cv.mel} chord and double-stop drills`:""].filter(Boolean).join(", ");
+  const left=[PAT.length-cv.pm?`${PAT.length-cv.pm} major patterns`:"",PAT.length-cv.pp?`${PAT.length-cv.pp} pentatonic patterns`:""].filter(Boolean).join(", ");
   const text=fin?"You've finished all three stages. Choose any tempo you like."
     :top?(cv.full?`Top of the ladder and everything covered. Finish this session to move on to ${si+1<STAGES.length?"Stage "+STAGES[si+1].n:"free practice"}.`
                :`You've reached the top tempo. Sessions stay at ${S_.to} bpm until you've covered the rest of this stage: ${left}.`)
@@ -1201,7 +1240,7 @@ function stageHTML(){
       <div class="stTempo"><b>${fin?curTempo:today.tempo}</b><span>bpm this session</span></div></div>
     ${fin?"":`<div class="ladder" aria-label="Tempo ladder">${L.map((t,i)=>`<span class="lstep${i<today.step?" done":""}${i===today.step?" cur":""}">${t}</span>`).join("")}</div>`}
     ${fc?`<p class="fc">${fc}</p>`:""}
-    <div class="cover">${bar("Sequences",cv.seq,EX.length)}${bar("Phrases",cv.voc,VOC.length)}${bar("Rhythms",cv.rh,RHY.length)}${bar("Chords & double stops",cv.mel,MEL.length)}</div>
+    <div class="cover">${bar("Major patterns",cv.pm,PAT.length)}${bar("Pentatonic patterns",cv.pp,PAT.length)}</div>
   </div>`;
 }
 function navHTML(back,main){return `<div class="navf">${back?`<button type="button" class="ghost" data-go="${back}">◂ Back</button>`:"<span></span>"}${main}</div>`;}
@@ -1279,7 +1318,7 @@ function boxView(){
 }
 function itemView(j){
   const it=today.items[j],id="i"+j,done=itemDone(j),t=today.time&&today.time[keyOf(it)];
-  const card=it.k==="v"?vocCard(id,it,j):it.k==="m"?melCard(id,it,j):seqCard(id,it,j,false);
+  const card=it.k==="p"?patCard(id,it,j):it.k==="v"?vocCard(id,it,j):it.k==="m"?melCard(id,it,j):seqCard(id,it,j,false);
   const back=j===0?"box":String(j-1),nextLbl=j===4?"Finish the session":`Next: exercise ${j+2}`;
   const main=done?`<span class="undo"><button type="button" class="linkb" data-undo="${j}">Mark as not done</button></span><button type="button" class="play big" data-go="${j===4?"summary":j+1}">${nextLbl} ▸</button>`
                  :`${gateOk(keyOf(it))?"":`<span class="tnote">Score ${S.pass}% to unlock</span>`}<button type="button" class="play big donego" data-itemdone="${j}"${gateOk(keyOf(it))?"":" disabled"}>✓ Done, ${j===4?"finish":"next"} ▸</button>`;
@@ -1294,7 +1333,7 @@ function summaryView(){
     <div class="num">Session complete</div>
     <h2>Well played</h2>
     <p class="lead">${posLabel(today)} at ${today.tempo||curTempo} bpm, finished ${(()=>{const l=Object.values(today.doneAt||{}).sort().pop();if(!l)return new Date();const[y,m,d]=l.split("-").map(Number);return new Date(y,m-1,d);})().toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"short"})}.</p>
-    <div class="tiles">${tile(today.tempo||curTempo,"bpm")}${tile(fmtMin(tot),"playing time")}${tile(rh.length,"rhythms")}${tile(today.items.filter(x=>x.k==="v").length,"phrases")}</div>
+    <div class="tiles">${tile(today.tempo||curTempo,"bpm")}${tile(fmtMin(tot),"playing time")}${tile(today.items.filter(x=>x.k==="p").length,"patterns")}${tile(PSET[patSet(today.scale)],"set")}</div>
     <h3>What you practised</h3>
     <table class="hist"><thead><tr><th>#</th><th>Exercise</th><th>Time</th></tr></thead><tbody>
       <tr><td class="n">–</td><td>The box<div class="sub">${SCALES[today.scale].name} · 🥁 ${GROOVES[grooveOf("pos")].n}</div></td><td class="n">${fmtMin(today.time&&today.time.box)}</td></tr>${rows}</tbody></table>
@@ -2075,7 +2114,7 @@ function restartInNewFormat(old){
   if(loaded.st)Object.assign(S,loaded.st);
   if(syncCode())await Promise.race([cloudSync(),new Promise(r=>setTimeout(r,6000))]);
   let open=pickOpen();
-  if(open&&!(open.items||[]).some(x=>x.k==="m"))open=restartInNewFormat(open);
+  if(open&&!(open.items||[]).every(x=>x.k==="p"))open=restartInNewFormat(open);
   if(open){today=open;if(today.step==null){today.stage=0;today.step=0;today.tempo=ladder(0)[0];}persistDay();}else{today=planSession();sessions[today.id]=today;persistDay();}
   resetTempo();view="setup";render();
   document.getElementById("syncNote").textContent=store.kind==="db"
