@@ -24,12 +24,14 @@ header p{margin:0;color:#d5ece8;max-width:60ch}
 .gd{display:flex;flex-direction:column;align-items:center;padding:6px 0;border-radius:8px;background:var(--bg);font-size:11px;color:var(--muted)}
 .gd b{font:700 15px var(--mono);color:var(--ink)}
 .gd.part{background:var(--brass-soft)}.gd.met{background:var(--good-soft)}.gd.met b{color:var(--good)}
-.sections{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.sections{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+@media(max-width:980px){.sections{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:720px){.sections{grid-template-columns:1fr}}
 a.sec{display:flex;flex-direction:column;gap:12px;background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:20px;color:inherit;text-decoration:none;box-shadow:0 5px 18px #141e3710;transition:transform .15s,box-shadow .15s,border-color .15s;position:relative;overflow:hidden}
 a.sec:hover,a.sec:focus-visible{transform:translateY(-2px);box-shadow:0 10px 26px #141e371c;border-color:var(--steel);outline:none}
 a.sec::before{content:"";position:absolute;left:0;top:0;right:0;height:5px;background:var(--steel)}
 a.sec.fs::before{background:var(--brass)}
+a.sec.sv::before{background:#1e3a5f}.sv .tag{background:#e8eef6;color:#1e3a5f}.sv .go b{background:#1e3a5f}
 .ico{font-size:34px;line-height:1}
 .sec h2{font:750 24px/1.15 var(--body);margin:0}
 .sec p{margin:0;color:var(--muted)}
@@ -53,7 +55,7 @@ a.sec.fs::before{background:var(--brass)}
   <a class="backlink" href="./">← Total Recall &amp; Melodies</a>
   <div class="eyebrow">APDCL estimates · SoR 2021-22</div>
   <h1>Estimate Studio</h1>
-  <p>Learn what goes into an estimate structure by structure, then price real works from standard kits. Pick a section to start.</p>
+  <p>Learn what goes into an estimate structure by structure, price real works from standard kits, or survey a new line on site. Pick a section to start.</p>
 </div></header>
 <main class="wrap">
   <section class="goal" aria-label="Trainer progress">
@@ -77,6 +79,14 @@ a.sec.fs::before{background:var(--brass)}
       <div class="tags"><span class="tag">38 kits</span><span class="tag">SoR 2021-22</span><span class="tag">A–L abstract</span></div>
       <div class="now"><div><b>38</b><span>kits</span></div><div><b id="kScaled">0</b><span>units set</span></div><div><b id="kDep">0</b><span>as deposit</span></div></div>
       <div class="go"><span id="kNext">Pick a kit and set the units</span><b>Open ▸</b></div>
+    </a>
+    <a class="sec sv" href="sld-survey.html">
+      <div class="ico">📍</div>
+      <h2>Line Survey</h2>
+      <p>Walk the route and mark only the key points by GPS: tapping point, turning points, DP, DTR, LT DBs. It adds the intermediate poles, stays and earthing, draws the SLD with power flow, and prices it in the Samaguri proforma with an Excel download.</p>
+      <div class="tags"><span class="tag">GPS points</span><span class="tag">SLD</span><span class="tag">Proforma .xlsx</span></div>
+      <div class="now"><div><b id="sProj">0</b><span>surveys</span></div><div><b id="sPts">0</b><span>points marked</span></div><div><b id="sLast">–</b><span>last survey</span></div></div>
+      <div class="go"><span id="sNext">Start a survey on site</span><b>Open ▸</b></div>
     </a>
   </div>
 </main>
@@ -103,5 +113,10 @@ const scaled=Object.values(units).filter(v=>+v&&+v!==1).length,dep=Object.values
 document.getElementById("kScaled").textContent=scaled;
 document.getElementById("kDep").textContent=dep;
 if(scaled||dep)document.getElementById("kNext").textContent="Your kit settings are saved";
+// Line Survey: projects saved on this device (and synced)
+const sv=get("sld-survey-v1")||{},sp=Object.values(sv.projects||{}).filter(p=>!p.del).sort((a,b)=>b.upd-a.upd);
+document.getElementById("sProj").textContent=sp.length;
+document.getElementById("sPts").textContent=sp.reduce((a,p)=>a+(p.pts||[]).length,0);
+if(sp[0]){document.getElementById("sLast").textContent=new Date(sp[0].upd).toLocaleDateString("en-IN",{day:"numeric",month:"short"});document.getElementById("sNext").textContent="Continue: "+sp[0].name}
 </script>
 </body></html>

@@ -1,0 +1,802 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#0f766e">
+<title>Line Survey · Total Recall &amp; Melodies</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+:root{--bg:#f4f7fb;--paper:#fff;--ink:#172033;--muted:#697386;--line:#e5e7eb;--steel:#0f766e;--steel-soft:#e6f4f2;--brass:#b45309;--brass-soft:#fef3e2;--bad:#b91c1c;--bad-soft:#fef2f2;--good:#059669;
+ --body:system-ui,-apple-system,"Segoe UI",sans-serif;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color-scheme:light}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--body)}
+button,select,input,textarea{font:inherit}
+.top{background:linear-gradient(135deg,#0f766e,#1e3a5f);color:#fff;padding:14px 16px 0}
+.tin{max-width:1100px;margin:0 auto}
+.trow{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.backlink{font-size:13px;color:#fff;opacity:.9;text-decoration:none}
+h1{font:750 26px/1.15 var(--body);margin:6px 0 2px}
+.sub{color:#d5ece8;font-size:13px;margin:0 0 10px}
+.sbadge{font-size:12px;padding:4px 9px;border-radius:999px;background:#ffffff26;color:#fff;white-space:nowrap}
+.sbadge.err{background:#fecaca;color:#7f1d1d}.sbadge.ok{background:#bbf7d0;color:#14532d}
+.projbar{display:flex;gap:8px;align-items:center;margin:4px 0 10px;flex-wrap:wrap}
+.projbar select{max-width:100%;flex:1;min-width:0;padding:8px 10px;border-radius:10px;border:0}
+nav.tabs{display:flex;gap:4px;overflow-x:auto}
+nav.tabs button{background:transparent;border:0;color:#d5ece8;padding:10px 14px;border-radius:10px 10px 0 0;font-weight:650;cursor:pointer;white-space:nowrap}
+nav.tabs button[aria-selected=true]{background:var(--bg);color:var(--ink)}
+main{max-width:1100px;margin:0 auto;padding:14px 16px 60px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:14px}
+.card h2{font:700 17px var(--body);margin:0 0 8px}
+.muted{color:var(--muted)}.small{font-size:13px}
+.btn{background:var(--steel);color:#fff;border:0;border-radius:10px;padding:10px 14px;font-weight:650;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.btn.alt{background:var(--paper);color:var(--ink);border:1px solid var(--line)}
+.btn.warn{background:var(--brass)}.btn.bad{background:var(--paper);color:var(--bad);border:1px solid #fecaca}
+.btn:disabled{opacity:.5;cursor:default}
+.btn.sm{padding:6px 10px;font-size:13px}
+#map{height:56vh;min-height:320px;border-radius:14px;border:1px solid var(--line);z-index:0}
+.mapwrap{position:relative;margin-bottom:12px}
+.mtools{position:absolute;left:10px;right:10px;bottom:10px;display:flex;gap:8px;flex-wrap:wrap;z-index:500;pointer-events:none}
+.mtools .btn{pointer-events:auto;box-shadow:0 4px 14px #0003}
+.mlayer{position:absolute;top:10px;right:10px;z-index:500}
+.status{font-size:13px;color:var(--muted);margin:-4px 0 10px}
+.tapping .leaflet-container{cursor:crosshair}
+.plist{display:flex;flex-direction:column;gap:8px}
+.pt{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.pt .no{font:700 13px var(--mono);background:var(--steel-soft);color:#115e59;border-radius:8px;padding:4px 7px}
+.pt b{font-weight:650}.pt .meta{font-size:12px;color:var(--muted)}
+.pt.sel{border-color:var(--steel);box-shadow:0 0 0 2px var(--steel-soft)}
+.warns{background:var(--brass-soft);border:1px solid #fcd9a8;border-radius:12px;padding:10px 12px;font-size:13px;margin-bottom:12px}
+.warns ul{margin:4px 0 0;padding-left:18px}
+.sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:12px}
+.sum div{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:8px 10px}
+.sum b{display:block;font:700 18px var(--mono)}.sum span{font-size:11px;color:var(--muted)}
+dialog{border:0;border-radius:16px;padding:0;width:min(560px,96vw);max-height:92vh;box-shadow:0 20px 60px #0005}
+dialog::backdrop{background:#0006}
+.dlg{padding:16px 18px;overflow:auto;max-height:92vh}
+.dlg h3{margin:0 0 4px;font-size:18px}
+.kinds{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:10px 0}
+.kinds button{background:var(--bg);border:1.5px solid var(--line);border-radius:12px;padding:10px;text-align:left;cursor:pointer}
+.kinds button b{display:block;font-size:14px}.kinds button span{font-size:12px;color:var(--muted)}
+.kinds button[aria-pressed=true]{border-color:var(--steel);background:var(--steel-soft)}
+.f{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:8px 0}
+.f label{display:flex;flex-direction:column;gap:3px;font-size:12px;font-weight:650;color:#4b5563}
+.f input,.f select,.f textarea{padding:8px 10px;border:1px solid #d1d5db;border-radius:9px;background:#fff;font-weight:400;color:var(--ink);width:100%}
+.chk{display:flex;gap:14px;flex-wrap:wrap;margin:8px 0;font-size:14px}
+.chk label{display:flex;gap:6px;align-items:center}
+.drow{display:flex;gap:8px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap}
+.dlg .drow{position:sticky;bottom:-16px;background:#fff;padding:10px 0 12px;margin-bottom:-4px;border-top:1px solid var(--line)}
+.acc{font:700 14px var(--mono)}.acc.good{color:var(--good)}.acc.bad{color:var(--bad)}
+.sec{border-top:1px solid var(--line);margin-top:10px;padding-top:10px}
+.hint{font-size:12px;color:var(--muted)}
+/* SLD */
+.sldbox{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:auto}
+.sldbox svg{display:block;width:100%;height:auto;min-width:640px}
+/* estimate */
+.est{overflow:auto;background:#fff;border:1px solid var(--line);border-radius:12px}
+table.boq{border-collapse:collapse;width:100%;min-width:720px;font-size:12.5px}
+.boq th,.boq td{border:1px solid #9ca3af;padding:4px 6px;vertical-align:top}
+.boq th{background:#f3f4f6;font-weight:700;text-align:center}
+.boq td.n{text-align:right;font-family:var(--mono);white-space:nowrap}
+.boq td.q{color:#1d4ed8;font-weight:650}
+.boq tr.ab td{background:#fafafa}.boq tr.tot td{font-weight:700}
+.eh{text-align:center;padding:10px 8px 4px;font-size:13px;line-height:1.35}
+.eh b.big{font-size:15px}
+.eh .rw{display:flex;justify-content:space-between;gap:10px;font-size:12px;padding:0 4px}
+.sign{display:flex;justify-content:space-between;padding:28px 10px 12px;font-size:12px}
+.words{padding:6px 8px;font-weight:650;font-size:13px}
+.notes{padding:4px 8px 8px;font-size:12px}
+.notes ol{margin:2px 0;padding-left:18px}
+.flags{font-size:12px}
+@media (max-width:600px){h1{font-size:22px}#map{height:52vh}}
+@page land{size:A4 landscape;margin:0}
+@page port{size:A4 portrait;margin:10mm}
+@media print{
+ body{background:#fff}
+ .top,nav,main>*:not(.printarea){display:none!important}
+ .printarea{display:block!important}
+ .noprint{display:none!important}
+ body.p-sld #printEst,body.p-est #printSld{display:none!important}
+ #printSld{page:land}#printSld svg{width:297mm;height:210mm;min-width:0}
+ #printEst{page:port}.est{border:0}
+ .boq{min-width:0!important}
+}
+.printarea{display:none}
+</style></head><body>
+<header class="top"><div class="tin">
+ <div class="trow"><a class="backlink" href="apdcl-studio.html">← Estimate Studio</a><span id="syncBadge" class="sbadge">☁ Sync off</span></div>
+ <h1>Line Survey</h1>
+ <p class="sub">Mark the key points on site. The poles in between, the SLD and the estimate follow.</p>
+ <div class="projbar"><select id="projSel" aria-label="Project"></select><button class="btn alt sm" id="newProj" type="button">＋ New survey</button></div>
+ <nav class="tabs" role="tablist">
+  <button data-v="survey" aria-selected="true">📍 Survey</button>
+  <button data-v="sld" aria-selected="false">🗺 SLD</button>
+  <button data-v="est" aria-selected="false">🧾 Estimate</button>
+  <button data-v="proj" aria-selected="false">⚙ Projects</button>
+ </nav>
+</div></header>
+
+<main>
+<!-- SURVEY -->
+<section id="v-survey">
+ <div class="mapwrap" id="mapwrap">
+  <div id="map"></div>
+  <div class="mlayer"><button class="btn alt sm" id="layerBtn" type="button">Satellite</button></div>
+  <div class="mtools">
+   <button class="btn" id="gpsBtn" type="button">📍 GPS point</button>
+   <button class="btn alt" id="tapBtn" type="button">✚ Tap on map</button>
+   <button class="btn alt" id="typeBtn" type="button">⌨ Coordinates</button>
+   <button class="btn alt" id="fitBtn" type="button">⤢</button>
+  </div>
+ </div>
+ <p class="status" id="status">Start at the tapping point (existing 11 kV pole or LT source), then walk the route and mark each turning point, DP, DTR and line end.</p>
+ <div id="surveyWarn"></div>
+ <div class="sum" id="surveySum"></div>
+ <div class="plist" id="plist"></div>
+</section>
+
+<!-- SLD -->
+<section id="v-sld" hidden>
+ <div class="card noprint">
+  <div class="f">
+   <label>Drawing title<input id="sldTitle" placeholder="Auto from the survey"></label>
+  </div>
+  <div class="chk">
+   <label><input type="checkbox" id="oNorth"> North arrow</label>
+   <label><input type="checkbox" id="oGps"> GPS beside marked points</label>
+   <label><input type="checkbox" id="oSpan" checked> Span lengths</label>
+   <label><input type="checkbox" id="oSign"> Signature block</label>
+  </div>
+  <div class="drow" style="justify-content:flex-start">
+   <button class="btn" id="printSldBtn" type="button">🖨 Print / save PDF</button>
+   <button class="btn alt" id="pngBtn" type="button">⬇ PNG</button>
+   <button class="btn alt" id="svgBtn" type="button">⬇ SVG</button>
+  </div>
+ </div>
+ <div class="sldbox" id="sldBox"></div>
+</section>
+
+<!-- ESTIMATE -->
+<section id="v-est" hidden>
+ <div class="card noprint">
+  <h2>Estimate details</h2>
+  <div class="f">
+   <label>Work (title)<input id="mWork" placeholder="Auto from the survey"></label>
+   <label>Location<input id="mLoc" placeholder="Village / road"></label>
+   <label>Charges<select id="mPay"><option value="dept">Departmental (F, G = 0)</option><option value="dep">Deposit, APDCL executes (F 3%, G 15%)</option></select></label>
+   <label>Document No<input id="mDoc" placeholder="SESD/2026/____"></label>
+   <label>Date<input id="mDate" type="date"></label>
+   <label>Substation<input id="mSS" placeholder="e.g. 33/11 kV Amoni DSS"></label>
+   <label>Feeder<input id="mFdr" placeholder="e.g. 11 kV Salna feeder"></label>
+   <label>Processing fee (₹)<input id="mFee" type="number" min="0" step="1" value="0"></label>
+  </div>
+  <div class="drow" style="justify-content:flex-start">
+   <button class="btn" id="xlsBtn" type="button">⬇ Excel (.xlsx)</button>
+   <button class="btn alt" id="printEstBtn" type="button">🖨 Print / save PDF</button>
+   <button class="btn alt" id="printBothBtn" type="button">🖨 Estimate + SLD</button>
+  </div>
+  <p class="hint">Quantities in blue are computed from the survey; hover a quantity to see how it was worked out. The Excel file keeps live formulas, plus a sheet explaining each quantity and a pole schedule with GPS.</p>
+ </div>
+ <div id="estWarn"></div>
+ <div class="est" id="estBox"></div>
+</section>
+
+<!-- PROJECTS -->
+<section id="v-proj" hidden>
+ <div class="card">
+  <h2>Surveys</h2>
+  <div id="projList"></div>
+  <div class="drow" style="justify-content:flex-start">
+   <button class="btn alt sm" id="expBtn" type="button">⬇ Export all (JSON)</button>
+   <label class="btn alt sm" style="cursor:pointer">⬆ Import<input type="file" id="impFile" accept=".json" hidden></label>
+  </div>
+ </div>
+ <div class="card">
+  <h2>Rules for this survey</h2>
+  <p class="hint">Intermediate poles are added so that no span exceeds these lengths.</p>
+  <div class="f">
+   <label>11 kV bare, max span (m)<input type="number" id="sHV" min="20" max="80"></label>
+   <label>11 kV MVCC, max span (m)<input type="number" id="sMV" min="20" max="60"></label>
+   <label>LT bare, max span (m)<input type="number" id="sLT" min="20" max="70"></label>
+   <label>LT ABC, max span (m)<input type="number" id="sABC" min="20" max="60"></label>
+   <label>Earth every n-th intermediate pole<input type="number" id="sEarth" min="0" max="20"></label>
+   <label>Extra stay every n-th intermediate pole (0 = off)<input type="number" id="sStay" min="0" max="20"></label>
+   <label>Service cable per consumer (m)<input type="number" id="sSvc" min="0" max="100"></label>
+  </div>
+  <p class="hint">Structures: deviation under 10° is a tangent pole; 10° or more is a cut-point with one stay, over 60° two stays. Dead-ends get one stay, tee-offs one per branch. Every new pole gets a grouting job and every stay a stay grouting job.</p>
+ </div>
+</section>
+
+<div class="printarea" id="printSld"></div>
+<div class="printarea" id="printEst"></div>
+</main>
+
+<!-- point dialog -->
+<dialog id="ptDlg"><div class="dlg">
+ <h3 id="dTitle">What goes here?</h3>
+ <div class="small muted" id="dCoord"></div>
+ <div id="dGps" class="small" hidden></div>
+ <div class="kinds" id="dKinds"></div>
+ <div id="dOpts"></div>
+ <div class="sec" id="dLineSec">
+  <b style="font-size:14px">Line to this point</b>
+  <div class="f">
+   <label>From point<select id="dPar"></select></label>
+   <label>Line<select id="dLine"></select></label>
+   <label>Pole for new poles<select id="dPole"><option value="">Auto</option><option value="9.75">PSC 9.75 m</option><option value="8.5">PSC 8.5 m</option><option value="7.5">PSC 7.5 m</option></select></label>
+   <label>Crossing on this span<select id="dCross"><option value="">None</option><option value="road">Road (guarding)</option><option value="line">Other line (guarding)</option></select></label>
+  </div>
+ </div>
+ <div class="f"><label>Place / remark<input id="dNote" placeholder="e.g. near Baghbar Ali LP school"></label></div>
+ <div class="drow">
+  <button class="btn bad" id="dDel" type="button" hidden>Delete point</button>
+  <span style="flex:1"></span>
+  <button class="btn alt" id="dCancel" type="button">Cancel</button>
+  <button class="btn" id="dSave" type="button">Save point</button>
+ </div>
+</div></dialog>
+
+<!-- GPS dialog -->
+<dialog id="gpsDlg"><div class="dlg">
+ <h3>Getting your position…</h3>
+ <p class="small muted">Stand still at the spot. Accuracy improves over a few seconds; use the fix when it is good enough (under ~10 m).</p>
+ <p>Accuracy: <span class="acc" id="gAcc">–</span> <span class="small muted" id="gN"></span></p>
+ <p class="small mono" id="gPos"></p>
+ <div class="drow"><button class="btn alt" id="gCancel" type="button">Cancel</button><button class="btn" id="gUse" type="button" disabled>Use this fix</button></div>
+</div></dialog>
+
+<!-- coordinates dialog -->
+<dialog id="coDlg"><div class="dlg">
+ <h3>Enter coordinates</h3>
+ <p class="small muted">Decimal (26.453308, 93.047084) or GPS-camera style (N26 30.828 E92 44.540).</p>
+ <div class="f"><label>Coordinates<input id="coIn" placeholder="26.453308, 93.047084" autocomplete="off"></label></div>
+ <p class="small" id="coMsg"></p>
+ <div class="drow"><button class="btn alt" id="coCancel" type="button">Cancel</button><button class="btn" id="coOk" type="button">Next</button></div>
+</div></dialog>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+"use strict";
+/* ================= Rates (SoR 2021-22, same table as APDCL BoM Kits) ================= */
+const RATES={"425":["Grouting of PSC pole 7.5 m (1.5 m depth)","Job",1646.68],"426":["Grouting of PSC pole 8.5 m (1.5 m depth)","Job",1787.97],"427":["Grouting of PSC pole 9.75 m (1.8 m depth)","Job",1894.28],"423":["Grouting of steel pole SP-66/76 (2.15 m)","Job",4950.94],"428":["Grouting of stay","Job",1000.0],"420":["DTR fencing (REC Type-II)","Job",36304.8],"746":["PSC pole 7.5 m","No.",4675.65],"747":["PSC pole 8.5 m","No.",5315.1],"748":["PSC pole 9.75 m","No.",7030.8],"754":["Steel tubular pole SP-76 (14.5 m)","No.",39590.67],"446":["ACSR Rabbit conductor","Km.",47299.44],"449":["ACSR Wolf conductor","Km.",185640.0],"18":["LT AB cable 3Cx70+1Cx50 sqmm","Mtr.",215.5],"124":["LT cable 1C x 50 sqmm","Mtr.",75.03],"653":["HT stay set complete","Set",546.25],"657":["LT stay set complete","Set",409.4],"629":["Guy insulator 11 kV","No.",52.5],"616":["Guy insulator 33 kV","No.",111.3],"631":["Guy insulator LT","No.",31.5],"651":["Stay wire 7/10 SWG","Kg.",87.4],"652":["Stay wire 7/14 SWG","Kg.",98.9],"830":["Pole clamp","No.",85.05],"474":["CI earth pipe 1.8 m","No.",1312.5],"473":["GI earth pipe 3 m","No.",2346.75],"649":["GI wire 6 SWG","Kg.",79.35],"650":["GI wire 8 SWG","Kg.",93.15],"633":["GI barbed wire","Kg.",93.15],"646":["Nuts & bolts","Kg.",93.15],"645":["LT angle cross arm 500 mm","No.",197.8],"630":["LT pin insulator","No.",31.5],"842":["LT GI pin","No.",41.5],"634":["11 kV T-cross arm","No.",862.5],"635":["33 kV V-cross arm","No.",1812.4],"647":["Top cleat","No.",244.95],"626":["11 kV pin insulator, polymeric","No.",262.5],"841":["11 kV GI pin","No.",98.6],"613":["33 kV polymeric pin insulator (FRP 34 mm)","No.",735.0],"644":["MS channel 75x40x6","Mtr.",548.55],"642":["MS channel 100x50x6","Mtr.",794.65],"638":["Channel cross arm 100x50x6x2200","No.",2012.5],"640":["Channel cross arm 100x50x6x3200","No.",2702.5],"637":["GI angle 50x50x6","Mtr.",432.4],"622":["Disc insulator polymeric 70 kN","No.",315.0],"850":["Hardware T&C 70 kN tension","Set",395.0],"607":["Disc insulator polymeric 90 kN B&S","No.",840.0],"844":["Hardware B&S 90 kN tension","Set",565.0],"834":["Tension clamp, Rabbit","No.",150.0],"822":["Mid-span sleeve, Rabbit","No.",82.33],"824":["Mid-span sleeve, Wolf","No.",308.33],"826":["PG clamp, Rabbit","No.",63.75],"828":["PG clamp, Wolf","No.",188.0],"654":["I-hook","No.",80.5],"720":["Danger plate 33 kV","No.",57.5],"721":["Danger plate 11 kV","No.",57.5],"722":["Danger plate LT","No.",46.0],"513":["11 kV DO fuse 150 A","Set",3300.0],"519":["11 kV GOAB 400 A","Set",8450.0],"676":["11 kV lightning arrester 5 kA","Set",2646.0],"597":["LT CT","No.",1560.0],"507":["Metering cabinet","No.",6720.0],"683":["Cable lug 50 sqmm","No.",12.6],"771":["DTR 11/0.433 kV 25 kVA","No.",75995.76],"819":["ABC cable tie","No.",7.67],"800":["ABC suspension clamp","No.",226.67],"806":["ABC anchor clamp","No.",378.33],"807":["ABC end cap","No.",19.0],"811":["ABC distribution box 1-ph 8-conn","No.",2075.0],"809":["Stainless steel strap","Mtr.",63.0],"808":["Buckle","No.",22.67],"802":["IPC 50-70 sqmm","No.",117.33],"801":["ABC mid-span joint","No.",521.67],"447":["ACSR Raccoon conductor","Km.",76160.0],"448":["ACSR Dog conductor","Km.",74628.64],"445":["ACSR Weasel conductor","Km.",32770.56],"15":["LT AB cable 1Cx70+1Cx70 sqmm","Mtr.",144.15],"810":["Eye hook","No.",71.0],"632":["LT shackle insulator","No.",47.25],"853":["LT GI shackle strap","Set",85.0],"718":["LT spacer","No.",46.0],"835":["Tension clamp, Raccoon","No.",350.0],"827":["PG clamp, Raccoon","No.",105.25],"823":["Mid-span sleeve, Raccoon","No.",122.67],"772":["DTR 11/0.433 kV 63 kVA","No.",153136.0],"774":["DTR 11/0.433 kV 100 kVA (Al)","No.",201000.0],"782":["DTR 11/0.433 kV 250 kVA (Cu)","No.",572805.0],"71":["LT cable 1C x 120 sqmm armoured","Mtr.",306.0],"686":["Cable lug 120 sqmm","No.",29.4],"357":["MCCB 200 A","No.",34366.38],"356":["MCCB 100 A 4P","No.",24738.02],"481":["Chemical earthing","Set",3650.0],"476":["GI strip 25x3","Mtr.",64.05],"514":["11 kV DO fuse 200 A","Set",3400.0],"440":["DTR plinth / pad (civil)","Job",34797.0],"461":["11 kV MVCC 1C x 120 sqmm","Mtr.",485.0],"863":["11 kV MVCC mid-span joint 120 sq","No.",2233.33],"875":["11 kV MVCC termination kit 120 sq","No.",3350.0],"904":["11 kV MVCC cable tie 120 sq","No.",925.0],"916":["11 kV MVCC tension hardware 120 sq","Set",2200.0],"928":["11 kV MVCC tension insulator 120 sq","No.",1230.0],"641":["Channel cross arm 100x50x6x5000","No.",3975.55],"655":["CI spun pipe class 1A 300 mm, 5.5 m","No.",12100.0],"475":["Socket for CI spun pipe","No.",853.65],"58":["11 kV XLPE cable 1C x 300 sqmm","Mtr.",1115.2],"214":["11 kV 1C x 300 cable termination kit","No.",3826.0],"738":["HDPE pipe 110 mm","Mtr.",570.0],"455":["33 kV MVCC 1C x 120 sqmm","Mtr.",586.25],"639":["Channel cross arm 100x50x6x2800","No.",2221.8],"910":["33 kV MVCC tension hardware 120 sq","Set",2333.33],"922":["33 kV MVCC tension insulator 120 sq","No.",3200.0],"898":["33 kV MVCC cable tie 120 sq","No.",1012.5],"869":["33 kV MVCC termination kit 120 sq","No.",7400.0],"857":["33 kV MVCC mid-span joint 120 sq","No.",3300.0],"660":["33 kV TPGO-DBCR isolator 800 A with earth switch & GI mounting","Set",78037.5],"636":["GI angle 40x40x5","Mtr.",396.75],"836":["Tension clamp, Wolf","No.",400.0],"569":["11 kV CTPT unit 30/5 A, 0.5 class","No.",60752.5],"492":["HT trivector meter","No.",5276.44],"37":["Control cable 10C x 2.5 sqmm","Mtr.",484.16],"459":["11 kV MVCC 1C x 70 sqmm","Mtr.",379.25],"684":["Cable lug 70 sqmm","No.",19.6],"46":["33 kV XLPE cable 1C x 400 armoured","Mtr.",2066.5],"251":["33 kV 1C x 400 termination kit","No.",6563.67],"674":["33 kV line lightning arrester","Set",32333.33],"271":["33 kV outdoor VCB 800 A with GI structure","No.",249000.0],"433":["Foundation, VCB (labour incl.)","Job",34452.6],"19":["LT AB cable 3Cx95+1Cx70 sqmm","Mtr.",293.5],"813":["3-ph distribution box 250 A, 10-conn","No.",5950.0],"805":["IPC P2x95 for distribution box","No.",83.0],"T70":["11 kV 1C x 70 termination kit (approved rate, no SoR no.)","No.",2725.0],"H70":["11 kV 1C x 70 tension hardware (approved rate, no SoR no.)","Set",2000.0],"I70":["11 kV 1C x 70 tension insulator (approved rate, no SoR no.)","No.",1196.7],"ISO8":["33 kV TPGO-DBCR 800 A without earth switch (approved rate)","Set",69562.5],"VCB11":["11 kV outdoor VCB 800 A with structure & marshalling box (approved rate)","No.",171250.0],"HMB":["Horizontal machine boring 400 mm dia at 1.5 m below GL (job item)","Mtr.",8600.0],"SC2":["Service cable 2C x 4 sqmm (SoR no. — fill in)","Mtr.",32.0],"SC4":["Service cable 4C x 4 sqmm (SoR no. — fill in)","Mtr.",58.0],"14":["LT AB cable 1Cx50+1Cx50 sqmm","Mtr.",122.0],"21":["LT AB cable 3Cx120+1Cx95 sqmm","Mtr.",375.0],"458":["11 kV MVCC 1C x 50 sqmm","Mtr.",336.5],"460":["11 kV MVCC 1C x 99 sqmm","Mtr.",433.0],"518":["11 kV GOAB 150 A","Set",7783.33],"872":["11 kV MVCC termination kit 50 sq","No.",2700.0],"874":["11 kV MVCC termination kit 99 sq","No.",2850.0],"901":["11 kV MVCC cable tie 50 sq","No.",645.0],"913":["11 kV MVCC tension hardware 50 sq","Set",2000.0],"915":["11 kV MVCC tension hardware 99 sq","Set",2033.33],"925":["11 kV MVCC tension insulator 50 sq","No.",1196.67],"927":["11 kV MVCC tension insulator 99 sq","No.",1196.67]};
+const EJOB=new Set(["420","425","426","427","428"]);   // labour-included job items go to row E
+
+/* ================= Catalogue ================= */
+const LINES={
+ "11R":{t:"11 kV line, ACSR Raccoon",sh:"11 KV ACSR RACCOON",cls:"HV",bare:true,cond:"447",tc:"835",pg:"827",sl:"823"},
+ "11D":{t:"11 kV line, ACSR Dog",sh:"11 KV ACSR DOG",cls:"HV",bare:true,cond:"448",tc:"835",pg:"827",sl:"823",flag:"Dog fittings priced at Raccoon rates (835/827/823) — check"},
+ "11B":{t:"11 kV line, ACSR Rabbit",sh:"11 KV ACSR RABBIT",cls:"HV",bare:true,cond:"446",tc:"834",pg:"826",sl:"822"},
+ "MV50":{t:"11 kV MVCC 1C×50",sh:"11 KV MVCC 1CX50",cls:"HV",mv:true,cond:"458",term:"872",ins:"925",hw:"913",tie:"901",jt:"863",flag:"MVCC 50 sq mid-span joint priced at 120 sq rate (863)"},
+ "MV70":{t:"11 kV MVCC 1C×70",sh:"11 KV MVCC 1CX70",cls:"HV",mv:true,cond:"459",term:"T70",ins:"I70",hw:"H70",tie:"904",jt:"863",flag:"MVCC 70 sq tie and joint priced at 120 sq rates (904/863)"},
+ "MV99":{t:"11 kV MVCC 1C×99",sh:"11 KV MVCC 1CX99",cls:"HV",mv:true,cond:"460",term:"874",ins:"927",hw:"915",tie:"904",jt:"863",flag:"MVCC 99 sq tie and joint priced at 120 sq rates (904/863)"},
+ "MV120":{t:"11 kV MVCC 1C×120",sh:"11 KV MVCC 1CX120",cls:"HV",mv:true,cond:"461",term:"875",ins:"928",hw:"916",tie:"904",jt:"863"},
+ "LT1W":{t:"LT 1-ph 2-wire, ACSR Weasel",sh:"LT 1-PH ACSR WEASEL",cls:"LT",bare:true,w:2,cond:"445"},
+ "LT3W":{t:"LT 3-ph 4-wire, ACSR Weasel",sh:"LT 3-PH ACSR WEASEL",cls:"LT",bare:true,w:4,cond:"445"},
+ "LT1R":{t:"LT 1-ph 2-wire, ACSR Rabbit",sh:"LT 1-PH ACSR RABBIT",cls:"LT",bare:true,w:2,cond:"446"},
+ "LT3R":{t:"LT 3-ph 4-wire, ACSR Rabbit",sh:"LT 3-PH ACSR RABBIT",cls:"LT",bare:true,w:4,cond:"446"},
+ "AB1":{t:"LT ABC 1C×70+1C×70 (1-ph)",sh:"LT ABC 1CX70+1CX70",cls:"LT",abc:true,ph:1,cond:"15"},
+ "AB1s":{t:"LT ABC 1C×50+1C×50 (1-ph)",sh:"LT ABC 1CX50+1CX50",cls:"LT",abc:true,ph:1,cond:"14"},
+ "AB3a":{t:"LT ABC 3C×70+1C×50 (3-ph)",sh:"LT ABC 3CX70+1CX50",cls:"LT",abc:true,ph:3,cond:"18"},
+ "AB3b":{t:"LT ABC 3C×95+1C×70 (3-ph)",sh:"LT ABC 3CX95+1CX70",cls:"LT",abc:true,ph:3,cond:"19"},
+ "AB3c":{t:"LT ABC 3C×120+1C×95 (3-ph)",sh:"LT ABC 3CX120+1CX95",cls:"LT",abc:true,ph:3,cond:"21"},
+ "EX11":{t:"Existing 11 kV line (no new work)",sh:"EXISTING 11 KV LINE",cls:"HV",ex:true},
+ "EXLT":{t:"Existing LT line (no new work)",sh:"EXISTING LT LINE",cls:"LT",ex:true}
+};
+const KINDS={
+ src11:{t:"Tapping point",d:"Existing 11 kV pole the new line taps from",src:true,cls:"HV"},
+ srcLT:{t:"LT source",d:"Existing LT pole or DTR LT side",src:true,cls:"LT"},
+ pole:{t:"New pole",d:"Turning point, line end or any pole you fix"},
+ dp:{t:"DP structure",d:"11 kV double pole (cut-point / GOAB / DO)"},
+ dtr:{t:"DTR substation",d:"New DTR on a double pole"},
+ exPole:{t:"Existing pole",d:"Already on the route; reused"},
+};
+const POLE={"9.75":["748","427"],"8.5":["747","426"],"7.5":["746","425"]};
+const DTRK={25:"771",63:"772",100:"774",250:"782"};
+const DEF_SET={sHV:45,sMV:32,sLT:40,sABC:33,sEarth:5,sStay:0,sSvc:30};
+
+/* ================= Storage + sync ================= */
+const LS="sld-survey-v1";
+let DB={projects:{},cur:null};
+try{const x=JSON.parse(localStorage.getItem(LS)||"null");if(x&&x.projects)DB=x}catch(e){}
+const live=()=>Object.values(DB.projects).filter(p=>!p.del).sort((a,b)=>b.upd-a.upd);
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+function save(sync=true){try{localStorage.setItem(LS,JSON.stringify(DB))}catch(e){}if(sync)scheduleSync()}
+function touch(p){p.upd=Date.now();save()}
+function newProject(name){const p={id:uid(),name:name||"Survey "+new Date().toLocaleDateString("en-IN"),upd:Date.now(),
+ meta:{work:"",loc:"",pay:"dept",doc:"SESD/"+new Date().getFullYear()+"/",date:new Date().toISOString().slice(0,10),ss:"",fdr:"",fee:0,title:""},
+ opt:{north:false,gps:false,span:true,sign:false},set:{...DEF_SET},pts:[]};DB.projects[p.id]=p;DB.cur=p.id;save();return p}
+function P(){let p=DB.projects[DB.cur];if(!p||p.del){p=live()[0]||newProject("Survey 1");DB.cur=p.id}return p}
+
+const SYNC_KEY="totalRecallSyncCode_v1";let SYNC_URL="https://total-recall-ticktick.pranjuchakrapani90.workers.dev";
+try{SYNC_URL=localStorage.getItem("totalRecallTickTickUrl")||SYNC_URL}catch(e){}
+const SY={busy:false,again:false,timer:0};
+const b64=a=>{let s="";new Uint8Array(a).forEach(x=>s+=String.fromCharCode(x));return btoa(s)};
+const unb64=s=>{const r=atob(s),u=new Uint8Array(r.length);for(let i=0;i<r.length;i++)u[i]=r.charCodeAt(i);return u};
+async function syncKeyOf(code){const h=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(code+"#sldsurvey"));return crypto.subtle.importKey("raw",h,{name:"AES-GCM"},false,["encrypt","decrypt"])}
+async function encryptState(st,code){const iv=crypto.getRandomValues(new Uint8Array(12)),k=await syncKeyOf(code),c=await crypto.subtle.encrypt({name:"AES-GCM",iv},k,new TextEncoder().encode(JSON.stringify(st)));return JSON.stringify({v:1,iv:b64(iv),data:b64(c)})}
+async function decryptState(blob,code){const x=JSON.parse(blob||"{}"),k=await syncKeyOf(code),p=await crypto.subtle.decrypt({name:"AES-GCM",iv:unb64(x.iv)},k,unb64(x.data));return JSON.parse(new TextDecoder().decode(p))}
+const syncCode=()=>{try{return localStorage.getItem(SYNC_KEY)||""}catch(e){return ""}};
+function setSync(st,msg){const el=document.getElementById("syncBadge");el.textContent=st==="busy"?"☁ Syncing…":st==="ok"?"☁ Synced":st==="err"?"☁ Sync problem":"☁ Sync off";el.className="sbadge "+st;
+ el.title=st==="off"?"Set a sync code on the Total Recall home page to share surveys across devices.":st==="err"?"Couldn't sync: "+(msg||""):""}
+function mergeRemote(r){let ch=false;Object.values((r&&r.projects)||{}).forEach(v=>{const l=DB.projects[v.id];if(!l||(v.upd||0)>(l.upd||0)){DB.projects[v.id]=v;ch=true}});if(ch)save(false);return ch}
+function scheduleSync(){if(!syncCode())return;clearTimeout(SY.timer);SY.timer=setTimeout(cloudSync,1500)}
+async function cloudSync(){const code=syncCode();if(!code){setSync("off");return}
+ if(SY.busy){SY.again=true;return}SY.busy=true;setSync("busy");
+ try{const url=SYNC_URL+(SYNC_URL.indexOf("?")>=0?"&":"?")+"mode=sync",headers={"Content-Type":"application/json","X-Total-Recall-Sync":code+"#sldsurvey"};
+  const r=await fetch(url,{method:"POST",headers,body:JSON.stringify({state:{app:"sldsurvey"}}),cache:"no-store"});
+  if(!r.ok)throw new Error("the sync bridge answered HTTP "+r.status);const d=await r.json();if(d.error)throw new Error(d.error);
+  if(d.blob&&mergeRemote(await decryptState(d.blob,code)))renderAll();
+  const w=await fetch(url,{method:"PUT",headers,body:await encryptState({v:1,projects:DB.projects},code),cache:"no-store"});
+  if(!w.ok)throw new Error("upload failed with HTTP "+w.status);setSync("ok")}
+ catch(e){setSync("err",String(e&&e.message||e))}
+ finally{SY.busy=false;if(SY.again){SY.again=false;scheduleSync()}}}
+
+/* ================= Geometry ================= */
+const R2D=180/Math.PI,D2R=Math.PI/180;
+function hav(a,b){const R=6371008.8,dl=(b.lat-a.lat)*D2R,dg=(b.lng-a.lng)*D2R,s=Math.sin(dl/2)**2+Math.cos(a.lat*D2R)*Math.cos(b.lat*D2R)*Math.sin(dg/2)**2;return 2*R*Math.asin(Math.sqrt(s))}
+function xy(p,o){return{x:(p.lng-o.lng)*Math.cos(o.lat*D2R)*111320,y:(p.lat-o.lat)*110540}}
+function parseCoord(s){s=(s||"").trim().toUpperCase().replace(/[°'′"″]/g," ");
+ let m=s.match(/^(-?\d+(?:\.\d+)?)\s*[, ]\s*(-?\d+(?:\.\d+)?)$/);if(m)return ok(+m[1],+m[2]);
+ m=s.match(/([NS])\s*(\d+)\s+(\d+(?:\.\d+)?)(?:\s+(\d+(?:\.\d+)?))?\s*[, ]*\s*([EW])\s*(\d+)\s+(\d+(?:\.\d+)?)(?:\s+(\d+(?:\.\d+)?))?/);
+ if(m){const la=(+m[2]+(+m[3])/60+(m[4]?+m[4]/3600:0))*(m[1]==="S"?-1:1),lo=(+m[6]+(+m[7])/60+(m[8]?+m[8]/3600:0))*(m[5]==="W"?-1:1);return ok(la,lo)}
+ return null;function ok(a,b){return Math.abs(a)<=90&&Math.abs(b)<=180?{lat:a,lng:b}:null}}
+const dm=(v,pos,neg)=>{const a=Math.abs(v),d=Math.floor(a);return(v<0?neg:pos)+d+" "+((a-d)*60).toFixed(3)};
+const gpsTxt=p=>dm(p.lat,"N","S")+" / "+dm(p.lng,"E","W");
+
+/* ================= The engine: survey → poles, structures, quantities ================= */
+function compute(p){
+ const S={...DEF_SET,...(p.set||{})},pts=p.pts,byId={};pts.forEach(x=>byId[x.id]=x);
+ const o=pts.length?{lat:pts[0].lat,lng:pts[0].lng}:{lat:26.4,lng:92.9};
+ const Q={},why={},warn=[],flags=new Set();
+ const add=(sor,q,w)=>{if(!q)return;if(!RATES[sor]){warn.push("No rate for SoR "+sor);return}Q[sor]=(Q[sor]||0)+q;(why[sor]=why[sor]||[]);if(w&&!why[sor].includes(w))why[sor].push(w)};
+ const segs=[];pts.forEach(b=>{if(!b.par)return;const a=byId[b.par];if(!a){b.par=null;return}
+  const L=LINES[b.line]||LINES["11R"];segs.push({a,b,line:b.line,L,cls:L.cls,len:hav(a,b),pole:b.pole||"",cross:b.cross||""})});
+ const maxSpan=L=>L.ex?Infinity:L.abc?S.sABC:L.mv?S.sMV:L.cls==="HV"?S.sHV:S.sLT;
+ const poleOf=(sg)=>sg.pole||(sg.cls==="HV"?"9.75":"8.5");
+ // intermediate poles
+ segs.forEach(sg=>{const n=sg.L.ex?0:Math.max(0,Math.ceil(sg.len/maxSpan(sg.L)-1e-9)-1);sg.mid=[];
+  for(let i=1;i<=n;i++){const t=i/(n+1);sg.mid.push({lat:sg.a.lat+(sg.b.lat-sg.a.lat)*t,lng:sg.a.lng+(sg.b.lng-sg.a.lng)*t,gen:true,i})}
+  sg.spans=n+1;sg.span=sg.len/(n+1)});
+ // adjacency
+ const adj={};pts.forEach(x=>adj[x.id]=[]);
+ segs.forEach(sg=>{const A=xy(sg.a,o),B=xy(sg.b,o),dx=B.x-A.x,dy=B.y-A.y,l=Math.hypot(dx,dy)||1;
+  adj[sg.a.id].push({sg,ux:dx/l,uy:dy/l,other:sg.b});adj[sg.b.id].push({sg,ux:-dx/l,uy:-dy/l,other:sg.a})});
+ // flow check
+ const roots=pts.filter(x=>!x.par);
+ if(pts.length&&!roots.some(r=>KINDS[r.kind]&&KINDS[r.kind].src))warn.push("The first point is not a source. Mark the tapping point (existing 11 kV pole) or the LT source first so power flow can be traced.");
+ if(roots.length>1)warn.push(roots.length+" separate starting points: points "+roots.map(r=>"P"+r.no).join(", ")+" are not connected to a line. Open each and choose 'From point'.");
+ // node structures
+ const nodes={};let totStays=0,totEarth=0;const stayDirs=[];
+ const stayKit=(cls,n,why)=>{if(!n)return;totStays+=n;if(cls==="HV"){add("653",n,why);add("629",n,why);add("651",10*n,"10 kg per HT stay");add("830",n,"1 per stay");}else{add("657",n,why);add("631",n,why);add("652",7*n,"7 kg per LT stay");add("830",n,"1 per stay")}add("428",n,"1 per stay")};
+ const earth=(n,why)=>{if(!n)return;totEarth+=n;add("474",n,why);add("649",3*n,"3 kg per earthing")};
+ const angleOf=(u,v)=>Math.acos(Math.max(-1,Math.min(1,u.ux*v.ux+u.uy*v.uy)))*R2D;
+ function hvTangent(L,n,why){if(!n)return;add("634",n,why);add("626",3*n,why);add("841",3*n,why);add("830",n,why);add("646",2.5*n,"2.5 kg per 11 kV tangent pole");if(L.mv)add(L.tie,3*n,"3 per MVCC tangent pole")}
+ function hvDead(L,n,why){if(!n)return;add("638",n,why);add("830",2*n,why);add("646",4*n,"4 kg per dead-end");if(L.mv){add(L.hw,3*n,why);add(L.ins,3*n,why)}else{add("622",3*n,why);add("850",3*n,"T&C hardware to match T&C disc");add(L.tc,3*n,why)}}
+ function hvStrain(L,why){add("638",2,why);add("830",4,why);add("646",6,"6 kg per cut-point");add("626",3,"jumper support");add("841",3,"jumper support");if(L.mv){add(L.hw,6,why);add(L.ins,6,why);add(L.tie,3,"jumper ties")}else{add("622",6,why);add("850",6,"T&C hardware to match T&C disc");add(L.tc,6,why);add(L.pg,6,"jumpers at cut-point")}}
+ function ltTangent(L,n,why){if(!n)return;if(L.abc){add("800",n,why);add("810",n,why);add("830",n,why)}else{const w=L.w;add("645",w/2*n,why);add("830",w/2*n,why);add("630",w*n,why);add("842",w*n,why);add("646",(w===2?2:3)*n,"2–3 kg per LT pole")}}
+ function ltDead(L,n,why){if(!n)return;if(L.abc){add("806",n,why);add("810",n,why);add("830",n,why)}else{add("632",L.w*n,why);add("853",L.w*n,why);add("646",(L.w===2?1.5:2)*n,"N&B at dead-end")}}
+ function ltStrain(L,dev,why){if(L.abc){if(dev<30)return ltTangent(L,1,why+" (suspension up to 30°)");add("806",2,why);add("810",2,why);add("830",1,why)}else{add("632",2*L.w,why);add("853",2*L.w,why);add("646",L.w===2?2:3,"N&B at cut-point")}}
+ pts.forEach(x=>{
+  const K=KINDS[x.kind]||KINDS.pole,isNew=["pole","dp","dtr"].includes(x.kind),isSrc=!!K.src;
+  const nd=nodes[x.id]={roles:{},stays:0,earth:0,stayDirs:[]};
+  ["HV","LT"].forEach(cls=>{
+   const e=adj[x.id].filter(a=>a.sg.cls===cls&&!a.sg.L.ex);if(!e.length)return;
+   const inc=e.find(a=>a.sg.b===x)||e[0],L=inc.sg.L;let role,stays=0;
+   const tag=(K.t||"pole")+" P"+x.no;
+   if(isSrc){role="tap";e.forEach(a=>{if(cls==="HV"){hvDead(a.sg.L,1,"tap-off at "+tag);if(a.sg.L.bare)add(a.sg.L.pg,6,"jumpers to the existing line at "+tag)}else ltDead(a.sg.L,1,"tap-off at "+tag);stays++;nd.stayDirs.push({x:-a.ux,y:-a.uy})})}
+   else if(e.length===1){role="dead-end";(cls==="HV"?hvDead:ltDead)(e[0].sg.L,1,"dead-end at "+tag);stays=1;nd.stayDirs.push({x:-e[0].ux,y:-e[0].uy})}
+   else if(e.length===2){const dev=180-angleOf(e[0],e[1]);nd.dev=Math.round(dev);
+    if(dev<10){role="tangent";if(isNew||x.kind==="exPole")(cls==="HV"?hvTangent:ltTangent)(L,1,"tangent at "+tag)}
+    else{role=dev>60?"cut-point (sharp)":"cut-point";if(cls==="HV")hvStrain(L,"cut-point at "+tag);else ltStrain(L,dev,"angle at "+tag);stays=dev>60?2:1;
+     if(stays===2){nd.stayDirs.push({x:-e[0].ux,y:-e[0].uy},{x:-e[1].ux,y:-e[1].uy})}else{const bx=-(e[0].ux+e[1].ux),by=-(e[0].uy+e[1].uy),l=Math.hypot(bx,by)||1;nd.stayDirs.push({x:bx/l,y:by/l})}}}
+   else{role="tee-off";let best=[0,1],bm=-1;for(let i=0;i<e.length;i++)for(let j=i+1;j<e.length;j++){const a=angleOf(e[i],e[j]);if(a>bm){bm=a;best=[i,j]}}
+    if(bm>170)(cls==="HV"?hvTangent:ltTangent)(L,1,"through-run at "+tag);else{if(cls==="HV")hvStrain(L,"through-run cut at "+tag);else ltStrain(L,180-bm,"through-run at "+tag)}
+    e.forEach((a,i)=>{if(best.includes(i)&&bm>170)return;if(best.includes(i))return;(cls==="HV"?hvDead:ltDead)(a.sg.L,1,"branch at "+tag);stays++;nd.stayDirs.push({x:-a.ux,y:-a.uy})})}
+   nd.roles[cls]=role;
+   if(cls==="LT"&&L.abc){e.forEach(a=>{const end=e.length===1||isSrc;if(end)add("807",a.sg.L.ph===3?4:2,"end caps at each ABC run end")})}
+   nd.stays+=stays;
+  });
+  // stays (auto or override); kit by highest voltage at node
+  const hasHV=!!nd.roles.HV;
+  if(x.stays!=null&&x.stays!==""){nd.stays=+x.stays;nd.manualStays=true}
+  if(x.kind==="dtr"&&!nd.roles.LT&&nd.roles.HV==="dead-end"&&nd.stays>1)nd.stays=1;
+  stayKit(hasHV?"HV":"LT",nd.stays,(nd.manualStays?"as marked":"auto")+" at P"+x.no);
+  // new pole basics, earthing, structures
+  const mainCls=hasHV?"HV":"LT",segIn=adj[x.id].find(a=>a.sg.b===x),pl=x.kind==="dp"||x.kind==="dtr"?"9.75":segIn?poleOf(segIn.sg):(mainCls==="HV"?"9.75":"8.5");
+  if(x.kind==="pole"){add(POLE[pl][0],1,"marked pole P"+x.no);add(POLE[pl][1],1,"1 per new "+pl+" m pole");add(mainCls==="HV"?"721":"722",1,"1 per new pole");if(mainCls==="HV")add("633",2,"anti-climbing 2 kg per HT pole");
+   const r=nd.roles[mainCls];if(r&&r!=="tangent"){earth(1,"dead-ends, cut-points and tee-offs");nd.earth=1}}
+  if(x.kind==="dp"){add("748",2,"DP at P"+x.no);add("427",2,"DP at P"+x.no);add("638",4,"DP channel arms");add("830",8,"DP");add("646",8,"DP");add("721",2,"DP");add("633",4,"DP anti-climbing");earth(2,"2 per DP");nd.earth=2;
+   if(x.goab){add("518",1,"GOAB at P"+x.no);add("638",2,"GOAB mounting");add("830",4,"GOAB mounting");add("646",4,"GOAB")}
+   if(x.dof){add("513",1,"DO fuse set at P"+x.no)}if(x.la){add("676",1,"LA at P"+x.no)}}
+  if(x.kind==="dtr"){const kva=+x.kva||100,dt=DTRK[kva]||"774";
+   add(dt,1,kva+" kVA DTR at P"+x.no);add("748",2,"DTR DP");add("427",2,"DTR DP");add("638",6,"DTR DP channel arms");add("830",12,"DTR DP");add("646",15,"DTR structure");add("721",2,"DTR DP");add("633",4,"DTR anti-climbing");
+   add("513",1,"DO fuse set for DTR");add("676",1,"LA set for DTR");add("626",3,"DO / jumper support");add("841",3,"DO / jumper support");
+   const inL=segIn&&segIn.sg.L;if(inL&&inL.bare)add(inL.pg,6,"jumpers at DTR");if(inL&&inL.mv)add(inL.term,3,"MVCC termination at DTR");
+   if(x.goab!==false){add("518",1,"GOAB at DTR");add("638",2,"GOAB mounting");add("830",4,"GOAB mounting")}
+   earth(3,"3 pits per DTR substation");nd.earth=3;add("649",15-9,"DTR earthing leads (15 kg total)");add("476",20,"GI strip for DTR earthing");
+   if(kva<=63){add("124",30*(kva>25?1:1),"LT cable DTR to LT DB");add("683",12,"lugs")}else{add("71",kva>=250?60:30,kva>=250?"2 runs for 250 kVA":"LT cable DTR to LT DB");add("686",kva>=250?32:16,"lugs")}
+   add(kva<=63?"356":"357",1,kva<=63?"MCCB 100 A for ≤63 kVA":"MCCB 200 A");if(kva>=250)flags.add("250 kVA DTR: MCCB 200 A taken from SoR; a 400 A MCCB is needed — revise rate");
+   if(x.fence!==false)add("420",1,"DTR fencing")}
+  if(x.db>0){const ltE=adj[x.id].find(a=>a.sg.cls==="LT"&&!a.sg.L.ex),ph=ltE&&((ltE.sg.L.abc&&ltE.sg.L.ph===3)||(ltE.sg.L.w===4))?3:1,n=+x.db;
+   const boxes=ph===3?Math.ceil(n/10):Math.ceil(n/8);add(ph===3?"813":"811",boxes,(ph===3?"3-ph DB 10-conn":"1-ph DB 8-conn")+" for "+n+" consumers at P"+x.no);
+   add("809",boxes,"1 m strap per DB");add("808",2*boxes,"2 per DB");add("805",2*boxes,"2 per DB");
+   if(S.sSvc>0){add("SC2",n*S.sSvc,S.sSvc+" m per consumer");flags.add("Service cable 2C×4 has no SoR number in the rate table (₹32/m used)")}}
+ });
+ // segments: conductor, intermediate poles, sleeves, guarding
+ let km={HV:0,LT:0,MV:0},nNew=0,nGen=0,routeEx=0;
+ segs.forEach((sg,si)=>{const L=sg.L,lab="P"+sg.a.no+"–P"+sg.b.no;if(L.ex){routeEx+=sg.len;return}
+  const n=sg.mid.length;nGen+=n;
+  if(L.mv){add(L.cond,Math.round(sg.len*3.3),"3.3 m per route-m ("+lab+")");km.MV+=sg.len}
+  else if(L.bare&&L.cls==="HV"){add(L.cond,sg.len*3.3/1000,"3.3 km per route-km ("+lab+")");km.HV+=sg.len}
+  else if(L.bare){add(L.cond,sg.len*(L.w===2?2.1:4.2)/1000,(L.w===2?"2.1":"4.2")+" km per route-km ("+lab+")");km.LT+=sg.len;if(L.w===4)add("718",sg.spans,"1 spacer per 3-ph span")}
+  else{add(L.cond,Math.round(sg.len*1.05),"route length + 5% ("+lab+")");km.LT+=sg.len;add("819",Math.round(sg.len*0.5),"0.5 tie per m (DDUGJY norm)")}
+  if(L.flag)flags.add(L.flag);
+  if(n){const pl=poleOf(sg);add(POLE[pl][0],n,"intermediate poles, max span "+maxSpan(L)+" m");add(POLE[pl][1],n,"1 per new "+pl+" m pole");add(L.cls==="HV"?"721":"722",n,"1 per new pole");if(L.cls==="HV"){add("633",2*n,"anti-climbing 2 kg per HT pole");hvTangent(L,n,"intermediate poles")}else ltTangent(L,n,"intermediate poles");
+   const ne=S.sEarth>0?Math.floor(n/S.sEarth):0;earth(ne,"every "+S.sEarth+"th intermediate pole");sg.mid.forEach(m=>{m.earth=S.sEarth>0&&m.i%S.sEarth===0});
+   const ns=S.sStay>0?Math.floor(n/S.sStay):0;if(ns){stayKit(L.cls,ns,"storm stay every "+S.sStay+"th pole");sg.mid.forEach(m=>{m.stay=m.i%S.sStay===0})}}
+  if(L.bare&&L.cls==="HV")add(L.sl,Math.ceil(sg.len/1000*3),"3 sleeves per route-km");
+  if(L.mv)add(L.jt,Math.floor(sg.len/1000*3),"3 joints per route-km");
+  if(L.mv){[sg.a,sg.b].forEach(x=>{const e=adj[x.id].filter(a=>!a.sg.L.ex&&a.sg.cls==="HV");const ends=e.length===1||KINDS[x.kind]&&KINDS[x.kind].src||e.some(a=>!a.sg.L.mv);if(ends&&x.kind!=="dtr")add(L.term,3,"MVCC termination at P"+x.no)})}
+  if(sg.cross&&!L.abc&&!L.mv){add("637",5,"guarding set ("+sg.cross+" crossing "+lab+")");add("650",35,"guarding lacing");add("649",6,"guarding");add("654",4,"guarding");add("474",2,"guarding earthing");}
+  nNew+=0;
+ });
+ pts.forEach(x=>{if(x.kind==="pole")nNew++});
+ // validation
+ segs.forEach(sg=>{if(sg.cls==="LT"&&!sg.L.ex){const a=sg.a,hvOnly=adj[a.id].some(e=>e.sg.cls==="HV")&&a.kind!=="dtr"&&!adj[a.id].some(e=>e.sg.cls==="LT"&&e.sg.b===a);if(hvOnly&&a.kind!=="srcLT")warn.push("LT line P"+sg.a.no+"–P"+sg.b.no+" starts from an 11 kV point. Start LT from a DTR or an LT source.")}
+  if(sg.cls==="HV"&&!sg.L.ex&&sg.a.kind==="srcLT")warn.push("11 kV line P"+sg.a.no+"–P"+sg.b.no+" starts from an LT source.");
+  if(sg.len>3000)warn.push("Span P"+sg.a.no+"–P"+sg.b.no+" is "+(sg.len/1000).toFixed(2)+" km — check the coordinates.")});
+ // pole labels by walking the tree
+ const lab={},kids={};pts.forEach(x=>kids[x.id]=[]);segs.forEach(sg=>kids[sg.a.id].push(sg));
+ let nN=0,nE=0,nD=0,nT=0,nS=0;const order=[];
+ function walk(x){order.push({pt:x});
+  if(x.kind==="dtr")lab[x.id]="DTR-"+(++nT);else if(x.kind==="dp")lab[x.id]="DP-"+(++nD);else if(x.kind==="exPole")lab[x.id]="E-"+(++nE);else if(KINDS[x.kind]&&KINDS[x.kind].src)lab[x.id]=x.kind==="src11"?"TP-"+(++nS):"LS-"+(++nS);else lab[x.id]="N-"+(++nN);
+  kids[x.id].forEach(sg=>{sg.mid.forEach(m=>{m.lab="N-"+(++nN)});walk(sg.b)})}
+ roots.forEach(walk);
+ const vNew={HV:0,LT:0};pts.forEach(x=>{if(x.kind==="pole")vNew[nodes[x.id].roles.HV?"HV":"LT"]++});
+ return{S,pts,segs,nodes,adj,Q,why,warn,flags:[...flags],lab,o,km,routeEx,totStays,totEarth,nGen,nMarked:nNew,vNew,kids,roots};
+}
+
+/* ================= Money ================= */
+const inr=v=>(+v).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
+const fq=v=>{const r=Math.round(v*1000)/1000;return Number.isInteger(r)?String(r):r.toFixed(3)};
+function words(n){n=Math.round(n);if(!n)return"Zero";const a=["","One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten","Eleven","Twelve","Thirteen","Fourteen","Fifteen","Sixteen","Seventeen","Eighteen","Nineteen"],t=["","","Twenty","Thirty","Forty","Fifty","Sixty","Seventy","Eighty","Ninety"];
+ const two=x=>x<20?a[x]:t[Math.floor(x/10)]+(x%10?" "+a[x%10]:""),three=x=>(x>=100?a[Math.floor(x/100)]+" Hundred"+(x%100?" and ":""):"")+(x%100?two(x%100):"");
+ const parts=[];const cr=Math.floor(n/1e7),lk=Math.floor(n/1e5)%100,th=Math.floor(n/1e3)%100,rest=n%1000;
+ if(cr)parts.push((cr>=100?words(cr):two(cr))+" Crore");if(lk)parts.push(two(lk)+" Lakh");if(th)parts.push(two(th)+" Thousand");if(rest)parts.push(three(rest));return parts.join(" ")}
+const ORDER=["746","747","748","754","445","446","447","448","449","458","459","460","461","14","15","18","19","21","771","772","774","782","518","519","513","514","676","356","357","124","71","683","686","634","638","639","640","645","637","644","830","626","841","630","842","632","853","622","850","607","844","835","834","836","827","826","828","823","822","824","718","T70","I70","H70","872","874","875","925","927","928","913","915","916","901","904","863","800","806","810","807","819","801","811","813","809","808","805","802","SC2","SC4","653","657","629","631","651","652","474","476","649","650","633","654","721","722","646","420","425","426","427","428"];
+function boq(c){const keys=Object.keys(c.Q).filter(k=>c.Q[k]>0).sort((a,b)=>{const ia=ORDER.indexOf(a),ib=ORDER.indexOf(b);return(ia<0?999:ia)-(ib<0?999:ib)});
+ const rnd=(k,q)=>{const u=RATES[k][1];if(u==="Km.")return Math.round(q*1000)/1000;if(u==="Kg.")return Math.ceil(q);if(u==="Mtr.")return Math.ceil(q);return Math.ceil(q-1e-9)};
+ const mat=[],job=[];keys.forEach(k=>{const q=rnd(k,c.Q[k]),r=RATES[k],row={sor:k,desc:r[0],unit:r[1],q,rate:r[2],amt:Math.round(q*r[2]*100)/100,why:(c.why[k]||[]).join("; ")};(EJOB.has(k)?job:mat).push(row)});
+ const r2=v=>Math.round((v+Number.EPSILON)*100)/100,p=P(),dep=p.meta.pay==="dep",A=r2(mat.reduce((s,r)=>s+r.amt,0)),B=r2(A*.05),C=r2(A+B),D=r2(C*.15),E=r2(job.reduce((s,r)=>s+r.amt,0)),F=dep?r2(C*.03):0,G=dep?r2((D+E)*.15):0,H=r2(C+D+E+F+G),I=+p.meta.fee||0,J=r2(H*.09),K=r2(H*.09),L=r2(H+I+J+K),M=0,O=r2(L-M),Pr=Math.ceil(O-1e-6);
+ return{mat,job,A,B,C,D,E,F,G,H,I,J,K,L,M,O,P:Pr,dep}}
+
+/* ================= Titles ================= */
+function autoWork(c){const bits=[],hv=c.km.HV+c.km.MV,lt=c.km.LT;const dtrs=c.pts.filter(x=>x.kind==="dtr");
+ if(hv)bits.push("11 KV line ("+(hv/1000).toFixed(3)+" km"+(c.km.MV?" MVCC":"")+")");
+ dtrs.forEach(d=>bits.push((d.kva||100)+" KVA S/S"));
+ if(lt){const abc=c.segs.some(s=>s.L.abc);bits.push("LT "+(abc?"AB cable ":"")+"line ("+(lt/1000).toFixed(3)+" km)")}
+ if(!bits.length)return"Construction of line";return"Construction of "+bits.join(", ").replace(/, ([^,]*)$/," & $1")}
+const workOf=c=>P().meta.work||autoWork(c);
+const locOf=()=>P().meta.loc||"________";
+
+/* ================= SLD drawing ================= */
+function sldSVG(c,opt){
+ const p=P(),W=842,H=595,esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
+ const title=(p.meta.title||("SINGLE LINE DIAGRAM FOR "+workOf(c)+" AT "+locOf()+" UNDER SAMAGURI ESD")).toUpperCase();
+ const all=[];c.pts.forEach(x=>all.push(xy(x,c.o)));c.segs.forEach(s=>s.mid.forEach(m=>all.push(xy(m,c.o))));
+ const tl=wrap(title,92);const top=40+tl.length*14+30,bot=opt.sign?490:535,lft=105,rgt=737;
+ let mnx=Math.min(...all.map(a=>a.x)),mxx=Math.max(...all.map(a=>a.x)),mny=Math.min(...all.map(a=>a.y)),mxy=Math.max(...all.map(a=>a.y));
+ if(!all.length){mnx=mny=-1;mxx=mxy=1}
+ const sx=(rgt-lft)/Math.max(mxx-mnx,1),sy=(bot-top)/Math.max(mxy-mny,1),s=Math.min(sx,sy,8);
+ const ox=lft+((rgt-lft)-(mxx-mnx)*s)/2,oy=top+((bot-top)-(mxy-mny)*s)/2;
+ const T=pt=>{const q=xy(pt,c.o);return[ox+(q.x-mnx)*s,oy+(mxy-q.y)*s]};
+ const out=[];const t=(x,y,str,o={})=>out.push(`<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" font-size="${o.fs||7.5}" font-weight="${o.fw||400}" fill="${o.c||"#111"}" text-anchor="${o.a||"middle"}" ${o.rot!=null?`transform="rotate(${o.rot.toFixed(1)} ${x.toFixed(1)} ${y.toFixed(1)})"`:""} stroke="#fff" stroke-width="2.6" paint-order="stroke" font-family="Arial, Helvetica, sans-serif">${esc(str)}</text>`);
+ out.push(`<rect x="0" y="0" width="${W}" height="${H}" fill="#fff"/><rect x="12" y="12" width="${W-24}" height="${H-24}" fill="none" stroke="#111" stroke-width="1.5"/><rect x="16" y="16" width="${W-32}" height="${H-32}" fill="none" stroke="#111" stroke-width="0.8"/>`);
+ tl.forEach((l,i)=>{t(W/2,40+i*14,l,{fs:11.5,fw:700});const w=l.length*6.2;out.push(`<line x1="${W/2-w/2}" y1="${43+i*14}" x2="${W/2+w/2}" y2="${43+i*14}" stroke="#111" stroke-width="0.7"/>`)});
+ const col=L=>L.ex?"#1F4E9C":L.cls==="HV"?"#2B8A3E":"#C2410C";
+ // lines — pole IDs on the "up/right" side of a run, spans and conductor on the other side
+ const nrm=(x1,y1,x2,y2)=>{const dx=x2-x1,dy=y2-y1,l=Math.hypot(dx,dy)||1;let nx=-dy/l,ny=dx/l;if(Math.abs(dx)>=Math.abs(dy)){if(ny>0){nx=-nx;ny=-ny}}else if(nx<0){nx=-nx;ny=-ny}return{nx,ny,l}};
+ const rotOf=(x1,y1,x2,y2)=>{let a=Math.atan2(y2-y1,x2-x1)*R2D;if(a>90)a-=180;if(a<-90)a+=180;return a};
+ const segN={};
+ c.segs.forEach(sg=>{const[a1,a2]=T(sg.a),[b1,b2]=T(sg.b),L=sg.L,{nx,ny,l:len}=nrm(a1,a2,b1,b2),rot=rotOf(a1,a2,b1,b2);segN[sg.b.id]={nx,ny};
+  out.push(`<line x1="${a1}" y1="${a2}" x2="${b1}" y2="${b2}" stroke="${col(L)}" stroke-width="${L.cls==="HV"?2.2:1.6}" ${L.cls==="LT"&&!L.ex?'stroke-dasharray="6 3"':""} stroke-linecap="round"/>`);
+  const mx=(a1+b1)/2,my=(a2+b2)/2;
+  if(len>70){t(mx-nx*21,my-ny*21+2.5,L.sh+" · "+(sg.len/1000).toFixed(3)+" KM",{fs:7,fw:700,c:col(L),rot})}
+  else if(len>30){t(mx-nx*21,my-ny*21+2.5,L.sh.replace(/^(11 KV|LT) /,""),{fs:6,fw:700,c:col(L),rot})}
+  if(!L.ex&&len>24){const ux=(b1-a1)/len,uy=(b2-a2)/len,ptsOn=[sg.a,...sg.mid,sg.b].map(T);let bi=0,bl=0;for(let i=0;i<ptsOn.length-1;i++){const d=Math.hypot(ptsOn[i+1][0]-ptsOn[i][0],ptsOn[i+1][1]-ptsOn[i][1]);if(d>bl){bl=d;bi=i}}
+   const k=Math.floor(ptsOn.length/2)-1>=0?Math.floor((ptsOn.length-1)/2):0,P1=ptsOn[k],P2=ptsOn[k+1]||ptsOn[k],cx=(P1[0]+P2[0])/2,cy=(P1[1]+P2[1])/2,r=4.5;
+   out.push(`<path d="M${(cx+ux*r).toFixed(1)},${(cy+uy*r).toFixed(1)} L${(cx-ux*r-uy*r*.8).toFixed(1)},${(cy-uy*r+ux*r*.8).toFixed(1)} L${(cx-ux*r+uy*r*.8).toFixed(1)},${(cy-uy*r-ux*r*.8).toFixed(1)} Z" fill="${col(L)}"/>`)}
+  if(opt.span&&!L.ex){const ptsOn=[sg.a,...sg.mid,sg.b];for(let i=0;i<ptsOn.length-1;i++){const[p1,p2]=T(ptsOn[i]),[q1,q2]=T(ptsOn[i+1]);if(Math.hypot(q1-p1,q2-p2)<24)continue;t((p1+q1)/2-nx*9,(p2+q2)/2-ny*9+2.3,Math.round(hav(ptsOn[i],ptsOn[i+1]))+" m",{fs:6,c:"#374151",rot})}}
+  sg.mid.forEach(m=>{const[x,y]=T(m);out.push(`<circle cx="${x}" cy="${y}" r="2.8" fill="#fff" stroke="#111" stroke-width="1"/>`);if(m.earth)earthSym(x,y);if(m.stay){const A=xy(sg.a,c.o),B=xy(sg.b,c.o);stay(x,y,{x:-(B.y-A.y),y:B.x-A.x})}t(x+nx*9,y+ny*9+2.2,m.lab,{fs:6})});
+ });
+ function earthSym(x,y){out.push(`<path d="M${x},${y+3} v4 M${x-3.5},${y+7} h7 M${x-2.3},${y+8.8} h4.6 M${x-1.1},${y+10.5} h2.2" stroke="#111" stroke-width="0.7" fill="none"/>`)}
+ function stay(x,y,d){const l=Math.hypot(d.x,d.y)||1,ux=d.x/l,uy=-d.y/l,ex=x+ux*15,ey=y+uy*15;out.push(`<line x1="${x}" y1="${y}" x2="${ex}" y2="${ey}" stroke="#6b7280" stroke-width="0.9"/><path d="M${ex},${ey} l${(-ux*4-uy*2.4).toFixed(1)},${(-uy*4+ux*2.4).toFixed(1)} M${ex},${ey} l${(-ux*4+uy*2.4).toFixed(1)},${(-uy*4-ux*2.4).toFixed(1)}" stroke="#6b7280" stroke-width="0.9" fill="none"/>`)}
+ // nodes
+ c.pts.forEach(x=>{const[X,Y]=T(x),nd=c.nodes[x.id]||{},lb=c.lab[x.id]||("P"+x.no);
+  (nd.stayDirs||[]).slice(0,nd.stays||0).forEach(d=>stay(X,Y,d));
+  if(x.kind==="src11"||x.kind==="srcLT"){out.push(`<circle cx="${X}" cy="${Y}" r="3.2" fill="#111"/><circle cx="${X}" cy="${Y}" r="9" fill="none" stroke="#C92A2A" stroke-width="1.2" stroke-dasharray="3 2"/>`);
+   t(X,Y-14,x.kind==="src11"?"TAPPING POINT":"LT SOURCE",{fs:7.5,fw:700,c:"#C92A2A"});t(X,Y+19,x.kind==="src11"?"EXISTING 11 KV POLE":"EXISTING LT",{fs:6.3,c:"#C92A2A"});if(p.meta.fdr)t(X,Y+27,p.meta.fdr.toUpperCase(),{fs:6.3,c:"#C92A2A"})}
+  else if(x.kind==="exPole"){const nn=segN[x.id]||{nx:0,ny:-1};out.push(`<circle cx="${X}" cy="${Y}" r="3.2" fill="#111"/>`);t(X+nn.nx*10,Y+nn.ny*10+2.4,lb,{fs:6.5})}
+  else if(x.kind==="dp"){out.push(`<circle cx="${X-3.5}" cy="${Y}" r="3" fill="#fff" stroke="#111"/><circle cx="${X+3.5}" cy="${Y}" r="3" fill="#fff" stroke="#111"/>`);t(X,Y-8,lb,{fs:7,fw:700});
+   const eq=[x.goab&&"GOAB",x.dof&&"DO",x.la&&"LA"].filter(Boolean);if(eq.length)t(X,Y+15,eq.join(" + "),{fs:6.3})}
+  else if(x.kind==="dtr"){const kva=x.kva||100;out.push(`<rect x="${X-13}" y="${Y-9}" width="26" height="18" fill="#fff" stroke="#111" stroke-width="1"/><circle cx="${X-3.4}" cy="${Y}" r="5.5" fill="none" stroke="#111"/><circle cx="${X+3.4}" cy="${Y}" r="5.5" fill="none" stroke="#111"/>`);
+   t(X,Y-13,kva+" KVA DTR (NEW)",{fs:7.5,fw:700});t(X,Y+18,"11/0.433 KV"+(x.goab!==false?", GOAB+DO+LA":", DO+LA"),{fs:6.3});if(x.fence!==false)out.push(`<rect x="${X-18}" y="${Y-12}" width="36" height="24" fill="none" stroke="#6b7280" stroke-width="0.6" stroke-dasharray="2 2"/>`)}
+  else{const nn=segN[x.id]||{nx:0,ny:-1};out.push(`<circle cx="${X}" cy="${Y}" r="3.4" fill="#fff" stroke="#111" stroke-width="1.2"/>`);t(X+nn.nx*10,Y+nn.ny*10+2.4,lb,{fs:6.8,fw:700})}
+  if(nd.earth&&x.kind==="pole")earthSym(X,Y);
+  if(x.db>0){out.push(`<rect x="${X+6}" y="${Y+4}" width="9" height="7" fill="#fff" stroke="#111" stroke-width="0.8"/>`);t(X+18,Y+10,"LT DB ("+x.db+" CONS.)",{fs:6.2,a:"start"})}
+  if(x.note)t(X,Y+(x.kind==="dtr"?27:x.kind.startsWith("src")?(p.meta.fdr?35:27):17),x.note,{fs:6.3,c:"#4b5563"});
+  if(opt.gps)t(X+10,Y-2,gpsTxt(x),{fs:5.6,c:"#4b5563",a:"start"});
+ });
+ if(opt.north){out.push(`<g transform="translate(790 ${top+10})"><path d="M0,-14 L6,8 L0,3 L-6,8 Z" fill="#111"/><text x="0" y="-18" font-size="10" font-weight="700" text-anchor="middle" font-family="Arial">N</text></g>`)}
+ // existing-vs-new key is part of the drawing language; tiny scale note
+ t(lft,H-24,"Schematic, drawn from GPS survey. Not to scale. All lengths in metres unless shown in KM.",{fs:6.2,a:"start",c:"#6b7280"});
+ if(opt.sign){t(W-40,H-58,"Sub-Divisional Engineer",{fs:8,fw:700,a:"end"});t(W-40,H-47,"Samaguri Electrical Sub-Division",{fs:7.5,a:"end"});t(W-40,H-37,"APDCL, CAR, Samaguri",{fs:7.5,a:"end"});
+  t(40,H-58,"Junior Manager (FME)",{fs:8,fw:700,a:"start"});t(40,H-47,"Samaguri Electrical Sub-Division",{fs:7.5,a:"start"})}
+ return`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">${out.join("")}</svg>`;
+}
+function wrap(s,n){const w=s.split(" "),l=[];let cur="";w.forEach(x=>{if((cur+" "+x).trim().length>n){l.push(cur.trim());cur=x}else cur+=" "+x});if(cur.trim())l.push(cur.trim());return l.slice(0,3)}
+
+/* ================= Map ================= */
+const $=s=>document.querySelector(s);
+let map,layerOSM,layerSat,sat=false,grp,tapMode=false,selId=null;
+function initMap(){if(typeof L==="undefined"){$("#map").innerHTML='<p style="padding:16px">Map could not load (offline?). You can still enter coordinates; the SLD and estimate work without the map.</p>';return}
+ map=L.map("map",{zoomControl:true}).setView([26.40,92.95],11);
+ layerOSM=L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:20,maxNativeZoom:19,attribution:"© OpenStreetMap"}).addTo(map);
+ layerSat=L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{maxZoom:20,maxNativeZoom:19,attribution:"© Esri"});
+ grp=L.layerGroup().addTo(map);
+ map.on("click",e=>{if(!tapMode)return;setTap(false);openPoint(null,{lat:e.latlng.lat,lng:e.latlng.lng,src:"map"})});
+}
+function setTap(on){tapMode=on;$("#mapwrap").classList.toggle("tapping",on);$("#tapBtn").textContent=on?"✕ Cancel tap":"✚ Tap on map";$("#status").textContent=on?"Tap the map where the point goes.":statusText()}
+function drawMap(c,fit){if(!map)return;grp.clearLayers();const col=L2=>L2.ex?"#1F4E9C":L2.cls==="HV"?"#2B8A3E":"#C2410C";
+ c.segs.forEach(sg=>{L.polyline([[sg.a.lat,sg.a.lng],[sg.b.lat,sg.b.lng]],{color:col(sg.L),weight:sg.L.cls==="HV"?4:3,dashArray:sg.L.cls==="LT"&&!sg.L.ex?"8 6":null}).addTo(grp)
+   .bindTooltip(LINES[sg.line].t+" · "+Math.round(sg.len)+" m · "+sg.mid.length+" intermediate pole"+(sg.mid.length===1?"":"s"));
+  sg.mid.forEach(m=>L.circleMarker([m.lat,m.lng],{radius:3.5,color:"#111",weight:1,fillColor:"#fff",fillOpacity:1}).addTo(grp).bindTooltip(m.lab+" (computed)"))});
+ c.pts.forEach(x=>{const k=x.kind,ic=k==="dtr"?"⚡":k==="dp"?"Ⅱ":k==="src11"||k==="srcLT"?"◎":k==="exPole"?"●":"○";
+  const html=`<div style="background:${k.startsWith("src")?"#C92A2A":x.id===selId?"#0f766e":"#1e3a5f"};color:#fff;border-radius:12px;padding:2px 6px;font:700 11px system-ui;white-space:nowrap;box-shadow:0 2px 6px #0004;transform:translate(-50%,-50%);display:inline-block">${ic} P${x.no}</div>`;
+  const mk=L.marker([x.lat,x.lng],{draggable:true,icon:L.divIcon({className:"",html,iconSize:[0,0]})}).addTo(grp);
+  mk.on("click",()=>openPoint(x));mk.on("dragend",e=>{const ll=e.target.getLatLng();x.lat=ll.lat;x.lng=ll.lng;x.acc=null;x.src="moved";touch(P());renderAll()})});
+ if(fit&&c.pts.length){const b=L.latLngBounds(c.pts.map(x=>[x.lat,x.lng]));map.fitBounds(b.pad(0.25),{maxZoom:18})}}
+
+/* ================= Point dialog ================= */
+let edit=null,draft=null;
+function lastPt(){const p=P();return selId&&p.pts.find(x=>x.id===selId)||p.pts[p.pts.length-1]}
+function openPoint(x,pos){const p=P();edit=x;
+ draft=x?{...x}:{id:uid(),no:(Math.max(0,...p.pts.map(q=>q.no))+1),lat:pos.lat,lng:pos.lng,acc:pos.acc||null,src:pos.src,kind:p.pts.length?"pole":"src11",par:p.pts.length?(lastPt()||{}).id:null,line:defaultLine(),pole:"",cross:"",note:""};
+ if(x==null&&draft.par){const prev=p.pts.find(q=>q.id===draft.par);if(prev&&(prev.kind==="dtr"||prev.kind==="srcLT")&&!LINES[draft.line].ex&&LINES[draft.line].cls==="HV")draft.line=lastLine("LT")||"AB3b"}
+ $("#dTitle").textContent=x?"Point P"+x.no:"What goes here? (P"+draft.no+")";
+ $("#dCoord").textContent=draft.lat.toFixed(6)+", "+draft.lng.toFixed(6)+"  ·  "+gpsTxt(draft)+(draft.acc?"  ·  ±"+Math.round(draft.acc)+" m":"");
+ $("#dDel").hidden=!x;$("#dNote").value=draft.note||"";
+ renderKinds();renderDlgLine();$("#ptDlg").showModal()}
+function defaultLine(){return lastLine()||"11R"}
+function lastLine(cls){const p=P();for(let i=p.pts.length-1;i>=0;i--){const l=p.pts[i].line;if(l&&LINES[l]&&!LINES[l].ex&&(!cls||LINES[l].cls===cls))return l}return null}
+function renderKinds(){const box=$("#dKinds");box.innerHTML=Object.entries(KINDS).map(([k,v])=>`<button type="button" data-k="${k}" aria-pressed="${draft.kind===k}"><b>${v.t}</b><span>${v.d}</span></button>`).join("");
+ box.querySelectorAll("button").forEach(b=>b.onclick=()=>{draft.kind=b.dataset.k;if(KINDS[draft.kind].src)draft.par=null;else if(!draft.par&&P().pts.length)draft.par=(lastPt()||{}).id;renderKinds();renderDlgLine()});
+ const o=$("#dOpts"),k=draft.kind;let h="";
+ if(k==="dtr")h+=`<div class="f"><label>DTR rating<select id="oKva">${[25,63,100,250].map(v=>`<option ${+(draft.kva||100)===v?"selected":""}>${v}</option>`).join("")}</select></label></div><div class="chk"><label><input type="checkbox" id="oGoab" ${draft.goab!==false?"checked":""}> GOAB</label><label><input type="checkbox" id="oFence" ${draft.fence!==false?"checked":""}> Fencing (Type-II)</label></div>`;
+ if(k==="dp")h+=`<div class="chk"><label><input type="checkbox" id="oGoab" ${draft.goab?"checked":""}> GOAB</label><label><input type="checkbox" id="oDo" ${draft.dof?"checked":""}> DO fuse set</label><label><input type="checkbox" id="oLa" ${draft.la?"checked":""}> LA</label></div>`;
+ if(k!=="src11")h+=`<div class="f"><label>LT DB here: consumers (0 = none)<input type="number" id="oDb" min="0" value="${draft.db||0}"></label><label>Stays (blank = auto)<input type="number" id="oStay" min="0" max="6" value="${draft.stays??""}" placeholder="auto"></label></div>`;
+ else h+=`<div class="f"><label>Stays (blank = auto)<input type="number" id="oStay" min="0" max="6" value="${draft.stays??""}" placeholder="auto"></label></div>`;
+ o.innerHTML=h}
+function renderDlgLine(){const p=P(),src=KINDS[draft.kind]&&KINDS[draft.kind].src;$("#dLineSec").hidden=!!src&&!draft.par;
+ const desc=new Set();(function mark(id){desc.add(id);p.pts.filter(q=>q.par===id).forEach(q=>mark(q.id))})(draft.id);
+ $("#dPar").innerHTML=(src?'<option value="">— none (this is a source) —</option>':'<option value="">— not connected —</option>')+p.pts.filter(q=>!desc.has(q.id)).map(q=>`<option value="${q.id}" ${q.id===draft.par?"selected":""}>P${q.no} · ${KINDS[q.kind].t}${q.note?" · "+q.note:""}</option>`).join("");
+ $("#dLine").innerHTML=["HV","LT"].map(cl=>`<optgroup label="${cl==="HV"?"11 kV":"LT"}">`+Object.entries(LINES).filter(([,v])=>v.cls===cl).map(([k,v])=>`<option value="${k}" ${k===draft.line?"selected":""}>${v.t}</option>`).join("")+"</optgroup>").join("");
+ $("#dPole").value=draft.pole||"";$("#dCross").value=draft.cross||""}
+function readDlg(){const g=id=>document.getElementById(id);draft.note=$("#dNote").value.trim();draft.par=$("#dPar").value||null;draft.line=$("#dLine").value;draft.pole=$("#dPole").value;draft.cross=$("#dCross").value;
+ if(g("oKva"))draft.kva=+g("oKva").value;if(g("oGoab"))draft.goab=g("oGoab").checked;if(g("oFence"))draft.fence=g("oFence").checked;if(g("oDo"))draft.dof=g("oDo").checked;if(g("oLa"))draft.la=g("oLa").checked;
+ if(g("oDb"))draft.db=+g("oDb").value||0;if(g("oStay"))draft.stays=g("oStay").value===""?null:+g("oStay").value}
+$("#dSave").onclick=()=>{readDlg();const p=P();if(edit)Object.assign(edit,draft);else p.pts.push(draft);selId=draft.id;touch(p);$("#ptDlg").close();renderAll(!edit&&p.pts.length<=2)};
+$("#dCancel").onclick=()=>$("#ptDlg").close();
+$("#dDel").onclick=()=>{const p=P();if(!confirm("Delete point P"+edit.no+"? Points connected after it will be joined to the point before it."))return;
+ p.pts.forEach(q=>{if(q.par===edit.id){q.par=edit.par}});p.pts=p.pts.filter(q=>q!==edit);selId=null;touch(p);$("#ptDlg").close();renderAll()};
+
+/* GPS */
+let watch=null,best=null;
+$("#gpsBtn").onclick=()=>{if(!navigator.geolocation){alert("This browser has no GPS access. Use coordinates or tap on the map.");return}
+ best=null;let n=0;$("#gAcc").textContent="–";$("#gAcc").className="acc";$("#gN").textContent="";$("#gPos").textContent="";$("#gUse").disabled=true;$("#gpsDlg").showModal();
+ watch=navigator.geolocation.watchPosition(pos=>{n++;const c=pos.coords;if(!best||c.accuracy<best.acc)best={lat:c.latitude,lng:c.longitude,acc:c.accuracy};
+  $("#gAcc").textContent="±"+Math.round(best.acc)+" m";$("#gAcc").className="acc "+(best.acc<=10?"good":best.acc>30?"bad":"");$("#gN").textContent="("+n+" reading"+(n>1?"s":"")+")";$("#gPos").textContent=gpsTxt(best);$("#gUse").disabled=false},
+  err=>{$("#gAcc").textContent=err.code===1?"permission denied — allow location for this site":"no fix yet ("+err.message+")";$("#gAcc").className="acc bad"},{enableHighAccuracy:true,maximumAge:0,timeout:30000})};
+function stopGps(){if(watch!=null)navigator.geolocation.clearWatch(watch);watch=null}
+$("#gCancel").onclick=()=>{stopGps();$("#gpsDlg").close()};
+$("#gUse").onclick=()=>{stopGps();$("#gpsDlg").close();if(map)map.setView([best.lat,best.lng],Math.max(map.getZoom(),17));openPoint(null,{...best,src:"gps"})};
+/* typed */
+$("#typeBtn").onclick=()=>{$("#coIn").value="";$("#coMsg").textContent="";$("#coDlg").showModal();setTimeout(()=>$("#coIn").focus(),50)};
+$("#coCancel").onclick=()=>$("#coDlg").close();
+$("#coOk").onclick=()=>{const v=parseCoord($("#coIn").value);if(!v){$("#coMsg").textContent="Couldn't read that. Try 26.453308, 93.047084";return}$("#coDlg").close();openPoint(null,{...v,src:"typed"})};
+$("#coIn").addEventListener("keydown",e=>{if(e.key==="Enter")$("#coOk").click()});
+$("#tapBtn").onclick=()=>setTap(!tapMode);
+$("#fitBtn").onclick=()=>drawMap(compute(P()),true);
+$("#layerBtn").onclick=()=>{if(!map)return;sat=!sat;if(sat){map.removeLayer(layerOSM);layerSat.addTo(map)}else{map.removeLayer(layerSat);layerOSM.addTo(map)}$("#layerBtn").textContent=sat?"Map":"Satellite"};
+
+/* ================= Rendering ================= */
+function statusText(){const p=P();return p.pts.length?"Tap a point to edit it, drag it to adjust. Marked: "+p.pts.length+" point"+(p.pts.length>1?"s":"")+".":"Start at the tapping point (existing 11 kV pole or LT source), then walk the route and mark each turning point, DP, DTR and line end."}
+function warnBox(c){const w=[...c.warn];return w.length?`<div class="warns"><b>Check before printing</b><ul>${w.map(x=>`<li>${x}</li>`).join("")}</ul></div>`:""}
+function renderSurvey(c,fit){const p=P();$("#status").textContent=statusText();$("#surveyWarn").innerHTML=warnBox(c);
+ const b=c.pts.length?boq(c):null,newPoles=(c.Q["746"]||0)+(c.Q["747"]||0)+(c.Q["748"]||0);
+ $("#surveySum").innerHTML=c.pts.length?[["11 kV",((c.km.HV+c.km.MV)/1000).toFixed(3)+" km"],["LT",(c.km.LT/1000).toFixed(3)+" km"],["New poles",Math.round(newPoles)],["Computed",c.nGen+" interm."],["Stays",c.totStays],["Estimate","₹"+(b?b.P.toLocaleString("en-IN"):0)]].map(([k,v])=>`<div><b>${v}</b><span>${k}</span></div>`).join(""):"";
+ $("#plist").innerHTML=p.pts.map(x=>{const nd=c.nodes[x.id]||{},sg=c.segs.find(s=>s.b===x),r=Object.entries(nd.roles||{}).map(([k,v])=>v).join(" / ");
+  return`<div class="pt ${x.id===selId?"sel":""}" data-id="${x.id}"><span class="no">P${x.no}</span><div><b>${KINDS[x.kind].t}${x.kind==="dtr"?" "+(x.kva||100)+" kVA":""}</b> <span class="small muted">${c.lab[x.id]||""}${r?" · "+r:""}${nd.dev?" · "+nd.dev+"°":""}${nd.stays?" · "+nd.stays+" stay"+(nd.stays>1?"s":""):""}${x.db?" · DB "+x.db+" cons.":""}</span>
+   <div class="meta">${sg?"from P"+sg.a.no+" · "+LINES[x.line].t+" · "+Math.round(sg.len)+" m"+(sg.mid.length?" · +"+sg.mid.length+" pole"+(sg.mid.length>1?"s":""):""):KINDS[x.kind].src?"source":"not connected"}${x.note?" · "+x.note:""}${x.acc?" · ±"+Math.round(x.acc)+" m":x.src?" · "+x.src:""}</div></div>
+   <button class="btn alt sm" type="button">Edit</button></div>`}).join("")||'<div class="card muted">No points yet.</div>';
+ $("#plist").querySelectorAll(".pt").forEach(el=>{el.onclick=()=>{const x=p.pts.find(q=>q.id===el.dataset.id);selId=x.id;if(map)map.panTo([x.lat,x.lng]);openPoint(x)}});
+ drawMap(c,fit)}
+function renderSLD(c){const p=P(),o=p.opt;["North","Gps","Span","Sign"].forEach(k=>$("#o"+k).checked=!!o[k.toLowerCase()]);$("#sldTitle").value=p.meta.title||"";
+ $("#sldBox").innerHTML=c.pts.length?sldSVG(c,o):'<p class="muted" style="padding:16px">Mark points on the Survey tab first.</p>'}
+function renderEst(c){const p=P(),m=p.meta;$("#mWork").value=m.work;$("#mWork").placeholder=autoWork(c);$("#mLoc").value=m.loc;$("#mPay").value=m.pay;$("#mDoc").value=m.doc;$("#mDate").value=m.date;$("#mSS").value=m.ss;$("#mFdr").value=m.fdr;$("#mFee").value=m.fee||0;
+ const fl=c.flags.length?`<div class="warns flags"><b>Rates to check</b><ul>${c.flags.map(x=>`<li>${x}</li>`).join("")}</ul></div>`:"";
+ $("#estWarn").innerHTML=warnBox(c)+fl;$("#estBox").innerHTML=c.pts.length?estHTML(c):'<p class="muted" style="padding:16px">Mark points on the Survey tab first.</p>'}
+const dmy=s=>{if(!s)return"__/__/____";const[a,b,d]=s.split("-");return d+"/"+b+"/"+a};
+function estHTML(c){const p=P(),m=p.meta,b=boq(c);let i=0;const row=r=>`<tr><td class="n">${++i}</td><td class="n">${/^\d+$/.test(r.sor)?r.sor:"—"}</td><td>${r.desc}</td><td>${r.unit}</td><td class="n q" title="${r.why.replace(/"/g,"&quot;")}">${r.unit==="Km."?r.q.toFixed(3):r.q}</td><td class="n">${inr(r.rate)}</td><td class="n">${inr(r.amt)}</td><td></td></tr>`;
+ const ab=(l,t,v,cls="")=>`<tr class="ab ${cls}"><td class="n">${l}</td><td></td><td colspan="4">${t}</td><td class="n">${inr(v)}</td><td></td></tr>`;
+ const jl=["i","ii","iii","iv","v","vi"];
+ return`<div class="eh"><b class="big">ASSAM POWER DISTRIBUTION COMPANY LTD.</b><br>Samaguri Electrical Sub-Division, Nagaon ED-II, CAR
+ <div class="rw"><span><b>PROVISIONAL ESTIMATE</b></span><span>GSTIN :18AABCL1354J1ZJ</span></div><b>PROFORMA INVOICE</b>
+ <div class="rw"><span>Document No : ${m.doc||"SESD/____/____"}</span><span>Dt: ${dmy(m.date)}</span></div><div class="small">(not valid for Input Tax credit)</div>
+ <div style="margin-top:6px"><b>Provisional Estimate for ${workOf(c)} at ${locOf()}${m.fdr?" under "+m.fdr:""}${m.ss?", "+m.ss:""}.</b> Rates as per SoR 2021-22</div>
+ <div class="small" style="font-style:italic">"This estimate has been prepared incorporating the recommendations of Hon'ble Justice H.N. Sarma Commission."</div></div>
+ <table class="boq"><thead><tr><th>Sl. No.</th><th>SOR Sl. No.</th><th>Item Description</th><th>Unit</th><th>Quantity</th><th>Ex. Work Price in Rs.</th><th>Amount in Rs.</th><th>Remarks</th></tr></thead><tbody>
+ ${b.mat.map(row).join("")}
+ ${ab("A","Total cost of materials (excluding GST)",b.A,"tot")}${ab("B","Transportation & storage @ 5% of A",b.B)}${ab("C","Total cost of materials (A+B)",b.C,"tot")}${ab("D","Labour charges @ 15% of C",b.D)}
+ <tr class="ab"><td class="n">E</td><td></td><td colspan="6">Other expenses where labour is included</td></tr>
+ ${b.job.map((r,k)=>`<tr class="ab"><td class="n">${jl[k]||k+1}</td><td class="n">${r.sor}</td><td>${r.desc}</td><td>${r.unit}</td><td class="n q" title="${r.why.replace(/"/g,"&quot;")}">${r.q}</td><td class="n">${inr(r.rate)}</td><td class="n">${inr(r.amt)}</td><td></td></tr>`).join("")}
+ ${ab("","Total of E",b.E)}${ab("","Total: D + E",b.D+b.E,"tot")}
+ ${ab("F","Contingency @ "+(b.dep?"3% of C":"0% (departmental)"),b.F)}${ab("G","Supervision charges @ "+(b.dep?"15% of (D+E)":"0% (departmental)"),b.G)}
+ ${ab("H","Gross total (C+D+E+F+G)",b.H,"tot")}${ab("I","Processing fees",b.I)}${ab("J","CGST @ 9% on H",b.J)}${ab("K","SGST @ 9% on H",b.K)}${ab("L","Total (H+I+J+K)",b.L,"tot")}
+ ${ab("M","Less: party supply / existing materials",b.M)}${ab("O","Total (L−M)",b.O,"tot")}
+ <tr class="ab tot"><td class="n">P</td><td></td><td colspan="4">Say (rounded off)</td><td class="n">${b.P.toLocaleString("en-IN")}.00</td><td></td></tr>
+ </tbody></table>
+ <div class="words">Rupees ${words(b.P)} only.</div>
+ <div class="notes"><b>Notes</b><ol>${notesOf(c,b).map(n=>`<li>${n}</li>`).join("")}</ol></div>
+ <div class="sign"><div>Junior Manager (FME)<br>Samaguri Electrical Sub-Division</div><div style="text-align:right">Sub-Divisional Engineer<br>Samaguri ESD, APDCL, CAR</div></div>`}
+function notesOf(c,b){const S=c.S,n=[];const mk=c.pts.length,gp=c.pts.filter(x=>x.src==="gps").length;
+ n.push("Quantities worked out from a site survey of "+mk+" marked point"+(mk>1?"s":"")+(gp?" ("+gp+" by GPS)":"")+"; "+c.nGen+" intermediate pole"+(c.nGen===1?"":"s")+" added so that spans do not exceed "+S.sHV+" m (11 kV bare), "+S.sMV+" m (MVCC), "+S.sLT+" m (LT bare), "+S.sABC+" m (LT ABC).");
+ n.push("Conductor: 3.3 km per route-km for 11 kV, 2.1 / 4.2 km per route-km for LT 1-ph / 3-ph bare, route length + 5% for AB cable.");
+ n.push("Stays at dead-ends, tee-offs and deviations of 10° or more; every new pole grouted and every stay grouted (stay sets = guy insulators = stay grouting = "+c.totStays+").");
+ if(!b.dep)n.push("Departmental work: contingency and supervision at 0%.");else n.push("Deposit work executed by APDCL: contingency 3% of C, supervision 15% of (D+E).");
+ return n}
+
+function renderProj(){const L=live();$("#projList").innerHTML=L.map(p=>`<div class="pt" data-id="${p.id}"><span class="no">${p.pts.length}</span><div><b>${esc(p.name)}</b><div class="meta">${p.meta.loc?esc(p.meta.loc)+" · ":""}updated ${new Date(p.upd).toLocaleString("en-IN",{dateStyle:"medium",timeStyle:"short"})}</div></div>
+  <div style="display:flex;gap:6px"><button class="btn alt sm" data-a="open">Open</button><button class="btn alt sm" data-a="ren">Rename</button><button class="btn alt sm" data-a="dup">Copy</button><button class="btn bad sm" data-a="del">✕</button></div></div>`).join("");
+ $("#projList").querySelectorAll(".pt").forEach(el=>el.querySelectorAll("button").forEach(b=>b.onclick=e=>{e.stopPropagation();const p=DB.projects[el.dataset.id],a=b.dataset.a;
+  if(a==="open"){DB.cur=p.id;save(false);show("survey");renderAll(true)}
+  if(a==="ren"){const n=prompt("Survey name",p.name);if(n){p.name=n;touch(p);renderAll()}}
+  if(a==="dup"){const q=JSON.parse(JSON.stringify(p));q.id=uid();q.name=p.name+" (copy)";q.upd=Date.now();DB.projects[q.id]=q;DB.cur=q.id;save();renderAll(true)}
+  if(a==="del"){if(confirm("Delete survey '"+p.name+"'?")){p.del=true;p.pts=[];touch(p);renderAll(true)}}}));
+ const S={...DEF_SET,...P().set};Object.keys(DEF_SET).forEach(k=>{$("#"+k).value=S[k]})}
+const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
+function renderSel(){$("#projSel").innerHTML=live().map(p=>`<option value="${p.id}" ${p.id===DB.cur?"selected":""}>${esc(p.name)} (${p.pts.length} pts)</option>`).join("")}
+let VIEW="survey";
+function renderAll(fit){P();renderSel();const c=compute(P());if(VIEW==="survey")renderSurvey(c,fit);else drawMapLater=c;if(VIEW==="sld")renderSLD(c);if(VIEW==="est")renderEst(c);if(VIEW==="proj")renderProj()}
+let drawMapLater=null;
+function show(v){VIEW=v;document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.v===v));["survey","sld","est","proj"].forEach(k=>$("#v-"+k).hidden=k!==v);
+ if(v==="survey"&&map)setTimeout(()=>map.invalidateSize(),50);renderAll(false)}
+document.querySelectorAll("nav.tabs button").forEach(b=>b.onclick=()=>show(b.dataset.v));
+$("#projSel").onchange=e=>{DB.cur=e.target.value;save(false);selId=null;renderAll(true)};
+$("#newProj").onclick=()=>{const n=prompt("Name of the survey (e.g. Baghbar Ali LT extension)","");if(n===null)return;newProject(n.trim()||undefined);selId=null;show("survey");renderAll(true)};
+// meta / options inputs
+[["mWork","work"],["mLoc","loc"],["mPay","pay"],["mDoc","doc"],["mDate","date"],["mSS","ss"],["mFdr","fdr"],["mFee","fee"]].forEach(([id,k])=>$("#"+id).addEventListener("change",e=>{const p=P();p.meta[k]=k==="fee"?+e.target.value||0:e.target.value;touch(p);renderAll()}));
+$("#sldTitle").addEventListener("change",e=>{const p=P();p.meta.title=e.target.value.trim();touch(p);renderAll()});
+["North","Gps","Span","Sign"].forEach(k=>$("#o"+k).addEventListener("change",e=>{const p=P();p.opt[k.toLowerCase()]=e.target.checked;touch(p);renderAll()}));
+Object.keys(DEF_SET).forEach(k=>$("#"+k).addEventListener("change",e=>{const p=P();p.set=p.set||{...DEF_SET};p.set[k]=Math.max(0,+e.target.value||0);touch(p)}));
+
+/* ================= Outputs ================= */
+function fileBase(){return(P().name||"survey").replace(/[^\w\- ]+/g,"").trim().replace(/\s+/g,"_")}
+function dl(blob,name){const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}
+$("#svgBtn").onclick=()=>{const c=compute(P());dl(new Blob([sldSVG(c,P().opt)],{type:"image/svg+xml"}),fileBase()+"_SLD.svg")};
+function svgPng(svg,scale=3){return new Promise((res,rej)=>{const img=new Image();img.onload=()=>{const cv=document.createElement("canvas");cv.width=842*scale;cv.height=595*scale;const g=cv.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,cv.width,cv.height);g.drawImage(img,0,0,cv.width,cv.height);res(cv)};img.onerror=rej;img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg)})}
+$("#pngBtn").onclick=async()=>{const cv=await svgPng(sldSVG(compute(P()),P().opt));cv.toBlob(b=>dl(b,fileBase()+"_SLD.png"))};
+function doPrint(which){const c=compute(P());$("#printSld").innerHTML=sldSVG(c,P().opt);$("#printEst").innerHTML='<div class="est">'+estHTML(c)+"</div>";document.body.classList.remove("p-sld","p-est");if(which)document.body.classList.add("p-"+which);setTimeout(()=>window.print(),80)}
+$("#printSldBtn").onclick=()=>doPrint("sld");$("#printEstBtn").onclick=()=>doPrint("est");$("#printBothBtn").onclick=()=>doPrint("");
+window.addEventListener("afterprint",()=>document.body.classList.remove("p-sld","p-est"));
+
+$("#xlsBtn").onclick=()=>{try{dl(buildXlsx(),"Estimate_"+fileBase()+".xlsx")}catch(e){alert("Couldn't build the Excel file: "+e.message)}};
+/* ---- Built-in .xlsx writer (no library, works offline) ---- */
+const CRC=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
+function crc32(u){let c=0xFFFFFFFF;for(let i=0;i<u.length;i++)c=CRC[(c^u[i])&255]^(c>>>8);return(c^0xFFFFFFFF)>>>0}
+function zip(files){const enc=new TextEncoder(),parts=[],cen=[];let off=0;
+ files.forEach(([name,txt])=>{const nb=enc.encode(name),d=enc.encode(txt),crc=crc32(d),h=new DataView(new ArrayBuffer(30));
+  h.setUint32(0,0x04034b50,true);h.setUint16(4,20,true);h.setUint16(6,0x0800,true);h.setUint16(8,0,true);h.setUint32(14,crc,true);h.setUint32(18,d.length,true);h.setUint32(22,d.length,true);h.setUint16(26,nb.length,true);
+  parts.push(new Uint8Array(h.buffer),nb,d);const c=new DataView(new ArrayBuffer(46));c.setUint32(0,0x02014b50,true);c.setUint16(4,20,true);c.setUint16(6,20,true);c.setUint16(8,0x0800,true);c.setUint32(16,crc,true);c.setUint32(20,d.length,true);c.setUint32(24,d.length,true);c.setUint16(28,nb.length,true);c.setUint32(42,off,true);
+  cen.push(new Uint8Array(c.buffer),nb);off+=30+nb.length+d.length});
+ const cs=cen.reduce((a,x)=>a+x.length,0),e=new DataView(new ArrayBuffer(22));e.setUint32(0,0x06054b50,true);e.setUint16(8,files.length,true);e.setUint16(10,files.length,true);e.setUint32(12,cs,true);e.setUint32(16,off,true);
+ return new Blob([...parts,...cen,new Uint8Array(e.buffer)],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"})}
+const xe=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+const colL=n=>{let s="";while(n>0){const m=(n-1)%26;s=String.fromCharCode(65+m)+s;n=Math.floor((n-1)/26)}return s};
+/* style ids: 0 plain,1 big bold centre,2 centre,3 bold centre,4 header,5 box centre,6 box wrap left,7 box qty blue,8 box money,9 box bold,10 box bold money,11 italic small centre,12 bold,13 small wrap,14 right,15 box qty km blue,16 box bold centre,17 bold centre wrap,18 box,19 box left */
+const STYLES=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="1"><numFmt numFmtId="164" formatCode="0.000"/></numFmts>
+<fonts count="6"><font><sz val="10"/><name val="Arial"/></font><font><b/><sz val="10"/><name val="Arial"/></font><font><b/><sz val="13"/><name val="Arial"/></font><font><b/><sz val="10"/><color rgb="FF0000FF"/><name val="Arial"/></font><font><i/><sz val="9"/><name val="Arial"/></font><font><sz val="9"/><name val="Arial"/></font></fonts>
+<fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFF2F2F2"/><bgColor indexed="64"/></patternFill></fill></fills>
+<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color rgb="FF808080"/></left><right style="thin"><color rgb="FF808080"/></right><top style="thin"><color rgb="FF808080"/></top><bottom style="thin"><color rgb="FF808080"/></bottom><diagonal/></border></borders>
+<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="20">
+<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
+<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="center"/></xf>
+<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment horizontal="center"/></xf>
+<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="center"/></xf>
+<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="top"/></xf>
+<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="top" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="3" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="top"/></xf>
+<xf numFmtId="4" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="top"/></xf>
+<xf numFmtId="0" fontId="1" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1"/>
+<xf numFmtId="4" fontId="1" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyBorder="1"/>
+<xf numFmtId="0" fontId="4" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="center" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>
+<xf numFmtId="0" fontId="5" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment wrapText="1" vertical="top"/></xf>
+<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment horizontal="right"/></xf>
+<xf numFmtId="164" fontId="3" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="top"/></xf>
+<xf numFmtId="0" fontId="1" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center"/></xf>
+<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1"/>
+<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="left"/></xf>
+</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
+function Sheet(name){const rows={},merges=[],heights={};let cols=[];
+ const set=(r,c,v,s=0,f)=>{(rows[r]=rows[r]||{})[c]={v,s,f}};
+ return{name,set,merge:(r1,c1,r2,c2)=>merges.push(colL(c1)+r1+":"+colL(c2)+r2),height:(r,h)=>heights[r]=h,cols:w=>cols=w,
+  xml(extra=""){const rs=Object.keys(rows).map(Number).sort((a,b)=>a-b).map(r=>{const cs=Object.keys(rows[r]).map(Number).sort((a,b)=>a-b).map(c=>{const x=rows[r][c],ref=colL(c)+r;
+     if(x.f!=null)return`<c r="${ref}" s="${x.s}"><f>${xe(x.f)}</f>${x.v!=null&&x.v!==""?`<v>${typeof x.v==="number"?x.v:xe(x.v)}</v>`:""}</c>`;
+     if(x.v==null||x.v==="")return`<c r="${ref}" s="${x.s}"/>`;
+     if(typeof x.v==="number")return`<c r="${ref}" s="${x.s}"><v>${x.v}</v></c>`;
+     return`<c r="${ref}" s="${x.s}" t="inlineStr"><is><t xml:space="preserve">${xe(x.v)}</t></is></c>`}).join("");
+    return`<row r="${r}"${heights[r]?` ht="${heights[r]}" customHeight="1"`:""}>${cs}</row>`}).join("");
+   return`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>${cols.length?"<cols>"+cols.map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join("")+"</cols>":""}<sheetData>${rs}</sheetData>${merges.length?`<mergeCells count="${merges.length}">${merges.map(m=>`<mergeCell ref="${m}"/>`).join("")}</mergeCells>`:""}<pageMargins left="0.4" right="0.4" top="0.5" bottom="0.5" header="0.2" footer="0.2"/>${extra}</worksheet>`}}}
+function workbook(sheets,printArea){const ct=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>${sheets.map((s,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join("")}</Types>`;
+ const rels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`;
+ const wb=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${sheets.map((s,i)=>`<sheet name="${xe(s.name)}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join("")}</sheets>${printArea?`<definedNames><definedName name="_xlnm.Print_Area" localSheetId="0">${printArea}</definedName></definedNames>`:""}<calcPr calcId="191029" fullCalcOnLoad="1"/></workbook>`;
+ const wrel=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${sheets.map((s,i)=>`<Relationship Id="rId${i+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join("")}<Relationship Id="rId${sheets.length+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`;
+ return zip([["[Content_Types].xml",ct],["_rels/.rels",rels],["xl/workbook.xml",wb],["xl/_rels/workbook.xml.rels",wrel],["xl/styles.xml",STYLES],...sheets.map((s,i)=>["xl/worksheets/sheet"+(i+1)+".xml",s.xml(s.extra||"")])])}
+function buildXlsx(){const c=compute(P()),p=P(),m=p.meta,b=boq(c),ws=Sheet("Estimate");
+ ws.cols([6,8,50,7,10,13,15,14]);
+ const mrow=(r,text,s,h)=>{ws.set(r,1,text,s);ws.merge(r,1,r,8);if(h)ws.height(r,h)};
+ mrow(1,"ASSAM POWER DISTRIBUTION COMPANY LTD.",1);mrow(2,"Samaguri Electrical Sub-Division, Nagaon ED-II, CAR",2);
+ ws.set(3,1,"PROVISIONAL ESTIMATE",3);ws.merge(3,1,3,5);ws.set(3,6,"GSTIN :18AABCL1354J1ZJ",14);ws.merge(3,6,3,8);
+ mrow(4,"PROFORMA INVOICE",3);
+ ws.set(5,1,"Document No : "+(m.doc||"SESD/____/____"));ws.merge(5,1,5,4);ws.set(5,5,"Dt: "+dmy(m.date)+"   (not valid for Input Tax credit)",14);ws.merge(5,5,5,8);
+ mrow(6,"Provisional Estimate for "+workOf(c)+" at "+locOf()+(m.fdr?" under "+m.fdr:"")+(m.ss?", "+m.ss:"")+". Rates as per SoR 2021-22",17,34);
+ mrow(7,"\"This estimate has been prepared incorporating the recommendations of Hon'ble Justice H.N. Sarma Commission.\"",11,16);
+ ["Sl. No.","SOR Sl. No.","Item Description","Unit","Quantity","Ex. Work Price in Rs.","Amount in Rs.","Remarks"].forEach((h,i)=>ws.set(8,i+1,h,4));ws.height(8,30);
+ let r=9;const first=r;
+ const itemRow=(sl,it)=>{ws.set(r,1,sl,5);ws.set(r,2,/^\d+$/.test(it.sor)?+it.sor:"",5);ws.set(r,3,it.desc,6);ws.set(r,4,it.unit,5);ws.set(r,5,it.q,it.unit==="Km."?15:7);ws.set(r,6,it.rate,8);ws.set(r,7,it.amt,8,`E${r}*F${r}`);ws.set(r,8,"",18);r++};
+ b.mat.forEach((it,k)=>itemRow(k+1,it));const last=r-1;
+ const lab=(L,t,f,res,bold)=>{ws.set(r,1,L,bold?16:5);ws.set(r,2,t,bold?9:19);for(let k=3;k<=6;k++)ws.set(r,k,"",18);ws.merge(r,2,r,6);if(f!=null)ws.set(r,7,res,bold?10:8,f);else ws.set(r,7,"",18);ws.set(r,8,"",18);const at=r;r++;return at};
+ const rA=lab("A","Total cost of materials (excluding GST)",`SUM(G${first}:G${last})`,b.A,1);
+ const rB=lab("B","Transportation & storage @ 5% of A",`ROUND(G${rA}*5%,2)`,b.B);
+ const rC=lab("C","Total cost of materials (A+B)",`G${rA}+G${rB}`,b.C,1);
+ const rD=lab("D","Labour charges @ 15% of C",`ROUND(G${rC}*15%,2)`,b.D);
+ lab("E","Other expenses where labour is included",null,null,1);const e1=r;const jl=["i","ii","iii","iv","v","vi","vii"];
+ b.job.forEach((it,k)=>itemRow(jl[k]||k+1,it));const e2=r-1;
+ const rE=lab("","Total of E",b.job.length?`SUM(G${e1}:G${e2})`:"0",b.E);
+ const rDE=lab("","Total: D + E",`G${rD}+G${rE}`,b.D+b.E,1);
+ const rF=lab("F","Contingency @ "+(b.dep?"3% of C":"0% (departmental)"),b.dep?`ROUND(G${rC}*3%,2)`:"0",b.F);
+ const rG=lab("G","Supervision charges @ "+(b.dep?"15% of (D+E)":"0% (departmental)"),b.dep?`ROUND(G${rDE}*15%,2)`:"0",b.G);
+ const rH=lab("H","Gross total (C+D+E+F+G)",`G${rC}+G${rDE}+G${rF}+G${rG}`,b.H,1);
+ const rI=lab("I","Processing fees",String(b.I),b.I);
+ const rJ=lab("J","CGST @ 9% on H",`ROUND(G${rH}*9%,2)`,b.J);const rK=lab("K","SGST @ 9% on H",`ROUND(G${rH}*9%,2)`,b.K);
+ const rL=lab("L","Total (H+I+J+K)",`G${rH}+G${rI}+G${rJ}+G${rK}`,b.L,1);
+ const rM=lab("M","Less: party supply / existing materials (with GST)","0",0);
+ const rO=lab("O","Total (L-M)",`G${rL}-G${rM}`,b.O,1);
+ lab("P","Say (rounded off)",`ROUNDUP(G${rO},0)`,b.P,1);
+ r++;mrow(r,"Rupees "+words(b.P)+" only.",12);r+=2;ws.set(r,1,"Notes:",12);r++;
+ notesOf(c,b).concat(c.flags.map(f=>"Check: "+f)).forEach((n,k)=>{mrow(r,(k+1)+". "+n,13,Math.max(13,Math.ceil(n.length/115)*12));r++});
+ r+=3;ws.set(r,1,"Junior Manager (FME)",12);ws.merge(r,1,r,3);ws.set(r,6,"Sub-Divisional Engineer",12);ws.merge(r,6,r,8);r++;
+ ws.set(r,1,"Samaguri Electrical Sub-Division");ws.merge(r,1,r,3);ws.set(r,6,"Samaguri ESD, APDCL, CAR");ws.merge(r,6,r,8);
+ ws.extra=`<pageSetup paperSize="9" orientation="portrait" fitToWidth="1" fitToHeight="0"/>`;
+ // Quantity basis sheet (what each blue quantity came from)
+ const qb=Sheet("Quantity basis");qb.cols([10,48,8,10,90]);["SoR","Item","Unit","Qty","How it was worked out"].forEach((h,i)=>qb.set(1,i+1,h,4));
+ [...b.mat,...b.job].forEach((it,k)=>{qb.set(k+2,1,it.sor,5);qb.set(k+2,2,it.desc,6);qb.set(k+2,3,it.unit,5);qb.set(k+2,4,it.q,it.unit==="Km."?15:7);qb.set(k+2,5,it.why,6)});
+ // pole schedule
+ const ps=Sheet("Pole schedule");ps.cols([9,7,24,20,12,12,26,12,30,7,9,16,30]);
+ ["Pole","Point","Type","Structure","Latitude","Longitude","GPS (deg-min)","Span from previous (m)","Line","Stays","Earthing","Position from","Remark"].forEach((h,i)=>ps.set(1,i+1,h,4));
+ let pr=2;const addRow=a=>{a.forEach((v,i)=>ps.set(pr,i+1,v,18));pr++};
+ function walk(x,span,line){const nd=c.nodes[x.id]||{};addRow([c.lab[x.id],"P"+x.no,KINDS[x.kind].t+(x.kind==="dtr"?" "+(x.kva||100)+" kVA":""),Object.values(nd.roles||{}).join(" / "),+x.lat.toFixed(6),+x.lng.toFixed(6),gpsTxt(x),span==null?"":Math.round(span),line||"",nd.stays||0,nd.earth||0,x.src==="gps"?"GPS ±"+Math.round(x.acc||0)+" m":x.src||"",x.note||""]);
+  c.kids[x.id].forEach(sg=>{const seq=[sg.a,...sg.mid,sg.b];sg.mid.forEach((mm,k)=>addRow([mm.lab,"","New pole (computed)","tangent",+mm.lat.toFixed(6),+mm.lng.toFixed(6),gpsTxt(mm),Math.round(hav(seq[k],mm)),sg.L.t,mm.stay?1:0,mm.earth?1:0,"interpolated",""]));walk(sg.b,hav(seq[seq.length-2],sg.b),sg.L.t)})}
+ c.roots.forEach(x=>walk(x,null,""));
+ return workbook([ws,qb,ps],"'Estimate'!$A$1:$H$"+r)}
+
+$("#expBtn").onclick=()=>dl(new Blob([JSON.stringify(DB,null,1)],{type:"application/json"}),"line_surveys_"+new Date().toISOString().slice(0,10)+".json");
+$("#impFile").onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const x=JSON.parse(await f.text());const n=mergeRemote({projects:x.projects||{}});save();renderAll(true);alert(n?"Imported.":"Nothing newer to import.")}catch(err){alert("Couldn't read that file.")}e.target.value=""};
+
+/* ================= Boot ================= */
+initMap();P();renderAll(true);
+setSync(syncCode()?"busy":"off");cloudSync();
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)cloudSync()});
+window.__test={compute,boq,P,DB,save,renderAll,sldSVG,buildXlsx,words};
+</script>
+</body></html>
