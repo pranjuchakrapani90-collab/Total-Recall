@@ -19,6 +19,8 @@ h1{font:750 26px/1.15 var(--body);margin:6px 0 2px}
 .sbadge{font-size:12px;padding:4px 9px;border-radius:999px;background:#ffffff26;color:#fff;white-space:nowrap}
 .sbadge.err{background:#fecaca;color:#7f1d1d}.sbadge.ok{background:#bbf7d0;color:#14532d}
 .projbar{display:flex;gap:8px;align-items:center;margin:4px 0 10px;flex-wrap:wrap}
+.savebadge{border:0;border-radius:999px;padding:7px 11px;font-size:12px;font-weight:650;background:#bbf7d0;color:#14532d;cursor:pointer;white-space:nowrap}.savebadge.bad{background:#fecaca;color:#7f1d1d}.savebadge.busy{background:#ffffff33;color:#fff}
+.store{background:var(--steel-soft);border-radius:12px;padding:10px 12px;font-size:13px;margin:0 0 12px}.store b{color:#115e59}
 .projbar select{max-width:100%;flex:1;min-width:0;padding:8px 10px;border-radius:10px;border:0}
 nav.tabs{display:flex;gap:4px;overflow-x:auto}
 nav.tabs button{background:transparent;border:0;color:#d5ece8;padding:10px 14px;border-radius:10px 10px 0 0;font-weight:650;cursor:pointer;white-space:nowrap}
@@ -107,12 +109,12 @@ table.boq{border-collapse:collapse;width:100%;min-width:720px;font-size:12.5px}
  <div class="trow"><a class="backlink" href="apdcl-studio.html">← Estimate Studio</a><span id="syncBadge" class="sbadge">☁ Sync off</span></div>
  <h1>Line Survey</h1>
  <p class="sub">Mark the key points on site. The poles in between, the SLD and the estimate follow.</p>
- <div class="projbar"><select id="projSel" aria-label="Project"></select><button class="btn alt sm" id="newProj" type="button">＋ New survey</button></div>
+ <div class="projbar"><select id="projSel" aria-label="Survey"></select><button class="btn alt sm" id="newProj" type="button">＋ New survey</button><button class="savebadge" id="saveBadge" type="button" title="Where surveys are saved">✓ Saved</button></div>
  <nav class="tabs" role="tablist">
   <button data-v="survey" aria-selected="true">📍 Survey</button>
   <button data-v="sld" aria-selected="false">🗺 SLD</button>
   <button data-v="est" aria-selected="false">🧾 Estimate</button>
-  <button data-v="proj" aria-selected="false">⚙ Projects</button>
+  <button data-v="proj" aria-selected="false">📁 Saved surveys</button>
  </nav>
 </div></header>
 
@@ -184,7 +186,8 @@ table.boq{border-collapse:collapse;width:100%;min-width:720px;font-size:12.5px}
 <!-- PROJECTS -->
 <section id="v-proj" hidden>
  <div class="card">
-  <h2>Surveys</h2>
+  <h2>Saved surveys</h2>
+  <div class="store" id="storeInfo"></div>
   <div id="projList"></div>
   <div class="drow" style="justify-content:flex-start">
    <button class="btn alt sm" id="expBtn" type="button">⬇ Export all (JSON)</button>
@@ -231,7 +234,7 @@ table.boq{border-collapse:collapse;width:100%;min-width:720px;font-size:12.5px}
   </div>
   <div class="chk" id="dSegOpts"></div>
  </div>
- <div class="f"><label>Place / remark<input id="dNote" placeholder="e.g. near Baghbar Ali LP school"></label></div>
+ <div class="f"><label>Name / remark<input id="dNote" placeholder="e.g. near Baghbar Ali LP school"></label></div>
  <div class="drow">
   <button class="btn bad" id="dDel" type="button" hidden>Delete point</button>
   <span style="flex:1"></span>
@@ -332,9 +335,10 @@ const KINDS={
  slight:{g:6,t:"Street-light point",d:"Street-light connections from this pole",o:["n","onEx"],def:{onEx:true}},
  svc:{g:6,t:"Service connections",d:"Households served from this pole",o:["n","onEx"],def:{onEx:true,n:5}},
  rmPole:{g:7,t:"Existing pole to be removed",d:"Goes to the dismantling estimate",standalone:true,kitOnly:true,o:["oldPole"]},
- lm:{g:8,t:"Landmark",d:"School, temple, bridge… drawn on the SLD, no cost",standalone:true,kitOnly:true,o:["lmType"]}
+ lm:{g:8,t:"Landmark / road / railway / river",d:"Drawn on the SLD as an identifier, no cost. For a road, track, river or drain, mark 2 or more points along it",standalone:true,kitOnly:true,o:["lmType"]}
 };
-const LMT=["School","College","Temple","Namghar","Mosque","Church","Bank","Hospital","Office","Market","Bridge","Culvert","Tea garden","Pond / river","Household cluster","Road junction"];
+const LMT=["School","College","Temple","Namghar","Mosque","Church","Bank","Hospital","Office","Market","Household cluster","Tea garden","Pond","Culvert","Bridge","Road junction","Road","Railway track","River / canal","Drain / nallah"];
+const LIN={"Road":"road","Railway track":"rail","River / canal":"river","Drain / nallah":"drain"};
 const OPTF={
  kva:{l:"DTR rating (kVA)",ty:"sel",o:[25,63,100,250],def:100},kvaFrom:{l:"Existing DTR (kVA)",ty:"sel",o:[16,25,63,100,160,200,250],def:63},
  goab:{l:"GOAB",ty:"chk",def:true},fence:{l:"Fencing (Type-II)",ty:"chk",def:true},dof:{l:"DO fuse set",ty:"chk",def:false},la:{l:"LA",ty:"chk",def:false},chem:{l:"Chemical earthing",ty:"chk",def:false},
@@ -360,7 +364,10 @@ let DB={projects:{},cur:null};
 try{const x=JSON.parse(localStorage.getItem(LS)||"null");if(x&&x.projects)DB=x}catch(e){}
 const live=()=>Object.values(DB.projects).filter(p=>!p.del).sort((a,b)=>b.upd-a.upd);
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
-function save(sync=true){try{localStorage.setItem(LS,JSON.stringify(DB))}catch(e){}if(sync)scheduleSync()}
+let lastSaved=0,saveErr="";
+function save(sync=true){try{localStorage.setItem(LS,JSON.stringify(DB));lastSaved=Date.now();saveErr=""}catch(e){saveErr=String(e&&e.message||e)}badge();if(sync)scheduleSync()}
+function badge(){const b=document.getElementById("saveBadge");if(!b)return;if(saveErr){b.textContent="⚠ Not saved";b.className="savebadge bad";b.title="Couldn't save on this device: "+saveErr+". Export a backup from Saved surveys.";return}
+ b.className="savebadge";b.textContent="✓ Saved"+(lastSaved?" "+new Date(lastSaved).toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"}):"");b.title="Saved automatically on this device"+(syncCode()?" and synced to your other devices":"")+". Tap to see all saved surveys."}
 function touch(p){p.upd=Date.now();save()}
 function newProject(name){const p={id:uid(),name:name||"Survey "+new Date().toLocaleDateString("en-IN"),upd:Date.now(),
  meta:{work:"",loc:"",pay:"dept",doc:"SESD/"+new Date().getFullYear()+"/",date:new Date().toISOString().slice(0,10),ss:"",fdr:"",fee:0,title:""},
@@ -555,7 +562,18 @@ function compute(p){
  function walk(x){lab[x.id]=nameOf(x);kids[x.id].forEach(sg=>{sg.mid.forEach(m=>{m.lab=m.exist?"E-"+nx("E"):"N-"+nx("N")});walk(sg.b)})}
  roots.forEach(walk);pts.filter(isStand).forEach(x=>lab[x.id]=x.kind==="rmPole"?"OLD-"+nx("O"):"");
  pts.forEach(x=>{if(!lab[x.id]&&!isStand(x))lab[x.id]=nameOf(x)});
- return{S,pts,segs,nodes,adj,Q,EX,DM,why,dwhy,warn,flags:[...flags],lab,o,km,totStays,totEarth,nGen,nExMid,kids,roots};
+ // linear features (roads, tracks, rivers, drains) and crossing checks
+ const fedges=[],fsingle=[],grpOf={};const root=x=>{let k=x,g=0;while(k.fpar&&byId[k.fpar]&&g++<500)k=byId[k.fpar];return k.id};
+ pts.filter(x=>x.kind==="lm"&&LIN[opt(x,"lmType")]).forEach(x=>{const ty=LIN[opt(x,"lmType")],a=x.fpar&&byId[x.fpar];if(a&&LIN[opt(a,"lmType")]===ty)fedges.push({a,b:x,ty,grp:root(x)});});
+ pts.filter(x=>x.kind==="lm"&&LIN[opt(x,"lmType")]).forEach(x=>{if(!fedges.some(e=>e.a===x||e.b===x))fsingle.push(x)});
+ const gname={};fedges.forEach(e=>{const nm=e.b.note||e.a.note;if(nm&&!gname[e.grp])gname[e.grp]=nm});fedges.forEach(e=>e.name=gname[e.grp]||"");
+ const X_=q=>xy(q,o),inter=(p1,p2,p3,p4)=>{const d=(p2.x-p1.x)*(p4.y-p3.y)-(p2.y-p1.y)*(p4.x-p3.x);if(Math.abs(d)<1e-9)return false;const ua=((p3.x-p1.x)*(p4.y-p3.y)-(p3.y-p1.y)*(p4.x-p3.x))/d,ub=((p3.x-p1.x)*(p2.y-p1.y)-(p3.y-p1.y)*(p2.x-p1.x))/d;return ua>0&&ua<1&&ub>0&&ub<1};
+ const fixK={road:["xRoad"],rail:["xRail","xBridge"],river:["xRiver","xBridge"]},fnm={road:"road",rail:"railway track",river:"river / canal"};
+ segs.forEach(sg=>{if(!work(sg.L))return;fedges.forEach(e=>{if(!fixK[e.ty])return;if(!inter(X_(sg.a),X_(sg.b),X_(e.a),X_(e.b)))return;
+  const ok=fixK[e.ty].some(k=>sg.a.kind===k||sg.b.kind===k)||(e.ty==="road"&&(sg.cross||sg.L.abc||sg.L.mv));
+  const msg="Span P"+sg.a.no+"–P"+sg.b.no+" crosses the "+fnm[e.ty]+(e.name?" ("+e.name+")":"")+(ok?"":e.ty==="road"?". Set 'Crossing on this span' to Road or mark a Road crossing point for guarding.":e.ty==="rail"?". Mark a Railway crossing (UG) point.":". Mark the river banks (River / nallah bank) or a Bridge crossing.");
+  if(!ok&&!warn.includes(msg))warn.push(msg);(sg.fx=sg.fx||[]).push(e.ty)})});
+ return{S,pts,segs,nodes,adj,Q,EX,DM,why,dwhy,warn,flags:[...flags],lab,o,km,totStays,totEarth,nGen,nExMid,kids,roots,fedges,fsingle};
 }
 /* ================= Money ================= */
 const inr=v=>(+v).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -607,15 +625,41 @@ function sldSVG(c,so){
  out.push(`<rect x="0" y="0" width="${W}" height="${H}" fill="#fff"/><rect x="12" y="12" width="${W-24}" height="${H-24}" fill="none" stroke="#111" stroke-width="1.5"/><rect x="16" y="16" width="${W-32}" height="${H-32}" fill="none" stroke="#111" stroke-width="0.8"/>`);
  const tfs=tl.length>2?9.5:11.5,tlh=tl.length>2?12:14;tl.forEach((l,i)=>{t(W/2,40+i*tlh,l,{fs:tfs,fw:700});const w=l.length*tfs*0.54;out.push(`<line x1="${W/2-w/2}" y1="${43+i*tlh}" x2="${W/2+w/2}" y2="${43+i*tlh}" stroke="#111" stroke-width="0.7"/>`)});
  const col=L=>L.dis?"#C92A2A":L.ex?"#1F4E9C":L.cls==="HV"?"#2B8A3E":"#C2410C";
+ // ---- identifiers: roads, railway tracks, rivers, drains (drawn under the electrical lines)
+ const pl2=a=>a.map(q=>q[0].toFixed(1)+","+q[1].toFixed(1)).join(" ");
+ const labAlong=(a,b,txt,o)=>{const rot=Math.atan2(b[1]-a[1],b[0]-a[0])*R2D,r2=rot>90?rot-180:rot<-90?rot+180:rot;t((a[0]+b[0])/2,(a[1]+b[1])/2+2.3,txt,{...o,rot:r2})};
+ const FSTY={
+  road:(P,nm)=>{out.push(`<polyline points="${pl2(P)}" fill="none" stroke="#6b7280" stroke-width="11" stroke-linejoin="round"/><polyline points="${pl2(P)}" fill="none" stroke="#f3f4f6" stroke-width="9" stroke-linejoin="round"/>`);return{txt:(nm||"ROAD").toUpperCase(),c:"#374151"}},
+  rail:(P,nm)=>{out.push(`<polyline points="${pl2(P)}" fill="none" stroke="#374151" stroke-width="1.6"/>`);for(let i=0;i<P.length-1;i++){const[a,b]=[P[i],P[i+1]],L=Math.hypot(b[0]-a[0],b[1]-a[1]),ux=(b[0]-a[0])/L,uy=(b[1]-a[1])/L;for(let d=3;d<L;d+=6){const x=a[0]+ux*d,y=a[1]+uy*d;out.push(`<line x1="${(x-uy*4).toFixed(1)}" y1="${(y+ux*4).toFixed(1)}" x2="${(x+uy*4).toFixed(1)}" y2="${(y-ux*4).toFixed(1)}" stroke="#374151" stroke-width="0.8"/>`)}}return{txt:"RAILWAY TRACK"+(nm?" ("+nm.toUpperCase()+")":""),c:"#111"}},
+  river:(P,nm)=>{out.push(`<polyline points="${pl2(P)}" fill="none" stroke="#1d4ed8" stroke-width="13" stroke-linejoin="round" stroke-linecap="round"/><polyline points="${pl2(P)}" fill="none" stroke="#bfdbfe" stroke-width="11" stroke-linejoin="round" stroke-linecap="round"/>`);return{txt:(nm||"RIVER").toUpperCase(),c:"#1e40af"}},
+  drain:(P,nm)=>{out.push(`<polyline points="${pl2(P)}" fill="none" stroke="#2563eb" stroke-width="1.4" stroke-dasharray="5 3"/>`);return{txt:(nm||"DRAIN / NALLAH").toUpperCase(),c:"#1e40af"}},
+  ehv:(P,nm)=>{out.push(`<polyline points="${pl2(P)}" fill="none" stroke="#7c3aed" stroke-width="1.6" stroke-dasharray="10 3 2 3"/>`);const m=P[Math.floor(P.length/2)];out.push(`<rect x="${(m[0]-4).toFixed(1)}" y="${(m[1]-4).toFixed(1)}" width="8" height="8" fill="#fff" stroke="#7c3aed"/><path d="M${m[0]-4},${m[1]-4} l8,8 M${m[0]+4},${m[1]-4} l-8,8" stroke="#7c3aed" stroke-width="0.7"/>`);return{txt:"EHV LINE"+(nm?" ("+nm.toUpperCase()+")":""),c:"#5b21b6"}},
+  line:(P,nm)=>{out.push(`<polyline points="${pl2(P)}" fill="none" stroke="#1F4E9C" stroke-width="1.3"/>`);return{txt:(nm||"EXISTING LINE").toUpperCase(),c:"#1F4E9C"}}
+ };
+ const fpolys=[];
+ const drawFeat=(ty,P,nm,lblIdx)=>{const r=FSTY[ty](P,nm);fpolys.push({ty,P});let bi=lblIdx??0,bl=-1;if(lblIdx==null)for(let i=0;i<P.length-1;i++){const L=Math.hypot(P[i+1][0]-P[i][0],P[i+1][1]-P[i][1]);if(L>bl){bl=L;bi=i}}
+  const a=P[bi],b=P[bi+1]||P[bi],L=Math.hypot(b[0]-a[0],b[1]-a[1])||1,nx=-(b[1]-a[1])/L,ny=(b[0]-a[0])/L,off=ty==="road"||ty==="river"?13:8;labAlong([a[0]+nx*off,a[1]+ny*off],[b[0]+nx*off,b[1]+ny*off],r.txt,{fs:6.6,fw:700,c:r.c})};
+ {const grp={};(c.fedges||[]).forEach(e=>{(grp[e.grp]=grp[e.grp]||[]).push(e)});
+  Object.values(grp).forEach(es=>{const ty=es[0].ty,nm=es[0].name;const chains=[];es.forEach(e=>{const A=T(e.a),B=T(e.b);const ch=chains.find(ch=>ch.last===e.a.id);if(ch){ch.P.push(B);ch.last=e.b.id}else chains.push({P:[A,B],last:e.b.id})});chains.forEach((ch,k)=>drawFeat(ty,ch.P,nm,k===0?null:-1))});
+  (c.fsingle||[]).forEach(x=>{const[X,Y]=T(x);drawFeat(LIN[opt(x,"lmType")],[[X-30,Y],[X+30,Y]],x.note,0)})}
+ const nearFeat=(ty,X,Y,R=20)=>fpolys.some(f=>f.ty===ty&&f.P.some((q,i)=>{const r=f.P[i+1];if(!r)return false;const dx=r[0]-q[0],dy=r[1]-q[1],L2=dx*dx+dy*dy||1,tt=Math.max(0,Math.min(1,((X-q[0])*dx+(Y-q[1])*dy)/L2));return Math.hypot(q[0]+tt*dx-X,q[1]+tt*dy-Y)<R}));
+ const acrossAt=(X,Y,ux,uy,ty,nm,half=30,R=20)=>{if(nearFeat(ty,X,Y,R))return;const px=-uy,py=ux;FSTY[ty]([[X-px*half,Y-py*half],[X+px*half,Y+py*half]],nm);fpolys.push({ty,P:[[X-px*half,Y-py*half],[X+px*half,Y+py*half]]});const r={road:"ROAD",rail:"RAILWAY TRACK",river:"RIVER",drain:"DRAIN",ehv:"EHV LINE",line:"EXISTING LINE"}[ty];
+  t(X+px*(half+4)+ux*0,Y+py*(half+4)+(py>=0?8:-3),(nm||r).toUpperCase(),{fs:6.4,fw:700,c:ty==="river"||ty==="drain"?"#1e40af":ty==="ehv"?"#5b21b6":"#374151"})};
+ const dirAt=x=>{const e=(c.adj[x.id]||[]).filter(a=>!a.sg.L.ex)[0];if(!e)return{ux:1,uy:0};const[a1,a2]=T(e.sg.a),[b1,b2]=T(e.sg.b),L=Math.hypot(b1-a1,b2-a2)||1;return{ux:(b1-a1)/L,uy:(b2-a2)/L}};
+ const crossDone=new Set(),CK={xRoad:"road",xRail:"rail",xRiver:"river",xBridge:"river",xEHV:"ehv",xLine:"line"};
+ const crossSym=(X,Y,x,ty,nm)=>{if(crossDone.has(x.id))return;crossDone.add(x.id);const d=dirAt(x);acrossAt(X,Y,d.ux,d.uy,ty,nm,ty==="river"?34:30)};
+ c.segs.forEach(sg=>{if(sg.a.kind==="xRiver"&&sg.b.kind==="xRiver"){crossDone.add(sg.a.id);crossDone.add(sg.b.id);const[a1,a2]=T(sg.a),[b1,b2]=T(sg.b),L=Math.hypot(b1-a1,b2-a2)||1;acrossAt((a1+b1)/2,(a2+b2)/2,(b1-a1)/L,(b2-a2)/L,"river",sg.a.note||sg.b.note,34,Math.max(60,L/2+10))}});
+ c.pts.forEach(x=>{if(CK[x.kind]){const[X,Y]=T(x);if(x.kind==="xRiver"&&nearFeat("river",X,Y,70)){crossDone.add(x.id);return}crossSym(X,Y,x,CK[x.kind],x.note)}});
+ c.segs.forEach(sg=>{if(!sg.cross||sg.L.ex)return;const[a1,a2]=T(sg.a),[b1,b2]=T(sg.b),L=Math.hypot(b1-a1,b2-a2)||1;acrossAt((a1+b1)/2,(a2+b2)/2,(b1-a1)/L,(b2-a2)/L,sg.cross==="road"?"road":"line","",24)});
  // lines — pole IDs on the "up/right" side of a run, spans and conductor on the other side
  const nrm=(x1,y1,x2,y2)=>{const dx=x2-x1,dy=y2-y1,l=Math.hypot(dx,dy)||1;let nx=-dy/l,ny=dx/l;if(Math.abs(dx)>=Math.abs(dy)){if(ny>0){nx=-nx;ny=-ny}}else if(nx<0){nx=-nx;ny=-ny}return{nx,ny,l}};
  const rotOf=(x1,y1,x2,y2)=>{let a=Math.atan2(y2-y1,x2-x1)*R2D;if(a>90)a-=180;if(a<-90)a+=180;return a};
- const segN={};
+ const segN={},runOf=new Map();{const inSeg={};c.segs.forEach(sg=>inSeg[sg.b.id]=sg);c.segs.forEach(sg=>{let h=sg,g=0;while(inSeg[h.a.id]&&inSeg[h.a.id].line===sg.line&&(c.adj[h.a.id]||[]).filter(a=>a.sg.line===sg.line).length===2&&g++<999)h=inSeg[h.a.id];runOf.set(sg,h)});
+  const tot=new Map(),best=new Map();c.segs.forEach(sg=>{const h=runOf.get(sg);tot.set(h,(tot.get(h)||0)+sg.len);const[a1,a2]=T(sg.a),[b1,b2]=T(sg.b),L=Math.hypot(b1-a1,b2-a2);if(!best.has(h)||L>best.get(h).L)best.set(h,{sg,L})});c.segs.forEach(sg=>{const h=runOf.get(sg);sg.runLab=best.get(h).sg===sg?tot.get(h):null})}
  c.segs.forEach(sg=>{const[a1,a2]=T(sg.a),[b1,b2]=T(sg.b),L=sg.L,{nx,ny,l:len}=nrm(a1,a2,b1,b2),rot=rotOf(a1,a2,b1,b2);segN[sg.b.id]={nx,ny};
   out.push(`<line x1="${a1}" y1="${a2}" x2="${b1}" y2="${b2}" stroke="${col(L)}" stroke-width="${L.cls==="HV"?2.2:1.6}" ${L.dis?'stroke-dasharray="2 3"':L.cls==="LT"&&!L.ex?'stroke-dasharray="6 3"':""} stroke-linecap="round"/>`);
   const mx=(a1+b1)/2,my=(a2+b2)/2;
-  if(len>70){t(mx-nx*21,my-ny*21+2.5,L.sh+" · "+(sg.len/1000).toFixed(3)+" KM",{fs:7,fw:700,c:col(L),rot})}
-  else if(len>30){t(mx-nx*21,my-ny*21+2.5,L.sh.replace(/^(11 KV|LT) /,""),{fs:6,fw:700,c:col(L),rot})}
+  if(sg.runLab!=null){if(len>70)t(mx-nx*21,my-ny*21+2.5,L.sh+" · "+(sg.runLab/1000).toFixed(3)+" KM",{fs:7,fw:700,c:col(L),rot});else if(len>30)t(mx-nx*21,my-ny*21+2.5,L.sh.replace(/^(11 KV|33 KV|LT) /,"")+" · "+(sg.runLab/1000).toFixed(3)+" KM",{fs:6,fw:700,c:col(L),rot})}
   if(!L.ex&&!L.dis&&len>24){const ux=(b1-a1)/len,uy=(b2-a2)/len,ptsOn=[sg.a,...sg.mid,sg.b].map(T);let bi=0,bl=0;for(let i=0;i<ptsOn.length-1;i++){const d=Math.hypot(ptsOn[i+1][0]-ptsOn[i][0],ptsOn[i+1][1]-ptsOn[i][1]);if(d>bl){bl=d;bi=i}}
    const k=Math.floor(ptsOn.length/2)-1>=0?Math.floor((ptsOn.length-1)/2):0,P1=ptsOn[k],P2=ptsOn[k+1]||ptsOn[k],cx=(P1[0]+P2[0])/2,cy=(P1[1]+P2[1])/2,r=4.5;
    out.push(`<path d="M${(cx+ux*r).toFixed(1)},${(cy+uy*r).toFixed(1)} L${(cx-ux*r-uy*r*.8).toFixed(1)},${(cy-uy*r+ux*r*.8).toFixed(1)} L${(cx-ux*r+uy*r*.8).toFixed(1)},${(cy-uy*r-ux*r*.8).toFixed(1)} Z" fill="${col(L)}"/>`)}
@@ -628,7 +672,7 @@ function sldSVG(c,so){
  const SH=(X,Y,s)=>out.push(s.replace(/\$X/g,X.toFixed(1)).replace(/\$Y/g,Y.toFixed(1)));
  const dtrSym=(X,Y,l1,l2,fence)=>{out.push(`<rect x="${X-13}" y="${Y-9}" width="26" height="18" fill="#fff" stroke="#111" stroke-width="1"/><circle cx="${X-3.4}" cy="${Y}" r="5.5" fill="none" stroke="#111"/><circle cx="${X+3.4}" cy="${Y}" r="5.5" fill="none" stroke="#111"/>`);t(X,Y-13,l1,{fs:7.5,fw:700});if(l2)t(X,Y+18,l2,{fs:6.3});if(fence)out.push(`<rect x="${X-18}" y="${Y-12}" width="36" height="24" fill="none" stroke="#6b7280" stroke-width="0.6" stroke-dasharray="2 2"/>`)};
  const dpSym=(X,Y,lb,sub)=>{out.push(`<circle cx="${X-3.5}" cy="${Y}" r="3" fill="#fff" stroke="#111"/><circle cx="${X+3.5}" cy="${Y}" r="3" fill="#fff" stroke="#111"/>`);t(X,Y-8,lb,{fs:7,fw:700});if(sub)t(X,Y+14,sub,{fs:6.3})};
- const crossSym=(X,Y,nn,label,rail)=>{const ux=nn.nx,uy=nn.ny;[-5,5].forEach(d=>{const sx=X-uy*d,sy=Y+ux*d;out.push(`<line x1="${(sx-ux*22).toFixed(1)}" y1="${(sy-uy*22).toFixed(1)}" x2="${(sx+ux*22).toFixed(1)}" y2="${(sy+uy*22).toFixed(1)}" stroke="#6b7280" stroke-width="${rail?1.4:0.9}" stroke-dasharray="${rail?"2 2":"6 2 1.5 2"}"/>`)});
+ const crossSym0=(X,Y,nn,label,rail)=>{const ux=nn.nx,uy=nn.ny;[-5,5].forEach(d=>{const sx=X-uy*d,sy=Y+ux*d;out.push(`<line x1="${(sx-ux*22).toFixed(1)}" y1="${(sy-uy*22).toFixed(1)}" x2="${(sx+ux*22).toFixed(1)}" y2="${(sy+uy*22).toFixed(1)}" stroke="#6b7280" stroke-width="${rail?1.4:0.9}" stroke-dasharray="${rail?"2 2":"6 2 1.5 2"}"/>`)});
   t(X+ux*30,Y+uy*30+2.5,label,{fs:6.5,fw:700,c:"#4b5563"})};
  c.pts.forEach(x=>{const[X,Y]=T(x),nd=c.nodes[x.id]||{},lb=c.lab[x.id]||("P"+x.no),nn=segN[x.id]||{nx:0,ny:-1},plab=()=>t(X+nn.nx*10,Y+nn.ny*10+2.4,lb,{fs:6.8,fw:700}),open=(r=3.4)=>out.push(`<circle cx="${X}" cy="${Y}" r="${r}" fill="#fff" stroke="#111" stroke-width="1.2"/>`);
   (nd.stayDirs||[]).slice(0,nd.stays||0).forEach(d=>stay(X,Y,d));
@@ -648,19 +692,30 @@ function sldSVG(c,so){
    case "dtrAug":dtrSym(X,Y,"DTR AUGMENTATION","EXISTING "+opt(x,"kvaFrom")+" KVA → NEW "+kva+" KVA");break;
    case "dtrTemp":dtrSym(X,Y,kva+" KVA DTR (TEMPORARY)","O&M STOCK, ON EXISTING DP");break;
    case "dtrShift":dtrSym(X,Y,kva+" KVA DTR (SHIFTED HERE)","EXISTING DTR ON NEW DP",opt(x,"fence"));break;
-   case "steel":case "xRiver":out.push(`<rect x="${X-3.4}" y="${Y-3.4}" width="6.8" height="6.8" fill="#fff" stroke="#111" stroke-width="1.2"/>`);plab();t(X-nn.nx*12,Y-nn.ny*12+2.4,opt(x,"steelType"),{fs:6});if(x.kind==="xRiver")crossSym(X,Y,nn,"RIVER / NALLAH");break;
+   case "steel":case "xRiver":out.push(`<rect x="${X-3.4}" y="${Y-3.4}" width="6.8" height="6.8" fill="#fff" stroke="#111" stroke-width="1.2"/>`);plab();t(X-nn.nx*12,Y-nn.ny*12+2.4,opt(x,"steelType"),{fs:6});if(x.kind==="xRiver")crossSym(X,Y,x,"river",x.note);break;
    case "heighten":open();plab();t(X-nn.nx*12,Y-nn.ny*12+2.4,"HEIGHTENED (9.75 M)",{fs:6});break;
    case "replace":open();out.push(`<circle cx="${X}" cy="${Y}" r="6" fill="none" stroke="#b45309" stroke-width="0.9"/>`);plab();t(X-nn.nx*13,Y-nn.ny*13+2.4,"POLE REPLACED",{fs:6,c:"#b45309"});break;
    case "rmPole":filled();out.push(`<path d="M${X-6},${Y-6} L${X+6},${Y+6} M${X+6},${Y-6} L${X-6},${Y+6}" stroke="#C92A2A" stroke-width="1.4"/>`);t(X,Y-9,"POLE TO BE REMOVED",{fs:6.3,fw:700,c:"#C92A2A"});break;
-   case "xRoad":(onEx?filled:open)();plab();crossSym(X,Y,nn,"ROAD (GUARDING)");break;
-   case "xLine":(onEx?filled:open)();plab();crossSym(X,Y,nn,"LINE CROSSING (CRADLE GUARD)");break;
-   case "xEHV":(onEx?filled:open)();plab();crossSym(X,Y,nn,"EHV LINE",true);break;
-   case "xRail":dpSym(X,Y,lb,"");crossSym(X,Y,nn,"RAILWAY TRACK · UG CROSSING ("+opt(x,"cable")+" M CABLE)",true);break;
-   case "xBridge":dpSym(X,Y,lb,"");crossSym(X,Y,nn,"BRIDGE · CABLE "+opt(x,"blen")+" M");break;
+   case "xRoad":crossSym(X,Y,x,"road",x.note);(onEx?filled:open)();plab();t(X-nn.nx*12,Y-nn.ny*12+2.4,"GUARDING",{fs:5.8,c:"#4b5563"});break;
+   case "xLine":crossSym(X,Y,x,"line",x.note);(onEx?filled:open)();plab();t(X-nn.nx*12,Y-nn.ny*12+2.4,"CRADLE GUARD",{fs:5.8,c:"#4b5563"});break;
+   case "xEHV":crossSym(X,Y,x,"ehv",x.note);(onEx?filled:open)();plab();break;
+   case "xRail":crossSym(X,Y,x,"rail",x.note);dpSym(X,Y,lb,"");t(X-nn.nx*14,Y-nn.ny*14+2.4,"UG CROSSING, "+opt(x,"cable")+" M CABLE IN CI SPUN PIPE",{fs:5.8,c:"#C92A2A",fw:700});break;
+   case "xBridge":{crossSym(X,Y,x,"river",x.note);const d=dirAt(x);out.push(`<line x1="${X-d.ux*22-d.uy*4}" y1="${Y-d.uy*22+d.ux*4}" x2="${X+d.ux*22-d.uy*4}" y2="${Y+d.uy*22+d.ux*4}" stroke="#111" stroke-width="1.2"/><line x1="${X-d.ux*22+d.uy*4}" y1="${Y-d.uy*22-d.ux*4}" x2="${X+d.ux*22+d.uy*4}" y2="${Y+d.uy*22-d.ux*4}" stroke="#111" stroke-width="1.2"/>`);dpSym(X,Y,lb,"");t(X-nn.nx*14,Y-nn.ny*14+2.4,"BRIDGE, CABLE "+opt(x,"blen")+" M",{fs:5.8,fw:700});break}
    case "tMV":case "tABC":case "t13":(onEx?filled:open)();plab();t(X-nn.nx*12,Y-nn.ny*12+2.4,x.kind==="tMV"?"BARE / MVCC":x.kind==="tABC"?"BARE / ABC":"1-PH → 3-PH",{fs:6,fw:700,c:"#1e3a5f"});break;
    case "slight":(onEx?filled:open)();plab();t(X+12,Y+10,"★ "+opt(x,"n")+" STREET LIGHT"+(opt(x,"n")>1?"S":""),{fs:6.2,a:"start"});break;
    case "svc":(onEx?filled:open)();plab();t(X+12,Y+10,"⌂ "+opt(x,"n")+" HH",{fs:6.4,a:"start"});break;
-   case "lm":{const nm=(x.note||opt(x,"lmType")).toUpperCase(),w=Math.max(40,nm.length*4.6);out.push(`<rect x="${X-w/2}" y="${Y-8}" width="${w}" height="16" rx="5" fill="#F1C9A6" stroke="#8a6a4b" stroke-width="0.7"/>`);t(X,Y+2.6,nm,{fs:6.6,fw:700,c:"#3b2a1a"});break}
+   case "lm":{const ty=opt(x,"lmType"),nm=(x.note||ty).toUpperCase();if(LIN[ty])break;
+    if(ty==="Pond"){out.push(`<ellipse cx="${X}" cy="${Y}" rx="${Math.max(18,nm.length*2.6)}" ry="10" fill="#bfdbfe" stroke="#1d4ed8" stroke-width="0.9"/>`);t(X,Y+2.4,nm,{fs:6.4,fw:700,c:"#1e40af"});break}
+    if(ty==="Tea garden"){out.push(`<ellipse cx="${X}" cy="${Y}" rx="${Math.max(24,nm.length*2.8)}" ry="13" fill="#ecfdf5" stroke="#15803d" stroke-width="0.8" stroke-dasharray="3 2"/>`);for(let k=-2;k<=2;k++)out.push(`<circle cx="${X+k*7}" cy="${Y-6}" r="1.6" fill="#15803d"/>`);t(X,Y+5,nm,{fs:6.2,fw:700,c:"#14532d"});break}
+    if(ty==="Household cluster"){const w=Math.max(46,nm.length*4.4);out.push(`<rect x="${X-w/2}" y="${Y-12}" width="${w}" height="24" rx="3" fill="#fdf2e9" stroke="#8a6a4b" stroke-width="0.7" stroke-dasharray="3 2"/>`);[-10,0,10].forEach(k=>out.push(`<path d="M${X+k-3.5},${Y-3} l3.5,-3.5 l3.5,3.5 v4 h-7 z" fill="#F1C9A6" stroke="#8a6a4b" stroke-width="0.6"/>`));t(X,Y+9,nm,{fs:6,fw:700,c:"#3b2a1a"});break}
+    if(ty==="Culvert"||ty==="Bridge"){out.push(`<path d="M${X-12},${Y-4} h24 M${X-12},${Y+4} h24 M${X-12},${Y-4} l-3,-3 M${X-12},${Y+4} l-3,3 M${X+12},${Y-4} l3,-3 M${X+12},${Y+4} l3,3" stroke="#111" stroke-width="1" fill="none"/>`);t(X,Y+14,nm,{fs:6.2,fw:700});break}
+    if(ty==="Road junction"){out.push(`<path d="M${X-16},${Y} h32 M${X},${Y-12} v24" stroke="#9ca3af" stroke-width="7"/><path d="M${X-16},${Y} h32 M${X},${Y-12} v24" stroke="#f3f4f6" stroke-width="5"/>`);t(X,Y+20,nm,{fs:6.2,fw:700,c:"#374151"});break}
+    const w=Math.max(44,nm.length*4.5+14);out.push(`<rect x="${X-w/2}" y="${Y-8}" width="${w}" height="16" rx="5" fill="#F1C9A6" stroke="#8a6a4b" stroke-width="0.7"/>`);
+    const gx=X-w/2+7,gy=Y,G={School:`<path d="M${gx-4},${gy+3} v-4 l4,-3 l4,3 v4 z M${gx},${gy-4} v-4 l3,1 l-3,1" stroke="#3b2a1a" stroke-width="0.7" fill="#fff"/>`,College:`<path d="M${gx-4},${gy+3} v-4 l4,-3 l4,3 v4 z M${gx},${gy-4} v-4 l3,1 l-3,1" stroke="#3b2a1a" stroke-width="0.7" fill="#fff"/>`,
+     Temple:`<path d="M${gx-4},${gy+4} v-3 h8 v3 z M${gx-3},${gy+1} l3,-6 l3,6 z" stroke="#3b2a1a" stroke-width="0.6" fill="#fff"/>`,Namghar:`<path d="M${gx-5},${gy+4} v-4 h10 v4 z M${gx-6},${gy} l6,-4 l6,4 z" stroke="#3b2a1a" stroke-width="0.6" fill="#fff"/>`,
+     Mosque:`<path d="M${gx-4},${gy+4} v-3 h8 v3 z M${gx-4},${gy+1} a4,4 0 0 1 8,0 z" stroke="#3b2a1a" stroke-width="0.6" fill="#fff"/>`,Church:`<path d="M${gx},${gy-5} v9 M${gx-3},${gy-2} h6" stroke="#3b2a1a" stroke-width="1.1"/>`,
+     Hospital:`<path d="M${gx},${gy-4} v8 M${gx-4},${gy} h8" stroke="#C92A2A" stroke-width="2"/>`,Bank:`<text x="${gx}" y="${gy+3}" font-size="8" font-weight="700" text-anchor="middle" fill="#3b2a1a" font-family="Arial">₹</text>`};
+    out.push(G[ty]||`<rect x="${gx-4}" y="${gy-4}" width="8" height="8" fill="#fff" stroke="#3b2a1a" stroke-width="0.6"/>`);t(X+5,Y+2.4,nm,{fs:6.4,fw:700,c:"#3b2a1a"});break}
    default:open();plab();
   }
   if(nd.earth&&["pole","steel","replace","xRiver","tMV"].includes(x.kind))earthSym(X,Y);
@@ -692,6 +747,7 @@ function drawMap(c,fit){if(!map)return;grp.clearLayers();const col=L2=>L2.dis?"#
  c.segs.forEach(sg=>{L.polyline([[sg.a.lat,sg.a.lng],[sg.b.lat,sg.b.lng]],{color:col(sg.L),weight:sg.L.cls==="HV"?4:3,dashArray:sg.L.dis?"2 6":sg.L.cls==="LT"&&!sg.L.ex?"8 6":null}).addTo(grp)
    .bindTooltip(LINES[sg.line].t+" · "+Math.round(sg.len)+" m · "+sg.mid.length+" intermediate pole"+(sg.mid.length===1?"":"s"));
   sg.mid.forEach(m=>L.circleMarker([m.lat,m.lng],{radius:3.5,color:"#111",weight:1,fillColor:m.exist?"#111":"#fff",fillOpacity:1}).addTo(grp).bindTooltip(m.lab+(m.exist?" (existing, assumed)":" (computed)")))});
+ (c.fedges||[]).forEach(e=>{const st={road:{color:"#6b7280",weight:7,opacity:.6},rail:{color:"#111",weight:3,dashArray:"2 4"},river:{color:"#3b82f6",weight:8,opacity:.5},drain:{color:"#2563eb",weight:2,dashArray:"5 4"}}[e.ty];L.polyline([[e.a.lat,e.a.lng],[e.b.lat,e.b.lng]],st).addTo(grp).bindTooltip((e.name||opt(e.b,"lmType")))});
  c.pts.forEach(x=>{const k=x.kind,g=KINDS[k].g,ic=k==="lm"?"⌂":k==="rmPole"?"✕":g===3||k==="htc"?"⚡":g===2?"Ⅱ":g===0?"◎":g===4?"≋":k==="exPole"||k==="exFit"?"●":"○";
   const html=`<div style="background:${KINDS[k].src?"#C92A2A":k==="lm"?"#8a6a4b":k==="rmPole"?"#7f1d1d":x.id===selId?"#0f766e":"#1e3a5f"};color:#fff;border-radius:12px;padding:2px 6px;font:700 11px system-ui;white-space:nowrap;box-shadow:0 2px 6px #0004;transform:translate(-50%,-50%);display:inline-block">${ic} P${x.no}</div>`;
   const mk=L.marker([x.lat,x.lng],{draggable:true,icon:L.divIcon({className:"",html,iconSize:[0,0]})}).addTo(grp);
@@ -701,14 +757,14 @@ function drawMap(c,fit){if(!map)return;grp.clearLayers();const col=L2=>L2.dis?"#
 /* ================= Point dialog ================= */
 let edit=null,draft=null;
 function lastPt(){const p=P();return selId&&p.pts.find(x=>x.id===selId)||[...p.pts].reverse().find(x=>!isStand(x))}
-function openPoint(x,pos){const p=P();edit=x;
- draft=x?{...x}:{id:uid(),no:(Math.max(0,...p.pts.map(q=>q.no))+1),lat:pos.lat,lng:pos.lng,acc:pos.acc||null,src:pos.src,kind:p.pts.some(q=>!isStand(q))?"pole":"src11",par:null,line:defaultLine(),pole:"",cross:"",note:""};
- if(!x&&draft.kind!=="src11"){const lp=lastPt();draft.par=lp?lp.id:null;if(lp&&["dtr","srcLT","srcDTR","dtrShift","htc","dtrTemp","dtrAug"].includes(lp.kind)&&LINES[draft.line].cls==="HV")draft.line=lastLine("LT")||"AB3b";if(lp&&lp.kind==="src33")draft.line="33W"}
+function openPoint(x,pos,restored){const p=P();edit=x;
+ draft=restored?restored:x?{...x}:{id:uid(),no:(Math.max(0,...p.pts.map(q=>q.no))+1),lat:pos.lat,lng:pos.lng,acc:pos.acc||null,src:pos.src,kind:p.pts.some(q=>!isStand(q))?"pole":"src11",par:null,line:defaultLine(),pole:"",cross:"",note:""};
+ if(!x&&!restored&&draft.kind!=="src11"){const lp=lastPt();draft.par=lp?lp.id:null;if(lp&&["dtr","srcLT","srcDTR","dtrShift","htc","dtrTemp","dtrAug"].includes(lp.kind)&&LINES[draft.line].cls==="HV")draft.line=lastLine("LT")||"AB3b";if(lp&&lp.kind==="src33")draft.line="33W"}
  $("#dTitle").textContent=x?"Point P"+x.no:"What goes here? (P"+draft.no+")";
  $("#dCoord").textContent=draft.lat.toFixed(6)+", "+draft.lng.toFixed(6)+"  ·  "+gpsTxt(draft)+(draft.acc?"  ·  ±"+Math.round(draft.acc)+" m":"");
  $("#dDel").hidden=!x;$("#dNote").value=draft.note||"";
  $("#dKind").innerHTML=KG.map((g,i)=>`<optgroup label="${g}">`+Object.entries(KINDS).filter(([,v])=>v.g===i).map(([k,v])=>`<option value="${k}" ${draft.kind===k?"selected":""}>${v.t}</option>`).join("")+"</optgroup>").join("");
- renderKind();$("#ptDlg").showModal()}
+ renderKind();$("#ptDlg").showModal();DB.pending={pid:p.id,editId:x?x.id:null,draft:JSON.parse(JSON.stringify(draft))};save(false)}
 function defaultLine(){return lastLine()||"11R"}
 function lastLine(cls){const p=P();for(let i=p.pts.length-1;i>=0;i--){const l=p.pts[i].line;if(p.pts[i].par&&l&&LINES[l]&&!LINES[l].ex&&!LINES[l].dis&&(!cls||LINES[l].cls===cls))return l}return null}
 function fieldHTML(k,f,val,pre){const id=pre+k;
@@ -722,6 +778,12 @@ function renderKind(){const K=KINDS[draft.kind];$("#dKindD").textContent=K.d;
  const xs=Object.keys(XF),on=xs.filter(k=>opt(draft,k)).length;
  $("#dExtra").hidden=!!K.standalone;$("#dExtraN").textContent=on?" ("+on+" set)":"";
  $("#dExtraBody").innerHTML=`<div class="f">${xs.filter(k=>XF[k].ty!=="chk").map(k=>fieldHTML(k,XF[k],draft[k]||"","x_")).join("")}</div><div class="chk">${xs.filter(k=>XF[k].ty==="chk").map(k=>fieldHTML(k,XF[k],opt(draft,k),"x_")).join("")}</div>`;
+ if(draft.kind==="lm"){const ty=opt(draft,"lmType");if(LIN[ty]){const p=P(),cand=p.pts.filter(q=>q.kind==="lm"&&q.id!==draft.id&&opt(q,"lmType")===ty);
+   if(draft.fpar===undefined){const last=cand[cand.length-1];draft.fpar=last?last.id:""}
+   $("#dOpts").insertAdjacentHTML("beforeend",`<div class="f"><label>Continues from<select id="o_fpar"><option value="">— start of this ${ty.toLowerCase()} —</option>${cand.map(q=>`<option value="${q.id}" ${q.id===draft.fpar?"selected":""}>P${q.no}${q.note?" · "+q.note:""}</option>`).join("")}</select></label></div><p class="hint">Mark points along the ${ty.toLowerCase()}, each continuing from the last. Give the name once (e.g. Rupahi–Lawkhowa Road).</p>`)}
+  const el=document.getElementById("o_lmType");if(el)el.onchange=()=>{readOpts();draft.fpar=undefined;renderKind()}}
+ const ph={lm:"Name, e.g. Rupahi–Lawkhowa Road / Baghbar Ali LP School",xRoad:"Road name",xRail:"Railway section / station side",xRiver:"River / nallah name",xBridge:"Bridge / river name",xEHV:"EHV line name",xLine:"Line crossed, e.g. 11 kV Salna feeder"};
+ $("#dNote").placeholder=ph[draft.kind]||"e.g. near Baghbar Ali LP school";
  if(K.src&&!edit)draft.par=null;
  renderDlgLine()}
 $("#dKind").onchange=e=>{readOpts();draft.kind=e.target.value;const K=KINDS[draft.kind];if(K.src||K.standalone)draft.par=null;else if(!draft.par){const lp=lastPt();if(lp&&lp.id!==draft.id)draft.par=lp.id}renderKind()};
@@ -738,13 +800,17 @@ function renderSegOpts(){const L=LINES[$("#dLine").value]||{};let h="";
 $("#dLine").onchange=()=>{readSeg();draft.line=$("#dLine").value;renderSegOpts()};
 function readOpts(){const K=KINDS[draft.kind];(K.o||[]).forEach(k=>{const el=document.getElementById("o_"+k);if(!el)return;const f=OPTF[k];
   if(f.ty==="chk")draft[k]=el.checked;else if(f.ty==="num")draft[k]=el.value===""?(k==="stays"?null:0):+el.value;else draft[k]=el.value});
+ const fp=document.getElementById("o_fpar");if(fp)draft.fpar=fp.value||"";
  Object.keys(XF).forEach(k=>{const el=document.getElementById("x_"+k);if(!el)return;draft[k]=XF[k].ty==="chk"?el.checked:(+el.value||0)})}
 function readSeg(){const g=id=>document.getElementById(id);if(g("sReuse"))draft.reuse=g("sReuse").checked;if(g("sDisOld"))draft.disOld=g("sDisOld").checked;if(g("sRm"))draft.rmPoles=g("sRm").checked}
 function readDlg(){readOpts();readSeg();draft.kind=$("#dKind").value;draft.note=$("#dNote").value.trim();const K=KINDS[draft.kind];draft.par=K.standalone?null:($("#dPar").value||null);draft.line=$("#dLine").value;draft.pole=$("#dPole").value;draft.cross=$("#dCross").value}
-$("#dSave").onclick=()=>{readDlg();const p=P();if(edit){Object.keys(edit).forEach(k=>delete edit[k]);Object.assign(edit,draft)}else p.pts.push(draft);selId=draft.id;touch(p);$("#ptDlg").close();renderAll(!edit&&p.pts.length<=2)};
+$("#ptDlg").addEventListener("input",keepPending);$("#ptDlg").addEventListener("change",keepPending);
+$("#ptDlg").addEventListener("close",()=>{if(DB.pending&&!keepOpen){delete DB.pending;save(false)}});let keepOpen=false;
+function keepPending(){try{readDlg()}catch(e){return}DB.pending={pid:P().id,editId:edit?edit.id:null,draft:JSON.parse(JSON.stringify(draft))};save(false)}
+$("#dSave").onclick=()=>{readDlg();delete DB.pending;const p=P();if(edit){Object.keys(edit).forEach(k=>delete edit[k]);Object.assign(edit,draft)}else p.pts.push(draft);selId=draft.id;touch(p);$("#ptDlg").close();renderAll(!edit&&p.pts.length<=2)};
 $("#dCancel").onclick=()=>$("#ptDlg").close();
 $("#dDel").onclick=()=>{const p=P();if(!confirm("Delete point P"+edit.no+"? Points connected after it will be joined to the point before it."))return;
- p.pts.forEach(q=>{if(q.par===edit.id){q.par=edit.par}});p.pts=p.pts.filter(q=>q!==edit);selId=null;touch(p);$("#ptDlg").close();renderAll()};
+ p.pts.forEach(q=>{if(q.par===edit.id){q.par=edit.par}if(q.fpar===edit.id){q.fpar=edit.fpar||""}});p.pts=p.pts.filter(q=>q!==edit);selId=null;touch(p);$("#ptDlg").close();renderAll()};
 
 /* GPS */
 let watch=null,best=null;
@@ -824,7 +890,11 @@ function notesOf(c,b){const S=c.S,n=[];const mk=c.pts.length,gp=c.pts.filter(x=>
  if(!b.dep)n.push("Departmental work: contingency and supervision at 0%.");else n.push("Deposit work executed by APDCL: contingency 3% of C, supervision 15% of (D+E).");
  return n}
 
-function renderProj(){const L=live();$("#projList").innerHTML=L.map(p=>`<div class="pt" data-id="${p.id}"><span class="no">${p.pts.length}</span><div><b>${esc(p.name)}</b><div class="meta">${p.meta.loc?esc(p.meta.loc)+" · ":""}updated ${new Date(p.upd).toLocaleString("en-IN",{dateStyle:"medium",timeStyle:"short"})}</div></div>
+async function storeInfo(){const el=$("#storeInfo");let pers=null;try{pers=navigator.storage&&navigator.storage.persisted?await navigator.storage.persisted():null}catch(e){}
+ const L=live();el.innerHTML=`<b>Where your surveys are saved:</b> automatically, after every change, in this browser on this device (${L.length} survey${L.length===1?"":"s"}, ${L.reduce((a,p)=>a+p.pts.length,0)} points). Even a half-filled point is kept if the app closes, and reopens where you left it.<br>
+ ${syncCode()?"<b>Synced</b> to your other devices with your Total Recall sync code.":"<b>Not synced yet:</b> set a sync code on the Total Recall home page to see these surveys on your other devices."}<br>
+ ${pers===true?"This device keeps them protected from automatic clean-up.":pers===false?"The browser may clear them if the phone runs short of space — keep sync on or export a backup now and then.":""} Clearing this site's browser data deletes them; <b>Export all</b> gives you a backup file.`}
+function renderProj(){storeInfo();const L=live();$("#projList").innerHTML=L.map(p=>`<div class="pt" data-id="${p.id}"><span class="no">${p.pts.length}</span><div><b>${esc(p.name)}</b><div class="meta">${p.meta.loc?esc(p.meta.loc)+" · ":""}updated ${new Date(p.upd).toLocaleString("en-IN",{dateStyle:"medium",timeStyle:"short"})}</div></div>
   <div style="display:flex;gap:6px"><button class="btn alt sm" data-a="open">Open</button><button class="btn alt sm" data-a="ren">Rename</button><button class="btn alt sm" data-a="dup">Copy</button><button class="btn bad sm" data-a="del">✕</button></div></div>`).join("");
  $("#projList").querySelectorAll(".pt").forEach(el=>el.querySelectorAll("button").forEach(b=>b.onclick=e=>{e.stopPropagation();const p=DB.projects[el.dataset.id],a=b.dataset.a;
   if(a==="open"){DB.cur=p.id;save(false);show("survey");renderAll(true)}
@@ -843,7 +913,9 @@ document.querySelectorAll("nav.tabs button").forEach(b=>b.onclick=()=>show(b.dat
 $("#projSel").onchange=e=>{DB.cur=e.target.value;save(false);selId=null;renderAll(true)};
 $("#newProj").onclick=()=>{const n=prompt("Name of the survey (e.g. Baghbar Ali LT extension)","");if(n===null)return;newProject(n.trim()||undefined);selId=null;show("survey");renderAll(true)};
 // meta / options inputs
+[["mWork","work"],["mLoc","loc"],["mDoc","doc"],["mSS","ss"],["mFdr","fdr"],["mFee","fee"]].forEach(([id,k])=>$("#"+id).addEventListener("input",e=>{const p=P();p.meta[k]=k==="fee"?+e.target.value||0:e.target.value;p.upd=Date.now();save()}));
 [["mWork","work"],["mLoc","loc"],["mPay","pay"],["mDoc","doc"],["mDate","date"],["mSS","ss"],["mFdr","fdr"],["mFee","fee"]].forEach(([id,k])=>$("#"+id).addEventListener("change",e=>{const p=P();p.meta[k]=k==="fee"?+e.target.value||0:e.target.value;touch(p);renderAll()}));
+$("#sldTitle").addEventListener("input",e=>{const p=P();p.meta.title=e.target.value.trim();p.upd=Date.now();save()});
 $("#sldTitle").addEventListener("change",e=>{const p=P();p.meta.title=e.target.value.trim();touch(p);renderAll()});
 ["North","Gps","Span","Sign"].forEach(k=>$("#o"+k).addEventListener("change",e=>{const p=P();p.opt[k.toLowerCase()]=e.target.checked;touch(p);renderAll()}));
 Object.keys(DEF_SET).forEach(k=>$("#"+k).addEventListener("change",e=>{const p=P();p.set=p.set||{...DEF_SET};p.set[k]=Math.max(0,+e.target.value||0);touch(p)}));
@@ -977,7 +1049,10 @@ $("#expBtn").onclick=()=>dl(new Blob([JSON.stringify(DB,null,1)],{type:"applicat
 $("#impFile").onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const x=JSON.parse(await f.text());const n=mergeRemote({projects:x.projects||{}});save();renderAll(true);alert(n?"Imported.":"Nothing newer to import.")}catch(err){alert("Couldn't read that file.")}e.target.value=""};
 
 /* ================= Boot ================= */
-initMap();P();renderAll(true);
+initMap();P();renderAll(true);badge();
+$("#saveBadge").onclick=()=>show("proj");
+try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
+if(DB.pending&&DB.projects[DB.pending.pid]&&!DB.projects[DB.pending.pid].del){const pd=DB.pending;DB.cur=pd.pid;renderAll(true);const ex=pd.editId?P().pts.find(q=>q.id===pd.editId):null;openPoint(ex,null,pd.draft);$("#dTitle").textContent+=" · restored, not yet saved"}
 setSync(syncCode()?"busy":"off");cloudSync();
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)cloudSync()});
 window.__test={compute,boq,P,DB,save,renderAll,sldSVG,buildXlsx,words};
