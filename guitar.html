@@ -590,7 +590,7 @@ function groupSlot(len,bpb){
 }
 
 /* ===================== State ===================== */
-const S={keyPc:7,tempo:72,click:true,loop:true,countin:true,chords:true,labels:"fingers",listen:true,pass:100,latency:null,micId:"",guide:false,hearNotes:true,audioMode:"keep",drums:true,vDrums:1.2,vNotes:0.22,vChords:0.35,vClick:1,vMaster:1,goalMin:30,dsGap:true,seqGap:true};
+const S={keyPc:7,tempo:72,click:true,loop:true,countin:true,chords:true,labels:"fingers",listen:true,pass:100,latency:null,micId:"",guide:false,hearNotes:true,audioMode:"keep",drums:true,vDrums:1.2,vNotes:0.22,vChords:0.35,vClick:1,vMaster:1,goalMin:30,dsGap:true,seqGap:"short"};
 let sessions={},today=null,posData=null,store=null,extra=null;
 const pad=n=>String(n).padStart(2,"0");
 const dkey=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
@@ -918,6 +918,7 @@ const PLIB=2;
 const PSET={M:"Major",P:"Pentatonic"};
 const patSet=scale=>scale==="major"?"M":"P";
 const patName=it=>`${it.set}${it.i+1}`;
+const seqGapMode=()=>S.seqGap===false||S.seqGap==="off"?"off":S.seqGap==="long"?"long":"short";
 const plab=c=>{const m=Math.min(...c);return c.map(o=>o-m+1).join("-");};
 const rhyName=d=>d===1/3?"Triplets":d===1/4?"Sixteenths":"Eighths";
 function patEvents(it,ro){
@@ -932,9 +933,9 @@ function patEvents(it,ro){
   for(let i=start;i+mx<=N-1;i++)groups.push(c.map(o=>i+o));
   for(let i=N-1;i-mx>=0;i--){if(i-mn>N-1)continue;groups.push(c.map(o=>i-o));}
   if(P.alt)groups.forEach((g,gi)=>{if(gi%2)g.reverse();}); // alternating: every other group is played backwards
-  const lbl=SCALES[today.scale].lab,gap=S.seqGap!==false;
+  const lbl=SCALES[today.scale].lab,gm=seqGapMode(),gap=gm!=="off",gl=gm==="long"?glen:d;
   groups.forEach((g,gi)=>{g.forEach((n,j)=>{ev.push({n,b:t,d,a:j===0?2:0,gs:j===0?gi+1:0,grp:gi,gl:j===0?lbl[posData.notes[n].deg]:null});t=Math.round((t+d)*48)/48;});
-    if(gap){ev.push({rest:1,b:t,d:glen,grp:null});t=Math.round((t+glen)*48)/48;}}); // a breath the length of the group
+    if(gap){ev.push({rest:1,b:t,d:gl,grp:null});t=Math.round((t+gl)*48)/48;}}); // a breath: one note (short) or a whole group (long)
   let end=Math.ceil(t-1e-6);if(end>t+1e-6){ev.push({rest:1,b:t,d:Math.round((end-t)*48)/48});t=end;}
   const r=nearestRoot(ev.length?ev[ev.length-1].n:root);ev.push({n:r,b:t,d:1,a:2,last:true});t+=1;
   const total=Math.ceil(t/bpb-1e-6)*bpb,ch=[];if(total>t+1e-6)ev.push({rest:1,b:t,d:total-t});for(let b=0;b<total;b+=bpb)ch.push({b,d:bpb,...homeChord()});
@@ -957,7 +958,8 @@ function patCard(id,it,idx){
       <p>Count <b>${cnt}</b>${glen===2?` twice`:""} for each group. The first note of every group lands on the beat and is accented; the next group starts one scale note ${"higher"} (lower on the way down).</p>
       <div class="rfoot"><span class="rcount">The first bar of the tab is the pattern itself; every bar after it is the same shape moved along the scale.</span>
       <button type="button" class="rbtn" data-rhy="${id}" aria-pressed="false">♪ Hear the rhythm</button></div></div>
-    <label class="chk dsgap" for="seqGap"><input type="checkbox" id="seqGap"${S.seqGap!==false?" checked":""}> Breathe after each group <span class="tnote">: a rest as long as the group, so you hear the shape start again on each new scale note. Shaded blocks in the tab are the groups; the number above each is the scale degree it starts on.</span></label>
+    <label class="ctl dsgap" for="seqGap">Breath after each group <select id="seqGap">${[["short","Short: one note"],["long","Long: a whole group"],["off","None: back to back"]].map(([v,l])=>`<option value="${v}"${seqGapMode()===v?" selected":""}>${l}</option>`).join("")}</select></label>
+    <p class="tnote">A short breath lets you hear the shape start again on each new scale note without losing the flow. Shaded blocks in the tab are the groups; the number above each is the scale degree it starts on.</p>
     ${groovePanel(id,grooveOf(id))}
     ${barsBar(id,E)}
     <div class="tabscroll"><div class="tab${barSel[selKey(id)]?" hassel":""}">${tabHTML(E,id)}</div></div></section>`;
@@ -2083,7 +2085,7 @@ document.addEventListener("change",e=>{
   else if(["click","loop","countin","chords","guide","hearNotes","drums"].includes(t.id)){S[t.id]=t.checked;persistSettings();}
   else if(t.id==="listen"){S.listen=t.checked;persistSettings();render();}
   else if(t.id==="pass"){S.pass=Number(t.value);persistSettings();}
-  else if(t.id==="seqGap"){S.seqGap=t.checked;persistSettings();Object.keys(barSel).forEach(k=>delete barSel[k]);setTimeout(render,0);}
+  else if(t.id==="seqGap"){S.seqGap=t.value;persistSettings();Object.keys(barSel).forEach(k=>delete barSel[k]);setTimeout(render,0);}
   else if(t.id==="dsGap"){S.dsGap=t.checked;persistSettings();Object.keys(barSel).forEach(k=>delete barSel[k]);setTimeout(render,0);}
   else if(t.id==="goalMin"){const v=Math.max(5,Math.min(240,Math.round(Number(t.value)||30)));if(v===S.goalMin)return;S.goalMin=v;persistSettings();setTimeout(render,0);}
   else if(t.id==="mic"){S.micId=t.value;persistSettings();stopListening();ensureListening().then(render);}
