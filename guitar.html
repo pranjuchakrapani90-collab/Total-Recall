@@ -320,6 +320,10 @@ select,input[type=range],input[type=checkbox]{accent-color:var(--accent)}
 .tbar.nc::before{left:0}
 .tabh{margin:4px 0 0}
 .col.gs{position:relative}
+.tbar .col{position:relative}
+.col.gA{background:#f5f3ff}.col.gB{background:#eef6ff}
+.col.gA.on,.col.gB.on{background:var(--steel-soft)}
+.gl{position:absolute;top:-15px;left:50%;transform:translateX(-50%);font:800 11px var(--mono);color:var(--brass);background:#fff;border:1px solid #ddd6fe;border-radius:6px;padding:0 4px;line-height:14px;z-index:1}
 .col.gs::before{content:"";position:absolute;left:-1px;top:2px;height:104px;border-left:2px dotted var(--brass);opacity:.55}
 .tbar.pick{cursor:pointer;border-radius:8px;transition:background .15s,opacity .15s}
 .tbar.pick:hover{background:var(--steel-soft)}
@@ -586,7 +590,7 @@ function groupSlot(len,bpb){
 }
 
 /* ===================== State ===================== */
-const S={keyPc:7,tempo:72,click:true,loop:true,countin:true,chords:true,labels:"fingers",listen:true,pass:100,latency:null,micId:"",guide:false,hearNotes:true,audioMode:"keep",drums:true,vDrums:1.2,vNotes:0.22,vChords:0.35,vClick:1,vMaster:1,goalMin:30,dsGap:true};
+const S={keyPc:7,tempo:72,click:true,loop:true,countin:true,chords:true,labels:"fingers",listen:true,pass:100,latency:null,micId:"",guide:false,hearNotes:true,audioMode:"keep",drums:true,vDrums:1.2,vNotes:0.22,vChords:0.35,vClick:1,vMaster:1,goalMin:30,dsGap:true,seqGap:true};
 let sessions={},today=null,posData=null,store=null,extra=null;
 const pad=n=>String(n).padStart(2,"0");
 const dkey=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
@@ -928,7 +932,9 @@ function patEvents(it,ro){
   for(let i=start;i+mx<=N-1;i++)groups.push(c.map(o=>i+o));
   for(let i=N-1;i-mx>=0;i--){if(i-mn>N-1)continue;groups.push(c.map(o=>i-o));}
   if(P.alt)groups.forEach((g,gi)=>{if(gi%2)g.reverse();}); // alternating: every other group is played backwards
-  groups.forEach((g,gi)=>g.forEach((n,j)=>{ev.push({n,b:t,d,a:j===0?1:0,gs:j===0?gi+1:0});t=Math.round((t+d)*48)/48;}));
+  const lbl=SCALES[today.scale].lab,gap=S.seqGap!==false;
+  groups.forEach((g,gi)=>{g.forEach((n,j)=>{ev.push({n,b:t,d,a:j===0?2:0,gs:j===0?gi+1:0,grp:gi,gl:j===0?lbl[posData.notes[n].deg]:null});t=Math.round((t+d)*48)/48;});
+    if(gap){ev.push({rest:1,b:t,d:glen,grp:null});t=Math.round((t+glen)*48)/48;}}); // a breath the length of the group
   let end=Math.ceil(t-1e-6);if(end>t+1e-6){ev.push({rest:1,b:t,d:Math.round((end-t)*48)/48});t=end;}
   const r=nearestRoot(ev.length?ev[ev.length-1].n:root);ev.push({n:r,b:t,d:1,a:2,last:true});t+=1;
   const total=Math.ceil(t/bpb-1e-6)*bpb,ch=[];if(total>t+1e-6)ev.push({rest:1,b:t,d:total-t});for(let b=0;b<total;b+=bpb)ch.push({b,d:bpb,...homeChord()});
@@ -951,6 +957,7 @@ function patCard(id,it,idx){
       <p>Count <b>${cnt}</b>${glen===2?` twice`:""} for each group. The first note of every group lands on the beat and is accented; the next group starts one scale note ${"higher"} (lower on the way down).</p>
       <div class="rfoot"><span class="rcount">The first bar of the tab is the pattern itself; every bar after it is the same shape moved along the scale.</span>
       <button type="button" class="rbtn" data-rhy="${id}" aria-pressed="false">♪ Hear the rhythm</button></div></div>
+    <label class="chk dsgap" for="seqGap"><input type="checkbox" id="seqGap"${S.seqGap!==false?" checked":""}> Breathe after each group <span class="tnote">: a rest as long as the group, so you hear the shape start again on each new scale note. Shaded blocks in the tab are the groups; the number above each is the scale degree it starts on.</span></label>
     ${groovePanel(id,grooveOf(id))}
     ${barsBar(id,E)}
     <div class="tabscroll"><div class="tab${barSel[selKey(id)]?" hassel":""}">${tabHTML(E,id)}</div></div></section>`;
@@ -1128,15 +1135,16 @@ function tabHTML(E,id){
   const sub=gridOf(ev),per=bpb*sub;
   const end=Math.max(E.total||0,...ev.map(e=>e.b+e.d)),nb=Math.ceil(end/bpb-1e-6);
   const at={};ev.forEach((e,k)=>{const sl=Math.round(e.b*sub);if(!(sl in at)||(!e.rest&&ev[at[sl]].rest))at[sl]=k;});
-  const pick=id!=="pos",sel=pick&&barSel[selKey(id)];let h="",ring=null;
+  const pick=id!=="pos",sel=pick&&barSel[selKey(id)];let h="",ring=null,grp=null;
   for(let br=0;br<nb;br++){
     const on=sel&&br>=sel.a&&br<=sel.b;
     h+=`<div class="tbar${pick?" pick":""}${on?" sel":""}" style="--n:${per}"${pick?` data-bar="${br}" data-bid="${id}" title="Tap to loop this bar"`:""}>${labels[br]?`<span class="chd">${labels[br]}</span>`:""}${pick?`<span class="bno">${br+1}</span>`:""}${SL}`;
     for(let i=0;i<per;i++){
       const g=br*per+i,pos=g/sub,k=at[g],e=k!=null?ev[k]:null,beat=i%sub===0;
       if(ring&&pos>=ring.b+ring.d-1e-6)ring=null;
-      const gsc=e&&e.gs&&i>0?" gs":"";
-      h+=`<div class="col${e&&!e.rest?"":" es"}${beat?" bt":""}${gsc}" data-id="${id}" data-s="${g}"${e?` data-k="${k}"`:""}${e&&e.gs?` title="Group ${e.gs}"`:""}>`;
+      if(e&&"grp" in e)grp=e.grp;
+      const gsc=(e&&e.gs&&i>0?" gs":"")+(grp!=null?(grp%2?" gB":" gA"):"");
+      h+=`<div class="col${e&&!e.rest?"":" es"}${beat?" bt":""}${gsc}" data-id="${id}" data-s="${g}"${e?` data-k="${k}"`:""}${e&&e.gs?` title="Group ${e.gs}"`:""}>${e&&e.gl?`<span class="gl">${e.gl}</span>`:""}`;
       if(e&&!e.rest){const [n,n2]=tabNote(e);ring=e.d>1/sub+1e-6?{b:e.b,d:e.d,s:[n.s,n2&&n2.s]}:null;
         for(let s=1;s<=6;s++){const x=s===n.s?n:n2&&s===n2.s?n2:null;h+=`<div class="c">${x?`<i class="${x.deg===0?"r":""}${e.a?" acc":""}">${x.f}</i>`:""}</div>`;}
         h+=`<div class="cnt${e.a?" acc":""}">${countLbl(pos,R)}</div></div>`;}
@@ -2075,6 +2083,7 @@ document.addEventListener("change",e=>{
   else if(["click","loop","countin","chords","guide","hearNotes","drums"].includes(t.id)){S[t.id]=t.checked;persistSettings();}
   else if(t.id==="listen"){S.listen=t.checked;persistSettings();render();}
   else if(t.id==="pass"){S.pass=Number(t.value);persistSettings();}
+  else if(t.id==="seqGap"){S.seqGap=t.checked;persistSettings();Object.keys(barSel).forEach(k=>delete barSel[k]);setTimeout(render,0);}
   else if(t.id==="dsGap"){S.dsGap=t.checked;persistSettings();Object.keys(barSel).forEach(k=>delete barSel[k]);setTimeout(render,0);}
   else if(t.id==="goalMin"){const v=Math.max(5,Math.min(240,Math.round(Number(t.value)||30)));if(v===S.goalMin)return;S.goalMin=v;persistSettings();setTimeout(render,0);}
   else if(t.id==="mic"){S.micId=t.value;persistSettings();stopListening();ensureListening().then(render);}
