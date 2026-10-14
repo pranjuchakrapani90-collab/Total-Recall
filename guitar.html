@@ -1280,6 +1280,7 @@ function setupView(){
         <div class="mix"><h4>Mix</h4>${mixHTML()}</div>
       </div></div>
     </div>
+    ${Object.values(sessions).some(x=>x.done.length===5)?`<details class="more"><summary>📄 Revision sheets for completed sessions</summary><p class="tnote">Each completed session as a one-page PDF: the five exercises with their tab, to revise from time to time.</p>${histHTML()}</details>`:""}
     ${syncPanel()}
     ${navHTML(null,`<button type="button" class="play big" data-go="${fo}">${goLbl} ▸</button>`)}
   </section>`;
@@ -1355,6 +1356,7 @@ function summaryView(){
     ${stageHTML()}
     ${nx?`<div class="nextp"><div><div class="num">Next session</div><b>${nx.tempo!=null?nx.tempo+" bpm":"Your tempo"} · ${NOTE[S.keyPc]} ${SCALES[nx.scale].name}, ${shapeName(nx.position)}</b></div>
       <button type="button" class="play big" data-newsession="1">Start the next session ▸</button></div>`:""}
+    <div class="row" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button type="button" class="play" data-pdf="${today.id}">📄 Revision sheet (PDF)</button><span class="tnote">One page with this session's five exercises and their tab, to revise from later.</span></div>
     <details class="more"><summary>Recent sessions</summary>${histHTML()}</details>
     <details class="more"><summary>Extra: practise a cell from your book</summary>
       <p>Type a cell in scale steps from its first note. It's built in this session's scale and position. It doesn't count toward any session.</p>
@@ -1369,12 +1371,99 @@ function summaryView(){
     </details>
   </section>`;
 }
+/* ===================== Revision sheet: one A4 page per completed session ===================== */
+/* A tiny PDF writer (A4, millimetres, top-left origin): lines, filled rectangles and Helvetica text. No downloads needed. */
+class MiniPDF{
+  constructor(){this.W=210;this.H=297;this.ops=[];this.fs=10;this.font="F1";this.tc="0 0 0";this.dc="0 0 0";this.fc="1 1 1";this.lw=.2;}
+  k(v){return (v*72/25.4).toFixed(2);}
+  col(r,g,b){return [r,g,b].map(x=>(x/255).toFixed(3)).join(" ");}
+  setFont(n,st){this.font=st==="bold"?"F2":"F1";}
+  setFontSize(n){this.fs=n;}
+  setTextColor(r,g,b){this.tc=this.col(r,g==null?r:g,b==null?r:b);}
+  setDrawColor(r,g,b){this.dc=this.col(r,g==null?r:g,b==null?r:b);}
+  setFillColor(r,g,b){this.fc=this.col(r,g==null?r:g,b==null?r:b);}
+  setLineWidth(w){this.lw=w;}
+  line(x1,y1,x2,y2){this.ops.push(`${this.dc} RG ${this.k(this.lw)} w ${this.k(x1)} ${this.k(this.H-y1)} m ${this.k(x2)} ${this.k(this.H-y2)} l S`);}
+  rect(x,y,w,h){this.ops.push(`${this.fc} rg ${this.k(x)} ${this.k(this.H-y-h)} ${this.k(w)} ${this.k(h)} re f`);}
+  cw(ch){const c=ch.charCodeAt(0);if(c>=48&&c<=57)return 556;if(" ".includes(ch))return 278;if(".,:;'|!il".includes(ch))return 250;if("-()/[]".includes(ch))return 333;if("mwMW".includes(ch))return 860;if(c>=65&&c<=90)return 680;return 520;}
+  getTextWidth(t){let u=0;for(const ch of String(t))u+=this.cw(ch);return u/1000*this.fs*(this.font==="F2"?1.06:1)*25.4/72;}
+  splitTextToSize(t,w){const words=String(t).split(/\s+/),out=[];let line="";
+    words.forEach(wd=>{const tr=line?line+" "+wd:wd;if(this.getTextWidth(tr)>w&&line){out.push(line);line=wd;}else line=tr;});if(line)out.push(line);return out;}
+  text(t,x,y,o={}){const lines=Array.isArray(t)?t:o.maxWidth?this.splitTextToSize(t,o.maxWidth):[t];
+    lines.forEach((ln,i)=>{const s=String(ln).replace(/[^\x20-\x7E]/g,"").replace(/\\/g,"\\\\").replace(/\(/g,"\\(").replace(/\)/g,"\\)");
+      let xx=x;if(o.align==="center")xx=x-this.getTextWidth(ln)/2;else if(o.align==="right")xx=x-this.getTextWidth(ln);
+      this.ops.push(`BT ${this.tc} rg /${this.font} ${this.fs} Tf ${this.k(xx)} ${this.k(this.H-y-i*this.fs*.42)} Td (${s}) Tj ET`);});}
+  output(){
+    const content=this.ops.join("\n"),objs=[];
+    objs.push("<< /Type /Catalog /Pages 2 0 R >>");
+    objs.push("<< /Type /Pages /Kids [3 0 R] /Count 1 >>");
+    objs.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> /Contents 4 0 R >>`);
+    objs.push(`<< /Length ${content.length} >>\nstream\n${content}\nendstream`);
+    objs.push("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>");
+    objs.push("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>");
+    let pdf="%PDF-1.4\n";const offs=[];
+    objs.forEach((o,i)=>{offs.push(pdf.length);pdf+=`${i+1} 0 obj\n${o}\nendobj\n`;});
+    const xref=pdf.length;pdf+=`xref\n0 ${objs.length+1}\n0000000000 65535 f \n`+offs.map(o=>String(o).padStart(10,"0")+" 00000 n \n").join("");
+    pdf+=`trailer\n<< /Size ${objs.length+1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
+    return pdf;}
+  save(name){const blob=new Blob([this.output()],{type:"application/pdf"}),url=URL.createObjectURL(blob),a=document.createElement("a");
+    a.href=url;a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},4000);}
+}
+const pdfText=t=>String(t).replace(/<[^>]+>/g,"").replace(/♭/g,"b").replace(/♯/g,"#").replace(/[–—]/g,"-").replace(/·/g,"-").replace(/[‘’]/g,"'").replace(/[“”]/g,'"').replace(/[^\x20-\x7E]/g,"");
+function sessionEvents(sess,it){ // build an exercise's notes as they were in that session
+  const keep={today,posData};
+  try{today=sess;posData=positionNotes(sess.scale,S.keyPc,sess.position);
+    const E=it.k==="p"?patEvents(it):it.k==="v"?vocEvents(it.i):it.k==="m"?melEvents(it.i):seqEvents(it);
+    return {E,pos:posData,notes:E.ev.map(e=>e.rest?null:tabNote(e))};}
+  finally{today=keep.today;posData=keep.posData;}
+}
+async function sessionPDF(id){
+  const sess=sessions[id];if(!sess)return;
+  const doc=new MiniPDF(),W=210,M=12;
+  const done5=Object.values(sessions).filter(x=>x.done.length===5).sort((a,b)=>a.started<b.started?-1:1),num=done5.indexOf(sess)+1;
+  const fin=Object.values(sess.doneAt||{}).sort().pop()||sess.started.slice(0,10);
+  const scName=`${NOTE[S.keyPc]} ${SCALES[sess.scale].name}, ${shapeName(sess.position)}`;
+  doc.setFont("helvetica","bold");doc.setFontSize(15);doc.setTextColor(23,32,51);doc.text("Guitar Studio - Melodic Lead: revision sheet",M,15);
+  doc.setFont("helvetica","normal");doc.setFontSize(9.5);doc.setTextColor(105,115,134);
+  const pos0=positionNotes(sess.scale,S.keyPc,sess.position),fr=pos0.notes.map(n=>n.f);
+  doc.text(pdfText(`Session ${num||""} - completed ${fin} - ${scName} (frets ${Math.min(...fr)}-${Math.max(...fr)}) - ${sess.tempo||""} bpm`),M,21);
+  doc.setDrawColor(124,58,237);doc.setLineWidth(.6);doc.line(M,24,W-M,24);
+  let y=30;
+  sess.items.forEach((it,j)=>{
+    const {E,notes}=sessionEvents(sess,it);
+    doc.setTextColor(23,32,51);doc.setFont("helvetica","bold");doc.setFontSize(11.5);
+    doc.text(pdfText(`${j+1}. ${itemName(it)}`),M,y);
+    doc.setFont("helvetica","normal");doc.setFontSize(8.8);doc.setTextColor(105,115,134);
+    let meta=itemKind(it);
+    if(it.k==="p"){const P=PAT[it.i];meta+=` - shape ${plab(P.c)}${P.alt?" alternating":""} - group of ${P.c.length}`;}
+    doc.text(pdfText(meta),M,y+4.8);
+    let desc="";if(it.k==="p"){const P=PAT[it.i],d=describeCell(P.c,P.alt,sess.scale);desc=d;}
+    let dl=0;if(desc){doc.setFontSize(8.3);doc.setTextColor(60,66,80);const lines=doc.splitTextToSize(pdfText(desc),W-2*M).slice(0,2);dl=lines.length;lines.forEach((ln,i)=>doc.text(ln,M,y+9.4+i*3.8));}
+    // tab: the first two bars, which show the pattern and its repeat on the next scale note
+    const top=y+9.5+dl*3.8+3.2,gap=3,x0=M+9,x1=W-M,beats=2*(E.bpb||4),bw=(x1-x0-3)/beats;
+    doc.setFont("helvetica","bold");doc.setFontSize(7);doc.setTextColor(23,32,51);
+    doc.setFontSize(8);["T","A","B"].forEach((ch,k)=>doc.text(ch,M+2,top+3+k*5.4));
+    doc.setDrawColor(190,196,206);doc.setLineWidth(.2);for(let s=0;s<6;s++)doc.line(x0,top+s*gap,x1,top+s*gap);
+    doc.setDrawColor(120,126,140);doc.setLineWidth(.35);[x0,x0+(x1-x0)/2,x1].forEach(x=>doc.line(x,top,x,top+5*gap));
+    E.ev.forEach((e,k)=>{if(e.rest||e.b>=beats-1e-6)return;const n=notes[k];if(!n)return;const [a,b2]=n,x=x0+2+e.b*bw;
+      [a,b2].filter(Boolean).forEach(nn=>{const yy=top+(nn.s-1)*gap,txt=String(nn.f),tw=doc.getTextWidth(txt);
+        doc.setFont("helvetica",e.a?"bold":"normal");doc.setFontSize(8.4);
+        doc.setFillColor(255,255,255);doc.rect(x-doc.getTextWidth(txt)/2-.4,yy-1.5,doc.getTextWidth(txt)+.8,3);
+        if(nn.deg===0)doc.setTextColor(234,88,12);else doc.setTextColor(23,32,51);doc.text(txt,x,yy+.9,{align:"center"});});
+      doc.setFont("helvetica","normal");doc.setFontSize(6.4);doc.setTextColor(140,148,163);doc.text(pdfText(countLbl(e.b,E.R)),x,top+5*gap+4,{align:"center"});
+      if(e.gl){doc.setFont("helvetica","bold");doc.setFontSize(6.6);doc.setTextColor(124,58,237);doc.text(pdfText(e.gl),x,top-1.6,{align:"center"});}});
+    y=top+5*gap+12;
+  });
+  doc.setFontSize(7.5);doc.setTextColor(140,148,163);
+  doc.text("Bars 1-2 of each exercise: the pattern and its repeat from the next scale note. Orange = key note, bold = start of a group, purple = scale degree it starts on.",M,287,{maxWidth:W-2*M});
+  doc.save(`revision-session-${num||id}-${fin}.pdf`);
+}
 function histHTML(){
   const dayOf=x=>x.started.slice(0,10),tk=dkey(new Date());
   const rows=Object.values(sessions).filter(x=>x.done.length||x===today).sort((a,b)=>a.started<b.started?1:-1).slice(0,12);
-  return `<table class="hist"><thead><tr><th>Started</th><th>Position</th><th>Time</th><th>Done</th></tr></thead><tbody>${rows.map(r=>{
+  return `<table class="hist"><thead><tr><th>Started</th><th>Position</th><th>Time</th><th>Done</th><th></th></tr></thead><tbody>${rows.map(r=>{
     const sc=SCALES[r.scale],when=dayOf(r)===tk?"Today":fmt(dayOf(r));
-    return `<tr><td>${when}</td><td class="n">${sc.short}, ${shapeName(r.position)}${r.tempo?` · ${r.tempo} bpm`:""}</td><td class="n">${fmtMin(sesTime(r))}</td><td><span class="pill${r.done.length===5?" full":""}">${r.done.length}/5</span></td></tr>`;}).join("")}</tbody></table>`;
+    return `<tr><td>${when}</td><td class="n">${sc.short}, ${shapeName(r.position)}${r.tempo?` · ${r.tempo} bpm`:""}</td><td class="n">${fmtMin(sesTime(r))}</td><td><span class="pill${r.done.length===5?" full":""}">${r.done.length}/5</span></td><td>${r.done.length===5?`<button type="button" class="linkb" data-pdf="${r.id}">📄 PDF</button>`:""}</td></tr>`;}).join("")}</tbody></table>`;
 }
 function renderHeader(){
   const all=Object.values(sessions),dayOf=x=>((x.doneAt&&Object.values(x.doneAt))||[]).concat(x.done.length?[x.started.slice(0,10)]:[]);
@@ -2068,6 +2157,7 @@ document.addEventListener("click",e=>{
   if(e.target.closest("[data-copydiag]")){const t=diagText();(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>{e.target.textContent="Copied";}).catch(()=>{const r=document.createRange(),pre=document.getElementById("diag");if(pre){r.selectNodeContents(pre);const sel=getSelection();sel.removeAllRanges();sel.addRange(r);}});return;}
   const tb=e.target.closest("[data-test]");if(tb){const id=tb.dataset.test;if(play&&play.test&&play.id===id)stop();else startTest(id);return;}
   if(e.target.closest("[data-tuner]")){toggleTuner();return;}
+  const pdfb=e.target.closest("[data-pdf]");if(pdfb){const t=pdfb.textContent;pdfb.textContent="Making PDF…";sessionPDF(pdfb.dataset.pdf).finally(()=>{pdfb.textContent=t;});return;}
   if(e.target.closest("[data-syncnow]")){cloudSync();return;}
   if(e.target.closest("[data-syncoff]")){turnOffSync();return;}
   if(e.target.closest("[data-syncon]")){const i=document.getElementById("syncIn");turnOnSync(i?i.value:"");return;}
