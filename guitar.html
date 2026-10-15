@@ -439,6 +439,33 @@ body.hasbar .wrap{padding-bottom:96px}
 .wopts{display:flex;flex-wrap:wrap;gap:10px 18px}
 .wsave input{flex:1;min-width:160px;padding:9px 12px;border:1px solid var(--line);border-radius:10px;font:inherit}
 @media(max-width:520px){.wkeys button{padding:8px 0;font-size:14px}.mode{font-size:13px;padding:9px 6px}}
+
+/* My patterns course */
+.crtop{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}.crtop h2{font-family:var(--mono)}
+.crmsg{margin:0;padding:10px 12px;border-radius:10px;background:var(--good-soft);color:#065f46;font-weight:600}
+.crbtns{display:flex;gap:10px;flex-wrap:wrap}
+.crnow h3{margin:2px 0 4px;font:700 20px var(--display)}
+.crs.card.ex > * + *{margin-top:12px}
+.sdots{display:grid;grid-template-columns:auto repeat(5,minmax(0,1fr));gap:5px;align-items:center;max-width:420px}
+.sdl{font:600 11px/1 var(--body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding-right:4px}
+.sdot{padding:6px 0;border-radius:8px;font:700 13px var(--mono);background:var(--bg);color:var(--muted)}
+.sdot.ok{background:var(--good);border-color:var(--good);color:#fff}
+.sdot.now{box-shadow:0 0 0 2px var(--steel);color:var(--steel);background:var(--steel-soft)}
+.sdot.ok.now{color:#fff;background:var(--good)}
+.sdot:disabled{cursor:default;opacity:1}
+.plist{display:flex;flex-direction:column;gap:12px}
+.pcard{border:1px solid var(--line);border-left:5px solid var(--brass);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:10px;background:var(--paper)}
+.pcard.cur{border-color:var(--steel);border-left-color:var(--steel);box-shadow:0 4px 16px #4f46e51a}
+.pcard.edit{background:var(--brass-soft)}
+.phd{display:flex;align-items:flex-start;gap:10px}
+.pno{flex:none;width:28px;height:28px;border-radius:50%;background:var(--brass);color:#fff;display:grid;place-items:center;font:700 13px var(--mono)}
+.pcard.cur .pno{background:var(--steel)}
+.pnm{flex:1;min-width:0}.pnm b{font-size:16px}.pnm .meta{margin:4px 0 0}
+.plv{font:700 12px var(--mono);color:var(--muted);white-space:nowrap}
+.pcard .tabscroll{margin-top:0}
+.tab.mini{font-size:12px}
+.pact{display:flex;gap:8px;flex-wrap:wrap}.pact .x{color:var(--bad)}.pact .x.arm{background:var(--bad);color:#fff}
+.locked p{margin:0}
 </style>
 
 <header class="top"><div class="hin">
@@ -1017,6 +1044,8 @@ function eventsFor(id,ro,test,whole){
   if(id==="pos")E=posEvents(test);
   else if(id==="x")E=seqEvents(extra,ro);
   else if(id==="w")E=writeEvents(ro);
+  else if(id==="cr"){const r=crNow();E=r?courseEvents(r.p,r.sh,ro):cellEvents(null);}
+  else if(id.startsWith("pv")){const p=(S.myPats||[])[Number(id.slice(2))];E=cellEvents(p?patA(p):null,"asis",ro);}
   else{const it=today.items[Number(id.slice(1))];E=it.k==="p"?patEvents(it,ro):it.k==="v"?vocEvents(it.i,ro):it.k==="m"?melEvents(it.i,ro):seqEvents(it,ro);}
   E.gr=gr;
   const sel=id!=="pos"&&!ro&&!test&&!whole?barSel[selKey(id)]:null;
@@ -1099,7 +1128,8 @@ function grooveOf(id){
   let gr=null,fam="straight";
   if(id==="pos")gr=today.boxGr;
   else if(id==="x")fam=grooveFamily(RHY[extra.rh]);
-  else if(id==="w"){const A=wA();if(A.ok&&GROOVES[A.groove])return A.groove;}
+  else if(id==="w"||id==="cr"||id.startsWith("pv")){const p=id==="cr"?(crNow()||{}).p:id==="w"?null:(S.myPats||[])[Number(id.slice(2))];
+    const A=p?patA(p):id==="w"?wA():null;if(A&&A.ok&&GROOVES[A.groove])return A.groove;}
   else{const it=today.items[Number(id.slice(1))];gr=it.gr;fam=famOfItem(it);}
   if(gr!=null&&GROOVES[gr])return gr;
   const c=GROOVES.map((g,i)=>i).filter(i=>GROOVES[i].fam===fam);let h=0;for(const ch of (today.id||"")+id)h=(h*31+ch.charCodeAt(0))>>>0;return c[h%c.length];
@@ -1185,7 +1215,7 @@ function tabHTML(E,id){
   const sub=gridOf(ev),per=bpb*sub;
   const end=Math.max(E.total||0,...ev.map(e=>e.b+e.d)),nb=Math.ceil(end/bpb-1e-6);
   const at={};ev.forEach((e,k)=>{const sl=Math.round(e.b*sub);if(!(sl in at)||(!e.rest&&ev[at[sl]].rest))at[sl]=k;});
-  const pick=id!=="pos",sel=pick&&barSel[selKey(id)];let h="",ring=null,grp=null;
+  const pick=id!=="pos"&&!id.startsWith("pv"),sel=pick&&barSel[selKey(id)];let h="",ring=null,grp=null;
   for(let br=0;br<nb;br++){
     const on=sel&&br>=sel.a&&br<=sel.b;
     h+=`<div class="tbar${pick?" pick":""}${on?" sel":""}" style="--n:${per}"${pick?` data-bar="${br}" data-bid="${id}" title="Tap to loop this bar"`:""}>${labels[br]?`<span class="chd">${labels[br]}</span>`:""}${pick?`<span class="bno">${br+1}</span>`:""}${SL}`;
@@ -1313,8 +1343,8 @@ function analyzeW(){
   return {ok:true,notes,sc,k,pos:pos.p,P:pos.P,lab:SCALES[sc].lab,k_:kk,c,alt:fit?fit.alt:0,shift:fit?fit.shift:0,fits:!!fit,how,groups,dur,groove};
 }
 let WA=null;const wA=()=>WA||(WA=analyzeW());
-function writeEvents(ro){
-  const A=wA();if(!A.ok)return {ev:[{rest:1,b:0,d:4}],ch:[],total:4,bpb:4,R:null};
+function cellEvents(A,mode,ro){
+  if(!A||!A.ok)return {ev:[{rest:1,b:0,d:4}],ch:[],total:4,bpb:4,R:null};
   const d=A.dur,c=A.c,bpb=4,ev=[],r48=x=>Math.round(x*48)/48,glen=r48(c.length*d);let t=0;
   const ch0={root:pcOf(A.k-S.keyPc),q:HOME[A.sc]};
   const gm=seqGapMode(),gap=gm==="auto"?d===1/3:gm!=="off",gl=gm==="long"?glen:r48(glen/3);
@@ -1322,7 +1352,7 @@ function writeEvents(ro){
     const nb=Math.ceil(t-1e-6);if(!gap&&nb>t+1e-6){ev.push({rest:1,b:t,d:r48(nb-t),grp:null});t=nb;}};
   if(ro){for(let i=0;i<Math.round(2*bpb/glen);i++)c.forEach((_,j)=>{ev.push({n:rootIdx(),b:t,d,a:j===0?2:0});t=r48(t+d);});
     return {ev,ch:[{b:0,d:bpb,...ch0},{b:bpb,d:bpb,...ch0}],total:2*bpb,bpb,R:null};}
-  if(W.mode==="asis"){ // exactly what you wrote, back to back like the book's bar, looping (the breath belongs to the run)
+  if(mode==="asis"){ // exactly what you wrote, back to back like the book's bar, looping (the breath belongs to the run)
     A.groups.forEach((g,gi)=>{g.forEach((n,j)=>{ev.push({m:n.m,sf:n.s+"-"+n.f,dg:n.deg,b:t,d:r48(d),a:j===0?2:0,gs:j===0?gi+1:0,grp:gi,gl:j===0?A.lab[n.deg]:null});t=r48(t+d);});
       const nb=Math.ceil(t-1e-6);if(nb>t+1e-6&&Math.abs(glen-Math.round(glen))>1e-6){ev.push({rest:1,b:t,d:r48(nb-t),grp:null});t=nb;}});
   }else{ // through the shape: the cell from every scale note up to the top, then back down upside down
@@ -1332,7 +1362,7 @@ function writeEvents(ro){
     for(let i=st;i+mx<=N-1;i++)groups.push(c.map(o=>i+o));
     for(let i=N-1;i-mx>=0;i--){if(i-mn>N-1)continue;groups.push(c.map(o=>i-o));}
     if(A.alt)groups.forEach((g,gi)=>{if(gi%2)g.reverse();});
-    if(!groups.length)return writeEventsAsIsFallback();
+    if(!groups.length)return cellEvents(A,"asis",false);
     groups.forEach((g,gi)=>{g.forEach((n,j)=>{ev.push({n,b:t,d:r48(d),a:j===0?2:0,gs:j===0?gi+1:0,grp:gi,gl:j===0?A.lab[posData.notes[n].deg]:null});t=r48(t+d);});breathe();});
     let end=Math.ceil(t-1e-6);if(end>t+1e-6){ev.push({rest:1,b:t,d:r48(end-t)});t=end;}
     const r=nearestRoot(ev.length?ev[ev.length-1].n:rootIdx());ev.push({n:r,b:t,d:1,a:2,last:true});t+=1;
@@ -1341,7 +1371,88 @@ function writeEvents(ro){
   for(let b=0;b<total;b+=bpb)ch.push({b,d:bpb,...ch0});
   return {ev,ch,total,bpb,R:null};
 }
-function writeEventsAsIsFallback(){const m=W.mode;W.mode="asis";try{return writeEvents(false);}finally{W.mode=m;}}
+const writeEvents=ro=>cellEvents(wA(),W.mode,ro);
+
+/* ===================== My patterns course =====================
+   Every saved pattern is played through all ten shapes (the five CAGED shapes of the major scale and the five
+   pentatonic boxes) at one tempo. Then the next pattern is written in. When all patterns are in, the tempo
+   moves up 5 bpm and every pattern goes round the ten shapes again: Stage I 20–60, II 60–120, III 120–160. */
+const CT=[];for(let t=20;t<=160;t+=5)CT.push(t);
+const CSTG=[{n:"I",name:"Foundation",from:20,to:60},{n:"II",name:"Fluency",from:60,to:120},{n:"III",name:"Speed",from:120,to:160}];
+const cStage=t=>t<=60?0:t<=120?1:2;
+const CSH=[...[1,2,3,4,5].map(p=>({sc:"major",p,k:"M"+p})),...[1,2,3,4,5].map(p=>({sc:"minpent",p,k:"P"+p}))];
+const shLab=x=>`${x.sc==="major"?"Major":"Pentatonic"} · ${CAGED[x.p-1].n} shape`;
+const patProg=(p,t)=>(p.prog&&p.prog[t])||{};
+const patDoneAt=(p,t)=>{const g=patProg(p,t);return CSH.every(x=>g[x.k]);};
+const patCount=(p,t)=>{const g=patProg(p,t);return CSH.filter(x=>g[x.k]).length;};
+function patLevel(p){for(const t of CT)if(!patDoneAt(p,t))return t;return null;}
+const PA={};
+function patA(p){const key=JSON.stringify([p.cols,p.key,p.scale,p.group,p.rhy,p.gr,S.keyPc]);if(PA[p.id]&&PA[p.id].key===key)return PA[p.id].A;
+  const keep={cols:W.cols,key:W.key,scale:W.scale,group:W.group,rhy:W.rhy,gr:W.gr};
+  Object.assign(W,{cols:p.cols,key:p.key,scale:p.scale,group:p.group,rhy:p.rhy,gr:p.gr||"auto"});
+  let A;try{A=analyzeW();}finally{Object.assign(W,keep);}PA[p.id]={key,A};return A;}
+const patSig=A=>A&&A.ok?A.c.join(",")+"|"+A.alt+"|"+A.dur:"";
+function course(){
+  const L=S.myPats||[],C=S.myCourse||{};
+  if(!L.length)return {T:20,cur:null,canAdd:true,empty:true};
+  const lv=L.map(patLevel);
+  if(lv.every(x=>x===null))return {T:null,fin:true,cur:null,canAdd:!C.closed};
+  let T=Math.min(...lv.filter(x=>x!=null));
+  if(!C.closed&&T>20)return {T:20,cur:null,canAdd:true,between:true}; // still writing patterns in: stay at 20 bpm
+  const cur=L.find((p,i)=>lv[i]===T);
+  return {T,cur,canAdd:!C.closed&&!cur};
+}
+function curShape(p,T){const g=patProg(p,T);
+  if(W.crSh&&W.crSh.id===p.id&&W.crSh.t===T){const x=CSH.find(y=>y.k===W.crSh.k);if(x)return x;}
+  return CSH.find(x=>!g[x.k])||CSH[0];}
+function courseEvents(p,sh,ro){
+  const A=patA(p);if(!A.ok)return cellEvents(null);
+  const keep=posData;posData=positionNotes(sh.sc,S.keyPc,sh.p);
+  try{const E=cellEvents({...A,sc:sh.sc,k:S.keyPc,lab:SCALES[sh.sc].lab},"run",ro);
+    E.ev.forEach(e=>{if(e.n!=null){const x=posData.notes[e.n];e.m=x.m;e.sf=x.s+"-"+x.f;e.dg=x.deg;delete e.n;}}); // fixed notes: no longer tied to the page's position
+    return E;}finally{posData=keep;}
+}
+function crNow(){const C=course();if(!C.cur)return null;return {C,p:C.cur,sh:curShape(C.cur,C.T)};}
+function dotsHTML(p,t,live){const g=patProg(p,t),now=live?curShape(p,t):null;
+  const one=x=>`<button type="button" class="sdot${g[x.k]?" ok":""}${now&&now.k===x.k?" now":""}"${live?` data-crsh="${x.k}"`:" disabled"} title="${shLab(x)}${g[x.k]?" · done":""}">${CAGED[x.p-1].n}</button>`;
+  return `<div class="sdots"><span class="sdl">Major</span>${CSH.slice(0,5).map(one).join("")}<span class="sdl">Pent.</span>${CSH.slice(5).map(one).join("")}</div>`;}
+function courseHTML(){
+  const C=course(),L=S.myPats||[];
+  if(C.empty)return `<section class="card crs"><div class="num">My course</div><h2>Write your first pattern</h2>
+    <p class="lead">Each pattern you write is played through all ten shapes: the five major-scale shapes and the five pentatonic boxes, at 20 bpm. Then you write the next one. When all your patterns are in, the tempo goes up to 25 bpm and you go round them again, then 30, 35… Stage I runs from 20 to 60 bpm, Stage II to 120, Stage III to 160.</p></section>`;
+  if(C.fin)return `<section class="card crs"><div class="num">My course</div><h2>All three stages complete 🎉</h2><p class="lead">Every pattern, in all ten shapes, up to 160 bpm.</p></section>`;
+  const st=CSTG[cStage(C.T)],L2=L.map(patLevel),doneHere=L.filter(p=>patDoneAt(p,C.T)).length;
+  const ladder=CT.filter(t=>t>=st.from&&t<=st.to).map(t=>`<span class="lstep${t<C.T?" done":""}${t===C.T?" cur":""}">${t}</span>`).join("");
+  const head=`<div class="num">My course · Stage ${st.n} · ${st.from}–${st.to} bpm</div>
+    <div class="crtop"><h2>${C.T} bpm</h2><span class="tnote">${doneHere} of ${L.length} pattern${L.length>1?"s":""} done at this tempo</span></div>
+    <div class="ladder" aria-label="Tempo ladder">${ladder}</div>`;
+  if(!C.cur){ // between patterns
+    return `<section class="card crs">${head}
+      <p class="crmsg">✓ ${L.length===1?`“${escH(L[0].name)}” is`:`All ${L.length} patterns are`} done in all ten shapes at ${C.T} bpm. Write your next pattern below.</p>
+      <div class="crbtns"><button type="button" class="play" data-crclose="1">I've entered all my patterns · move to ${C.T+5} bpm ▸</button></div></section>`;}
+  const p=C.cur,sh=curShape(p,C.T),E=eventsFor("cr",false,false,true),n=patCount(p,C.T);
+  return `<section class="card crs ex" id="card-cr">${head}
+    <div class="crnow"><div><div class="num">Now playing</div><h3>${escH(p.name)}</h3>
+      <div class="meta"><span class="chip">${shLab(sh)}</span><span class="chip m">${NOTE[S.keyPc]} ${SCN[sh.sc]}</span><span class="chip t">${rhyName(patA(p).dur)}</span><span class="chip m">${n} / 10 shapes</span></div></div></div>
+    ${dotsHTML(p,C.T,true)}
+    ${barsBar("cr",E)}
+    <div class="tabscroll"><div class="tab${barSel[selKey("cr")]?" hassel":""}">${tabHTML(E,"cr")}</div></div>
+    <div class="navf"><span class="tnote">Tap a shape above to practise it out of order.${S.myCourse&&S.myCourse.closed?` <button type="button" class="linkb" data-cropen="1">Add more patterns</button>`:""}</span><span>${patProg(p,C.T)[sh.k]?`<span class="tnote">✓ Done</span>`:`<button type="button" class="play big donego" data-crdone="1">✓ Done, next shape ▸</button>`}</span></div>
+  </section>`;
+}
+function patListHTML(){
+  const L=S.myPats||[],C=course();if(!L.length)return "";
+  return `<section class="card"><div class="num">Your patterns · ${L.length}</div>
+    <div class="plist">${L.map((p,i)=>{const A=patA(p),lv=patLevel(p),cur=C.cur&&C.cur.id===p.id,t=lv||160,E=cellEvents(A,"asis");
+      return `<article class="pcard${cur?" cur":""}${p.id===W.editId?" edit":""}" id="card-pv${i}">
+        <div class="phd"><span class="pno">${i+1}</span><div class="pnm"><b>${escH(p.name)}</b>
+          <div class="meta">${A.ok?`<span class="chip m">${plab(A.c)}${A.alt?" alt.":""}</span><span class="chip t">${rhyName(A.dur)}</span><span class="chip m">${A.groups.length>1?A.groups.length+" × "+A.k_:A.notes.length+" notes"}</span>`:`<span class="chip">needs fixing</span>`}</div></div>
+          <span class="plv">${lv?`${lv} bpm · ${patCount(p,lv)}/10`:"✓ 160 bpm"}</span></div>
+        <div class="tabscroll"><div class="tab mini">${tabHTML(E,"pv"+i)}</div></div>
+        ${dotsHTML(p,t,false)}
+        <div class="pact"><button type="button" data-play="pv${i}" aria-pressed="false">▶ Listen</button><button type="button" data-wload="${p.id}">✏️ Edit</button><button type="button" class="x" data-wrm="${p.id}">✕ Delete</button></div>
+      </article>`;}).join("")}</div></section>`;
+}
 function wGridHTML(A){
   const n=W.cols.length,gOf={};if(A.ok)A.groups.forEach((g,gi)=>g.forEach(x=>{gOf[x.c]=gi;}));
   let h=`<div class="wg" style="grid-template-columns:22px repeat(${n},minmax(22px,1fr))">`;
@@ -1381,24 +1492,25 @@ function wResHTML(A){
       ${sel("wGr","Drums",[["auto",`Auto (${G?G.n:""})`],...GROOVES.map((g,i)=>[i,g.n])],W.gr)}
       ${sel("seqGap","Breath",[["auto","Auto: triplets only"],["short","Short, every pattern"],["long","Long: a whole group"],["off","None"]],seqGapMode())}
       </div></details>
-    <div class="wsave"><input type="text" id="wName" placeholder="Name it, e.g. Book 18" value="${escH(W.name)}" maxlength="40" aria-label="Pattern name"><button type="button" class="play" data-wsave="1">${W.editId?"Save changes":"💾 Save"}</button>${W.editId?`<button type="button" class="ghost" data-wnew="1">＋ New</button>`:""}</div>`;
+    <div class="wsave"><input type="text" id="wName" placeholder="Name it, e.g. Book 18" value="${escH(W.name)}" maxlength="40" aria-label="Pattern name"><button type="button" class="play" data-wsave="1">${W.editId?"Save changes":"💾 Save to my course"}</button>${W.editId?`<button type="button" class="ghost" data-wnew="1">Cancel</button>`:""}</div>`;
 }
 function savedHTML(){
   const L=S.myPats||[];if(!L.length)return "";
   return `<div class="wsaved"><span class="wlbl">Saved</span>${L.map(p=>`<span class="wpill${p.id===W.editId?" on":""}"><button type="button" data-wload="${p.id}">${escH(p.name)}</button><button type="button" class="x" data-wrm="${p.id}" aria-label="Delete ${escH(p.name)}">✕</button></span>`).join("")}</div>`;
 }
 function writeView(){
-  const A=wA();
-  return `<section class="card wcard">
-    <div class="num">Your own patterns${W.editId?` · editing “${escH(W.name)}”`:""}</div>
-    <h2>Write a pattern</h2>
-    <p class="lead">Tap a spot on a string, then tap its fret number. Leave an empty slot between groups if you like. “As written” loops your bar exactly; “Through the shape” runs it as a sequence with a breath between groups. The trainer works out the key, the groups and the beat, then plays it with drums.</p>
-    <div id="wsavedBox">${savedHTML()}</div>
+  const A=wA(),C=course(),open=C.canAdd||W.editId;
+  const ed=open?`<section class="card wcard">
+    <div class="num">${W.editId?`Editing “${escH(W.name)}”`:`Pattern ${(S.myPats||[]).length+1}`}</div>
+    <h2>${W.editId?"Edit your pattern":(S.myPats||[]).length?"Write your next pattern":"Write a pattern"}</h2>
+    <p class="lead">Tap a spot on a string, then tap its fret number. Leave an empty slot between groups if you like. The trainer works out the key, the groups and the beat. Save it and it joins your course.</p>
     <div class="wtools"><span class="wlbl">Slots</span><button type="button" class="ghost" data-wn="-1" aria-label="Fewer slots">−</button><b>${W.cols.length}</b><button type="button" class="ghost" data-wn="1" aria-label="More slots">＋</button><span style="flex:1"></span><button type="button" class="linkb" data-wclear="1">Clear all</button></div>
     <div class="tabscroll wscroll"><div id="wgrid">${wGridHTML(A)}</div></div>
     <div class="wpad" id="wpad">${wPadHTML()}</div>
     <div id="wres">${wResHTML(A)}</div>
-  </section>`;
+    <div id="wsavedBox" hidden></div>
+  </section>`:S.myCourse&&S.myCourse.closed?"":`<section class="card locked"><p class="tnote">🔒 The next pattern opens once <b>${escH(C.cur?C.cur.name:"")}</b> is done in all ten shapes at ${C.T} bpm.</p></section>`;
+  return courseHTML()+(W.editId?ed+patListHTML():C.canAdd?ed+patListHTML():patListHTML()+ed);
 }
 function wRefresh(full){ // redraw the editor in place; a running loop picks up the change at the next bar line
   WA=null;const A=wA();saveDraft();
@@ -1408,7 +1520,7 @@ function wRefresh(full){ // redraw the editor in place; a running loop picks up 
   if(full!==false){Object.keys(barSel).forEach(k=>{if(k.endsWith(":w"))delete barSel[k];});
     const op=document.querySelector("#wres details.more"),wasOpen=op&&op.open;
     document.getElementById("wres").innerHTML=wResHTML(A);if(wasOpen){const d=document.querySelector("#wres details.more");if(d)d.open=true;}
-    document.getElementById("wsavedBox").innerHTML=savedHTML();requestAnimationFrame(fixClefs);
+    requestAnimationFrame(fixClefs);
     if(play&&play.id==="w"){if(!A.ok)stop();else if(!play.ro&&!play.test){const E=eventsFor("w",false);E.dr=drumsOf(E,false);play.pendingE=E;}}}
   setNowbar();
 }
@@ -1429,13 +1541,24 @@ function wHandleClick(e){
   if(e.target.closest("[data-wclear]")){W.cols=Array(W.cols.length).fill(null);W.sel={c:0,s:W.sel?W.sel.s:6};stop();wRefresh();return true;}
   const md=e.target.closest("[data-wmode]");if(md){W.mode=md.dataset.wmode;document.querySelectorAll("[data-wmode]").forEach(b=>b.setAttribute("aria-pressed",b===md));wRefresh();return true;}
   if(e.target.closest("[data-wsave]")){const nm=(document.getElementById("wName")||{}).value;W.name=(nm||"").trim()||`My pattern ${(S.myPats||[]).length+1}`;
-    const rec={id:W.editId||("u"+Date.now().toString(36)),name:W.name,cols:W.cols,key:W.key,scale:W.scale,group:W.group,rhy:W.rhy,gr:W.gr,mode:W.mode};
-    S.myPats=(S.myPats||[]).filter(p=>p.id!==rec.id);S.myPats.push(rec);W.editId=rec.id;persistSettings();render();
-    const b=document.querySelector("[data-wsave]");if(b){b.textContent="✓ Saved";setTimeout(()=>{if(b.isConnected)b.textContent="Save changes";},1500);}return true;}
+    if(!wA().ok)return true;
+    const L=S.myPats=S.myPats||[],old=L.find(p=>p.id===W.editId);
+    const rec={id:W.editId||("u"+Date.now().toString(36)),name:W.name,cols:[...W.cols],key:W.key,scale:W.scale,group:W.group,rhy:W.rhy,gr:W.gr,mode:W.mode,prog:old&&old.prog||{}};
+    if(old&&patSig(patA(old))!==patSig(wA()))rec.prog={}; // different notes: this pattern starts its shapes again
+    if(old)L[L.indexOf(old)]=rec;else L.push(rec);
+    stop();Object.assign(W,{cols:Array(12).fill(null),sel:{c:0,s:6},key:"auto",scale:"auto",group:"auto",rhy:"auto",gr:"auto",name:"",editId:null,crSh:null});WA=null;saveDraft();persistSettings();render();
+    window.scrollTo({top:0,behavior:"smooth"});return true;}
+  if(e.target.closest("[data-crdone]")){const r=crNow();if(!r)return true;const {C,p,sh}=r;stop();
+    p.prog=p.prog||{};p.prog[C.T]=p.prog[C.T]||{};p.prog[C.T][sh.k]=dkey(new Date());W.crSh=null;
+    Object.keys(barSel).forEach(k=>{if(k.endsWith(":cr"))delete barSel[k];});persistSettings();render();
+    const c=document.getElementById("card-cr")||document.querySelector(".crs");if(c)c.scrollIntoView({behavior:"smooth",block:"start"});return true;}
+  const cs=e.target.closest("[data-crsh]");if(cs){const r=crNow();if(!r)return true;stop();W.crSh={id:r.p.id,t:r.C.T,k:cs.dataset.crsh};Object.keys(barSel).forEach(k=>{if(k.endsWith(":cr"))delete barSel[k];});render();return true;}
+  if(e.target.closest("[data-crclose]")){S.myCourse={...(S.myCourse||{}),closed:true};persistSettings();render();return true;}
+  if(e.target.closest("[data-cropen]")){S.myCourse={...(S.myCourse||{}),closed:false};persistSettings();render();return true;}
   if(e.target.closest("[data-wnew]")){stop();Object.assign(W,{cols:Array(12).fill(null),sel:null,key:"auto",scale:"auto",group:"auto",rhy:"auto",gr:"auto",name:"",editId:null});WA=null;saveDraft();render();return true;}
-  const ld=e.target.closest("[data-wload]");if(ld){const p=(S.myPats||[]).find(x=>x.id===ld.dataset.wload);if(p){stop();Object.assign(W,{cols:[...p.cols],key:p.key,scale:p.scale,group:p.group,rhy:p.rhy,gr:p.gr||"auto",mode:p.mode||"asis",name:p.name,editId:p.id,sel:null});WA=null;saveDraft();render();}return true;}
+  const ld=e.target.closest("[data-wload]");if(ld){const p=(S.myPats||[]).find(x=>x.id===ld.dataset.wload);if(p){stop();Object.assign(W,{cols:[...p.cols],key:p.key,scale:p.scale,group:p.group,rhy:p.rhy,gr:p.gr||"auto",mode:p.mode||"asis",name:p.name,editId:p.id,sel:null});WA=null;saveDraft();render();const ed=document.querySelector(".wcard");if(ed)ed.scrollIntoView({behavior:"smooth",block:"start"});}return true;}
   const rm=e.target.closest("[data-wrm]");if(rm){ // tap ✕ twice to delete
-    if(rm.dataset.armed){S.myPats=(S.myPats||[]).filter(p=>p.id!==rm.dataset.wrm);if(W.editId===rm.dataset.wrm)W.editId=null;persistSettings();saveDraft();render();}
+    if(rm.dataset.armed){stop();S.myPats=(S.myPats||[]).filter(p=>p.id!==rm.dataset.wrm);if(W.editId===rm.dataset.wrm)W.editId=null;persistSettings();saveDraft();render();}
     else{rm.dataset.armed="1";rm.textContent="Delete?";rm.classList.add("arm");setTimeout(()=>{if(rm.isConnected){delete rm.dataset.armed;rm.textContent="✕";rm.classList.remove("arm");}},3000);}
     return true;}
   return false;
@@ -1447,7 +1570,7 @@ function wHandleChange(t){
   return false;
 }
 function wKey(e){ // a hardware keyboard works too: digits (two quick digits make 10-24), arrows, Backspace
-  if(view!=="write"||!W.sel||["INPUT","SELECT","TEXTAREA"].includes(e.target.tagName))return false;
+  if(view!=="write"||!W.sel||!document.getElementById("wgrid")||["INPUT","SELECT","TEXTAREA"].includes(e.target.tagName))return false;
   if(/^[0-9]$/.test(e.key)){const d=Number(e.key),now=Date.now();
     if(W.kb&&now-W.kb.t<800&&W.kb.v*10+d<=24){const {c,s}=W.kb;W.cols[c]={s,f:W.kb.v*10+d};W.kb=null;wRefresh();}
     else{const {c,s}=W.sel;W.kb={c,s,v:d,t:now};wSetFret(d);}
@@ -1468,7 +1591,7 @@ function unlocked(v){
   return today.done.length===5;
 }
 function firstOpen(){if(!today.boxDone)return "box";const j=today.items.findIndex((_,i)=>!itemDone(i));return j<0?"summary":j;}
-function go(v){stop();if(v==="write"&&view!=="write"){W.back=view;if(!W.sel){const c=W.cols.findIndex(x=>!x);W.sel={c:c<0?0:c,s:6};}}view=v;render();window.scrollTo({top:0,behavior:"smooth"});}
+function go(v){stop();if(view==="write"&&v!=="write")resetTempo();if(v==="write"&&view!=="write"){W.back=view;if(!W.sel){const c=W.cols.findIndex(x=>!x);W.sel={c:c<0?0:c,s:6};}}view=v;render();window.scrollTo({top:0,behavior:"smooth"});}
 const fmtMin=sec=>{const m=Math.round((sec||0)/60);return m<60?`${m}m`:`${Math.floor(m/60)}h ${m%60}m`;};
 const sesTime=d=>Object.values(d.time||{}).reduce((a,b)=>a+b,0);
 const itemName=it=>it.k==="p"?`${patName(it)} · ${PAT[it.i].n}`:it.k==="v"?VOC[it.i].n:it.k==="m"?MK[MEL[it.i].kd].n:EX[it.i].t;
@@ -1517,7 +1640,7 @@ function setupView(){
     <h2>${fresh?"A new session is ready":"Welcome back"}</h2>
     <p class="lead">${fresh?"Check your settings, then work through the box and five exercises one at a time. Take as many days as you need; the session waits for you.":`You've done ${today.done.length} of 5 exercises in this session. Pick up where you left off.`}</p>
     ${navHTML(null,`<button type="button" class="play big" data-go="${fo}">${goLbl} ▸</button>`).replace('class="navf"','class="navf top"')}
-    <button type="button" class="wcta" data-go="write"><span class="wico">✏️</span><span><b>Write your own pattern</b><small>Tap fret numbers onto blank tab, like the book. The trainer picks the beat and plays it.${(S.myPats||[]).length?` ${S.myPats.length} saved.`:""}</small></span><span class="wgo">▸</span></button>
+    <button type="button" class="wcta" data-go="write"><span class="wico">✏️</span><span><b>My patterns</b><small>Your own course: write a pattern from your book, play it through all ten shapes, then the next.${(S.myPats||[]).length?` ${S.myPats.length} written so far.`:""}</small></span><span class="wgo">▸</span></button>
     <div><h3>This session</h3><ol class="plan">${plan}</ol></div>
     ${goalHTML()}
     <details class="more"><summary>Stage and tempo ladder</summary>${stageHTML()}</details>
@@ -1718,7 +1841,7 @@ function renderHeader(){
 }
 function renderModes(){
   const m=document.getElementById("modes");if(!m)return;const w=view==="write";
-  m.innerHTML=`<button type="button" class="mode${w?"":" on"}" data-go="${w?W.back:"setup"}" aria-pressed="${!w}">🎯 Today's session</button><button type="button" class="mode${w?" on":""}" data-go="write" aria-pressed="${w}">✏️ Write your own${(S.myPats||[]).length?` <span class="mcount">${S.myPats.length}</span>`:""}</button>`;
+  m.innerHTML=`<button type="button" class="mode${w?"":" on"}" data-go="${w?W.back:"setup"}" aria-pressed="${!w}">🎯 Today's session</button><button type="button" class="mode${w?" on":""}" data-go="write" aria-pressed="${w}">✏️ My patterns${(S.myPats||[]).length?` <span class="mcount">${S.myPats.length}</span>`:""}</button>`;
 }
 function renderStepper(){
   document.getElementById("stepper").hidden=view==="write";
@@ -1739,7 +1862,7 @@ function render(){
   stop();
   posData=positionNotes(today.scale,S.keyPc,today.position);
   if(!unlocked(view))view="setup";
-  WA=null;if(view==="write"){const A=wA();if(A.ok)posData=A.P;}
+  WA=null;if(view==="write"){const A=wA();if(A.ok)posData=A.P;const C=course();curTempo=C.T||160;}
   const v=document.getElementById("view");
   v.innerHTML=view==="write"?writeView():view==="setup"?setupView():view==="box"?boxView():view==="summary"?summaryView():itemView(view);
   renderModes();
@@ -1963,16 +2086,16 @@ function startFollow(id){
   if(id==="pos"){const par=parentMajor();if(par&&!(play&&play.test)){followEl(document.querySelector("#fretboard svg"),true);return;}}
   if(first)followEl(first,true);
 }
-const mainId=()=>view==="box"?"pos":typeof view==="number"?"i"+view:view==="write"?(wA().ok?"w":null):null;
+const mainId=()=>view==="box"?"pos":typeof view==="number"?"i"+view:view==="write"?(W.editId||course().canAdd?(wA().ok?"w":null):crNow()?"cr":null):null;
 function updateNowbar(){setNowbar();}
 function setNowbar(){
   const nb=document.getElementById("nowbar");if(!nb)return;const m=mainId(),show=!!m||!!play;nb.hidden=!show;document.body.classList.toggle("hasbar",show);
   const pb=document.getElementById("nbPlay");if(pb){pb.textContent=play?"■ Stop":"▶ Play";pb.classList.toggle("on",!!play);pb.disabled=!play&&!m;}
   const sel=m&&m!=="pos"&&typeof barSel!=="undefined"?barSel[selKey(m)]:null,pp=document.getElementById("posPlay");
-  const what=m==="pos"?(pp&&pp.dataset.idle?pp.dataset.idle[0].toUpperCase()+pp.dataset.idle.slice(1):"The box"):m==="w"?`Your pattern${W.name?" · "+W.name:""}${sel?(sel.a===sel.b?` · bar ${sel.a+1}`:` · bars ${sel.a+1}–${sel.b+1}`):""}`:m?`Exercise ${Number(m.slice(1))+1}${sel?(sel.a===sel.b?` · bar ${sel.a+1}`:` · bars ${sel.a+1}–${sel.b+1}`):""}`:"";
+  const what=m==="pos"?(pp&&pp.dataset.idle?pp.dataset.idle[0].toUpperCase()+pp.dataset.idle.slice(1):"The box"):m==="cr"?(()=>{const r=crNow();return r?`${r.p.name} · ${shLab(r.sh)} · ${curTempo} bpm`:"";})():m==="w"?`Your pattern${W.name?" · "+W.name:""}${sel?(sel.a===sel.b?` · bar ${sel.a+1}`:` · bars ${sel.a+1}–${sel.b+1}`):""}`:m?`Exercise ${Number(m.slice(1))+1}${sel?(sel.a===sel.b?` · bar ${sel.a+1}`:` · bars ${sel.a+1}–${sel.b+1}`):""}`:"";
   if(!play)document.getElementById("nbInfo").textContent=what;
   const a=document.getElementById("nbvDrums"),b=document.getElementById("nbvNotes");if(a)a.value=Math.round((S.vDrums||0)*100);if(b)b.value=Math.round((S.vNotes||0)*100);
-  if(play){document.getElementById("nbInfo").textContent=play.test?"Listening to you…":play.ro==="groove"?"Drums only":play.ro?"Rhythm / chords only":play.bars?(play.bars.a===play.bars.b?`Looping bar ${play.bars.a+1}`:`Looping bars ${play.bars.a+1}–${play.bars.b+1}`):"Playing "+what.toLowerCase();}
+  if(play){document.getElementById("nbInfo").textContent=play.test?"Listening to you…":play.ro==="groove"?"Drums only":play.ro?"Rhythm / chords only":play.bars?(play.bars.a===play.bars.b?`Looping bar ${play.bars.a+1}`:`Looping bars ${play.bars.a+1}–${play.bars.b+1}`):"Playing "+(m==="cr"||m==="w"?what:what.toLowerCase());}
 }
 function draw(){if(!play)return;let k=null,fin=false;
   let ek=null;while(play.vis.length&&play.vis[0][0]<=ctx.currentTime){const v=play.vis.shift();k=v[1];ek=v[3];if(v[2])fin=true;}
