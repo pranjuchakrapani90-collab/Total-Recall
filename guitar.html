@@ -397,6 +397,48 @@ body.hasbar .wrap{padding-bottom:96px}
 .studio a{color:#fff;text-decoration:none;font:650 14px var(--body);padding:8px 14px;border-radius:9px;white-space:nowrap}
 .studio a.on{background:#fff;color:#3730a3}
 .studio a:not(.on):hover{background:#ffffff1f}
+
+/* Mode switch, write-your-own editor and the call-to-action card */
+.modes{display:flex;gap:6px;margin:18px 0 0;background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:5px}
+.mode{flex:1;border:0;border-radius:10px;background:transparent;padding:10px 12px;font:650 14px var(--body);color:var(--muted)}
+.mode.on{background:var(--ink);color:var(--paper)}
+.mcount{display:inline-block;min-width:1.6em;padding:1px 6px;border-radius:999px;background:var(--brass);color:#fff;font-size:11px;margin-left:4px}
+.wcta{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border-radius:14px;border:1px dashed var(--brass);background:var(--brass-soft);padding:14px 16px;color:var(--ink)}
+.wcta:hover{border-style:solid}
+.wcta b{display:block;font-size:16px}.wcta small{display:block;font:400 13px/1.4 var(--body);color:var(--muted)}
+.wico{font-size:26px}.wgo{margin-left:auto;font-size:20px;color:var(--brass)}
+.count1{margin:0;font-size:13px;color:var(--muted)}
+.bbh{margin:0 0 0 auto}
+.wtools,.wsaved,.wsave{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.wtools b{font:700 15px var(--mono);min-width:2ch;text-align:center}
+.wlbl{font:600 11px/1 var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.wpill{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--bg)}
+.wpill.on{border-color:var(--brass)}
+.wpill button{border:0;border-radius:0;background:transparent}.wpill .x{color:var(--muted);padding-left:4px}.wpill .x.arm{color:var(--bad);font-weight:700}
+.wscroll{margin-top:0}
+.wg{display:grid;row-gap:0;min-width:min-content;font:600 14px var(--mono)}
+.wsl{display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px;position:sticky;left:0;z-index:1;background:var(--paper)}
+.wc{position:relative;height:34px;padding:0;border:0;border-radius:6px;background:linear-gradient(transparent calc(50% - .5px),#9aa1ae calc(50% - .5px),#9aa1ae calc(50% + .5px),transparent calc(50% + .5px));min-width:22px}
+.wc.gA{background-color:#f3f4ff}.wc.gB{background-color:#faf5ff}
+.wc:hover{box-shadow:inset 0 0 0 1px var(--line)}
+.wc.sel{box-shadow:inset 0 0 0 2px var(--steel);background-color:var(--steel-soft)}
+.wc i{font-style:normal;background:var(--paper);padding:0 3px;border-radius:3px;position:relative}
+.wc.sel i{background:var(--steel-soft)}
+.wc i.r{color:var(--root)}
+.wnum{text-align:center;font-size:10px;color:#b0b6c2;padding-top:2px}.wnum.on{color:var(--steel);font-weight:700}
+.wpad{background:var(--bg);border-radius:12px;padding:10px}
+.wkeys{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:5px}
+.wkeys button{padding:9px 0;border-radius:8px;font:700 15px var(--mono);background:var(--paper)}
+.wkeys button:disabled{opacity:.45}
+.wkeys .wk2{font-family:var(--body)}
+.wkeys [data-wdel]{grid-column:span 3}
+.navf.top{border-top:0;padding-top:0;margin-top:0}
+.wpad .tnote{margin:8px 0 0}
+.wsum .meta{margin:0 0 6px}.wwhy{margin:0 0 10px;font-size:13px;color:var(--muted)}
+.wprev{display:block}.wprev > * + *{margin-top:10px}
+.wopts{display:flex;flex-wrap:wrap;gap:10px 18px}
+.wsave input{flex:1;min-width:160px;padding:9px 12px;border:1px solid var(--line);border-radius:10px;font:inherit}
+@media(max-width:520px){.wkeys button{padding:8px 0;font-size:14px}.mode{font-size:13px;padding:9px 6px}}
 </style>
 
 <header class="top"><div class="hin">
@@ -414,6 +456,7 @@ body.hasbar .wrap{padding-bottom:96px}
   </div>
 </div></header>
 <div class="wrap">
+<nav class="modes" id="modes" aria-label="Melodic Lead"></nav>
 <nav class="stepper" id="stepper" aria-label="Session steps"></nav>
 <div class="ctx" id="ctx" hidden></div>
 <div id="goalToast" class="gtoast" hidden role="status">🎸 Today's goal reached. Keep going if you like!</div>
@@ -951,9 +994,13 @@ function patCard(id,it,idx){
       <div class="num">${idx+1} of 5 · Pattern ${patName(it)} · ${ct.n} · ${PSET[it.set]}</div>
       <h2>${P.n}</h2>
       <div class="meta"><span class="chip">${rhyName(P.dur)}</span><span class="chip m">${plab(P.c)}${P.alt?" · alternating":""}</span><span class="chip m">group of ${P.c.length}</span><span class="chip t">${nn} notes</span></div>
-      <p class="pdesc"><b>Pattern ${patName(it)}</b> is ${d[0].toLowerCase()+d.slice(1)}</p>
-      <p>${ct.d}</p>
+      <p class="count1">Count <b>${cnt}</b>${glen===2?" twice":""} per group · 🥁 ${GROOVES[grooveOf(id)].n}</p>
     </div><div class="btns">${testBtn(id)}</div></div>
+    ${barsBar(id,E)}
+    <div class="tabscroll"><div class="tab${barSel[selKey(id)]?" hassel":""}">${tabHTML(E,id)}</div></div>
+    <details class="more"><summary>About this pattern, rhythm and drums</summary>
+    <p class="pdesc"><b>Pattern ${patName(it)}</b> is ${d[0].toLowerCase()+d.slice(1)}</p>
+    <p>${ct.d}</p>
     <div class="rhy"><div class="rtop"><span class="rlab">Rhythm</span><b>${rhyName(P.dur)}</b><span class="rtag">${glen===1?"one group per beat":"one group every two beats"}</span></div>
       <p>Count <b>${cnt}</b>${glen===2?` twice`:""} for each group. The first note of every group lands on the beat and is accented; the next group starts one scale note ${"higher"} (lower on the way down).</p>
       <div class="rfoot"><span class="rcount">The first bar of the tab is the pattern itself; every bar after it is the same shape moved along the scale.</span>
@@ -961,8 +1008,7 @@ function patCard(id,it,idx){
     <label class="ctl dsgap" for="seqGap">Breath after each group <select id="seqGap">${[["auto","Auto: short breath in triplets only"],["short","Short breath for every pattern"],["long","Long: a whole group"],["off","None: back to back"]].map(([v,l])=>`<option value="${v}"${seqGapMode()===v?" selected":""}>${l}</option>`).join("")}</select></label>
     <p class="tnote">${P.dur===1/3&&seqGapMode()==="auto"?(P.c.length===6?"Six-note groups get a two-note breath":"Three-note groups get a one-note breath")+" so you hear each group start again on the next scale note. Three groups fill "+(P.c.length===6?"two bars":"one bar")+" exactly.":seqGapMode()==="auto"?"Even groups (sixteenths and eighths) already land on the beat, so they play back to back with no breath.":"Your breath setting applies to every pattern."} Shaded blocks in the tab are the groups; the number above each is the scale degree it starts on.</p>
     ${groovePanel(id,grooveOf(id))}
-    ${barsBar(id,E)}
-    <div class="tabscroll"><div class="tab${barSel[selKey(id)]?" hassel":""}">${tabHTML(E,id)}</div></div></section>`;
+    </details></section>`;
 }
 function eventsFor(id,ro,test,whole){
   const gr=grooveOf(id);
@@ -970,6 +1016,7 @@ function eventsFor(id,ro,test,whole){
   let E;
   if(id==="pos")E=posEvents(test);
   else if(id==="x")E=seqEvents(extra,ro);
+  else if(id==="w")E=writeEvents(ro);
   else{const it=today.items[Number(id.slice(1))];E=it.k==="p"?patEvents(it,ro):it.k==="v"?vocEvents(it.i,ro):it.k==="m"?melEvents(it.i,ro):seqEvents(it,ro);}
   E.gr=gr;
   const sel=id!=="pos"&&!ro&&!test&&!whole?barSel[selKey(id)]:null;
@@ -988,15 +1035,15 @@ function sliceBars(E,a,b){
   return {...E,ev,ch,drs,total:en-s,bars:{a,b}};
 }
 function barsLabel(id,E){const sel=barSel[selKey(id)],n=nBars(E);
-  return sel?(sel.a===sel.b?`Looping bar ${sel.a+1} of ${n}`:`Looping bars ${sel.a+1}–${sel.b+1} of ${n}`):`Whole exercise · ${n} bars`;}
+  return sel?(sel.a===sel.b?`Looping bar ${sel.a+1} of ${n}`:`Looping bars ${sel.a+1}–${sel.b+1} of ${n}`):`Whole exercise · ${n} bar${n===1?"":"s"}`;}
 function barsBar(id,E){
   const sel=barSel[selKey(id)];
-  return `<div class="barsbar" id="bars-${id}"><div class="bbtop"><span class="rlab">Bar practice</span><b class="bbl">${barsLabel(id,E)}</b></div>
+  return `<div class="barsbar" id="bars-${id}"><div class="bbtop"><span class="rlab">Loop</span><b class="bbl">${barsLabel(id,E)}</b><span class="tnote bbh">Tap a bar in the tab to loop it</span></div>
     <div class="bbbtns"><button type="button" data-bars="${id}" data-op="first">${sel?"◀ Back a bar":"Bar 1 only"}</button>
     <button type="button" data-bars="${id}" data-op="add">＋ Add next bar</button>
     <button type="button" data-bars="${id}" data-op="next">Next bar only ▶</button>
     <button type="button" data-bars="${id}" data-op="all"${sel?"":" disabled"}>All bars</button></div>
-    <p class="tnote">Tap a bar in the tab to loop just that bar. Then use “Add next bar” to build up: 1, then 1–2, then 1–3… Drums, chords and click stay in time with the bars you pick, and the loop runs until you press Stop.</p></div>`;
+    </div>`;
 }
 function setBars(id,sel){
   const k=selKey(id);if(sel)barSel[k]=sel;else delete barSel[k];
@@ -1052,6 +1099,7 @@ function grooveOf(id){
   let gr=null,fam="straight";
   if(id==="pos")gr=today.boxGr;
   else if(id==="x")fam=grooveFamily(RHY[extra.rh]);
+  else if(id==="w"){const A=wA();if(A.ok&&GROOVES[A.groove])return A.groove;}
   else{const it=today.items[Number(id.slice(1))];gr=it.gr;fam=famOfItem(it);}
   if(gr!=null&&GROOVES[gr])return gr;
   const c=GROOVES.map((g,i)=>i).filter(i=>GROOVES[i].fam===fam);let h=0;for(const ch of (today.id||"")+id)h=(h*31+ch.charCodeAt(0))>>>0;return c[h%c.length];
@@ -1210,17 +1258,217 @@ function vocCard(id,it,idx){
     ${barsBar(id,E)}
     <div class="tabscroll"><div class="tab${barSel[selKey(id)]?" hassel":""}">${tabHTML(E,id)}</div></div></section>`;
 }
+/* ===================== Write your own: tap the tab, type the fret numbers ===================== */
+/* The player writes one bar of tab like a book exercise. The trainer works out the key, the CAGED shape,
+   the groups and the rhythm, then plays it as written or runs it as a sequence through the shape. */
+const W={cols:Array(12).fill(null),sel:null,key:"auto",scale:"auto",group:"auto",rhy:"auto",gr:"auto",mode:"asis",name:"",editId:null,back:"setup"};
+try{const d=JSON.parse(localStorage.getItem("mss-draft")||"null");if(d&&Array.isArray(d.cols))Object.assign(W,d,{sel:null});}catch(e){}
+function saveDraft(){try{localStorage.setItem("mss-draft",JSON.stringify({...W,sel:null,kb:null}));}catch(e){}}
+const SCN={major:"major",minpent:"minor pentatonic",majpent:"major pentatonic"};
+const escH=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const pcOf=m=>((m%12)+12)%12;
+function fitGroups(gs){ // do all groups follow the first one's shape, each moved by the same number of scale steps?
+  const sh=g=>g.map(v=>v-g[0]),s0=sh(gs[0]).join();
+  if(gs.length<2)return {alt:0,shift:0};
+  for(const alt of [0,1]){const gg=gs.map((g,i)=>alt&&i%2?[...g].reverse():g);
+    if(!gg.every(g=>sh(g).join()===s0))continue;
+    const st=gg.map(g=>g[0]),d=st[1]-st[0];
+    if(d!==0&&st.every((v,i)=>!i||v-st[i-1]===d))return {alt,shift:d};}
+  return null;
+}
+function autoDur(k){ // the rhythm that makes one group fill whole beats (1, 2 or 4)
+  if(k===2)return 1/2;
+  for(const d of [1/4,1/3]){const L=k*d;if([1,2,4].some(x=>Math.abs(L-x)<1e-6))return d;}
+  for(const d of [1/4,1/3])if(Math.abs(k*d-Math.round(k*d))<1e-6)return d;
+  return 1/4;
+}
+function analyzeW(){
+  const cols=W.cols.map((x,c)=>x?{...x,c,m:OPEN[x.s]+x.f}:null),notes=cols.filter(Boolean),N=notes.length;
+  if(N<2)return {notes,empty:!N,err:N?"Add at least one more note.":null};
+  // empty slots between notes split the groups, like the space between groups in a book
+  const blocks=[];let run=[],seen=false;cols.forEach(x=>{if(x){run.push(x);seen=true;}else if(seen&&run.length){blocks.push(run);run=[];}});if(run.length)blocks.push(run);
+  // key and scale: every note must fit; prefer your key and this session's scale, and a first or last note on the root
+  const scs=W.scale==="auto"?["major","minpent","majpent"]:[W.scale],keys=W.key==="auto"?[...Array(12).keys()]:[Number(W.key)];
+  let best=null;
+  for(const sc of scs)for(const k of keys){const ints=SCALES[sc].ints;if(!notes.every(n=>ints.includes(pcOf(n.m-k))))continue;
+    let s=0;if(pcOf(notes[0].m-k)===0)s+=3;if(pcOf(notes[N-1].m-k)===0)s+=1;if(k===S.keyPc)s+=2.5;if(today&&sc===today.scale)s+=1;if(sc==="major")s+=.5;
+    if(!best||s>best.s)best={sc,k,s};}
+  if(!best)return {notes,err:W.key==="auto"&&W.scale==="auto"?"These notes don't fit one major or pentatonic scale. Check the fret numbers.":`Some notes aren't in ${NOTE[keys[0]]} ${scs.map(s=>SCN[s]).join(" or ")}. Set Key and Scale back to Auto, or check the frets.`};
+  const {sc,k}=best,ints=SCALES[sc].ints,len=ints.length;
+  notes.forEach(n=>{const st=n.m-k;n.deg=ints.indexOf(pcOf(st));n.ix=Math.floor(st/12)*len+n.deg;});
+  // the CAGED shape that holds the most of your notes (same frets, or the same shape an octave up)
+  let pos=null;for(let p=1;p<=5;p++){const P=positionNotes(sc,k,p);
+    const sco=notes.reduce((a,n)=>a+(P.notes.some(x=>x.s===n.s&&x.f===n.f)?10:P.notes.some(x=>x.s===n.s&&x.f%12===n.f%12)?9:0),0)-Math.abs(p-(today?today.position:1))*.01;
+    if(!pos||sco>pos.sco)pos={p,P,sco};}
+  const ix=notes.map(n=>n.ix);
+  let kk=null,fit=null,how="";
+  if(W.group!=="auto"){kk=Math.min(N,Number(W.group));const gs=[];for(let i=0;i+kk<=N;i+=kk)gs.push(ix.slice(i,i+kk));fit=fitGroups(gs);how="you set";}
+  else if(blocks.length>1&&blocks.every(b=>b.length===blocks[0].length)){kk=blocks[0].length;fit=fitGroups(blocks.map(b=>b.map(n=>notes.find(x=>x.c===n.c).ix)));how="from the gaps you left";}
+  else{for(let g=2;g<=N/2;g++){if(N%g)continue;const gs=[];for(let i=0;i<N;i+=g)gs.push(ix.slice(i,i+g));const f=fitGroups(gs);if(f){kk=g;fit=f;how="found in your notes";break;}}
+    if(!kk){kk=N;fit={alt:0,shift:0};how="one cell";}}
+  const c=ix.slice(0,kk).map(v=>v-ix[0]);
+  const groups=W.group==="auto"&&blocks.length>1&&blocks.every(b=>b.length===kk)?blocks.map(b=>b.map(n=>notes.find(x=>x.c===n.c))):(()=>{const o=[];for(let i=0;i<N;i+=kk)o.push(notes.slice(i,i+kk));return o;})();
+  const dur=W.rhy==="auto"?autoDur(kk):Number(W.rhy);
+  const groove=W.gr!=="auto"&&GROOVES[Number(W.gr)]?Number(W.gr):GROOVES.findIndex(g=>g.n===(dur===1/3?"Shuffle":dur===1/2?"Rock beat":"Funk sixteenths"));
+  return {ok:true,notes,sc,k,pos:pos.p,P:pos.P,lab:SCALES[sc].lab,k_:kk,c,alt:fit?fit.alt:0,shift:fit?fit.shift:0,fits:!!fit,how,groups,dur,groove};
+}
+let WA=null;const wA=()=>WA||(WA=analyzeW());
+function writeEvents(ro){
+  const A=wA();if(!A.ok)return {ev:[{rest:1,b:0,d:4}],ch:[],total:4,bpb:4,R:null};
+  const d=A.dur,c=A.c,bpb=4,ev=[],r48=x=>Math.round(x*48)/48,glen=r48(c.length*d);let t=0;
+  const ch0={root:pcOf(A.k-S.keyPc),q:HOME[A.sc]};
+  const gm=seqGapMode(),gap=gm==="auto"?d===1/3:gm!=="off",gl=gm==="long"?glen:r48(glen/3);
+  const breathe=()=>{if(gap){ev.push({rest:1,b:t,d:gl,grp:null});t=r48(t+gl);}
+    const nb=Math.ceil(t-1e-6);if(!gap&&nb>t+1e-6){ev.push({rest:1,b:t,d:r48(nb-t),grp:null});t=nb;}};
+  if(ro){for(let i=0;i<Math.round(2*bpb/glen);i++)c.forEach((_,j)=>{ev.push({n:rootIdx(),b:t,d,a:j===0?2:0});t=r48(t+d);});
+    return {ev,ch:[{b:0,d:bpb,...ch0},{b:bpb,d:bpb,...ch0}],total:2*bpb,bpb,R:null};}
+  if(W.mode==="asis"){ // exactly what you wrote, back to back like the book's bar, looping (the breath belongs to the run)
+    A.groups.forEach((g,gi)=>{g.forEach((n,j)=>{ev.push({m:n.m,sf:n.s+"-"+n.f,dg:n.deg,b:t,d:r48(d),a:j===0?2:0,gs:j===0?gi+1:0,grp:gi,gl:j===0?A.lab[n.deg]:null});t=r48(t+d);});
+      const nb=Math.ceil(t-1e-6);if(nb>t+1e-6&&Math.abs(glen-Math.round(glen))>1e-6){ev.push({rest:1,b:t,d:r48(nb-t),grp:null});t=nb;}});
+  }else{ // through the shape: the cell from every scale note up to the top, then back down upside down
+    const N=posData.notes.length,mx=Math.max(...c),mn=Math.min(...c),groups=[];
+    const roots=posData.notes.map((n,i)=>i).filter(i=>posData.notes[i].deg===0&&i+mn>=0&&i+mx<=N-1);
+    const st=roots.length?roots[0]:Math.max(0,-mn);
+    for(let i=st;i+mx<=N-1;i++)groups.push(c.map(o=>i+o));
+    for(let i=N-1;i-mx>=0;i--){if(i-mn>N-1)continue;groups.push(c.map(o=>i-o));}
+    if(A.alt)groups.forEach((g,gi)=>{if(gi%2)g.reverse();});
+    if(!groups.length)return writeEventsAsIsFallback();
+    groups.forEach((g,gi)=>{g.forEach((n,j)=>{ev.push({n,b:t,d:r48(d),a:j===0?2:0,gs:j===0?gi+1:0,grp:gi,gl:j===0?A.lab[posData.notes[n].deg]:null});t=r48(t+d);});breathe();});
+    let end=Math.ceil(t-1e-6);if(end>t+1e-6){ev.push({rest:1,b:t,d:r48(end-t)});t=end;}
+    const r=nearestRoot(ev.length?ev[ev.length-1].n:rootIdx());ev.push({n:r,b:t,d:1,a:2,last:true});t+=1;
+  }
+  const total=Math.max(bpb,Math.ceil(t/bpb-1e-6)*bpb),ch=[];if(total>t+1e-6)ev.push({rest:1,b:t,d:r48(total-t)});
+  for(let b=0;b<total;b+=bpb)ch.push({b,d:bpb,...ch0});
+  return {ev,ch,total,bpb,R:null};
+}
+function writeEventsAsIsFallback(){const m=W.mode;W.mode="asis";try{return writeEvents(false);}finally{W.mode=m;}}
+function wGridHTML(A){
+  const n=W.cols.length,gOf={};if(A.ok)A.groups.forEach((g,gi)=>g.forEach(x=>{gOf[x.c]=gi;}));
+  let h=`<div class="wg" style="grid-template-columns:22px repeat(${n},minmax(22px,1fr))">`;
+  for(let s=1;s<=6;s++){h+=`<span class="wsl">${SNAME[s]}</span>`;
+    for(let c=0;c<n;c++){const x=W.cols[c],on=x&&x.s===s,sel=W.sel&&W.sel.c===c&&W.sel.s===s,g=gOf[c];
+      h+=`<button type="button" class="wc${on?" has":""}${sel?" sel":""}${g!=null?(g%2?" gB":" gA"):""}" data-wc="${c}" data-ws="${s}" aria-label="String ${SNAME[s]}, slot ${c+1}${on?", fret "+x.f:""}">${on?`<i class="${A.ok&&A.notes.find(q=>q.c===c).deg===0?"r":""}">${x.f}</i>`:""}</button>`;}}
+  h+=`<span></span>`+[...Array(n)].map((_,c)=>`<span class="wnum${W.sel&&W.sel.c===c?" on":""}">${c+1}</span>`).join("");
+  return h+"</div>";
+}
+function wPadHTML(){
+  const dis=W.sel?"":" disabled";
+  return `<div class="wkeys">${[...Array(25)].map((_,f)=>`<button type="button" data-wf="${f}"${dis}>${f}</button>`).join("")}
+    <button type="button" class="wk2" data-wdel="1"${dis} aria-label="Clear this slot">⌫</button>
+    <button type="button" class="wk2" data-wmv="-1"${dis} aria-label="Previous slot">◀</button><button type="button" class="wk2" data-wmv="1"${dis} aria-label="Next slot">▶</button></div>
+    <p class="tnote">${W.sel?`String ${SNAME[W.sel.s]}, slot ${W.sel.c+1}: tap the fret. The cursor moves on by itself; tap ◀ ▶ or another spot to change it.`:"Tap a spot on a string first."}</p>`;
+}
+function wResHTML(A){
+  if(A.empty)return `<p class="tnote">Example: tap the low E string in slot 1 and press 3, then keep going. A bar of two groups of six looks like the book: 6 notes, a gap, 6 notes.</p>`;
+  if(!A.ok)return `<p class="warn">${A.err||""}</p>`;
+  const E=eventsFor("w",false,false,true),nn=A.notes.length,G=GROOVES[A.groove];
+  const sel=(id,lbl,opts,v)=>`<label class="ctl" for="${id}">${lbl} <select id="${id}">${opts.map(([val,l])=>`<option value="${val}"${String(v)===String(val)?" selected":""}>${l}</option>`).join("")}</select></label>`;
+  return `<div class="wsum">
+      <div class="meta"><span class="chip">${NOTE[A.k]} ${SCN[A.sc]}</span><span class="chip">${shapeName(A.pos)}</span><span class="chip m">${A.groups.length>1?`${A.groups.length} groups of ${A.k_}`:`${nn} notes`}</span><span class="chip t">${rhyName(A.dur)}</span><span class="chip m">🥁 ${G?G.n:"–"}</span></div>
+      <p class="wwhy">${A.k_<nn?`Cell <b>${plab(A.c)}</b>${A.alt?" (every other group reversed)":""}, ${A.how}. `:""}${rhyName(A.dur)} because ${A.k_===2?"two-note groups sit naturally as eighths":`a group of ${A.k_} ${Math.abs(A.k_*A.dur-Math.round(A.k_*A.dur))<1e-6?`fills ${Math.round(A.k_*A.dur)===1?"one beat":Math.round(A.k_*A.dur)+" beats"} exactly`:"is closest to the beat"} that way`}.${!A.fits?" The groups don't all follow the first one's shape, so the run uses the first group.":""}</p>
+      <div class="lblsw" role="group" aria-label="How to play it"><button type="button" class="seg" data-wmode="asis" aria-pressed="${W.mode==="asis"}">As written</button><button type="button" class="seg" data-wmode="run" aria-pressed="${W.mode==="run"}">Through the ${shapeName(A.pos)}</button></div>
+    </div>
+    <section class="ex wprev" id="card-w">
+      ${barsBar("w",E)}
+      <div class="tabscroll"><div class="tab${barSel[selKey("w")]?" hassel":""}">${tabHTML(E,"w")}</div></div>
+    </section>
+    <details class="more"><summary>Change what the trainer picked</summary>
+      <div class="wopts">
+      ${sel("wKey","Key",[["auto",`Auto (${NOTE[A.k]})`],...NOTE.map((n,i)=>[i,n])],W.key)}
+      ${sel("wScale","Scale",[["auto",`Auto (${SCN[A.sc]})`],["major","Major"],["minpent","Minor pentatonic"],["majpent","Major pentatonic"]],W.scale)}
+      ${sel("wGroup","Group",[["auto",`Auto (${A.k_})`],...[2,3,4,5,6,8].map(x=>[x,x+" notes"])],W.group)}
+      ${sel("wRhy","Rhythm",[["auto",`Auto (${rhyName(autoDur(A.k_))})`],[1/2,"Eighths"],[1/3,"Triplets"],[1/4,"Sixteenths"]],W.rhy)}
+      ${sel("wGr","Drums",[["auto",`Auto (${G?G.n:""})`],...GROOVES.map((g,i)=>[i,g.n])],W.gr)}
+      ${sel("seqGap","Breath",[["auto","Auto: triplets only"],["short","Short, every pattern"],["long","Long: a whole group"],["off","None"]],seqGapMode())}
+      </div></details>
+    <div class="wsave"><input type="text" id="wName" placeholder="Name it, e.g. Book 18" value="${escH(W.name)}" maxlength="40" aria-label="Pattern name"><button type="button" class="play" data-wsave="1">${W.editId?"Save changes":"💾 Save"}</button>${W.editId?`<button type="button" class="ghost" data-wnew="1">＋ New</button>`:""}</div>`;
+}
+function savedHTML(){
+  const L=S.myPats||[];if(!L.length)return "";
+  return `<div class="wsaved"><span class="wlbl">Saved</span>${L.map(p=>`<span class="wpill${p.id===W.editId?" on":""}"><button type="button" data-wload="${p.id}">${escH(p.name)}</button><button type="button" class="x" data-wrm="${p.id}" aria-label="Delete ${escH(p.name)}">✕</button></span>`).join("")}</div>`;
+}
+function writeView(){
+  const A=wA();
+  return `<section class="card wcard">
+    <div class="num">Your own patterns${W.editId?` · editing “${escH(W.name)}”`:""}</div>
+    <h2>Write a pattern</h2>
+    <p class="lead">Tap a spot on a string, then tap its fret number. Leave an empty slot between groups if you like. “As written” loops your bar exactly; “Through the shape” runs it as a sequence with a breath between groups. The trainer works out the key, the groups and the beat, then plays it with drums.</p>
+    <div id="wsavedBox">${savedHTML()}</div>
+    <div class="wtools"><span class="wlbl">Slots</span><button type="button" class="ghost" data-wn="-1" aria-label="Fewer slots">−</button><b>${W.cols.length}</b><button type="button" class="ghost" data-wn="1" aria-label="More slots">＋</button><span style="flex:1"></span><button type="button" class="linkb" data-wclear="1">Clear all</button></div>
+    <div class="tabscroll wscroll"><div id="wgrid">${wGridHTML(A)}</div></div>
+    <div class="wpad" id="wpad">${wPadHTML()}</div>
+    <div id="wres">${wResHTML(A)}</div>
+  </section>`;
+}
+function wRefresh(full){ // redraw the editor in place; a running loop picks up the change at the next bar line
+  WA=null;const A=wA();saveDraft();
+  if(A.ok)posData=A.P;
+  const g=document.getElementById("wgrid");if(!g){render();return;}
+  g.innerHTML=wGridHTML(A);document.getElementById("wpad").innerHTML=wPadHTML();
+  if(full!==false){Object.keys(barSel).forEach(k=>{if(k.endsWith(":w"))delete barSel[k];});
+    const op=document.querySelector("#wres details.more"),wasOpen=op&&op.open;
+    document.getElementById("wres").innerHTML=wResHTML(A);if(wasOpen){const d=document.querySelector("#wres details.more");if(d)d.open=true;}
+    document.getElementById("wsavedBox").innerHTML=savedHTML();requestAnimationFrame(fixClefs);
+    if(play&&play.id==="w"){if(!A.ok)stop();else if(!play.ro&&!play.test){const E=eventsFor("w",false);E.dr=drumsOf(E,false);play.pendingE=E;}}}
+  setNowbar();
+}
+function wSetFret(f){
+  if(!W.sel)return;const {c,s}=W.sel;W.cols[c]={s,f};
+  if(c+1>=W.cols.length&&W.cols.length<24)W.cols.push(null);
+  W.sel={c:Math.min(c+1,W.cols.length-1),s};wRefresh();
+}
+function wMove(d){if(!W.sel)return;W.sel={c:Math.max(0,Math.min(W.cols.length-1,W.sel.c+d)),s:W.sel.s};wRefresh(false);}
+function wHandleClick(e){
+  const wc=e.target.closest("[data-wc]");if(wc){W.sel={c:Number(wc.dataset.wc),s:Number(wc.dataset.ws)};W.kb=null;wRefresh(false);return true;}
+  const wf=e.target.closest("[data-wf]");if(wf){W.kb=null;wSetFret(Number(wf.dataset.wf));return true;}
+  if(e.target.closest("[data-wdel]")){if(W.sel){W.cols[W.sel.c]=null;wRefresh();}return true;}
+  const mv=e.target.closest("[data-wmv]");if(mv){wMove(Number(mv.dataset.wmv));return true;}
+  const wn=e.target.closest("[data-wn]");if(wn){const d=Number(wn.dataset.wn);
+    if(d>0&&W.cols.length<24)W.cols.push(null);else if(d<0&&W.cols.length>2){W.cols.pop();if(W.sel&&W.sel.c>=W.cols.length)W.sel.c=W.cols.length-1;}
+    render();return true;}
+  if(e.target.closest("[data-wclear]")){W.cols=Array(W.cols.length).fill(null);W.sel={c:0,s:W.sel?W.sel.s:6};stop();wRefresh();return true;}
+  const md=e.target.closest("[data-wmode]");if(md){W.mode=md.dataset.wmode;document.querySelectorAll("[data-wmode]").forEach(b=>b.setAttribute("aria-pressed",b===md));wRefresh();return true;}
+  if(e.target.closest("[data-wsave]")){const nm=(document.getElementById("wName")||{}).value;W.name=(nm||"").trim()||`My pattern ${(S.myPats||[]).length+1}`;
+    const rec={id:W.editId||("u"+Date.now().toString(36)),name:W.name,cols:W.cols,key:W.key,scale:W.scale,group:W.group,rhy:W.rhy,gr:W.gr,mode:W.mode};
+    S.myPats=(S.myPats||[]).filter(p=>p.id!==rec.id);S.myPats.push(rec);W.editId=rec.id;persistSettings();render();
+    const b=document.querySelector("[data-wsave]");if(b){b.textContent="✓ Saved";setTimeout(()=>{if(b.isConnected)b.textContent="Save changes";},1500);}return true;}
+  if(e.target.closest("[data-wnew]")){stop();Object.assign(W,{cols:Array(12).fill(null),sel:null,key:"auto",scale:"auto",group:"auto",rhy:"auto",gr:"auto",name:"",editId:null});WA=null;saveDraft();render();return true;}
+  const ld=e.target.closest("[data-wload]");if(ld){const p=(S.myPats||[]).find(x=>x.id===ld.dataset.wload);if(p){stop();Object.assign(W,{cols:[...p.cols],key:p.key,scale:p.scale,group:p.group,rhy:p.rhy,gr:p.gr||"auto",mode:p.mode||"asis",name:p.name,editId:p.id,sel:null});WA=null;saveDraft();render();}return true;}
+  const rm=e.target.closest("[data-wrm]");if(rm){ // tap ✕ twice to delete
+    if(rm.dataset.armed){S.myPats=(S.myPats||[]).filter(p=>p.id!==rm.dataset.wrm);if(W.editId===rm.dataset.wrm)W.editId=null;persistSettings();saveDraft();render();}
+    else{rm.dataset.armed="1";rm.textContent="Delete?";rm.classList.add("arm");setTimeout(()=>{if(rm.isConnected){delete rm.dataset.armed;rm.textContent="✕";rm.classList.remove("arm");}},3000);}
+    return true;}
+  return false;
+}
+function wHandleChange(t){
+  const map={wKey:"key",wScale:"scale",wGroup:"group",wRhy:"rhy",wGr:"gr"};
+  if(map[t.id]){W[map[t.id]]=t.value;wRefresh();return true;}
+  if(t.id==="wName"){W.name=t.value;saveDraft();return true;}
+  return false;
+}
+function wKey(e){ // a hardware keyboard works too: digits (two quick digits make 10-24), arrows, Backspace
+  if(view!=="write"||!W.sel||["INPUT","SELECT","TEXTAREA"].includes(e.target.tagName))return false;
+  if(/^[0-9]$/.test(e.key)){const d=Number(e.key),now=Date.now();
+    if(W.kb&&now-W.kb.t<800&&W.kb.v*10+d<=24){const {c,s}=W.kb;W.cols[c]={s,f:W.kb.v*10+d};W.kb=null;wRefresh();}
+    else{const {c,s}=W.sel;W.kb={c,s,v:d,t:now};wSetFret(d);}
+    e.preventDefault();return true;}
+  const mv={ArrowRight:[1,0],ArrowLeft:[-1,0],ArrowUp:[0,-1],ArrowDown:[0,1]}[e.key];
+  if(mv){W.sel={c:Math.max(0,Math.min(W.cols.length-1,W.sel.c+mv[0])),s:Math.max(1,Math.min(6,W.sel.s+mv[1]))};W.kb=null;wRefresh(false);e.preventDefault();return true;}
+  if(e.key==="Backspace"||e.key==="Delete"){W.cols[W.sel.c]=null;if(e.key==="Backspace")W.sel.c=Math.max(0,W.sel.c-1);wRefresh();e.preventDefault();return true;}
+  return false;
+}
+
 /* ===================== Step-by-step session view ===================== */
 let view="setup";
 const STEPS=["setup","box",0,1,2,3,4,"summary"];
 const itemDone=j=>today.done.includes(keyOf(today.items[j]));
 function unlocked(v){
-  if(v==="setup"||v==="box")return true;
+  if(v==="setup"||v==="box"||v==="write")return true;
   if(typeof v==="number")return !!today.boxDone&&today.items.slice(0,v).every((_,j)=>itemDone(j));
   return today.done.length===5;
 }
 function firstOpen(){if(!today.boxDone)return "box";const j=today.items.findIndex((_,i)=>!itemDone(i));return j<0?"summary":j;}
-function go(v){stop();view=v;render();window.scrollTo({top:0,behavior:"smooth"});}
+function go(v){stop();if(v==="write"&&view!=="write"){W.back=view;if(!W.sel){const c=W.cols.findIndex(x=>!x);W.sel={c:c<0?0:c,s:6};}}view=v;render();window.scrollTo({top:0,behavior:"smooth"});}
 const fmtMin=sec=>{const m=Math.round((sec||0)/60);return m<60?`${m}m`:`${Math.floor(m/60)}h ${m%60}m`;};
 const sesTime=d=>Object.values(d.time||{}).reduce((a,b)=>a+b,0);
 const itemName=it=>it.k==="p"?`${patName(it)} · ${PAT[it.i].n}`:it.k==="v"?VOC[it.i].n:it.k==="m"?MK[MEL[it.i].kd].n:EX[it.i].t;
@@ -1268,21 +1516,24 @@ function setupView(){
     <div class="num">Session ${n} · planned ${st.toLocaleDateString(undefined,{weekday:"short",day:"numeric",month:"short"})}</div>
     <h2>${fresh?"A new session is ready":"Welcome back"}</h2>
     <p class="lead">${fresh?"Check your settings, then work through the box and five exercises one at a time. Take as many days as you need; the session waits for you.":`You've done ${today.done.length} of 5 exercises in this session. Pick up where you left off.`}</p>
+    ${navHTML(null,`<button type="button" class="play big" data-go="${fo}">${goLbl} ▸</button>`).replace('class="navf"','class="navf top"')}
+    <button type="button" class="wcta" data-go="write"><span class="wico">✏️</span><span><b>Write your own pattern</b><small>Tap fret numbers onto blank tab, like the book. The trainer picks the beat and plays it.${(S.myPats||[]).length?` ${S.myPats.length} saved.`:""}</small></span><span class="wgo">▸</span></button>
+    <div><h3>This session</h3><ol class="plan">${plan}</ol></div>
     ${goalHTML()}
-    ${stageHTML()}
+    <details class="more"><summary>Stage and tempo ladder</summary>${stageHTML()}</details>
+    <details class="more"><summary>⚙️ Settings, mix and sync</summary>
     <div class="two">
-      <div><h3>This session</h3><ol class="plan">${plan}</ol></div>
-      <div><h3>Your settings</h3><div class="settings">
+      <div><div class="settings">
         <label class="ctl" for="key">Key <select id="key">${KEYS.map(([k,pc])=>`<option value="${pc}"${pc===S.keyPc?" selected":""}>${k}</option>`).join("")}</select></label>
         <label class="ctl tempo" for="tempo">Tempo <input type="range" id="tempo" min="20" max="200" step="1" value="${curTempo}"> <b id="tempoV">${curTempo}</b> bpm</label>
         <p class="tnote" id="tnote"></p>
         ${[["drums","Drums"],["click","Metronome (when drums are off)"],["loop","Loop"],["countin","Count-in"],["chords","Backing chords"]].map(([k,l])=>`<label class="chk" for="${k}"><input type="checkbox" id="${k}"${S[k]?" checked":""}> ${l}</label>`).join("")}
-        <div class="mix"><h4>Mix</h4>${mixHTML()}</div>
       </div></div>
+      <div class="mix"><h4>Mix</h4>${mixHTML()}</div>
     </div>
-    ${Object.values(sessions).some(x=>x.done.length===5)?`<details class="more"><summary>📄 Revision sheets for completed sessions</summary><p class="tnote">Each completed session as a one-page PDF: the five exercises with their tab, to revise from time to time.</p>${histHTML()}</details>`:""}
     ${syncPanel()}
-    ${navHTML(null,`<button type="button" class="play big" data-go="${fo}">${goLbl} ▸</button>`)}
+    </details>
+    ${Object.values(sessions).some(x=>x.done.length===5)?`<details class="more"><summary>📄 Revision sheets for completed sessions</summary><p class="tnote">Each completed session as a one-page PDF: the five exercises with their tab, to revise from time to time.</p>${histHTML()}</details>`:""}
   </section>`;
 }
 function listenPanel(){
@@ -1358,17 +1609,7 @@ function summaryView(){
       <button type="button" class="play big" data-newsession="1">Start the next session ▸</button></div>`:""}
     <div class="row" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button type="button" class="play" data-pdf="${today.id}">📄 Revision sheet (PDF)</button><span class="tnote">One page with this session's five exercises and their tab, to revise from later.</span></div>
     <details class="more"><summary>Recent sessions</summary>${histHTML()}</details>
-    <details class="more"><summary>Extra: practise a cell from your book</summary>
-      <p>Type a cell in scale steps from its first note. It's built in this session's scale and position. It doesn't count toward any session.</p>
-      <form class="build" id="buildForm">
-        <input type="text" id="cellIn" placeholder="1 3 4 5 6 7 5 3" aria-label="Cell in scale degrees" autocomplete="off">
-        <select id="xr" aria-label="Rhythm for your cell">${RHY.map((r,i)=>`<option value="${i}">${r.n}</option>`).join("")}</select>
-        <button type="submit" class="play">Build</button>
-      </form>
-      <div class="err" id="cellErr"></div>
-      <p class="hint"><code>1</code> is the start note, <code>8</code> an octave up, <code>0</code> the note just below the start.</p>
-      <div id="extra">${extra?seqCard("x",extra,0,true):""}</div>
-    </details>
+    <button type="button" class="wcta" data-go="write"><span class="wico">✏️</span><span><b>Write your own pattern</b><small>Copy a pattern from your book onto blank tab and practise it with drums.</small></span><span class="wgo">▸</span></button>
   </section>`;
 }
 /* ===================== Revision sheet: one A4 page per completed session ===================== */
@@ -1475,7 +1716,12 @@ function renderHeader(){
   document.getElementById("hSessions").textContent=all.filter(x=>x.done.length===5).length;
   document.getElementById("hTime").textContent=fmtMin(all.reduce((a,x)=>a+sesTime(x),0));
 }
+function renderModes(){
+  const m=document.getElementById("modes");if(!m)return;const w=view==="write";
+  m.innerHTML=`<button type="button" class="mode${w?"":" on"}" data-go="${w?W.back:"setup"}" aria-pressed="${!w}">🎯 Today's session</button><button type="button" class="mode${w?" on":""}" data-go="write" aria-pressed="${w}">✏️ Write your own${(S.myPats||[]).length?` <span class="mcount">${S.myPats.length}</span>`:""}</button>`;
+}
 function renderStepper(){
+  document.getElementById("stepper").hidden=view==="write";
   const lbl=v=>v==="setup"?"Setup":v==="box"?"Box":v==="summary"?"Summary":String(v+1);
   const st=v=>v==="setup"?(view!=="setup"):v==="box"?!!today.boxDone:v==="summary"?false:itemDone(v);
   document.getElementById("stepper").innerHTML=STEPS.map(v=>{const on=view===v,ok=unlocked(v);
@@ -1483,7 +1729,7 @@ function renderStepper(){
     return `<button type="button" class="stp${on?" cur":""}${st(v)?" ok":""}" ${ok?`data-go="${v}"`:"disabled"} title="${title}" aria-current="${on?"step":"false"}">${st(v)&&!on&&typeof v==="number"?"✓":lbl(v)}</button>`;}).join('<i class="sep"></i>');
 }
 function renderCtx(){
-  const c=document.getElementById("ctx");if(view==="setup"||view==="summary"){c.hidden=true;return;}
+  const c=document.getElementById("ctx");if(view==="setup"||view==="summary"||view==="write"){c.hidden=true;return;}
   c.hidden=false;const st=today.stage==null?0:today.stage;
   c.innerHTML=`<span>${st<STAGES.length?"Stage "+STAGES[st].n+" · ":""}<b>${curTempo} bpm</b> · ${NOTE[S.keyPc]} ${SCALES[today.scale].short.toLowerCase()}, ${shapeName(today.position)}</span>
     <span class="cx">${S.click?"Metronome on":"Metronome off"} · <button type="button" class="linkb" data-go="setup">Settings</button></span>`;
@@ -1493,8 +1739,10 @@ function render(){
   stop();
   posData=positionNotes(today.scale,S.keyPc,today.position);
   if(!unlocked(view))view="setup";
+  WA=null;if(view==="write"){const A=wA();if(A.ok)posData=A.P;}
   const v=document.getElementById("view");
-  v.innerHTML=view==="setup"?setupView():view==="box"?boxView():view==="summary"?summaryView():itemView(view);
+  v.innerHTML=view==="write"?writeView():view==="setup"?setupView():view==="box"?boxView():view==="summary"?summaryView():itemView(view);
+  renderModes();
   if(view==="box")renderBoard();
   if(view==="setup")setTempoNote();
   renderStepper();renderCtx();renderHeader();setNowbar();paintGoal();requestAnimationFrame(fixClefs);
@@ -1611,7 +1859,7 @@ function flushTime(p,final){ // add the time since the last flush to today's tot
   sec=Math.min(sec,90); // ignore gaps where the device was asleep
   const day=dkey(new Date()),r=x=>Math.round(x*10)/10;
   today.days=today.days||{};today.days[day]=r((today.days[day]||0)+sec);
-  const k=p.id==="pos"?"box":p.id==="x"?null:keyOf(today.items[Number(p.id.slice(1))]);
+  const k=p.id==="pos"?"box":/^i\d$/.test(p.id)?keyOf(today.items[Number(p.id.slice(1))]):null;
   if(k&&!p.ro){today.time=today.time||{};today.time[k]=r((today.time[k]||0)+sec);}
   persistDay(!final);
 }
@@ -1715,13 +1963,13 @@ function startFollow(id){
   if(id==="pos"){const par=parentMajor();if(par&&!(play&&play.test)){followEl(document.querySelector("#fretboard svg"),true);return;}}
   if(first)followEl(first,true);
 }
-const mainId=()=>view==="box"?"pos":typeof view==="number"?"i"+view:null;
+const mainId=()=>view==="box"?"pos":typeof view==="number"?"i"+view:view==="write"?(wA().ok?"w":null):null;
 function updateNowbar(){setNowbar();}
 function setNowbar(){
   const nb=document.getElementById("nowbar");if(!nb)return;const m=mainId(),show=!!m||!!play;nb.hidden=!show;document.body.classList.toggle("hasbar",show);
   const pb=document.getElementById("nbPlay");if(pb){pb.textContent=play?"■ Stop":"▶ Play";pb.classList.toggle("on",!!play);pb.disabled=!play&&!m;}
   const sel=m&&m!=="pos"&&typeof barSel!=="undefined"?barSel[selKey(m)]:null,pp=document.getElementById("posPlay");
-  const what=m==="pos"?(pp&&pp.dataset.idle?pp.dataset.idle[0].toUpperCase()+pp.dataset.idle.slice(1):"The box"):m?`Exercise ${Number(m.slice(1))+1}${sel?(sel.a===sel.b?` · bar ${sel.a+1}`:` · bars ${sel.a+1}–${sel.b+1}`):""}`:"";
+  const what=m==="pos"?(pp&&pp.dataset.idle?pp.dataset.idle[0].toUpperCase()+pp.dataset.idle.slice(1):"The box"):m==="w"?`Your pattern${W.name?" · "+W.name:""}${sel?(sel.a===sel.b?` · bar ${sel.a+1}`:` · bars ${sel.a+1}–${sel.b+1}`):""}`:m?`Exercise ${Number(m.slice(1))+1}${sel?(sel.a===sel.b?` · bar ${sel.a+1}`:` · bars ${sel.a+1}–${sel.b+1}`):""}`:"";
   if(!play)document.getElementById("nbInfo").textContent=what;
   const a=document.getElementById("nbvDrums"),b=document.getElementById("nbvNotes");if(a)a.value=Math.round((S.vDrums||0)*100);if(b)b.value=Math.round((S.vNotes||0)*100);
   if(play){document.getElementById("nbInfo").textContent=play.test?"Listening to you…":play.ro==="groove"?"Drums only":play.ro?"Rhythm / chords only":play.bars?(play.bars.a===play.bars.b?`Looping bar ${play.bars.a+1}`:`Looping bars ${play.bars.a+1}–${play.bars.b+1}`):"Playing "+what.toLowerCase();}
@@ -2013,7 +2261,7 @@ async function calibrate(){
   const lv=document.getElementById("latV");if(lv)lv.textContent=Math.round(med*1000)+" ms";
 }
 /* Sound-route finder: some phones go silent while the microphone is on. Try each way of playing sound and keep the one you can hear. */
-const W={step:0,res:{}};
+const WZ={step:0,res:{}};
 const WSTEPS=[
   {k:"nomic",t:"Step 1 of 4 · microphone off",d:"First, a check that the page can make sound at all."},
   {k:"keep",t:"Step 2 of 4 · microphone on, standard sound",d:"The microphone is now on, the way Play & score uses it."},
@@ -2021,7 +2269,7 @@ const WSTEPS=[
   {k:"element",t:"Step 4 of 4 · microphone on, through a media player",d:"Same again, but the sound goes through the browser's media player."},
 ];
 async function wizSound(){
-  const st=WSTEPS[W.step];
+  const st=WSTEPS[WZ.step];
   if(st.k==="nomic"){if(L.stream)stopListening();S.audioMode="keep";}
   else{S.audioMode=st.k;if(st.k==="restart")restartOut();if(!await ensureListening()){wizShow(L.error);return;}await new Promise(r=>setTimeout(r,700));}
   audioCtx();try{await ctx.resume();}catch(e){}
@@ -2029,25 +2277,25 @@ async function wizSound(){
 }
 function diagText(){return ["UA: "+navigator.userAgent,"sound: "+(ctx?`${ctx.state} ${ctx.sampleRate}Hz base ${(ctx.baseLatency||0).toFixed(3)} out ${(ctx.outputLatency||0).toFixed(3)}`:"none"),
   "mic: "+(L.stream?"on":"off")+" "+(L.label||"-")+(L.ctx?" "+L.ctx.sampleRate+"Hz":""),"mics: "+L.devices.map(d=>d.label||"?").join(" | "),
-  "steps: "+Object.entries(W.res).map(([k,v])=>k+"="+v).join(", "),"route: "+S.audioMode].join("\n");}
+  "steps: "+Object.entries(WZ.res).map(([k,v])=>k+"="+v).join(", "),"route: "+S.audioMode].join("\n");}
 function wizShow(msg,final){
   const el=document.getElementById("wiz");if(!el)return;el.hidden=false;
   if(final){el.innerHTML=`<p>${msg}</p><details><summary>Details for Claude</summary><pre id="diag">${diagText().replace(/</g,"&lt;")}</pre><button type="button" data-copydiag="1">Copy details</button></details>`;return;}
-  const st=WSTEPS[W.step];
+  const st=WSTEPS[WZ.step];
   el.innerHTML=`<div class="num">${st.t}</div><p>${st.d} You should hear a click and three rising notes.</p>${msg?`<p class="warn">${msg}</p>`:""}
     <div class="lrow"><button type="button" data-wiz="again">▶ Play it again</button><button type="button" class="play" data-wiz="yes">✓ I heard it</button><button type="button" class="tbtn" data-wiz="no">✗ Silent</button></div>`;
 }
 async function wiz(cmd){
-  if(cmd==="start"){W.step=0;W.res={};wizShow("");await wizSound();return;}
+  if(cmd==="start"){WZ.step=0;WZ.res={};wizShow("");await wizSound();return;}
   if(cmd==="again"){await wizSound();return;}
-  const st=WSTEPS[W.step];W.res[st.k]=cmd==="yes"?"heard":"silent";
+  const st=WSTEPS[WZ.step];WZ.res[st.k]=cmd==="yes"?"heard":"silent";
   if(st.k==="nomic"&&cmd==="no"){S.audioMode="keep";persistSettings();
     wizShow("The page isn't making any sound even with the microphone off. Check the phone's <b>media volume</b>, that the earbud is connected, and that the phone isn't on silent; then run this again.",true);return;}
   if(st.k!=="nomic"&&cmd==="yes"){persistSettings();const name={keep:"standard",restart:"restart sound",element:"media player"}[st.k];
     stopListening();
     wizShow(`Found a working route: <b>${name}</b>. Play &amp; score will use it on this phone from now on. Try Play &amp; score again.`,true);
     const r=document.querySelector(".listen .lrow .tnote b");if(r)r.textContent=name;return;}
-  if(W.step<WSTEPS.length-1){W.step++;wizShow("");await wizSound();return;}
+  if(WZ.step<WSTEPS.length-1){WZ.step++;wizShow("");await wizSound();return;}
   S.audioMode="keep";persistSettings();stopListening();
   wizShow(`Your phone wouldn't play the page's sound in any of the three ways while the microphone was on. Two more things to try: choose a different <b>Microphone</b> above (for example the phone's own mic instead of the earbud) and run this again, or use wired earphones. Copy the details below and paste them to me in Claude so I can look at your phone's setup.`,true);
 }
@@ -2144,6 +2392,7 @@ function syncPanel(){
 
 /* ===================== Controls ===================== */
 document.addEventListener("click",e=>{
+  if(view==="write"&&wHandleClick(e))return;
   const gb=e.target.closest("[data-groove]");if(gb){const id=gb.dataset.groove;(play&&play.id===id&&play.ro==="groove")?stop():start(id,"groove");return;}
   const p=e.target.closest("[data-play],[data-rhy]");if(p){const ro=!!p.dataset.rhy,id=ro?p.dataset.rhy:p.dataset.play;
     (play&&play.id===id&&play.ro===ro)?stop():start(id,ro);return;}
@@ -2172,6 +2421,7 @@ document.addEventListener("click",e=>{
 });
 document.addEventListener("change",e=>{
   const t=e.target;
+  if(view==="write"&&wHandleChange(t))return;
   if(t.id==="key"){S.keyPc=Number(t.value);persistSettings();render();}
   else if(["click","loop","countin","chords","guide","hearNotes","drums"].includes(t.id)){S[t.id]=t.checked;persistSettings();}
   else if(t.id==="listen"){S.listen=t.checked;persistSettings();render();}
@@ -2196,6 +2446,7 @@ document.addEventListener("submit",e=>{if(e.target.id!=="buildForm")return;e.pre
   err.textContent="";if(play&&play.id==="x")stop();extra={c,i:-1,rh:Number(document.getElementById("xr").value)};
   document.getElementById("extra").innerHTML=seqCard("x",extra,0,true);requestAnimationFrame(fixClefs);});
 document.addEventListener("keydown",e=>{
+  if(wKey(e))return;
   if(e.key!==" "||["INPUT","SELECT","TEXTAREA","BUTTON","SUMMARY"].includes(e.target.tagName))return;
   const b=document.getElementById("nbPlay");if(!b||b.disabled||document.getElementById("nowbar").hidden)return;e.preventDefault();b.click();
 });
