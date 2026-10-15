@@ -1440,12 +1440,13 @@ async function sessionPDF(id){
     let desc="";if(it.k==="p"){const P=PAT[it.i],d=describeCell(P.c,P.alt,sess.scale);desc=d;}
     let dl=0;if(desc){doc.setFontSize(8.3);doc.setTextColor(60,66,80);const lines=doc.splitTextToSize(pdfText(desc),W-2*M).slice(0,2);dl=lines.length;lines.forEach((ln,i)=>doc.text(ln,M,y+9.4+i*3.8));}
     // tab: the first two bars, which show the pattern and its repeat on the next scale note
-    const top=y+9.5+dl*3.8+3.2,gap=3,x0=M+9,x1=W-M,beats=2*(E.bpb||4),bw=(x1-x0-3)/beats;
+    const top=y+9.5+dl*3.8+3.2,gap=3,x0=M+9,x1=W-M,bpb=E.bpb||4,beats=2*bpb,BW=(x1-x0)/2,pad=3.2,bw=(BW-2*pad)/bpb;
+    const xAt=b=>{const bar=Math.min(1,Math.floor(b/bpb+1e-6));return x0+bar*BW+pad+(b-bar*bpb)*bw+bw*.12;}; // each bar laid out on its own, clear of the barlines
     doc.setFont("helvetica","bold");doc.setFontSize(7);doc.setTextColor(23,32,51);
     doc.setFontSize(8);["T","A","B"].forEach((ch,k)=>doc.text(ch,M+2,top+3+k*5.4));
     doc.setDrawColor(190,196,206);doc.setLineWidth(.2);for(let s=0;s<6;s++)doc.line(x0,top+s*gap,x1,top+s*gap);
-    doc.setDrawColor(120,126,140);doc.setLineWidth(.35);[x0,x0+(x1-x0)/2,x1].forEach(x=>doc.line(x,top,x,top+5*gap));
-    E.ev.forEach((e,k)=>{if(e.rest||e.b>=beats-1e-6)return;const n=notes[k];if(!n)return;const [a,b2]=n,x=x0+2+e.b*bw;
+    doc.setDrawColor(120,126,140);doc.setLineWidth(.35);[x0,x0+BW,x1].forEach(x=>doc.line(x,top,x,top+5*gap));
+    E.ev.forEach((e,k)=>{if(e.rest||e.b>=beats-1e-6)return;const n=notes[k];if(!n)return;const [a,b2]=n,x=xAt(e.b);
       [a,b2].filter(Boolean).forEach(nn=>{const yy=top+(nn.s-1)*gap,txt=String(nn.f),tw=doc.getTextWidth(txt);
         doc.setFont("helvetica",e.a?"bold":"normal");doc.setFontSize(8.4);
         doc.setFillColor(255,255,255);doc.rect(x-doc.getTextWidth(txt)/2-.4,yy-1.5,doc.getTextWidth(txt)+.8,3);
