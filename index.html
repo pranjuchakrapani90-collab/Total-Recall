@@ -879,5 +879,8 @@ $('travelSyncBtn').addEventListener('click',async function(){
   try{await cloudSync(true);travelPopulateDates($('travelDate').value);if(travelDates().length)await travelLoadSelectedDate();$('travelSyncStatus').textContent='☁ Synced '+new Date().toLocaleTimeString()}catch(e){$('travelSyncStatus').textContent='☁ Sync unavailable: '+e.message}
 });
 travelPopulateDates();
+window.TotalRecallBridge={periodRange:periodRange,esc:esc,tickContentHtml:tickContentHtml,save:save,tickUrl:function(){return TICK_URL},getDb:function(){return db},suppressed:function(){return COMPLETED_SUPPRESS}};
 })();
-</script></body></html>
+</script>
+<script src="cinematic-review.js"></script>
+</body></html>
