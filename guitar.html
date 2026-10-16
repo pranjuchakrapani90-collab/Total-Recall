@@ -473,7 +473,7 @@ body.hasbar .wrap{padding-bottom:96px}
 <header class="top"><div class="hin">
   <div>
     <div class="toprow"><a class="backlink" href="studio.html">← Guitar Studio</a><span id="syncBadge" class="sbadge off">☁ Sync off</span></div>
-    <div class="eyebrow">270 melodic sequence patterns</div>
+    <div class="eyebrow">Your melodic sequence patterns</div>
     <h1><a href="studio.html" style="color:inherit;text-decoration:none">Guitar Studio</a></h1>
     <nav class="studio" aria-label="Guitar Studio sections"><a href="guitar.html" class="on" aria-current="page">🎸 Melodic Lead</a><a href="fingerstyle.html">🎶 Fingerstyle Solo</a></nav>
   </div>
@@ -669,7 +669,7 @@ const dkey=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 const fmt=k=>{const[y,m,d]=k.split("-").map(Number);return new Date(y,m-1,d).toLocaleDateString(undefined,{weekday:"short",day:"numeric",month:"short"});};
 function rng(seed){let h=1779033703^seed.length;for(let i=0;i<seed.length;i++){h=Math.imul(h^seed.charCodeAt(i),3432918353);h=h<<13|h>>>19;}
   return()=>{h=Math.imul(h^h>>>16,2246822507);h=Math.imul(h^h>>>13,3266489909);return((h^=h>>>16)>>>0)/4294967296;};}
-const keyOf=it=>it.k==="p"?it.set+it.i:(it.k==="v"?"v":it.k==="m"?"m":"s")+it.i;
+const keyOf=it=>it.k==="o"?it.sh:it.k==="p"?it.set+it.i:(it.k==="v"?"v":it.k==="m"?"m":"s")+it.i;
 
 function normalize(x){ // sessions saved by earlier versions of the page
   if(!x.items){x.items=(x.ex||[]).map((i,j)=>({k:"s",i,rh:x.rh?x.rh[j]:j}));}
@@ -982,8 +982,8 @@ function melCard(id,it,idx){
    Each pattern is a cell of scale steps (0 = the starting note). It is played as a group on the beat, then the same group
    from the next scale note up, all the way up the shape and back down: the classic melodic-sequence drill.
    The rhythm comes with the pattern: triplets for threes and sixes, sixteenths for fours and eights, eighths for slow fours. */
-const PGROUPS=[{"n": "Steps in threes", "d": "Three scale notes in a row, in triplets. The most practised sequence of all."}, {"n": "Steps in fours", "d": "Four-note scale groups in sixteenths: the backbone of fast, even picking."}, {"n": "Runs of six and eight", "d": "Longer scale runs that last two beats before moving to the next note."}, {"n": "Intervals", "d": "Two-note pairs in eighth notes: the classic diatonic interval drills, up, down and alternating."}, {"n": "Broken intervals", "d": "Interval skips folded into groups, such as thirds in fours (1-3-2-4)."}, {"n": "Arpeggios", "d": "Chord shapes inside the scale: triads, seventh chords and their inversions."}, {"n": "Enclosures and neighbours", "d": "Circling a target note from above and below before landing on it: the sound of jazz and melodic rock."}, {"n": "Common lick shapes", "d": "Short shapes heard in countless solos, played as sequences."}];
-const PLIST=[{"c": [0, 1, 2], "alt": 0, "n": "Threes up", "g": 0}, {"c": [0, -1, -2], "alt": 0, "n": "Threes down", "g": 0}, {"c": [0, 1, 2], "alt": 1, "n": "Threes, alternating", "g": 0}, {"c": [0, -1, -2], "alt": 1, "n": "Threes down, alternating", "g": 0}, {"c": [0, 1, 2, 3], "alt": 0, "n": "Fours up", "g": 1}, {"c": [0, -1, -2, -3], "alt": 0, "n": "Fours down", "g": 1}, {"c": [0, 1, 2, 3], "alt": 1, "n": "Fours, alternating", "g": 1}, {"c": [0, -1, -2, -3], "alt": 1, "n": "Fours down, alternating", "g": 1}, {"c": [0, 1, 0], "alt": 0, "n": "Up and back (1-2-1)", "g": 0}, {"c": [0, -1, 0], "alt": 0, "n": "Down and back (2-1-2)", "g": 0}, {"c": [0, 1, 2, 1], "alt": 0, "n": "1-2-3-2", "g": 1}, {"c": [0, -1, -2, -1], "alt": 0, "n": "3-2-1-2", "g": 1}, {"c": [0, 1, 2, 0], "alt": 0, "n": "1-2-3-1", "g": 1}, {"c": [0, -1, -2, 0], "alt": 0, "n": "3-2-1-3", "g": 1}, {"c": [0, 1, 2, 3, 4, 5], "alt": 0, "n": "Sixes up", "g": 2}, {"c": [0, -1, -2, -3, -4, -5], "alt": 0, "n": "Sixes down", "g": 2}, {"c": [0, 1, 2, 3, 4, 5, 6, 7], "alt": 0, "n": "Eights up", "g": 2}, {"c": [0, -1, -2, -3, -4, -5, -6, -7], "alt": 0, "n": "Eights down", "g": 2}, {"c": [0, 2], "alt": 0, "n": "Diatonic 3rds up", "g": 3}, {"c": [0, -2], "alt": 0, "n": "Diatonic 3rds down", "g": 3}, {"c": [0, 2], "alt": 1, "n": "Diatonic 3rds, alternating", "g": 3}, {"c": [0, 3], "alt": 0, "n": "Diatonic 4ths up", "g": 3}, {"c": [0, -3], "alt": 0, "n": "Diatonic 4ths down", "g": 3}, {"c": [0, 3], "alt": 1, "n": "Diatonic 4ths, alternating", "g": 3}, {"c": [0, 4], "alt": 0, "n": "Diatonic 5ths up", "g": 3}, {"c": [0, -4], "alt": 0, "n": "Diatonic 5ths down", "g": 3}, {"c": [0, 4], "alt": 1, "n": "Diatonic 5ths, alternating", "g": 3}, {"c": [0, 5], "alt": 0, "n": "Diatonic 6ths up", "g": 3}, {"c": [0, -5], "alt": 0, "n": "Diatonic 6ths down", "g": 3}, {"c": [0, 5], "alt": 1, "n": "Diatonic 6ths, alternating", "g": 3}, {"c": [0, 7], "alt": 0, "n": "Diatonic octaves up", "g": 3}, {"c": [0, -7], "alt": 0, "n": "Diatonic octaves down", "g": 3}, {"c": [0, 7], "alt": 1, "n": "Diatonic octaves, alternating", "g": 3}, {"c": [0, 6], "alt": 0, "n": "Diatonic 7ths up", "g": 3}, {"c": [0, -6], "alt": 0, "n": "Diatonic 7ths down", "g": 3}, {"c": [0, 6], "alt": 1, "n": "Diatonic 7ths, alternating", "g": 3}, {"c": [0, 2, 1, 3], "alt": 0, "n": "Thirds in fours (1-3-2-4)", "g": 4}, {"c": [0, -2, -1, -3], "alt": 0, "n": "Thirds in fours down (4-2-3-1)", "g": 4}, {"c": [0, 2, 1, 3], "alt": 1, "n": "Thirds in fours, alternating", "g": 4}, {"c": [0, 2, 1], "alt": 0, "n": "Skip-step (1-3-2)", "g": 4}, {"c": [0, -2, -1], "alt": 0, "n": "Skip-step down (3-1-2)", "g": 4}, {"c": [0, 3, 1, 4], "alt": 0, "n": "Fourths in fours (1-4-2-5)", "g": 4}, {"c": [0, -3, -1, -4], "alt": 0, "n": "Fourths in fours down", "g": 4}, {"c": [0, 2, 1, 3, 2, 4, 3, 5], "alt": 0, "n": "Broken thirds run", "g": 4}, {"c": [0, -2, -1, -3, -2, -4, -3, -5], "alt": 0, "n": "Broken thirds run down", "g": 4}, {"c": [0, 1, 3], "alt": 0, "n": "1-2-4", "g": 4}, {"c": [0, -1, -3], "alt": 0, "n": "4-3-1", "g": 4}, {"c": [0, 2, 3], "alt": 0, "n": "1-3-4", "g": 4}, {"c": [0, -2, -3], "alt": 0, "n": "4-2-1", "g": 4}, {"c": [0, 2, 4], "alt": 0, "n": "Triads up (1-3-5)", "g": 5}, {"c": [0, -2, -4], "alt": 0, "n": "Triads down (5-3-1)", "g": 5}, {"c": [0, 2, 4], "alt": 1, "n": "Triads, alternating", "g": 5}, {"c": [0, 2, 4, 7], "alt": 0, "n": "Triad and octave up (1-3-5-8)", "g": 5}, {"c": [0, -3, -5, -7], "alt": 0, "n": "Triad and octave down (8-5-3-1)", "g": 5}, {"c": [0, 2, 4, 2], "alt": 0, "n": "1-3-5-3", "g": 5}, {"c": [0, -2, -4, -2], "alt": 0, "n": "5-3-1-3", "g": 5}, {"c": [0, 4, 2, 4], "alt": 0, "n": "1-5-3-5", "g": 5}, {"c": [0, 2, 4, 6], "alt": 0, "n": "Seventh arpeggios up (1-3-5-7)", "g": 5}, {"c": [0, -2, -4, -6], "alt": 0, "n": "Seventh arpeggios down (7-5-3-1)", "g": 5}, {"c": [0, 2, 4, 6], "alt": 1, "n": "Seventh arpeggios, alternating", "g": 5}, {"c": [0, 2, 5], "alt": 0, "n": "First inversion (3-5-8)", "g": 5}, {"c": [0, 3, 5], "alt": 0, "n": "Second inversion (5-8-10)", "g": 5}, {"c": [0, 2, 4, 7, 4, 2], "alt": 0, "n": "Triad up and back (1-3-5-8-5-3)", "g": 5}, {"c": [0, 2, 4, 6, 4, 2], "alt": 0, "n": "Seventh up and back (1-3-5-7-5-3)", "g": 5}, {"c": [0, 2, 4, 1, 3, 5], "alt": 0, "n": "Stacked triads (1-3-5 / 2-4-6)", "g": 5}, {"c": [0, 2, 4, 2, 1, 3, 5, 3], "alt": 0, "n": "Triad pairs in eights", "g": 5}, {"c": [1, -1, 0], "alt": 0, "n": "Enclosure from above (2-7-1)", "g": 6}, {"c": [-1, 1, 0], "alt": 0, "n": "Enclosure from below (7-2-1)", "g": 6}, {"c": [0, 1, 0, -1], "alt": 0, "n": "Upper turn (1-2-1-7)", "g": 6}, {"c": [0, -1, 0, 1], "alt": 0, "n": "Lower turn (1-7-1-2)", "g": 6}, {"c": [0, 1, -1, 0], "alt": 0, "n": "Four-note enclosure (1-2-7-1)", "g": 6}, {"c": [0, -1, 1, 0], "alt": 0, "n": "Four-note enclosure below (1-7-2-1)", "g": 6}, {"c": [2, 1, -1, 0], "alt": 0, "n": "Double approach (3-2-7-1)", "g": 6}, {"c": [-2, -1, 1, 0], "alt": 0, "n": "Double approach below (6-7-2-1)", "g": 6}, {"c": [0, 1, 0, 2], "alt": 0, "n": "Neighbour and step (1-2-1-3)", "g": 6}, {"c": [0, -1, 0, -2], "alt": 0, "n": "Neighbour and step down (3-2-3-1)", "g": 6}, {"c": [0, 1, 2, 4], "alt": 0, "n": "1-2-3-5 (Coltrane cell)", "g": 7}, {"c": [0, -2, -3, -4], "alt": 0, "n": "5-3-2-1", "g": 7}, {"c": [0, 1, 2, 4], "alt": 1, "n": "1-2-3-5, alternating", "g": 7}, {"c": [0, 1, 3, 2], "alt": 0, "n": "1-2-4-3", "g": 7}, {"c": [0, -1, -3, -2], "alt": 0, "n": "4-3-1-2", "g": 7}, {"c": [0, 1, 0, 2, 0, 3], "alt": 0, "n": "Pedal tone up (1-2-1-3-1-4)", "g": 7}, {"c": [0, -1, 0, -2, 0, -3], "alt": 0, "n": "Pedal tone down", "g": 7}, {"c": [0, 1, 2, 1, 2, 3], "alt": 0, "n": "Rolling sixes up (1-2-3-2-3-4)", "g": 7}, {"c": [0, -1, -2, -1, -2, -3], "alt": 0, "n": "Rolling sixes down", "g": 7}, {"c": [0, 1, 2, 3, 4, 3, 2, 1], "alt": 0, "n": "Up four, back four", "g": 7}, {"c": [0, -1, -2, -3, -4, -3, -2, -1], "alt": 0, "n": "Down four, back four", "g": 7}, {"c": [0, 1, 2, 3, 2, 1], "alt": 0, "n": "Three up, three back", "g": 7}, {"c": [0, -1, -2, -3, -2, -1], "alt": 0, "n": "Three down, three back", "g": 7}, {"c": [0, 1, 2, 4, 2, 1], "alt": 0, "n": "1-2-3-5-3-2", "g": 7}, {"c": [0, -2, -3, -4, -3, -2], "alt": 0, "n": "5-3-2-1-2-3", "g": 7}, {"c": [0, 1, 2, 3, 4, 2, 1, 0], "alt": 0, "n": "Run and turn (1-2-3-4-5-3-2-1)", "g": 7}, {"c": [0, -1, -2, -3, -4, -2, -1, 0], "alt": 0, "n": "Run and turn down", "g": 7}, {"c": [1, 0, 1, 2], "alt": 0, "n": "2-1-2-3", "g": 1}, {"c": [1, 2, 1, 0], "alt": 0, "n": "2-3-2-1", "g": 1}, {"c": [0, 2, 1, 2], "alt": 0, "n": "1-3-2-3", "g": 1}, {"c": [2, 0, 1, 0], "alt": 0, "n": "3-1-2-1", "g": 1}, {"c": [-1, 0, 1, 2], "alt": 0, "n": "Fours up from below (7-1-2-3)", "g": 1}, {"c": [1, 0, -1, -2], "alt": 0, "n": "Fours down from above (2-1-7-6)", "g": 1}, {"c": [0, 2, 1], "alt": 1, "n": "Threes, outside in (1-3-2)", "g": 0}, {"c": [2, 1, 0], "alt": 0, "n": "Threes reversed (3-2-1 rising)", "g": 0}, {"c": [-2, -1, 0], "alt": 0, "n": "Threes reversed falling (1-2-3 falling)", "g": 0}, {"c": [0, 1, 2, 3, 4, 5], "alt": 1, "n": "Sixes, alternating", "g": 2}, {"c": [0, 1, 2, 3, 4, 5, 6, 7], "alt": 1, "n": "Eights, alternating", "g": 2}, {"c": [0, 1, 2, 1, 2, 3], "alt": 1, "n": "Sixes in threes (1-2-3, 2-3-4)", "g": 2}, {"c": [0, -2, -1], "alt": 1, "n": "Thirds down in threes (1-6-7)", "g": 4}, {"c": [0, 3, 4], "alt": 0, "n": "Fourths up and step (1-4-5)", "g": 4}, {"c": [0, 4, 3], "alt": 0, "n": "Fifths and step (1-5-4)", "g": 4}, {"c": [0, 5, 4], "alt": 0, "n": "Sixths and step (1-6-5)", "g": 4}, {"c": [0, 3, 1, 4, 2, 5, 3, 6], "alt": 0, "n": "Broken fourths run", "g": 4}, {"c": [0, 2, 5], "alt": 1, "n": "Triads in threes, alternating inversions", "g": 5}, {"c": [0, 2, 4, 2, 0, 2], "alt": 0, "n": "Arpeggio sixes (1-3-5-3-1-3)", "g": 5}, {"c": [0, 2, 4, 6, 4, 2, 0, 2], "alt": 0, "n": "Seventh arpeggios with turn (1-3-5-7-5)", "g": 5}, {"c": [1, 0, -1, 0], "alt": 0, "n": "Neighbour pairs (2-1-7-1)", "g": 6}, {"c": [1, -1, 0], "alt": 1, "n": "Enclosure, alternating", "g": 6}, {"c": [0, 1, 0, -1, 0, 1, 2, 1], "alt": 0, "n": "Turn in eights (1-2-1-7-1-2-3-2)", "g": 6}, {"c": [0, -2, -3, -4], "alt": 1, "n": "Coltrane cell down (5-3-2-1) alternating", "g": 7}, {"c": [0, 4, 3, 2], "alt": 0, "n": "1-5-4-3", "g": 7}, {"c": [0, 1, 4, 3], "alt": 0, "n": "1-2-5-4", "g": 7}, {"c": [0, 2, 5, 4], "alt": 0, "n": "1-3-6-5", "g": 7}, {"c": [0, -1, -3, -4], "alt": 0, "n": "Blues-style fall (5-4-2-1)", "g": 7}, {"c": [0, 1, 2, 0, 1, 2], "alt": 0, "n": "Repeated threes (1-2-3-1-2-3)", "g": 7}, {"c": [0, 2, 4, 7, 6, 4, 2, 0], "alt": 0, "n": "Wide eights (1-3-5-8-7-5-3-1)", "g": 7}, {"c": [3, 2, 1, 0], "alt": 0, "n": "Fours reversed, rising (4-3-2-1)", "g": 1}, {"c": [-3, -2, -1, 0], "alt": 0, "n": "Fours reversed, falling (1-2-3-4)", "g": 1}, {"c": [0, 2, 4, 5], "alt": 0, "n": "Triad and step (1-3-5-6)", "g": 5}, {"c": [0, -2, -4], "alt": 1, "n": "Triads down, alternating", "g": 5}, {"c": [0, 4, 1, 5], "alt": 0, "n": "Fifths in fours (1-5-2-6)", "g": 4}, {"c": [0, -4, -1, -5], "alt": 0, "n": "Fifths in fours down", "g": 4}, {"c": [0, 5, 1, 6], "alt": 0, "n": "Sixths in fours (1-6-2-7)", "g": 4}, {"c": [0, 7, 1, 8], "alt": 0, "n": "Octave displacement (1-8-2-9)", "g": 4}, {"c": [0, -2, -4, -6, -4, -2], "alt": 0, "n": "Seventh down and back (7-5-3-1-3-5)", "g": 5}, {"c": [0, 1, 2, 3, 4, 2, 0, 2], "alt": 0, "n": "Scale and arpeggio (1-2-3-4-5-3-1-3)", "g": 7}, {"c": [-1, 0, 1, 2], "alt": 1, "n": "Fours up, alternating from below", "g": 1}, {"c": [0, -1, -4, -3], "alt": 0, "n": "1-2-5-4 down (5-4-1-2)", "g": 7}];
+const PGROUPS=[]; // the built-in pattern library has been removed: the trainer now runs on your own patterns
+const PLIST=[];
 const durOf=n=>n===2?1/2:n===3||n===6?1/3:1/4;
 const PAT=PLIST.map((x,rank)=>({...x,rank,dur:durOf(x.c.length)})); // ranked: most commonly practised first
 const PLIB=2;
@@ -1057,6 +1057,7 @@ function eventsFor(id,ro,test,whole){
   else if(id==="w")E=writeEvents(ro);
   else if(id==="cr"){const r=crNow();E=r?courseEvents(r.p,r.sh,ro):cellEvents(null);}
   else if(id.startsWith("pv")){const p=(S.myPats||[])[Number(id.slice(2))];E=cellEvents(p?patA(p):null,"asis",ro);}
+  else if(today.kind==="own"){const p=curPat(),sh=CSH[Number(id.slice(1))];E=p&&sh?courseEvents(p,sh,ro):cellEvents(null);}
   else{const it=today.items[Number(id.slice(1))];E=it.k==="p"?patEvents(it,ro):it.k==="v"?vocEvents(it.i,ro):it.k==="m"?melEvents(it.i,ro):seqEvents(it,ro);}
   E.gr=gr;
   const sel=id!=="pos"&&!ro&&!test&&!whole?barSel[selKey(id)]:null;
@@ -1141,6 +1142,7 @@ function grooveOf(id){
   else if(id==="x")fam=grooveFamily(RHY[extra.rh]);
   else if(id==="w"||id==="cr"||id.startsWith("pv")){const p=id==="cr"?(crNow()||{}).p:id==="w"?null:(S.myPats||[])[Number(id.slice(2))];
     const A=p?patA(p):id==="w"?wA():null;if(A&&A.ok&&GROOVES[A.groove])return A.groove;}
+  else if(today.kind==="own"){const p=curPat(),A=p?patA(p):null;if(A&&A.ok&&GROOVES[A.groove])return A.groove;}
   else{const it=today.items[Number(id.slice(1))];gr=it.gr;fam=famOfItem(it);}
   if(gr!=null&&GROOVES[gr])return gr;
   const c=GROOVES.map((g,i)=>i).filter(i=>GROOVES[i].fam===fam);let h=0;for(const ch of (today.id||"")+id)h=(h*31+ch.charCodeAt(0))>>>0;return c[h%c.length];
@@ -1345,7 +1347,7 @@ function analyzeW(){
   let kk=null,fit=null,how="";
   if(W.group!=="auto"){kk=Math.min(N,Number(W.group));const gs=[];for(let i=0;i+kk<=N;i+=kk)gs.push(ix.slice(i,i+kk));fit=fitGroups(gs);how="you set";}
   else if(blocks.length>1&&blocks.every(b=>b.length===blocks[0].length)){kk=blocks[0].length;fit=fitGroups(blocks.map(b=>b.map(n=>notes.find(x=>x.c===n.c).ix)));how="from the gaps you left";}
-  else{for(let g=2;g<=N/2;g++){if(N%g)continue;const gs=[];for(let i=0;i<N;i+=g)gs.push(ix.slice(i,i+g));const f=fitGroups(gs);if(f){kk=g;fit=f;how="found in your notes";break;}}
+  else{for(let g=2;g<=N/2;g++){if(N%g)continue;const gs=[];for(let i=0;i<N;i+=g)gs.push(ix.slice(i,i+g));const f=fitGroups(gs);if(f&&Math.abs(f.shift)===1){kk=g;fit=f;how="found in your notes";break;}}
     if(!kk){kk=N;fit={alt:0,shift:0};how="one cell";}}
   const c=ix.slice(0,kk).map(v=>v-ix[0]);
   const groups=W.group==="auto"&&blocks.length>1&&blocks.every(b=>b.length===kk)?blocks.map(b=>b.map(n=>notes.find(x=>x.c===n.c))):(()=>{const o=[];for(let i=0;i<N;i+=kk)o.push(notes.slice(i,i+kk));return o;})();
@@ -1393,7 +1395,7 @@ const CSTG=[{n:"I",name:"Foundation",from:20,to:60},{n:"II",name:"Fluency",from:
 const cStage=t=>t<=60?0:t<=120?1:2;
 const CSH=[...[1,2,3,4,5].map(p=>({sc:"major",p,k:"M"+p})),...[1,2,3,4,5].map(p=>({sc:"minpent",p,k:"P"+p}))];
 const shLab=x=>`${x.sc==="major"?"Major":"Pentatonic"} · ${CAGED[x.p-1].n} shape`;
-const patProg=(p,t)=>(p.prog&&p.prog[t])||{};
+const patProg=(p,t)=>{const a={...((p.prog&&p.prog[t])||{})},s=sessions[ownId(p,t)];if(s)(s.done||[]).forEach(k=>{a[k]=a[k]||(s.doneAt&&s.doneAt[k])||1;});return a;};
 const patDoneAt=(p,t)=>{const g=patProg(p,t);return CSH.every(x=>g[x.k]);};
 const patCount=(p,t)=>{const g=patProg(p,t);return CSH.filter(x=>g[x.k]).length;};
 function patLevel(p){for(const t of CT)if(!patDoneAt(p,t))return t;return null;}
@@ -1441,14 +1443,11 @@ function courseHTML(){
     return `<section class="card crs">${head}
       <p class="crmsg">✓ ${L.length===1?`“${escH(L[0].name)}” is`:`All ${L.length} patterns are`} done in all ten shapes at ${C.T} bpm. Write your next pattern below.</p>
       <div class="crbtns"><button type="button" class="play" data-crclose="1">I've entered all my patterns · move to ${C.T+5} bpm ▸</button></div></section>`;}
-  const p=C.cur,sh=curShape(p,C.T),E=eventsFor("cr",false,false,true),n=patCount(p,C.T);
-  return `<section class="card crs ex" id="card-cr">${head}
-    <div class="crnow"><div><div class="num">Now playing</div><h3>${escH(p.name)}</h3>
-      <div class="meta"><span class="chip">${shLab(sh)}</span><span class="chip m">${NOTE[S.keyPc]} ${SCN[sh.sc]}</span><span class="chip t">${rhyName(patA(p).dur)}</span><span class="chip m">${n} / 10 shapes</span></div></div></div>
-    ${dotsHTML(p,C.T,true)}
-    ${barsBar("cr",E)}
-    <div class="tabscroll"><div class="tab${barSel[selKey("cr")]?" hassel":""}">${tabHTML(E,"cr")}</div></div>
-    <div class="navf"><span class="tnote">Tap a shape above to practise it out of order.${S.myCourse&&S.myCourse.closed?` <button type="button" class="linkb" data-cropen="1">Add more patterns</button>`:""}</span><span>${patProg(p,C.T)[sh.k]?`<span class="tnote">✓ Done</span>`:`<button type="button" class="play big donego" data-crdone="1">✓ Done, next shape ▸</button>`}</span></div>
+  const p=C.cur,n=patCount(p,C.T);
+  return `<section class="card crs">${head}
+    <div class="crnow"><div><div class="num">Now practising</div><h3>${escH(p.name)}</h3><div class="meta"><span class="chip m">${n} / 10 shapes</span></div></div></div>
+    ${dotsHTML(p,C.T,false)}
+    <div class="crbtns"><button type="button" class="play" data-gosess="1">▶ Practise it in your session</button>${S.myCourse&&S.myCourse.closed?`<button type="button" class="linkb" data-cropen="1">Add more patterns</button>`:""}</div>
   </section>`;
 }
 function patListHTML(){
@@ -1555,7 +1554,8 @@ function wHandleClick(e){
     if(!wA().ok)return true;
     const L=S.myPats=S.myPats||[],old=L.find(p=>p.id===W.editId);
     const rec={id:W.editId||("u"+Date.now().toString(36)),name:W.name,cols:[...W.cols],key:W.key,scale:W.scale,group:W.group,rhy:W.rhy,gr:W.gr,mode:W.mode,prog:old&&old.prog||{}};
-    if(old&&patSig(patA(old))!==patSig(wA()))rec.prog={}; // different notes: this pattern starts its shapes again
+    rec.rev=old?old.rev||0:0;
+    if(old&&patSig(patA(old))!==patSig(wA())){rec.prog={};rec.rev++;} // different notes: this pattern starts its shapes again
     if(old)L[L.indexOf(old)]=rec;else L.push(rec);
     stop();Object.assign(W,{cols:Array(12).fill(null),sel:{c:0,s:6},key:"auto",scale:"auto",group:"auto",rhy:"auto",gr:"auto",name:"",editId:null,crSh:null});WA=null;saveDraft();persistSettings();render();
     window.scrollTo({top:0,behavior:"smooth"});return true;}
@@ -1592,21 +1592,178 @@ function wKey(e){ // a hardware keyboard works too: digits (two quick digits mak
   return false;
 }
 
+/* ===================== Sessions built from your own patterns =====================
+   One session = one of your patterns at the course tempo:
+   Setup → major box → 1–5 (C A G E D shapes) → pentatonic box → 6–10 (the five boxes) → summary and revision sheet. */
+const OWN_STEPS=["setup","boxM",0,1,2,3,4,"boxP",5,6,7,8,9,"summary"];
+const isBox=v=>v==="boxM"||v==="boxP";
+const ownId=(p,t)=>`o-${p.id}-${p.rev||0}-${t}`;
+const stamp=()=>{const now=new Date();return dkey(now)+"T"+pad(now.getHours())+":"+pad(now.getMinutes())+":"+pad(now.getSeconds());};
+function ownSession(p,t){const id=ownId(p,t);let s=sessions[id];
+  if(!s)s=sessions[id]={id,kind:"own",pid:p.id,rev:p.rev||0,tempo:t,started:stamp(),scale:"major",position:1,items:CSH.map(x=>({k:"o",sh:x.k})),done:[],doneAt:{},boxDone:{},bpos:{M:1,P:1},finished:false,boxGr:0};
+  s.pname=p.name;return s;}
+function freeSession(){const id="o-free";return sessions[id]||(sessions[id]={id,kind:"own",free:true,tempo:null,started:"2000-01-01T00:00:00",scale:"major",position:1,items:[],done:[],doneAt:{},boxDone:{},bpos:{M:1,P:1},finished:true,boxGr:0});}
+function ensureToday(){const C=course();today=C.cur?ownSession(C.cur,C.T):freeSession();if(C.cur)today.tempo=C.T;}
+const curPat=()=>(S.myPats||[]).find(p=>p.id===today.pid)||null;
+const patIndex=p=>(S.myPats||[]).indexOf(p);
+const ownSessions=()=>Object.values(sessions).filter(x=>x.kind==="own"&&!x.free);
+const bdOf=()=>today.boxDone&&typeof today.boxDone==="object"?today.boxDone:(today.boxDone={});
+function spaceTxt(A){if(seqGapMode()!=="space")return "";const g=A.c.length*A.dur,b=breathLen(g,A.dur);return `${b===1?"one beat":b===2?"two beats":b===4?"a bar":b+" beats"} of space after each group`;}
+function ownSetupView(){
+  const C=course(),L=S.myPats||[];
+  const extras=`${goalHTML()}${settingsHTML()}${revisionHTML()}`;
+  if(today.free){
+    const head=C.empty?`<h2>Write your first pattern</h2><p class="lead">This trainer is built from your own patterns. Write one from your book on blank tab; a session then takes it through the five major shapes and the five pentatonic boxes at 20 bpm. Finish it, write the next, and so on. When all your patterns are in, the tempo climbs 5 bpm at a time: Stage I 20–60, II 60–120, III 120–160.</p>`
+      :C.fin?`<h2>All three stages complete 🎉</h2><p class="lead">Every pattern, in all ten shapes, up to 160 bpm.</p>`
+      :`<h2>${L.length===1?`“${escH(L[0].name)}” is`:`All ${L.length} patterns are`} done at ${C.T} bpm</h2><p class="lead">Write your next pattern, or if you've entered them all, move the whole set up to ${C.T+5} bpm.</p>`;
+    return `<section class="card"><div class="num">${C.empty?"Getting started":`Stage ${CSTG[cStage(C.T||160)].n} · ${C.T||160} bpm`}</div>${head}
+      <div class="crbtns"><button type="button" class="play big" data-go="write">✏️ ${C.empty?"Write a pattern":"Write your next pattern"} ▸</button>${!C.empty&&!C.fin?`<button type="button" class="ghost" data-crclose="1">I've entered all my patterns · move to ${C.T+5} bpm ▸</button>`:""}</div>
+      ${extras}</section>`;}
+  const p=curPat(),fo=firstOpen(),fresh=!today.done.length&&!bdOf().M,st=CSTG[cStage(today.tempo)];
+  const goLbl=fo==="boxM"?"Start with the major box":fo==="boxP"?"Continue with the pentatonic box":fo==="summary"?"See the summary":`Continue with ${fo+1}: ${shLab(CSH[fo])}`;
+  const li=(k,lbl,name,ok)=>`<li class="${ok?"ok":""}"><span class="pk">${lbl}</span><span class="pn">${name}</span><span class="pd">${ok?"✓":""}</span></li>`;
+  const plan=[li("bm","Box",`${NOTE[S.keyPc]} major · ${CAGED[(today.bpos&&today.bpos.M||1)-1].n} shape warm-up`,bdOf().M),
+    ...[0,1,2,3,4].map(j=>li(j,j+1,shLab(CSH[j]),itemDone(j))),
+    li("bp","Box",`${NOTE[S.keyPc]} minor pentatonic · ${CAGED[(today.bpos&&today.bpos.P||1)-1].n} box warm-up`,bdOf().P),
+    ...[5,6,7,8,9].map(j=>li(j,j+1,shLab(CSH[j]),itemDone(j)))].join("");
+  const ladder=CT.filter(t=>t>=st.from&&t<=st.to).map(t=>`<span class="lstep${t<today.tempo?" done":""}${t===today.tempo?" cur":""}">${t}</span>`).join("");
+  return `<section class="card">
+    <div class="num">Pattern ${patIndex(p)+1} of ${L.length} · Stage ${st.n} · ${today.tempo} bpm</div>
+    <h2>${escH(p?p.name:"")}</h2>
+    <p class="lead">${fresh?"Warm up on the major box, then play your pattern through the five major shapes, warm up on the pentatonic box, and play it through the five pentatonic boxes. Take as many days as you need; the session waits for you.":`${today.done.length} of 10 shapes done. Pick up where you left off.`}</p>
+    ${navHTML(null,`<button type="button" class="play big" data-go="${fo}">${goLbl} ▸</button>`).replace('class="navf"','class="navf top"')}
+    <div class="ladder" aria-label="Tempo ladder">${ladder}</div>
+    <div><h3>This session</h3><ol class="plan">${plan}</ol></div>
+    ${extras}
+  </section>`;
+}
+function settingsHTML(){return `<details class="more"><summary>⚙️ Settings, mix and sync</summary>
+    <div class="two">
+      <div><div class="settings">
+        <label class="ctl" for="key">Key <select id="key">${KEYS.map(([k,pc])=>`<option value="${pc}"${pc===S.keyPc?" selected":""}>${k}</option>`).join("")}</select></label>
+        <label class="ctl tempo" for="tempo">Tempo <input type="range" id="tempo" min="20" max="200" step="1" value="${curTempo}"> <b id="tempoV">${curTempo}</b> bpm</label>
+        <p class="tnote" id="tnote"></p>
+        <label class="ctl" for="seqGap">Space after each group <select id="seqGap">${GAPOPTS.map(([v,l])=>`<option value="${v}"${seqGapMode()===v?" selected":""}>${l}</option>`).join("")}</select></label>
+        ${[["drums","Drums"],["click","Metronome (when drums are off)"],["loop","Loop"],["countin","Count-in"],["chords","Backing chords"]].map(([k,l])=>`<label class="chk" for="${k}"><input type="checkbox" id="${k}"${S[k]?" checked":""}> ${l}</label>`).join("")}
+      </div></div>
+      <div class="mix"><h4>Mix</h4>${mixHTML()}</div>
+    </div>
+    ${syncPanel()}
+    </details>`;}
+function revisionHTML(){return ownSessions().some(x=>x.done.length>=10)?`<details class="more"><summary>📄 Revision sheets for completed sessions</summary><p class="tnote">Each completed session as a one-page PDF: your pattern as written and its first bar in all ten shapes.</p>${histHTML()}</details>`:"";}
+function ownBoxView(){
+  const k=view==="boxM"?"M":"P",done=!!bdOf()[k],pos=(today.bpos&&today.bpos[k])||1;
+  const sw=`<div class="lblsw" role="group" aria-label="Shape"><span>Shape</span>${[1,2,3,4,5].map(n=>`<button type="button" class="seg" data-bpos="${k}${n}" aria-pressed="${n===pos}">${CAGED[n-1].n}</button>`).join("")}</div>`;
+  let h=boxView();
+  h=h.replace('<p id="posWhy" hidden></p>',sw+'<p id="posWhy" hidden></p>');
+  h=h.replace(/<div class="num">Warm-up · The box/,`<div class="num">Warm-up · ${k==="M"?"Major":"Pentatonic"} box`);
+  const nav=k==="M"?navHTML("setup",done?`<button type="button" class="play big" data-go="0">Next: 1. ${shLab(CSH[0])} ▸</button>`:`<button type="button" class="play big donego" data-boxdone="M">✓ Box done, next ▸</button>`)
+                   :navHTML("4",done?`<button type="button" class="play big" data-go="5">Next: 6. ${shLab(CSH[5])} ▸</button>`:`<button type="button" class="play big donego" data-boxdone="P">✓ Box done, next ▸</button>`);
+  const i=h.lastIndexOf('<div class="navf">');return h.slice(0,i)+nav+"\n  </section>";
+}
+function ownItemView(j){
+  const p=curPat(),sh=CSH[j],id="i"+j,E=eventsFor(id,false,false,true),A=patA(p),done=itemDone(j),t=today.time&&today.time[sh.k];
+  const back=j===0?"boxM":j===5?"boxP":String(j-1),nxt=j===4?"boxP":j===9?"summary":String(j+1);
+  const nextLbl=j===4?"Next: pentatonic box":j===9?"Finish the session":`Next: ${j+2}. ${shLab(CSH[j+1])}`;
+  const main=done?`<span class="undo"><button type="button" class="linkb" data-undo="${j}">Mark as not done</button></span><button type="button" class="play big" data-go="${nxt}">${nextLbl} ▸</button>`
+                 :`<button type="button" class="play big donego" data-itemdone="${j}">✓ Done, ${j===9?"finish":"next"} ▸</button>`;
+  const P=positionNotes(sh.sc,S.keyPc,sh.p),fr=P.notes.map(n=>n.f),pi=patIndex(p),W0=cellEvents(A,"asis"),sp=spaceTxt(A);
+  return `<section class="card ex${done?" done":""}" id="card-${id}">
+    <div class="exhead"><div>
+      <div class="num">${j+1} of 10 · ${escH(p.name)} · ${curTempo} bpm</div>
+      <h2>${shLab(sh)}</h2>
+      <div class="meta"><span class="chip">${NOTE[S.keyPc]} ${SCN[sh.sc]}</span><span class="chip m">frets ${Math.min(...fr)}–${Math.max(...fr)}</span><span class="chip t">${rhyName(A.dur)}</span><span class="chip m">${plab(A.c)}${A.alt?" alt.":""}</span></div>
+      <p class="count1">🥁 ${GROOVES[grooveOf(id)].n}${sp?" · "+sp:""}</p>
+    </div></div>
+    ${barsBar(id,E)}
+    <div class="tabscroll"><div class="tab${barSel[selKey(id)]?" hassel":""}">${tabHTML(E,id)}</div></div>
+    <details class="more"><summary>Your pattern as written, space and drums</summary>
+      <div class="tabscroll"><div class="tab mini">${tabHTML(W0,"pv"+pi)}</div></div>
+      <div class="pact"><button type="button" data-play="pv${pi}" aria-pressed="false">▶ Hear it as written</button></div>
+      <label class="ctl" for="seqGap">Space after each group <select id="seqGap">${GAPOPTS.map(([v,l])=>`<option value="${v}"${seqGapMode()===v?" selected":""}>${l}</option>`).join("")}</select></label>
+      ${groovePanel(id,grooveOf(id))}
+    </details>
+    ${t?`<p class="ptime">Practised ${fmtMin(t)} in this shape so far.</p>`:""}
+    ${navHTML(back,main)}</section>`;
+}
+function ownSummaryView(){
+  const p=curPat(),tot=sesTime(today),C=course(),tile=(v,l)=>`<div class="tile"><b>${v}</b><span>${l}</span></div>`;
+  const rows=CSH.map((x,j)=>`<tr><td class="n">${j+1}</td><td>${shLab(x)}</td><td class="n">${fmtMin(today.time&&today.time[x.k])}</td></tr>`).join("");
+  const nxt=C.cur?`<div class="nextp"><div><div class="num">Next session</div><b>${escH(C.cur.name)} · ${C.T} bpm</b></div><button type="button" class="play big" data-newsession="1">Start the next session ▸</button></div>`
+    :C.fin?`<p class="crmsg">All three stages complete 🎉</p>`
+    :`<div class="nextp"><div><div class="num">Next</div><b>Write your next pattern</b></div><button type="button" class="play big" data-go="write">✏️ Write it ▸</button></div>
+      ${!(S.myCourse&&S.myCourse.closed)?`<div class="crbtns"><button type="button" class="ghost" data-crclose="1">I've entered all my patterns · move to ${C.T+5} bpm ▸</button></div>`:""}`;
+  return `<section class="card">
+    <div class="num">Session complete</div>
+    <h2>Well played</h2>
+    <p class="lead">${escH(p?p.name:today.pname||"")} in all ten shapes at ${today.tempo} bpm.</p>
+    <div class="tiles">${tile(today.tempo,"bpm")}${tile(fmtMin(tot),"playing time")}${tile(10,"shapes")}${tile("Stage "+CSTG[cStage(today.tempo)].n,"stage")}</div>
+    <h3>What you practised</h3>
+    <table class="hist"><thead><tr><th>#</th><th>Shape</th><th>Time</th></tr></thead><tbody>
+      <tr><td class="n">–</td><td>Boxes (warm-up)</td><td class="n">${fmtMin(((today.time||{}).boxM||0)+((today.time||{}).boxP||0)+((today.time||{}).box||0))}</td></tr>${rows}</tbody></table>
+    ${nxt}
+    <div class="row" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button type="button" class="play" data-pdf="${today.id}">📄 Revision sheet (PDF)</button><span class="tnote">One page: your pattern as written and its first bar in all ten shapes.</span></div>
+    <details class="more"><summary>Recent sessions</summary>${histHTML()}</details>
+  </section>`;
+}
+async function ownPDF(sess){
+  const p=(S.myPats||[]).find(x=>x.id===sess.pid);if(!p)return;
+  const A=patA(p),doc=new MiniPDF(),W_=210,M=12,num=ownSessions().filter(x=>x.done.length>=10).sort((a,b)=>a.started<b.started?-1:1).indexOf(sess)+1;
+  const fin=Object.values(sess.doneAt||{}).sort().pop()||sess.started.slice(0,10);
+  doc.setFont("helvetica","bold");doc.setFontSize(15);doc.setTextColor(23,32,51);doc.text(pdfText(`Melodic Lead revision sheet: ${p.name}`),M,15);
+  doc.setFont("helvetica","normal");doc.setFontSize(9.5);doc.setTextColor(105,115,134);
+  doc.text(pdfText(`Session ${num||""} - completed ${fin} - ${sess.tempo} bpm - key of ${NOTE[S.keyPc]} - ${rhyName(A.dur)}, cell ${plab(A.c)}${A.alt?" alternating":""}`),M,21);
+  doc.setDrawColor(124,58,237);doc.setLineWidth(.6);doc.line(M,24,W_-M,24);
+  const gap=2.8;
+  const drawTab=(E,x0,x1,top,bars)=>{const bpb=E.bpb||4,BW=(x1-x0)/bars,pad=2.6,bw=(BW-2*pad)/bpb;
+    const xAt=b=>{const bar=Math.min(bars-1,Math.floor(b/bpb+1e-6));return x0+bar*BW+pad+(b-bar*bpb)*bw+bw*.12;};
+    doc.setDrawColor(190,196,206);doc.setLineWidth(.2);for(let s=0;s<6;s++)doc.line(x0,top+s*gap,x1,top+s*gap);
+    doc.setDrawColor(120,126,140);doc.setLineWidth(.35);for(let k=0;k<=bars;k++)doc.line(x0+k*BW,top,x0+k*BW,top+5*gap);
+    E.ev.forEach(e=>{if(e.rest||e.b>=bars*bpb-1e-6)return;const [a,b2]=tabNote(e),x=xAt(e.b);
+      [a,b2].filter(Boolean).forEach(nn=>{const yy=top+(nn.s-1)*gap,txt=String(nn.f);doc.setFont("helvetica",e.a?"bold":"normal");doc.setFontSize(7.6);
+        doc.setFillColor(255,255,255);doc.rect(x-doc.getTextWidth(txt)/2-.4,yy-1.4,doc.getTextWidth(txt)+.8,2.8);
+        if(nn.deg===0)doc.setTextColor(234,88,12);else doc.setTextColor(23,32,51);doc.text(txt,x,yy+.9,{align:"center"});});
+      doc.setFont("helvetica","normal");doc.setFontSize(5.8);doc.setTextColor(140,148,163);doc.text(pdfText(countLbl(e.b,E.R)),x,top+5*gap+3.4,{align:"center"});
+      if(e.gl){doc.setFont("helvetica","bold");doc.setFontSize(6);doc.setTextColor(124,58,237);doc.text(pdfText(e.gl),x,top-1.4,{align:"center"});}});};
+  // the pattern as written
+  doc.setFont("helvetica","bold");doc.setFontSize(11);doc.setTextColor(23,32,51);doc.text("Your pattern as written",M,31);
+  doc.setFont("helvetica","normal");doc.setFontSize(8.3);doc.setTextColor(60,66,80);
+  doc.text(pdfText(describeCell(A.c,A.alt,"major")),M,35.5,{maxWidth:W_-2*M});
+  const WE=cellEvents(A,"asis");["T","A","B"].forEach((ch,k)=>{doc.setFont("helvetica","bold");doc.setFontSize(7);doc.setTextColor(23,32,51);doc.text(ch,M+1,47+k*4.6);});
+  drawTab(WE,M+7,W_-M,44,Math.min(2,Math.ceil(WE.total/(WE.bpb||4)-1e-6)));
+  // the ten shapes: first bar of each, major on the left, pentatonic on the right
+  const colW=(W_-2*M-8)/2,y0=70;
+  [["major","Major scale",0],["minpent","Minor pentatonic",1]].forEach(([sc,title,ci])=>{
+    const x=M+ci*(colW+8);doc.setFont("helvetica","bold");doc.setFontSize(10.5);doc.setTextColor(23,32,51);doc.text(pdfText(`${NOTE[S.keyPc]} ${title}`),x,y0);
+    CSH.filter(s=>s.sc===sc).forEach((sh,r)=>{const top=y0+11+r*42,keep=posData;posData=positionNotes(sh.sc,S.keyPc,sh.p);
+      const fr=posData.notes.map(n=>n.f);posData=keep;const E=courseEvents(p,sh,false);
+      doc.setFont("helvetica","bold");doc.setFontSize(8.6);doc.setTextColor(79,70,229);doc.text(pdfText(`${CAGED[sh.p-1].n} shape - frets ${Math.min(...fr)}-${Math.max(...fr)}`),x,top-5);
+      drawTab(E,x,x+colW,top,1);});});
+  doc.setFontSize(7.2);doc.setTextColor(140,148,163);
+  doc.text("Bar 1 of each shape: the pattern starting from the lowest root. Orange = key note, bold = first note of a group, purple = scale degree the group starts on.",M,289,{maxWidth:W_-2*M});
+  doc.save(`revision-${pdfText(p.name).replace(/[^A-Za-z0-9]+/g,"-")}-${sess.tempo}bpm-${fin}.pdf`);
+}
+
 /* ===================== Step-by-step session view ===================== */
 let view="setup";
-const STEPS=["setup","box",0,1,2,3,4,"summary"];
+const STEPS=OWN_STEPS;
 const itemDone=j=>today.done.includes(keyOf(today.items[j]));
 function unlocked(v){
-  if(v==="setup"||v==="box"||v==="write")return true;
-  if(typeof v==="number")return !!today.boxDone&&today.items.slice(0,v).every((_,j)=>itemDone(j));
-  return today.done.length===5;
+  if(v==="setup"||v==="write")return true;
+  if(!today||today.free)return false;
+  const bd=bdOf(),upTo=n=>[...Array(n).keys()].every(itemDone);
+  if(v==="boxM")return true;
+  if(v==="boxP")return upTo(5);
+  if(typeof v==="number")return v<5?!!bd.M&&upTo(v):!!bd.P&&upTo(v);
+  return today.done.length>=10;
 }
-function firstOpen(){if(!today.boxDone)return "box";const j=today.items.findIndex((_,i)=>!itemDone(i));return j<0?"summary":j;}
-function go(v){stop();paused=null;if(view==="write"&&v!=="write")resetTempo();if(v==="write"&&view!=="write"){W.back=view;if(!W.sel){const c=W.cols.findIndex(x=>!x);W.sel={c:c<0?0:c,s:6};}}view=v;render();window.scrollTo({top:0,behavior:"smooth"});}
+function firstOpen(){if(today.free)return "setup";const bd=bdOf();if(!bd.M)return "boxM";
+  for(let j=0;j<5;j++)if(!itemDone(j))return j;if(!bd.P)return "boxP";for(let j=5;j<10;j++)if(!itemDone(j))return j;return "summary";}
+function go(v){stop();paused=null;if(v!=="write"&&today.free&&course().cur){ensureToday();resetTempo();}if(view==="write"&&v!=="write")resetTempo();if(v==="write"&&view!=="write"){W.back=view;if(!W.sel){const c=W.cols.findIndex(x=>!x);W.sel={c:c<0?0:c,s:6};}}view=v;render();window.scrollTo({top:0,behavior:"smooth"});}
 const fmtMin=sec=>{const m=Math.round((sec||0)/60);return m<60?`${m}m`:`${Math.floor(m/60)}h ${m%60}m`;};
 const sesTime=d=>Object.values(d.time||{}).reduce((a,b)=>a+b,0);
-const itemName=it=>it.k==="p"?`${patName(it)} · ${PAT[it.i].n}`:it.k==="v"?VOC[it.i].n:it.k==="m"?MK[MEL[it.i].kd].n:EX[it.i].t;
-const itemKind=it=>it.k==="p"?`${PGROUPS[PAT[it.i].g].n} · ${rhyName(PAT[it.i].dur)}`:it.k==="v"?"Phrase":it.k==="m"?MTYPE[melType(it.i)].n:"Sequence";
+const itemName=it=>it.k==="o"?shLab(CSH.find(x=>x.k===it.sh)):it.k==="p"?`${patName(it)} · ${PAT[it.i].n}`:it.k==="v"?VOC[it.i].n:it.k==="m"?MK[MEL[it.i].kd].n:EX[it.i].t;
+const itemKind=it=>it.k==="o"?(today.pname||"Your pattern"):it.k==="p"?`${PGROUPS[PAT[it.i].g].n} · ${rhyName(PAT[it.i].dur)}`:it.k==="v"?"Phrase":it.k==="m"?MTYPE[melType(it.i)].n:"Sequence";
 const posLabel=(d)=>`${NOTE[S.keyPc]} ${SCALES[d.scale].name}, ${shapeName(d.position)}`;
 
 function mixHTML(){return [["vMaster","🔊 Overall",200],["vDrums","🥁 Drums",150],["vClick","Click",150],["vNotes","♪ Guide notes",100],["vChords","Chords",100]].map(([k,l,mx])=>
@@ -1793,7 +1950,7 @@ function sessionEvents(sess,it){ // build an exercise's notes as they were in th
   finally{today=keep.today;posData=keep.posData;}
 }
 async function sessionPDF(id){
-  const sess=sessions[id];if(!sess)return;
+  const sess=sessions[id];if(!sess)return;if(sess.kind==="own")return ownPDF(sess);
   const doc=new MiniPDF(),W=210,M=12;
   const done5=Object.values(sessions).filter(x=>x.done.length===5).sort((a,b)=>a.started<b.started?-1:1),num=done5.indexOf(sess)+1;
   const fin=Object.values(sess.doneAt||{}).sort().pop()||sess.started.slice(0,10);
@@ -1836,10 +1993,10 @@ async function sessionPDF(id){
 }
 function histHTML(){
   const dayOf=x=>x.started.slice(0,10),tk=dkey(new Date());
-  const rows=Object.values(sessions).filter(x=>x.done.length||x===today).sort((a,b)=>a.started<b.started?1:-1).slice(0,12);
-  return `<table class="hist"><thead><tr><th>Started</th><th>Position</th><th>Time</th><th>Done</th><th></th></tr></thead><tbody>${rows.map(r=>{
-    const sc=SCALES[r.scale],when=dayOf(r)===tk?"Today":fmt(dayOf(r));
-    return `<tr><td>${when}</td><td class="n">${sc.short}, ${shapeName(r.position)}${r.tempo?` · ${r.tempo} bpm`:""}</td><td class="n">${fmtMin(sesTime(r))}</td><td><span class="pill${r.done.length===5?" full":""}">${r.done.length}/5</span></td><td>${r.done.length===5?`<button type="button" class="linkb" data-pdf="${r.id}">📄 PDF</button>`:""}</td></tr>`;}).join("")}</tbody></table>`;
+  const rows=ownSessions().filter(x=>x.done.length||x===today).sort((a,b)=>a.started<b.started?1:-1).slice(0,20);
+  return `<table class="hist"><thead><tr><th>Started</th><th>Pattern</th><th>Time</th><th>Done</th><th></th></tr></thead><tbody>${rows.map(r=>{
+    const when=dayOf(r)===tk?"Today":fmt(dayOf(r)),pp=(S.myPats||[]).find(x=>x.id===r.pid);
+    return `<tr><td>${when}</td><td class="n">${escH(pp?pp.name:r.pname||"")} · ${r.tempo} bpm</td><td class="n">${fmtMin(sesTime(r))}</td><td><span class="pill${r.done.length>=10?" full":""}">${r.done.length}/10</span></td><td>${r.done.length>=10&&pp?`<button type="button" class="linkb" data-pdf="${r.id}">📄 PDF</button>`:""}</td></tr>`;}).join("")}</tbody></table>`;
 }
 function renderHeader(){
   const all=Object.values(sessions),dayOf=x=>((x.doneAt&&Object.values(x.doneAt))||[]).concat(x.done.length?[x.started.slice(0,10)]:[]);
@@ -1847,46 +2004,50 @@ function renderHeader(){
   let streak=0;const d=new Date();if(!active.has(dkey(d)))d.setDate(d.getDate()-1);
   while(active.has(dkey(d))){streak++;d.setDate(d.getDate()-1);}
   document.getElementById("hStreak").textContent=streak;
-  document.getElementById("hSessions").textContent=all.filter(x=>x.done.length===5).length;
+  document.getElementById("hSessions").textContent=ownSessions().filter(x=>x.done.length>=10).length;
   document.getElementById("hTime").textContent=fmtMin(all.reduce((a,x)=>a+sesTime(x),0));
 }
 function renderModes(){
   const m=document.getElementById("modes");if(!m)return;const w=view==="write";
-  m.innerHTML=`<button type="button" class="mode${w?"":" on"}" data-go="${w?W.back:"setup"}" aria-pressed="${!w}">🎯 Today's session</button><button type="button" class="mode${w?" on":""}" data-go="write" aria-pressed="${w}">✏️ My patterns${(S.myPats||[]).length?` <span class="mcount">${S.myPats.length}</span>`:""}</button>`;
+  m.innerHTML=`<button type="button" class="mode${w?"":" on"}" data-go="${w?W.back:"setup"}" aria-pressed="${!w}">🎯 Session</button><button type="button" class="mode${w?" on":""}" data-go="write" aria-pressed="${w}">✏️ My patterns${(S.myPats||[]).length?` <span class="mcount">${S.myPats.length}</span>`:""}</button>`;
 }
 function renderStepper(){
-  document.getElementById("stepper").hidden=view==="write";
-  const lbl=v=>v==="setup"?"Setup":v==="box"?"Box":v==="summary"?"Summary":String(v+1);
-  const st=v=>v==="setup"?(view!=="setup"):v==="box"?!!today.boxDone:v==="summary"?false:itemDone(v);
+  document.getElementById("stepper").hidden=view==="write"||today.free;
+  if(view==="write"||today.free){document.getElementById("stepper").innerHTML="";return;}
+  const lbl=v=>v==="setup"?"Setup":v==="boxM"?"Major box":v==="boxP"?"Pent. box":v==="summary"?"Summary":String(v+1);
+  const st=v=>v==="setup"?(view!=="setup"):isBox(v)?!!bdOf()[v==="boxM"?"M":"P"]:v==="summary"?false:itemDone(v);
   document.getElementById("stepper").innerHTML=STEPS.map(v=>{const on=view===v,ok=unlocked(v);
     const title=typeof v==="number"?`${v+1}. ${itemName(today.items[v])}`:lbl(v);
     return `<button type="button" class="stp${on?" cur":""}${st(v)?" ok":""}" ${ok?`data-go="${v}"`:"disabled"} title="${title}" aria-current="${on?"step":"false"}">${st(v)&&!on&&typeof v==="number"?"✓":lbl(v)}</button>`;}).join('<i class="sep"></i>');
 }
 function renderCtx(){
   const c=document.getElementById("ctx");if(view==="setup"||view==="summary"||view==="write"){c.hidden=true;return;}
-  c.hidden=false;const st=today.stage==null?0:today.stage;
-  c.innerHTML=`<span>${st<STAGES.length?"Stage "+STAGES[st].n+" · ":""}<b>${curTempo} bpm</b> · ${NOTE[S.keyPc]} ${SCALES[today.scale].short.toLowerCase()}, ${shapeName(today.position)}</span>
+  c.hidden=false;const p=curPat(),sh=typeof view==="number"?CSH[view]:null;
+  c.innerHTML=`<span>${escH(p?p.name:"")} · <b>${curTempo} bpm</b> · ${sh?shLab(sh):NOTE[S.keyPc]+" "+SCALES[today.scale].short.toLowerCase()+", "+shapeName(today.position)}</span>
     <span class="cx">${S.click?"Metronome on":"Metronome off"} · <button type="button" class="linkb" data-go="setup">Settings</button></span>`;
 }
 function resetTempo(){curTempo=today.tempo!=null?today.tempo:(S.tempo||72);}
 function render(){
   stop();
+  if(today.free&&course().cur&&view!=="write"){ensureToday();resetTempo();}
+  if(isBox(view)){const k=view==="boxM"?"M":"P";today.scale=k==="M"?"major":"minpent";today.position=(today.bpos&&today.bpos[k])||1;}
   posData=positionNotes(today.scale,S.keyPc,today.position);
   if(!unlocked(view))view="setup";
   WA=null;if(view==="write"){const A=wA();if(A.ok)posData=A.P;const C=course();curTempo=C.T||160;}
   const v=document.getElementById("view");
-  v.innerHTML=view==="write"?writeView():view==="setup"?setupView():view==="box"?boxView():view==="summary"?summaryView():itemView(view);
+  v.innerHTML=view==="write"?writeView():view==="setup"?ownSetupView():isBox(view)?ownBoxView():view==="summary"?ownSummaryView():ownItemView(view);
   renderModes();
-  if(view==="box")renderBoard();
+  if(isBox(view))renderBoard();
   if(view==="setup")setTempoNote();
   renderStepper();renderCtx();renderHeader();setNowbar();paintGoal();requestAnimationFrame(fixClefs);
-  if(view==="box")paintResult("pos",lastResult.pos);else if(typeof view==="number")paintResult("i"+view,lastResult["i"+view]);
+  if(isBox(view))paintResult("pos",lastResult.pos);else if(typeof view==="number")paintResult("i"+view,lastResult["i"+view]);
 }
 function markDone(j,on){
   const key=keyOf(today.items[j]),has=today.done.includes(key);if(on===has)return;
   today.done=on?[...today.done,key]:today.done.filter(x=>x!==key);
   today.doneAt=today.doneAt||{};if(on)today.doneAt[key]=dkey(new Date());else delete today.doneAt[key];
-  today.finished=today.done.length===5;persistDay();
+  today.finished=today.done.length>=10;persistDay();
+  if(today.kind==="own"){const p=curPat();if(p){p.prog=p.prog||{};const g=p.prog[today.tempo]=p.prog[today.tempo]||{};if(on)g[key]=dkey(new Date());else delete g[key];persistSettings();}}
 }
 const IVL={0:"1",1:"♭2",2:"2",3:"♭3",4:"3",5:"4",6:"♭5",7:"5",8:"♭6",9:"6",10:"♭7",11:"7"};
 function parentMajor(){ // the full CAGED major shape a pentatonic box comes from
@@ -1993,7 +2154,7 @@ function flushTime(p,final){ // add the time since the last flush to today's tot
   sec=Math.min(sec,90); // ignore gaps where the device was asleep
   const day=dkey(new Date()),r=x=>Math.round(x*10)/10;
   today.days=today.days||{};today.days[day]=r((today.days[day]||0)+sec);
-  const k=p.id==="pos"?"box":/^i\d$/.test(p.id)?keyOf(today.items[Number(p.id.slice(1))]):null;
+  const k=p.id==="pos"?(view==="boxP"?"boxP":"boxM"):/^i\d$/.test(p.id)?keyOf(today.items[Number(p.id.slice(1))]):null;
   if(k&&!p.ro){today.time=today.time||{};today.time[k]=r((today.time[k]||0)+sec);}
   persistDay(!final);
 }
@@ -2111,7 +2272,7 @@ function startFollow(id){
   if(id==="pos"){const par=parentMajor();if(par&&!(play&&play.test)){followEl(document.querySelector("#fretboard svg"),true);return;}}
   if(first)followEl(first,true);
 }
-const mainId=()=>view==="box"?"pos":typeof view==="number"?"i"+view:view==="write"?(W.editId||course().canAdd?(wA().ok?"w":null):crNow()?"cr":null):null;
+const mainId=()=>isBox(view)?"pos":typeof view==="number"?"i"+view:view==="write"?(W.editId||course().canAdd?(wA().ok?"w":null):crNow()?"cr":null):null;
 function updateNowbar(){setNowbar();}
 function setNowbar(){
   const nb=document.getElementById("nowbar");if(!nb)return;const m=mainId(),show=!!m||!!play;nb.hidden=!show;document.body.classList.toggle("hasbar",show);
@@ -2121,7 +2282,7 @@ function setNowbar(){
   const pa=document.getElementById("nbPause");if(pa)pa.hidden=!(play&&!play.test&&!play.ro);
   const rs=document.getElementById("nbRestart");if(rs)rs.hidden=!pz;
   const sel=m&&m!=="pos"&&typeof barSel!=="undefined"?barSel[selKey(m)]:null,pp=document.getElementById("posPlay");
-  const what=m==="pos"?(pp&&pp.dataset.idle?pp.dataset.idle[0].toUpperCase()+pp.dataset.idle.slice(1):"The box"):m==="cr"?(()=>{const r=crNow();return r?`${r.p.name} · ${shLab(r.sh)} · ${curTempo} bpm`:"";})():m==="w"?`Your pattern${W.name?" · "+W.name:""}${sel?(sel.a===sel.b?` · bar ${sel.a+1}`:` · bars ${sel.a+1}–${sel.b+1}`):""}`:m?`Exercise ${Number(m.slice(1))+1}${sel?(sel.a===sel.b?` · bar ${sel.a+1}`:` · bars ${sel.a+1}–${sel.b+1}`):""}`:"";
+  const what=m==="pos"?(pp&&pp.dataset.idle?pp.dataset.idle[0].toUpperCase()+pp.dataset.idle.slice(1):"The box"):m==="cr"?(()=>{const r=crNow();return r?`${r.p.name} · ${shLab(r.sh)} · ${curTempo} bpm`:"";})():m==="w"?`Your pattern${W.name?" · "+W.name:""}${sel?(sel.a===sel.b?` · bar ${sel.a+1}`:` · bars ${sel.a+1}–${sel.b+1}`):""}`:m?`${Number(m.slice(1))+1}. ${shLab(CSH[Number(m.slice(1))])}${sel?(sel.a===sel.b?` · bar ${sel.a+1}`:` · bars ${sel.a+1}–${sel.b+1}`):""}`:"";
   if(!play)document.getElementById("nbInfo").textContent=pz?`Paused · ${paused.bar!=null?"bar "+(paused.bar+1):"your bars"}`:what;
   const a=document.getElementById("nbvDrums"),b=document.getElementById("nbvNotes");if(a)a.value=Math.round((S.vDrums||0)*100);if(b)b.value=Math.round((S.vNotes||0)*100);
   if(play){document.getElementById("nbInfo").textContent=play.test?"Listening to you…":play.ro==="groove"?"Drums only":play.ro?"Rhythm / chords only":play.bars?(play.bars.a===play.bars.b?`Looping bar ${play.bars.a+1}`:`Looping bars ${play.bars.a+1}–${play.bars.b+1}`):"Playing "+(m==="cr"||m==="w"?what:what.toLowerCase());}
@@ -2519,10 +2680,8 @@ let pendingRemote=false;
 function applyRemote(){
   if(play){pendingRemote=true;return;}
   pendingRemote=false;
-  const open=pickOpen();
-  if(open&&open.id!==today.id){today=open;resetTempo();view="setup";}
-  else if(sessions[today.id])today=sessions[today.id];
-  else if(open)today=open;
+  const was=today&&today.id;ensureToday();
+  if(today.id!==was){resetTempo();if(view!=="write")view="setup";}
   render();
 }
 async function turnOnSync(code){
@@ -2552,6 +2711,7 @@ document.addEventListener("click",e=>{
   const tbar=e.target.closest(".tbar.pick");if(tbar){const id=tbar.dataset.bid,b=Number(tbar.dataset.bar),cur=barSel[selKey(id)];
     if(e.shiftKey&&cur)setBars(id,{a:Math.min(cur.a,b),b:Math.max(cur.b,b)});else if(cur&&cur.a===b&&cur.b===b)setBars(id,null);else setBars(id,{a:b,b});return;}
   const g=e.target.closest("[data-go]");if(g){const v=g.dataset.go;go(/^\d$/.test(v)?Number(v):v);return;}
+  if(e.target.closest("[data-gosess]")){if(today.free)ensureToday();go(firstOpen());return;}
   if(e.target.closest("[data-nbstop]")){stop();return;}
   if(e.target.closest("[data-nbplay]")){if(play)stop();else{const m=mainId();if(m)start(m,false,false,paused&&paused.id===m?paused.bar:0);}return;}
   if(e.target.closest("[data-nbpause]")){pausePlay();return;}
@@ -2567,11 +2727,12 @@ document.addEventListener("click",e=>{
   if(e.target.closest("[data-syncon]")){const i=document.getElementById("syncIn");turnOnSync(i?i.value:"");return;}
   if(e.target.closest("[data-calibrate]")){calibrate();return;}
   const lb=e.target.closest("[data-labels]");if(lb){S.labels=lb.dataset.labels;persistSettings();render();return;}
-  if(e.target.closest("[data-boxdone]")){today.boxDone=true;persistDay();go(0);return;}
-  const d=e.target.closest("[data-itemdone]");if(d){const j=Number(d.dataset.itemdone);markDone(j,true);go(j===4?"summary":j+1);return;}
+  const bxd=e.target.closest("[data-boxdone]");if(bxd){const k=bxd.dataset.boxdone;bdOf()[k]=true;persistDay();go(k==="M"?0:5);return;}
+  const bp=e.target.closest("[data-bpos]");if(bp){const k=bp.dataset.bpos[0];today.bpos={...(today.bpos||{}),[k]:Number(bp.dataset.bpos.slice(1))};persistDay();render();return;}
+  if(e.target.closest("[data-crclose]")){S.myCourse={...(S.myCourse||{}),closed:true};persistSettings();ensureToday();resetTempo();go("setup");return;}
+  const d=e.target.closest("[data-itemdone]");if(d){const j=Number(d.dataset.itemdone);markDone(j,true);go(j===4?"boxP":j===9?"summary":j+1);return;}
   const u=e.target.closest("[data-undo]");if(u){markDone(Number(u.dataset.undo),false);render();return;}
-  if(e.target.closest("[data-newsession]")){stop();today.finished=true;persistDay();
-    today=planSession();sessions[today.id]=today;persistDay();extra=null;resetTempo();go("setup");}
+  if(e.target.closest("[data-newsession]")){stop();ensureToday();persistDay();resetTempo();go("setup");}
 });
 document.addEventListener("change",e=>{
   const t=e.target;
@@ -2625,9 +2786,7 @@ function restartInNewFormat(old){
   if(loaded.st)Object.assign(S,loaded.st);
   if(S.gapV!==2){S.seqGap="space";S.gapV=2;persistSettings();} // new default: an equal space after each group
   if(syncCode())await Promise.race([cloudSync(),new Promise(r=>setTimeout(r,6000))]);
-  let open=pickOpen();
-  if(open&&(!(open.items||[]).every(x=>x.k==="p")||open.lib!==PLIB))open=restartInNewFormat(open);
-  if(open){today=open;if(today.step==null){today.stage=0;today.step=0;today.tempo=ladder(0)[0];}persistDay();}else{today=planSession();sessions[today.id]=today;persistDay();}
+  ensureToday();if(!today.free)persistDay(true);
   resetTempo();view="setup";render();
   document.getElementById("syncNote").textContent=store.kind==="db"
     ?"Your sessions and settings are saved to your Claude account, so they follow you between phone and computer."

@@ -61,9 +61,9 @@ a.sec.fs::before{background:var(--brass)}
     <a class="sec" href="guitar.html">
       <div class="ico">🎸</div>
       <h2>Melodic Lead</h2>
-      <p>270 melodic sequence patterns: 135 in the major scale and the same 135 in pentatonic. One-bar cells in triplets, sixteenths and eighths, run up and down each CAGED shape with tab and play-along drums.</p>
-      <div class="tags"><span class="tag">135 major</span><span class="tag">135 pentatonic</span><span class="tag">5 a session</span></div>
-      <div class="now"><div><b id="lStage">–</b><span>stage</span></div><div><b id="lTempo">–</b><span>bpm</span></div><div><b id="lDone">–</b><span>this session</span></div></div>
+      <p>Your own sequence patterns, written from your book onto tab. Each one is played through the five major shapes and the five pentatonic boxes, with the tempo climbing from 20 to 160 bpm.</p>
+      <div class="tags"><span class="tag">your patterns</span><span class="tag">10 shapes each</span><span class="tag">20 → 160 bpm</span></div>
+      <div class="now"><div><b id="lStage">–</b><span>patterns</span></div><div><b id="lTempo">–</b><span>bpm</span></div><div><b id="lDone">–</b><span>this session</span></div></div>
       <div class="go"><span id="lNext">Open your current session</span><b>Open ▸</b></div>
     </a>
     <a class="sec fs" href="fingerstyle.html">
@@ -90,12 +90,12 @@ document.getElementById("tBar").style.width=Math.min(100,today/60/goal*100)+"%";
 document.getElementById("week").innerHTML=[...Array(7)].map((_,i)=>{const d=new Date();d.setDate(d.getDate()-6+i);const m=Math.floor(secOn(dkey(d))/60);
   return `<span class="gd${m>=goal?" met":m>0?" part":""}" title="${m} min"><b>${m}</b><small>${i===6?"Today":d.toLocaleDateString(undefined,{weekday:"short"})}</small></span>`;}).join("");
 // Melodic Lead: the open session
-const open=sessions.filter(x=>!x.finished).sort((a,b)=>(b.done||[]).length-(a.done||[]).length)[0];
-if(open){document.getElementById("lStage").textContent=["I","II","III"][open.stage||0]||"✓";
-  document.getElementById("lTempo").textContent=open.tempo||"–";
-  document.getElementById("lDone").textContent=`${(open.done||[]).length}/5`;
-  document.getElementById("lNext").textContent=(open.done||[]).length?"Continue your session":"A new session is ready";}
-else document.getElementById("lNext").textContent="Start your first session";
+const pats=(mel.st&&mel.st.myPats)||[],open=sessions.filter(x=>x.kind==="own"&&!x.free&&!x.finished).sort((a,b)=>(b.started>a.started?1:-1))[0];
+document.getElementById("lStage").textContent=pats.length;
+if(open){document.getElementById("lTempo").textContent=open.tempo||"–";
+  document.getElementById("lDone").textContent=`${(open.done||[]).length}/10`;
+  document.getElementById("lNext").textContent=`Continue: ${open.pname||"your pattern"}`;}
+else document.getElementById("lNext").textContent=pats.length?"Write your next pattern":"Write your first pattern";
 // Fingerstyle Solo: levels are finished lesson by lesson
 const LV=[["1a","1b","1c","1d","1e"],["2a","2b","2c","2d","2e"],["3a","3b","3c","3d","3e"],["4a","4b","4c","4d"],["5a","5b","5c"],["6a","6b","6c","6d"],["7a","7b","7c","7d","7e"],["8a","8b","8c","8d"]];
 const done=fs.done||{},all=LV.flat(),n=all.filter(id=>done[id]).length;
