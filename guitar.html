@@ -466,6 +466,7 @@ body.hasbar .wrap{padding-bottom:96px}
 .tab.mini{font-size:12px}
 .pact{display:flex;gap:8px;flex-wrap:wrap}.pact .x{color:var(--bad)}.pact .x.arm{background:var(--bad);color:#fff}
 .locked p{margin:0}
+.bulk{border-color:var(--brass);background:var(--brass-soft)}
 
 .nbp{flex:none;padding:10px 14px;font:650 14px var(--body);border-radius:999px;white-space:nowrap}
 </style>
@@ -1509,10 +1510,14 @@ function savedHTML(){
   return `<div class="wsaved"><span class="wlbl">Saved</span>${L.map(p=>`<span class="wpill${p.id===W.editId?" on":""}"><button type="button" data-wload="${p.id}">${escH(p.name)}</button><button type="button" class="x" data-wrm="${p.id}" aria-label="Delete ${escH(p.name)}">✕</button></span>`).join("")}</div>`;
 }
 function writeView(){
-  const A=wA(),C=course(),open=C.canAdd||W.editId;
+  const A=wA(),C=course(),BK=S.myCourse&&S.myCourse.bulk,open=C.canAdd||W.editId||BK;
+  const bulkBar=BK?`<section class="card bulk"><div class="num">Adding your earlier patterns</div>
+      <p class="lead">Next: <b>Pattern ${BK.pos+1}</b>, placed ${BK.pos<(S.myPats||[]).length?`before <b>${escH(S.myPats[BK.pos].name)}</b>`:"at the end"}. ${BK.pos} added so far. The usual one-at-a-time rule is paused until you finish.</p>
+      <div class="crbtns"><button type="button" class="play" data-wbulkend="1">✓ Finished adding earlier patterns</button></div></section>`
+    :!(S.myCourse&&S.myCourse.bulkDone)&&(S.myPats||[]).length?`<div class="crbtns"><button type="button" class="ghost" data-wbulk="1">➕ Add earlier patterns (one time)</button></div>`:"";
   const ed=open?`<section class="card wcard">
-    <div class="num">${W.editId?`Editing “${escH(W.name)}”`:`Pattern ${(S.myPats||[]).length+1}`}</div>
-    <h2>${W.editId?"Edit your pattern":(S.myPats||[]).length?"Write your next pattern":"Write a pattern"}</h2>
+    <div class="num">${W.editId?`Editing “${escH(W.name)}”`:BK?`Pattern ${BK.pos+1} of your earlier patterns`:`Pattern ${(S.myPats||[]).length+1}`}</div>
+    <h2>${W.editId?"Edit your pattern":BK?`Write Pattern ${BK.pos+1}`:(S.myPats||[]).length?"Write your next pattern":"Write a pattern"}</h2>
     <p class="lead">Tap a spot on a string, then tap its fret number. Leave an empty slot between groups if you like. The trainer works out the key, the groups and the beat. Save it and it joins your course.</p>
     <div class="wtools"><span class="wlbl">Slots</span><button type="button" class="ghost" data-wn="-1" aria-label="Fewer slots">−</button><b>${W.cols.length}</b><button type="button" class="ghost" data-wn="1" aria-label="More slots">＋</button><span style="flex:1"></span><button type="button" class="linkb" data-wclear="1">Clear all</button></div>
     <div class="tabscroll wscroll"><div id="wgrid">${wGridHTML(A)}</div></div>
@@ -1520,7 +1525,7 @@ function writeView(){
     <div id="wres">${wResHTML(A)}</div>
     <div id="wsavedBox" hidden></div>
   </section>`:S.myCourse&&S.myCourse.closed?"":`<section class="card locked"><p class="tnote">🔒 The next pattern opens once <b>${escH(C.cur?C.cur.name:"")}</b> is done in all ten shapes at ${C.T} bpm.</p></section>`;
-  return courseHTML()+(W.editId?ed+patListHTML():C.canAdd?ed+patListHTML():patListHTML()+ed);
+  return (BK?bulkBar+ed+courseHTML()+patListHTML():courseHTML()+bulkBar+(W.editId?ed+patListHTML():C.canAdd?ed+patListHTML():patListHTML()+ed));
 }
 function wRefresh(full){ // redraw the editor in place; a running loop picks up the change at the next bar line
   WA=null;const A=wA();saveDraft();
@@ -1556,8 +1561,10 @@ function wHandleClick(e){
     const rec={id:W.editId||("u"+Date.now().toString(36)),name:W.name,cols:[...W.cols],key:W.key,scale:W.scale,group:W.group,rhy:W.rhy,gr:W.gr,mode:W.mode,prog:old&&old.prog||{}};
     rec.rev=old?old.rev||0:0;
     if(old&&patSig(patA(old))!==patSig(wA())){rec.prog={};rec.rev++;} // different notes: this pattern starts its shapes again
-    if(old)L[L.indexOf(old)]=rec;else L.push(rec);
-    stop();Object.assign(W,{cols:Array(12).fill(null),sel:{c:0,s:6},key:"auto",scale:"auto",group:"auto",rhy:"auto",gr:"auto",name:"",editId:null,crSh:null});WA=null;saveDraft();persistSettings();render();
+    const BK=S.myCourse&&S.myCourse.bulk;
+    if(old)L[L.indexOf(old)]=rec;else if(BK){L.splice(Math.min(BK.pos,L.length),0,rec);S.myCourse={...S.myCourse,bulk:{pos:BK.pos+1}};}else L.push(rec);
+    const BK2=S.myCourse&&S.myCourse.bulk;
+    stop();Object.assign(W,{cols:Array(12).fill(null),sel:{c:0,s:6},key:"auto",scale:"auto",group:"auto",rhy:"auto",gr:"auto",name:BK2&&!old?`Pattern ${BK2.pos+1}`:"",editId:null,crSh:null});WA=null;saveDraft();persistSettings();render();
     window.scrollTo({top:0,behavior:"smooth"});return true;}
   if(e.target.closest("[data-crdone]")){const r=crNow();if(!r)return true;const {C,p,sh}=r;stop();
     p.prog=p.prog||{};p.prog[C.T]=p.prog[C.T]||{};p.prog[C.T][sh.k]=dkey(new Date());W.crSh=null;
@@ -1566,6 +1573,9 @@ function wHandleClick(e){
   const cs=e.target.closest("[data-crsh]");if(cs){const r=crNow();if(!r)return true;stop();W.crSh={id:r.p.id,t:r.C.T,k:cs.dataset.crsh};Object.keys(barSel).forEach(k=>{if(k.endsWith(":cr"))delete barSel[k];});render();return true;}
   if(e.target.closest("[data-crclose]")){S.myCourse={...(S.myCourse||{}),closed:true};persistSettings();render();return true;}
   if(e.target.closest("[data-cropen]")){S.myCourse={...(S.myCourse||{}),closed:false};persistSettings();render();return true;}
+  if(e.target.closest("[data-wbulk]")){S.myCourse={...(S.myCourse||{}),bulk:{pos:0}};persistSettings();stop();
+    Object.assign(W,{cols:Array(12).fill(null),sel:{c:0,s:6},key:"auto",scale:"auto",group:"auto",rhy:"auto",gr:"auto",name:"Pattern 1",editId:null});WA=null;saveDraft();render();window.scrollTo({top:0,behavior:"smooth"});return true;}
+  if(e.target.closest("[data-wbulkend]")){const c={...(S.myCourse||{}),bulkDone:true};delete c.bulk;S.myCourse=c;persistSettings();W.name="";saveDraft();render();window.scrollTo({top:0,behavior:"smooth"});return true;}
   if(e.target.closest("[data-wnew]")){stop();Object.assign(W,{cols:Array(12).fill(null),sel:null,key:"auto",scale:"auto",group:"auto",rhy:"auto",gr:"auto",name:"",editId:null});WA=null;saveDraft();render();return true;}
   const ld=e.target.closest("[data-wload]");if(ld){const p=(S.myPats||[]).find(x=>x.id===ld.dataset.wload);if(p){stop();Object.assign(W,{cols:[...p.cols],key:p.key,scale:p.scale,group:p.group,rhy:p.rhy,gr:p.gr||"auto",mode:p.mode||"asis",name:p.name,editId:p.id,sel:null});WA=null;saveDraft();render();const ed=document.querySelector(".wcard");if(ed)ed.scrollIntoView({behavior:"smooth",block:"start"});}return true;}
   const rm=e.target.closest("[data-wrm]");if(rm){ // tap ✕ twice to delete
@@ -2029,7 +2039,7 @@ function renderCtx(){
 function resetTempo(){curTempo=today.tempo!=null?today.tempo:(S.tempo||72);}
 function render(){
   stop();
-  if(today.free&&course().cur&&view!=="write"){ensureToday();resetTempo();}
+  {const C=course();if(C.cur&&(today.free||(today.kind==="own"&&!today.finished&&(today.pid!==C.cur.id||today.tempo!==C.T)))){ensureToday();resetTempo();if(view!=="write")view="setup";}}
   if(isBox(view)){const k=view==="boxM"?"M":"P";today.scale=k==="M"?"major":"minpent";today.position=(today.bpos&&today.bpos[k])||1;}
   posData=positionNotes(today.scale,S.keyPc,today.position);
   if(!unlocked(view))view="setup";
@@ -2786,6 +2796,9 @@ function restartInNewFormat(old){
   if(loaded.st)Object.assign(S,loaded.st);
   if(S.gapV!==2){S.seqGap="space";S.gapV=2;persistSettings();} // new default: an equal space after each group
   if(syncCode())await Promise.race([cloudSync(),new Promise(r=>setTimeout(r,6000))]);
+  if(!S.ren2){S.ren2=1;const L=S.myPats||[],p=L.length===1&&L[0].name==="Pattern 1"?L[0]:null;
+    if(p){p.name="Pattern 19";Object.values(sessions).forEach(x=>{if(x.pid===p.id){x.pname="Pattern 19";x.upd=Date.now();}});}
+    S.ren1=1;persistSettings();}
   if(!S.ren1){const L=S.myPats||[],p=L.find(x=>x.name==="Pattern 20");S.ren1=1; // one-off: your first pattern becomes "Pattern 1"
     if(p&&!L.some(x=>x.name==="Pattern 1")){p.name="Pattern 1";Object.values(sessions).forEach(x=>{if(x.pid===p.id){x.pname="Pattern 1";x.upd=Date.now();}});
       try{const d=JSON.parse(localStorage.getItem("mss-draft")||"null");if(d&&d.editId===p.id){d.name="Pattern 1";localStorage.setItem("mss-draft",JSON.stringify(d));W.name="Pattern 1";}}catch(e){}}
