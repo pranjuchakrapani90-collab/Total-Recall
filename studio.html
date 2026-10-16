@@ -30,6 +30,7 @@ a.sec{display:flex;flex-direction:column;gap:12px;background:var(--paper);border
 a.sec:hover,a.sec:focus-visible{transform:translateY(-2px);box-shadow:0 10px 26px #141e371c;border-color:var(--steel);outline:none}
 a.sec::before{content:"";position:absolute;left:0;top:0;right:0;height:5px;background:var(--steel)}
 a.sec.fs::before{background:var(--brass)}
+a.sec.cg::before{background:#0f766e}.cg .tag{background:#e6f6f4;color:#0f766e}.cg .go b{background:#0f766e}
 .ico{font-size:34px;line-height:1}
 .sec h2{font:750 24px/1.15 var(--body);margin:0}
 .sec p{margin:0;color:var(--muted)}
@@ -49,7 +50,7 @@ a.sec.fs::before{background:var(--brass)}
   <a class="backlink" href="./">← Total Recall &amp; Melodies</a>
   <div class="eyebrow">Guitar practice</div>
   <h1>Guitar Studio</h1>
-  <p>Two ways to practise, one daily goal. Pick a section to start.</p>
+  <p>Three ways to practise, one daily goal. Pick a section to start.</p>
 </div></header>
 <main class="wrap">
   <section class="goal" aria-label="Daily goal">
@@ -74,15 +75,23 @@ a.sec.fs::before{background:var(--brass)}
       <div class="now"><div><b id="fLevel">1</b><span>level</span></div><div><b id="fDone">0</b><span>lessons done</span></div><div><b id="fLeft">35</b><span>to go</span></div></div>
       <div class="go"><span id="fNext">Start with lesson 1a</span><b>Open ▸</b></div>
     </a>
+    <a class="sec cg" href="caged.html">
+      <div class="ico">🧭</div>
+      <h2>CAGED Course</h2>
+      <p>Every chord and arpeggio in the five CAGED shapes (major, minor, 7th), the practice sessions that make them stick, and ten plays that use them in bass lines, riffs and solos.</p>
+      <div class="tags"><span class="tag">13 levels</span><span class="tag">94 lessons</span><span class="tag">846 reps</span></div>
+      <div class="now"><div><b id="cLevel">1</b><span>level</span></div><div><b id="cDone">0</b><span>reps done</span></div><div><b id="cSess">–</b><span>session</span></div></div>
+      <div class="go"><span id="cNext">Start with Foundations</span><b>Open ▸</b></div>
+    </a>
   </div>
 </main>
 <script>
 "use strict";
 const get=k=>{try{return JSON.parse(localStorage.getItem(k)||"null");}catch(e){return null;}};
-const mel=get("mss-sessions")||{},fs=get("fs-v1")||{};
+const mel=get("mss-sessions")||{},fs=get("fs-v1")||{},cg=get("caged-v1")||{};
 const pad=n=>String(n).padStart(2,"0"),dkey=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 const sessions=Object.values(mel.ds||{});
-function secOn(k){let s=sessions.reduce((a,x)=>a+((x.days&&x.days[k])||0),0);s+=(fs.days&&fs.days[k])||0;Object.values(fs.odays||{}).forEach(d=>{s+=d[k]||0;});return s;}
+function secOn(k){let s=sessions.reduce((a,x)=>a+((x.days&&x.days[k])||0),0);s+=(fs.days&&fs.days[k])||0;Object.values(fs.odays||{}).forEach(d=>{s+=d[k]||0;});s+=(cg.days&&cg.days[k])||0;Object.values(cg.odays||{}).forEach(d=>{s+=d[k]||0;});return s;}
 const goal=(mel.st&&mel.st.goalMin)||30,today=secOn(dkey(new Date()));
 document.getElementById("tMin").textContent=Math.floor(today/60);
 document.getElementById("tGoal").textContent=goal;
@@ -105,5 +114,10 @@ document.getElementById("fLevel").textContent=lvl+1;
 document.getElementById("fDone").textContent=n;
 document.getElementById("fLeft").textContent=all.length-n;
 document.getElementById("fNext").textContent=n===all.length?"Course complete: review any lesson":nx?`Next: lesson ${nx}`:"Start with lesson 1a";
+// CAGED Course: reps ticked, today's session
+{const cd=Object.keys(cg.done||{}).filter(k=>cg.done[k]).length;document.getElementById("cDone").textContent=cd;
+ const ss=cg.sess;if(ss&&ss.items&&ss.items.length){const ok=ss.items.filter((it,i)=>it.rev?(ss.ok&&ss.ok[i]):(cg.done||{})[it.id]).length;document.getElementById("cSess").textContent=`${ok}/${ss.items.length}`;}
+ const lv=["f","c","a","g","e","d","j","t","b","r","p","s","x"];let hi=0;Object.keys(cg.done||{}).forEach(k=>{const i=lv.indexOf(k[0]);if(i>hi)hi=i;});document.getElementById("cLevel").textContent=hi+1;
+ if(cd)document.getElementById("cNext").textContent=`Continue · ${cd} of 846 reps`;}
 </script>
 </body></html>
