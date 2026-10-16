@@ -466,6 +466,8 @@ body.hasbar .wrap{padding-bottom:96px}
 .tab.mini{font-size:12px}
 .pact{display:flex;gap:8px;flex-wrap:wrap}.pact .x{color:var(--bad)}.pact .x.arm{background:var(--bad);color:#fff}
 .locked p{margin:0}
+
+.nbp{flex:none;padding:9px 12px;font-size:15px;border-radius:999px}
 </style>
 
 <header class="top"><div class="hin">
@@ -487,7 +489,7 @@ body.hasbar .wrap{padding-bottom:96px}
 <nav class="stepper" id="stepper" aria-label="Session steps"></nav>
 <div class="ctx" id="ctx" hidden></div>
 <div id="goalToast" class="gtoast" hidden role="status">🎸 Today's goal reached. Keep going if you like!</div>
-<div id="nowbar" class="nowbar" hidden><button type="button" class="play" id="nbPlay" data-nbplay="1">▶ Play</button><span class="nbtxt"><span id="nbInfo" class="nbinfo">Playing</span><span id="nbGoal" class="nbgoal"></span></span><span class="nbmix"><label for="nbvDrums">🥁</label><input type="range" id="nbvDrums" min="0" max="150" step="5" aria-label="Drums volume"><label for="nbvNotes">♪</label><input type="range" id="nbvNotes" min="0" max="100" step="5" aria-label="Guide notes volume"></span><button type="button" id="nbResume" data-resume="1" hidden>🔈 Restore sound</button></div>
+<div id="nowbar" class="nowbar" hidden><button type="button" class="play" id="nbPlay" data-nbplay="1">▶ Play</button><button type="button" class="nbp" id="nbPause" data-nbpause="1" hidden aria-label="Pause">⏸</button><button type="button" class="nbp" id="nbRestart" data-nbrestart="1" hidden aria-label="Start over">⏮</button><span class="nbtxt"><span id="nbInfo" class="nbinfo">Playing</span><span id="nbGoal" class="nbgoal"></span></span><span class="nbmix"><label for="nbvDrums">🥁</label><input type="range" id="nbvDrums" min="0" max="150" step="5" aria-label="Drums volume"><label for="nbvNotes">♪</label><input type="range" id="nbvNotes" min="0" max="100" step="5" aria-label="Guide notes volume"></span><button type="button" id="nbResume" data-resume="1" hidden>🔈 Restore sound</button></div>
 <main id="view"><div class="loading">Loading your session…</div></main>
 <p class="note" id="syncNote"></p>
 </div>
@@ -1600,7 +1602,7 @@ function unlocked(v){
   return today.done.length===5;
 }
 function firstOpen(){if(!today.boxDone)return "box";const j=today.items.findIndex((_,i)=>!itemDone(i));return j<0?"summary":j;}
-function go(v){stop();if(view==="write"&&v!=="write")resetTempo();if(v==="write"&&view!=="write"){W.back=view;if(!W.sel){const c=W.cols.findIndex(x=>!x);W.sel={c:c<0?0:c,s:6};}}view=v;render();window.scrollTo({top:0,behavior:"smooth"});}
+function go(v){stop();paused=null;if(view==="write"&&v!=="write")resetTempo();if(v==="write"&&view!=="write"){W.back=view;if(!W.sel){const c=W.cols.findIndex(x=>!x);W.sel={c:c<0?0:c,s:6};}}view=v;render();window.scrollTo({top:0,behavior:"smooth"});}
 const fmtMin=sec=>{const m=Math.round((sec||0)/60);return m<60?`${m}m`:`${Math.floor(m/60)}h ${m%60}m`;};
 const sesTime=d=>Object.values(d.time||{}).reduce((a,b)=>a+b,0);
 const itemName=it=>it.k==="p"?`${patName(it)} · ${PAT[it.i].n}`:it.k==="v"?VOC[it.i].n:it.k==="m"?MK[MEL[it.i].kd].n:EX[it.i].t;
@@ -2029,11 +2031,24 @@ function stop(){if(!play)return;const P=play;setNowbar(false);clearInterval(play
   if(P.test){L.fmin=0;if(P.complete)setTimeout(()=>finishTest(P),300);else stoppedEarly(P);}
   try{if(wake){wake.release().catch(()=>{});wake=null;}}catch(e){}
   document.querySelectorAll(".col.on,.dt.on,.col.tick").forEach(c=>c.classList.remove("on","tick"));play=null;setNowbar();if(pendingRemote)setTimeout(applyRemote,700);}
-function start(id,ro,test){
+/* Pause: remember the bar you were in; Resume starts again from the top of that bar (after the count-in),
+   then carries on to the end and loops the whole exercise as usual. */
+let paused=null;
+function pausePlay(){
+  if(!play||play.test||play.ro)return;
+  const b=Math.max(0,play.lastB+(ctx.currentTime-play.lastT)/spb()-play.base),id=play.id,sel=barSel[selKey(id)];
+  const bar=Math.min(Math.floor(b/play.bpb+1e-6),Math.ceil(play.total/play.bpb-1e-6)-1)+(play.resumed||0);
+  stop();paused={id,bar:sel?null:bar};setNowbar();
+}
+function start(id,ro,test,fromBar){
   stop();audioCtx();
-  const E=eventsFor(id,ro,test),ci=(S.countin||test)?(E.bpb<3?E.bpb*2:E.bpb):0;
+  paused=null;
+  let E=eventsFor(id,ro,test),after=null;
+  if(fromBar>0&&!ro&&!test&&!barSel[selKey(id)]){const last=Math.ceil(E.total/E.bpb-1e-6)-1;
+    if(fromBar<=last){after=E;after.dr=drumsOf(E,false);E=sliceBars(E,fromBar,last);}}
+  const ci=(S.countin||test)?(E.bpb<3?E.bpb*2:E.bpb):0;
   play={id,ro,test:!!test,expected:[],...E,evi:0,chi:0,base:0,clickBeat:-ci,vis:[],lastT:ctx.currentTime+.12,lastB:-ci};
-  play.dr=drumsOf(E,ro);play.dri=0;
+  play.dr=drumsOf(E,ro);play.dri=0;if(after){play.after=after;play.resumed=fromBar;}
   play.sub=!ro&&id!=="pos"?gridOf(eventsFor(id,false,false,true).ev):0;play.tg=null;
   play.testStart=play.lastT;if(test)liveInit(play);
   play.t0=performance.now();try{if(navigator.wakeLock)navigator.wakeLock.request("screen").then(l=>{wake=l;}).catch(()=>{});}catch(e){}
@@ -2059,7 +2074,8 @@ function schedule(){
     if(tH===t){const c=play.ch[play.chi++];if(S.chords&&(!play.test||(S.hearNotes&&!play.mute)))chord(c.root,c.q,tH,c.d*spb());continue;}
     if(tC===t){if(play.test&&play.clickBeat<0)(play.ci=play.ci||[]).push(tC);if(play.clickBeat<0||(S.click&&!play.dr.length))click(tC,((play.clickBeat%play.bpb)+play.bpb)%play.bpb===0);play.clickBeat++;
       if(play.clickBeat>=off+play.total&&play.evi>=play.ev.length){
-        if(play.test){play.clickBeat=Infinity;play.evi=Infinity;play.chi=Infinity;play.dri=Infinity;}else if(S.loop||play.bars){play.base+=play.total;play.evi=0;play.chi=0;play.dri=0;}else{const p=play;setTimeout(()=>{if(play===p)stop();},Math.max(0,(tC-now)*1000+300));play.clickBeat=Infinity;play.evi=Infinity;play.chi=Infinity;play.dri=Infinity;}}
+        if(play.test){play.clickBeat=Infinity;play.evi=Infinity;play.chi=Infinity;play.dri=Infinity;}else if(play.after&&S.loop){const F=play.after;play.base+=play.total;play.after=null;play.resumed=0;Object.assign(play,{ev:F.ev,ch:F.ch,dr:F.dr,total:F.total,bars:null,evi:0,chi:0,dri:0});setNowbar();}
+      else if(S.loop||play.bars){play.base+=play.total;play.evi=0;play.chi=0;play.dri=0;}else{const p=play;setTimeout(()=>{if(play===p)stop();},Math.max(0,(tC-now)*1000+300));play.clickBeat=Infinity;play.evi=Infinity;play.chi=Infinity;play.dri=Infinity;}}
       continue;}
     const e=play.ev[play.evi];if(!e.rest){const m=e.m!=null?e.m:posData.notes[e.n].m;
       if(!play.test||(S.hearNotes&&!play.mute)){const gn=e.a===2?.8:e.a?.66:.5;note(m,tN,e.d*spb()*(e.last?1.6:1),e.m2!=null?gn*.8:gn);if(e.m2!=null)note(e.m2,tN,e.d*spb(),gn*.8);}}
@@ -2099,10 +2115,14 @@ const mainId=()=>view==="box"?"pos":typeof view==="number"?"i"+view:view==="writ
 function updateNowbar(){setNowbar();}
 function setNowbar(){
   const nb=document.getElementById("nowbar");if(!nb)return;const m=mainId(),show=!!m||!!play;nb.hidden=!show;document.body.classList.toggle("hasbar",show);
-  const pb=document.getElementById("nbPlay");if(pb){pb.textContent=play?"■ Stop":"▶ Play";pb.classList.toggle("on",!!play);pb.disabled=!play&&!m;}
+  if(paused&&paused.id!==m)paused=null;
+  const pz=paused&&!play;
+  const pb=document.getElementById("nbPlay");if(pb){pb.textContent=play?"■ Stop":pz?"▶ Resume":"▶ Play";pb.classList.toggle("on",!!play);pb.disabled=!play&&!m;}
+  const pa=document.getElementById("nbPause");if(pa)pa.hidden=!(play&&!play.test&&!play.ro);
+  const rs=document.getElementById("nbRestart");if(rs)rs.hidden=!pz;
   const sel=m&&m!=="pos"&&typeof barSel!=="undefined"?barSel[selKey(m)]:null,pp=document.getElementById("posPlay");
   const what=m==="pos"?(pp&&pp.dataset.idle?pp.dataset.idle[0].toUpperCase()+pp.dataset.idle.slice(1):"The box"):m==="cr"?(()=>{const r=crNow();return r?`${r.p.name} · ${shLab(r.sh)} · ${curTempo} bpm`:"";})():m==="w"?`Your pattern${W.name?" · "+W.name:""}${sel?(sel.a===sel.b?` · bar ${sel.a+1}`:` · bars ${sel.a+1}–${sel.b+1}`):""}`:m?`Exercise ${Number(m.slice(1))+1}${sel?(sel.a===sel.b?` · bar ${sel.a+1}`:` · bars ${sel.a+1}–${sel.b+1}`):""}`:"";
-  if(!play)document.getElementById("nbInfo").textContent=what;
+  if(!play)document.getElementById("nbInfo").textContent=pz?`Paused · ${paused.bar!=null?"bar "+(paused.bar+1):"your bars"}`:what;
   const a=document.getElementById("nbvDrums"),b=document.getElementById("nbvNotes");if(a)a.value=Math.round((S.vDrums||0)*100);if(b)b.value=Math.round((S.vNotes||0)*100);
   if(play){document.getElementById("nbInfo").textContent=play.test?"Listening to you…":play.ro==="groove"?"Drums only":play.ro?"Rhythm / chords only":play.bars?(play.bars.a===play.bars.b?`Looping bar ${play.bars.a+1}`:`Looping bars ${play.bars.a+1}–${play.bars.b+1}`):"Playing "+(m==="cr"||m==="w"?what:what.toLowerCase());}
 }
@@ -2533,7 +2553,9 @@ document.addEventListener("click",e=>{
     if(e.shiftKey&&cur)setBars(id,{a:Math.min(cur.a,b),b:Math.max(cur.b,b)});else if(cur&&cur.a===b&&cur.b===b)setBars(id,null);else setBars(id,{a:b,b});return;}
   const g=e.target.closest("[data-go]");if(g){const v=g.dataset.go;go(/^\d$/.test(v)?Number(v):v);return;}
   if(e.target.closest("[data-nbstop]")){stop();return;}
-  if(e.target.closest("[data-nbplay]")){if(play)stop();else{const m=mainId();if(m)start(m,false);}return;}
+  if(e.target.closest("[data-nbplay]")){if(play)stop();else{const m=mainId();if(m)start(m,false,false,paused&&paused.id===m?paused.bar:0);}return;}
+  if(e.target.closest("[data-nbpause]")){pausePlay();return;}
+  if(e.target.closest("[data-nbrestart]")){const m=mainId();paused=null;if(m)start(m,false);return;}
   if(e.target.closest("[data-resume]")){if(ctx)ctx.resume().catch(()=>{});return;}
   const wz=e.target.closest("[data-wiz]");if(wz){wiz(wz.dataset.wiz);return;}
   if(e.target.closest("[data-copydiag]")){const t=diagText();(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>{e.target.textContent="Copied";}).catch(()=>{const r=document.createRange(),pre=document.getElementById("diag");if(pre){r.selectNodeContents(pre);const sel=getSelection();sel.removeAllRanges();sel.addRange(r);}});return;}
