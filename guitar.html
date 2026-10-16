@@ -2786,6 +2786,10 @@ function restartInNewFormat(old){
   if(loaded.st)Object.assign(S,loaded.st);
   if(S.gapV!==2){S.seqGap="space";S.gapV=2;persistSettings();} // new default: an equal space after each group
   if(syncCode())await Promise.race([cloudSync(),new Promise(r=>setTimeout(r,6000))]);
+  if(!S.ren1){const L=S.myPats||[],p=L.find(x=>x.name==="Pattern 20");S.ren1=1; // one-off: your first pattern becomes "Pattern 1"
+    if(p&&!L.some(x=>x.name==="Pattern 1")){p.name="Pattern 1";Object.values(sessions).forEach(x=>{if(x.pid===p.id){x.pname="Pattern 1";x.upd=Date.now();}});
+      try{const d=JSON.parse(localStorage.getItem("mss-draft")||"null");if(d&&d.editId===p.id){d.name="Pattern 1";localStorage.setItem("mss-draft",JSON.stringify(d));W.name="Pattern 1";}}catch(e){}}
+    persistSettings();}
   ensureToday();if(!today.free)persistDay(true);
   resetTempo();view="setup";render();
   document.getElementById("syncNote").textContent=store.kind==="db"
