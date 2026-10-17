@@ -476,7 +476,7 @@ body.hasbar .wrap{padding-bottom:96px}
     <div class="toprow"><a class="backlink" href="studio.html">← Guitar Studio</a><span id="syncBadge" class="sbadge off">☁ Sync off</span></div>
     <div class="eyebrow">Your melodic sequence patterns</div>
     <h1><a href="studio.html" style="color:inherit;text-decoration:none">Guitar Studio</a></h1>
-    <nav class="studio" aria-label="Guitar Studio sections"><a href="guitar.html" class="on" aria-current="page">🎸 Melodic Lead</a><a href="fingerstyle.html">🎶 Fingerstyle Solo</a><a href="caged.html">🧭 CAGED Course</a><a href="lead.html">⚡ Lead Techniques</a></nav>
+    <nav class="studio" aria-label="Guitar Studio sections"><a href="lead.html">🎸 Lead Guitar</a><a href="guitar.html" class="on" aria-current="page">✍️ Melodic Lead patterns</a><a href="fingerstyle.html">🎶 Fingerstyle Solo</a></nav>
   </div>
   <div class="stats" aria-label="Your practice so far">
     <div class="stat"><b id="hStreak">0</b><span>day streak</span></div>
@@ -2170,7 +2170,7 @@ function flushTime(p,final){ // add the time since the last flush to today's tot
 }
 function logTime(p){flushTime(p,true);}
 const goalSec=()=>(S.goalMin||30)*60;
-const fsSec=k=>["fs-v1","caged-v1","lead-v1"].reduce((t,key)=>{try{const f=JSON.parse(localStorage.getItem(key)||"null");if(!f)return t;return t+((f.days&&f.days[k])||0)+Object.values(f.odays||{}).reduce((x,d)=>x+(d[k]||0),0);}catch(e){return t;}},0); // fingerstyle trainer minutes
+const fsSec=k=>(localStorage.getItem("leadpath-v1")?["fs-v1","leadpath-v1"]:["fs-v1","caged-v1","lead-v1"]).reduce((t,key)=>{try{const f=JSON.parse(localStorage.getItem(key)||"null");if(!f)return t;return t+((f.days&&f.days[k])||0)+Object.values(f.odays||{}).reduce((x,d)=>x+(d[k]||0),0);}catch(e){return t;}},0); // fingerstyle trainer minutes
 function todaySec(){const day=dkey(new Date());let s=Object.values(sessions).reduce((a,x)=>a+((x.days&&x.days[day])||0),0)+fsSec(day);
   if(play)s+=Math.min(90,(performance.now()-(play.lf||play.t0))/1000);return s;}
 const mmss=s=>{s=Math.floor(s);return Math.floor(s/60)+":"+String(s%60).padStart(2,"0");};

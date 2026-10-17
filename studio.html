@@ -51,7 +51,7 @@ a.sec.cg::before{background:#0f766e}.cg .tag{background:#e6f6f4;color:#0f766e}.c
   <a class="backlink" href="./">← Total Recall &amp; Melodies</a>
   <div class="eyebrow">Guitar practice</div>
   <h1>Guitar Studio</h1>
-  <p>Three ways to practise, one daily goal. Pick a section to start.</p>
+  <p>Two ways to practise, one daily goal. Pick a section to start.</p>
 </div></header>
 <main class="wrap">
   <section class="goal" aria-label="Daily goal">
@@ -60,13 +60,13 @@ a.sec.cg::before{background:#0f766e}.cg .tag{background:#e6f6f4;color:#0f766e}.c
     <div class="gweek" id="week"></div>
   </section>
   <div class="sections">
-    <a class="sec" href="guitar.html">
+    <a class="sec" href="lead.html">
       <div class="ico">🎸</div>
-      <h2>Melodic Lead</h2>
-      <p>Your own sequence patterns, written from your book onto tab. Each one is played through the five major shapes and the five pentatonic boxes, with the tempo climbing from 20 to 160 bpm.</p>
-      <div class="tags"><span class="tag">your patterns</span><span class="tag">10 shapes each</span><span class="tag">20 → 160 bpm</span></div>
-      <div class="now"><div><b id="lStage">–</b><span>patterns</span></div><div><b id="lTempo">–</b><span>bpm</span></div><div><b id="lDone">–</b><span>this session</span></div></div>
-      <div class="go"><span id="lNext">Open your current session</span><b>Open ▸</b></div>
+      <h2>Lead Guitar</h2>
+      <p>One path for all your pick playing: rock lead technique (slides, bends, legato, vibrato, hybrid picking, dynamics, soloing) alternating with the five CAGED shapes, plus your own Melodic Lead patterns in every session.</p>
+      <div class="tags"><span class="tag">24 levels</span><span class="tag">147 lessons</span><span class="tag">your patterns</span></div>
+      <div class="now"><div><b id="lDone">0</b><span>reps done</span></div><div><b id="lPats">0</b><span>patterns</span></div><div><b id="lTempo">–</b><span>pattern bpm</span></div></div>
+      <div class="go"><span id="lNext">Start with core soloing</span><b>Open ▸</b></div>
     </a>
     <a class="sec fs" href="fingerstyle.html">
       <div class="ico">🎶</div>
@@ -76,44 +76,27 @@ a.sec.cg::before{background:#0f766e}.cg .tag{background:#e6f6f4;color:#0f766e}.c
       <div class="now"><div><b id="fLevel">1</b><span>level</span></div><div><b id="fDone">0</b><span>lessons done</span></div><div><b id="fLeft">35</b><span>to go</span></div></div>
       <div class="go"><span id="fNext">Start with lesson 1a</span><b>Open ▸</b></div>
     </a>
-    <a class="sec cg" href="caged.html">
-      <div class="ico">🧭</div>
-      <h2>CAGED Course</h2>
-      <p>Every chord and arpeggio in the five CAGED shapes (major, minor, 7th), the practice sessions that make them stick, and ten plays that use them in bass lines, riffs and solos.</p>
-      <div class="tags"><span class="tag">13 levels</span><span class="tag">94 lessons</span><span class="tag">846 reps</span></div>
-      <div class="now"><div><b id="cLevel">1</b><span>level</span></div><div><b id="cDone">0</b><span>reps done</span></div><div><b id="cSess">–</b><span>session</span></div></div>
-      <div class="go"><span id="cNext">Start with Foundations</span><b>Open ▸</b></div>
-    </a>
-    <a class="sec ld" href="lead.html">
-      <div class="ico">⚡</div>
-      <h2>Lead Techniques</h2>
-      <p>Rock lead technique with a pick: slides, bends of every kind, legato, vibrato, hybrid picking, dynamics, then building solos, one-string and double-stop improvising.</p>
-      <div class="tags"><span class="tag">11 levels</span><span class="tag">53 lessons</span><span class="tag">477 reps</span></div>
-      <div class="now"><div><b id="dLevel">1</b><span>level</span></div><div><b id="dDone">0</b><span>reps done</span></div><div><b id="dSess">–</b><span>session</span></div></div>
-      <div class="go"><span id="dNext">Start with core soloing</span><b>Open ▸</b></div>
-    </a>
   </div>
 </main>
 <script>
 "use strict";
 const get=k=>{try{return JSON.parse(localStorage.getItem(k)||"null");}catch(e){return null;}};
-const mel=get("mss-sessions")||{},fs=get("fs-v1")||{},cg=get("caged-v1")||{},ld=get("lead-v1")||{};
+const mel=get("mss-sessions")||{},fs=get("fs-v1")||{},lp=get("leadpath-v1"),old=lp?[lp]:[get("caged-v1")||{},get("lead-v1")||{}];
 const pad=n=>String(n).padStart(2,"0"),dkey=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 const sessions=Object.values(mel.ds||{});
-function secOn(k){let s=sessions.reduce((a,x)=>a+((x.days&&x.days[k])||0),0);s+=(fs.days&&fs.days[k])||0;Object.values(fs.odays||{}).forEach(d=>{s+=d[k]||0;});s+=(cg.days&&cg.days[k])||0;Object.values(cg.odays||{}).forEach(d=>{s+=d[k]||0;});s+=(ld.days&&ld.days[k])||0;Object.values(ld.odays||{}).forEach(d=>{s+=d[k]||0;});return s;}
+function secOn(k){let s=sessions.reduce((a,x)=>a+((x.days&&x.days[k])||0),0);s+=(fs.days&&fs.days[k])||0;Object.values(fs.odays||{}).forEach(d=>{s+=d[k]||0;});old.forEach(c=>{s+=(c.days&&c.days[k])||0;Object.values(c.odays||{}).forEach(d=>{s+=d[k]||0;});});return s;}
 const goal=(mel.st&&mel.st.goalMin)||30,today=secOn(dkey(new Date()));
 document.getElementById("tMin").textContent=Math.floor(today/60);
 document.getElementById("tGoal").textContent=goal;
 document.getElementById("tBar").style.width=Math.min(100,today/60/goal*100)+"%";
 document.getElementById("week").innerHTML=[...Array(7)].map((_,i)=>{const d=new Date();d.setDate(d.getDate()-6+i);const m=Math.floor(secOn(dkey(d))/60);
   return `<span class="gd${m>=goal?" met":m>0?" part":""}" title="${m} min"><b>${m}</b><small>${i===6?"Today":d.toLocaleDateString(undefined,{weekday:"short"})}</small></span>`;}).join("");
-// Melodic Lead: the open session
-const pats=(mel.st&&mel.st.myPats)||[],open=sessions.filter(x=>x.kind==="own"&&!x.free&&!x.finished).sort((a,b)=>(b.started>a.started?1:-1))[0];
-document.getElementById("lStage").textContent=pats.length;
-if(open){document.getElementById("lTempo").textContent=open.tempo||"–";
-  document.getElementById("lDone").textContent=`${(open.done||[]).length}/10`;
-  document.getElementById("lNext").textContent=`Continue: ${open.pname||"your pattern"}`;}
-else document.getElementById("lNext").textContent=pats.length?"Write your next pattern":"Write your first pattern";
+// Lead Guitar: reps ticked on the path, and where the Melodic Lead patterns stand
+{const pats=(mel.st&&mel.st.myPats)||[],open=sessions.filter(x=>x.kind==="own"&&!x.free&&!x.finished).sort((a,b)=>(b.started>a.started?1:-1))[0];
+ const dn=old.reduce((a,c)=>a+Object.keys(c.done||{}).filter(k=>c.done[k]).length,0);
+ document.getElementById("lDone").textContent=dn;document.getElementById("lPats").textContent=pats.length;
+ if(open)document.getElementById("lTempo").textContent=open.tempo||"–";
+ if(dn)document.getElementById("lNext").textContent=`Continue · ${dn} of 1323 reps`;}
 // Fingerstyle Solo: levels are finished lesson by lesson
 const LV=[["1a","1b","1c","1d","1e"],["2a","2b","2c","2d","2e"],["3a","3b","3c","3d","3e"],["4a","4b","4c","4d"],["5a","5b","5c"],["6a","6b","6c","6d"],["7a","7b","7c","7d","7e"],["8a","8b","8c","8d"]];
 const done=fs.done||{},all=LV.flat(),n=all.filter(id=>done[id]).length;
@@ -123,15 +106,5 @@ document.getElementById("fLevel").textContent=lvl+1;
 document.getElementById("fDone").textContent=n;
 document.getElementById("fLeft").textContent=all.length-n;
 document.getElementById("fNext").textContent=n===all.length?"Course complete: review any lesson":nx?`Next: lesson ${nx}`:"Start with lesson 1a";
-// CAGED Course: reps ticked, today's session
-{const cd=Object.keys(cg.done||{}).filter(k=>cg.done[k]).length;document.getElementById("cDone").textContent=cd;
- const ss=cg.sess;if(ss&&ss.items&&ss.items.length){const ok=ss.items.filter((it,i)=>it.rev?(ss.ok&&ss.ok[i]):(cg.done||{})[it.id]).length;document.getElementById("cSess").textContent=`${ok}/${ss.items.length}`;}
- const lv=["f","c","a","g","e","d","j","t","b","r","p","s","x"];let hi=0;Object.keys(cg.done||{}).forEach(k=>{const i=lv.indexOf(k[0]);if(i>hi)hi=i;});document.getElementById("cLevel").textContent=hi+1;
- if(cd)document.getElementById("cNext").textContent=`Continue · ${cd} of 846 reps`;}
-// Lead Techniques: reps ticked, today's session
-{const dd=Object.keys(ld.done||{}).filter(k=>ld.done[k]).length;document.getElementById("dDone").textContent=dd;
- const ss=ld.sess;if(ss&&ss.items&&ss.items.length){const ok=ss.items.filter((it,i)=>it.rev?(ss.ok&&ss.ok[i]):(ld.done||{})[it.id]).length;document.getElementById("dSess").textContent=`${ok}/${ss.items.length}`;}
- const lv="abcdefghijk";let hi=0;Object.keys(ld.done||{}).forEach(k=>{const i=lv.indexOf(k[0]);if(i>hi)hi=i;});document.getElementById("dLevel").textContent=hi+1;
- if(dd)document.getElementById("dNext").textContent=`Continue · ${dd} of 477 reps`;}
 </script>
 </body></html>
