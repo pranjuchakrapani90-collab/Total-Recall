@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#9f1239">
-<title>Lead Guitar · Guitar Studio</title>
+<title>Lead Course · Guitar Studio</title>
 <link rel="manifest" href="manifest.webmanifest">
 <style>
 :root{
@@ -173,8 +173,8 @@ a.btn{display:inline-block;text-decoration:none;font:650 15px var(--body);border
 </style></head><body>
 <header class="top"><div class="hin">
   <div><div class="toprow"><a class="backlink" href="studio.html">← Guitar Studio</a><span id="syncBadge" class="backlink">☁ Sync off</span></div>
-    <div class="eyebrow">Technique · CAGED · your patterns · one path</div><h1><a href="studio.html" style="color:inherit;text-decoration:none">Guitar Studio</a></h1>
-    <nav class="studio" aria-label="Guitar Studio sections"><a href="lead.html" class="on" aria-current="page">🎸 Lead Guitar</a><a href="guitar.html">✍️ Melodic Lead patterns</a><a href="fingerstyle.html">🎶 Fingerstyle Solo</a></nav></div>
+    <div class="eyebrow">Technique · CAGED · one path</div><h1><a href="studio.html" style="color:inherit;text-decoration:none">Guitar Studio</a></h1>
+    <nav class="studio" aria-label="Guitar Studio sections"><a href="guitar.html">🎸 Melodic Lead</a><a href="lead.html" class="on" aria-current="page">⚡ Lead Course</a><a href="fingerstyle.html">🎶 Fingerstyle Solo</a></nav></div>
   <div class="stats"><div class="stat"><b id="hLevel">1</b><span>level</span></div><div class="stat"><b id="hReps">0</b><span>reps done</span></div><div class="stat" id="hTodayS"><b id="hToday">0/30</b><span>min today</span></div></div>
 </div></header>
 <main class="wrap" id="view"></main>
@@ -1313,49 +1313,23 @@ function tabHTML(E){
 function fixClefs(){document.querySelectorAll(".tab").forEach(t=>{let last=null;[...t.children].forEach(b=>{b.classList.toggle("nc",b.offsetTop===last);last=b.offsetTop;});});}
 window.addEventListener("resize",()=>setTimeout(fixClefs,100));
 
-/* ===================== Melodic Lead: your book patterns, read from its own page's storage =====================
-   The pattern editor and player stay on the Melodic Lead page; the path and the daily session point to its next step. */
-const MLSH=["M1","M2","M3","M4","M5","P1","P2","P3","P4","P5"];
-const mlShape=k=>`${k[0]==="M"?"Major":"Pentatonic"} · ${"CAGED"[k[1]-1]} shape`;
-function ML(){const m=lsJ("mss-sessions"),S=m.st||{},ds=m.ds||{},L=S.myPats||[],C=S.myCourse||{};
-  const prog=(p,t)=>{const a={...((p.prog&&p.prog[t])||{})},s=ds[`o-${p.id}-${p.rev||0}-${t}`];if(s)(s.done||[]).forEach(k=>a[k]=1);return a;};
-  const lvl=p=>{for(let t=20;t<=160;t+=5)if(!MLSH.every(k=>prog(p,t)[k]))return t;return null;};
-  const o={n:L.length,pats:L,prog};if(!L.length)return {...o,write:true};
-  const lv=L.map(lvl);if(lv.every(x=>x===null))return {...o,fin:true,write:!C.closed};
-  const T=Math.min(...lv.filter(x=>x!=null));if(!C.closed&&T>20)return {...o,write:true};
-  const p=L.find((q,i)=>lv[i]===T),g=prog(p,T);return {...o,T,p,k:MLSH.find(x=>!g[x]),cnt:MLSH.filter(x=>g[x]).length,g};}
-function mlItem(){const M=ML();if(M.p)return {ml:{pid:M.p.id,t:M.T,k:M.k}};if(M.write)return {ml:{write:1,n:M.n}};return null;}
-function mlOk(x){const M=ML();if(x.write)return M.n>x.n;const p=M.pats.find(q=>q.id===x.pid);return !p||!!M.prog(p,x.t)[x.k];}
-function mlCard(){const M=ML();
-  const body=M.p?`<p><b>${esc(M.p.name||"Your pattern")}</b> at <b>${M.T} bpm</b> · next: ${mlShape(M.k)} · ${M.cnt} of 10 shapes</p><div class="mldots">${MLSH.map(k=>`<i class="${M.g[k]?"ok":k===M.k?"now":""}" title="${mlShape(k)}"></i>`).join("")}</div>`
-    :M.fin&&!M.write?`<p>Every pattern is done at every tempo up to 160 bpm. 🎉</p>`
-    :`<p>${M.n?`${M.n} pattern${M.n>1?"s":""} in, all done at 20 bpm. `:""}Next: write ${M.n?"your next":"your first"} pattern from the book onto tab.</p>`;
-  return `<section class="card ml"><div class="row between"><div class="num">Melodic Lead · your book patterns</div><span class="chip t">${M.n} pattern${M.n===1?"":"s"}</span></div>
-    <h3>Sequences through all ten shapes</h3>${body}
-    <p class="muted" style="font-size:13px">One shape of your current pattern is part of every session below. The editor and its player open on their own page.</p>
-    <div class="row"><a class="btn" href="guitar.html">Open Melodic Lead ▸</a></div></section>`;}
-
 /* ===================== Today's session: five reps, fixed until all are done ===================== */
-function buildSess(){const items=[],mi=mlItem(),N=mi?3:4;
-  for(const L of ALL){if(items.length>=N)break;if(!levelOpen(L.lv)||lessonDone(L))continue;
-    for(let si=0;si<L.reps.length&&items.length<N;si++){if(!stageOpen(L,si))break;L.reps[si].forEach((r,ri)=>{const id=rid(L,si,ri);if(items.length<N&&!isDone(id))items.push({id});});}}
-  if(mi)items.push(mi);
+function buildSess(){const items=[];
+  for(const L of ALL){if(items.length>=4)break;if(!levelOpen(L.lv)||lessonDone(L))continue;
+    for(let si=0;si<L.reps.length&&items.length<4;si++){if(!stageOpen(L,si))break;L.reps[si].forEach((r,ri)=>{const id=rid(L,si,ri);if(items.length<4&&!isDone(id))items.push({id});});}}
   const doneIds=Object.keys(st.done).filter(id=>byId(id.split(":")[0])&&st.done[id]);
   if(doneIds.length)items.push({id:doneIds[Math.floor(Math.random()*doneIds.length)],rev:1});
   st.sess={items,at:Date.now(),ok:{}};st.sessT=Date.now();save();}
-const sessOk=(it,i)=>it.ml?mlOk(it.ml):it.rev?!!(st.sess.ok&&st.sess.ok[i]):isDone(it.id);
+const sessOk=(it,i)=>it.ml?true:it.rev?!!(st.sess.ok&&st.sess.ok[i]):isDone(it.id);
 const sessDone=()=>st.sess&&st.sess.items.length&&st.sess.items.every(sessOk);
 function sessCard(){
   if(!st.sess||!st.sess.items.length)return `<section class="card"><div class="num">Today's session</div><h2>Five reps, chosen for you</h2>
-    <p class="muted">A session is the next three reps on your path, the next shape of your Melodic Lead pattern, and one review rep from what you've already finished. It stays the same until you've done all five, however many sittings that takes.</p>
+    <p class="muted">A session is the next four reps on your path plus one review rep from what you've already finished. It stays the same until you've done all five, however many sittings that takes.</p>
     <div class="row"><button type="button" class="play big" data-newsess="1">Start a session ▸</button></div></section>`;
   const n=st.sess.items.filter(sessOk).length,all=sessDone();
   return `<section class="card"><div class="row between"><div class="num">Today's session · ${n} of ${st.sess.items.length} done</div>${all?`<span class="chip g">complete</span>`:""}</div>
     <h2>${all?"Session complete":`Your next ${st.sess.items.length} reps`}</h2>
-    <div class="sess">${st.sess.items.map((it,i)=>{if(it.ml){const ok=mlOk(it.ml),M=ML(),p=it.ml.pid&&M.pats.find(q=>q.id===it.ml.pid);
-        return `<div class="si${ok?" ok":""}"><span><b>${ok?"✓ ":""}Melodic Lead · ${it.ml.write?"write your next pattern":esc((p&&p.name)||"your pattern")}</b><br><span class="st">${it.ml.write?"from the book, onto tab":`${mlShape(it.ml.k)} · ${it.ml.t} bpm`}</span></span>
-        <a class="btn" style="padding:9px 14px;font-size:14px" href="guitar.html">${ok?"Again":"Open ▸"}</a></div>`;}
-      const [lid,si,ri]=it.id.split(":"),L=byId(lid);if(!L)return "";const R=L.reps[si][ri],ok=sessOk(it,i);
+    <div class="sess">${st.sess.items.map((it,i)=>{if(it.ml)return "";const [lid,si,ri]=it.id.split(":"),L=byId(lid);if(!L)return "";const R=L.reps[si][ri],ok=sessOk(it,i);
       return `<div class="si${ok?" ok":""}"><span><b>${ok?"✓ ":""}${it.rev?"Review · ":""}${esc(L.t)}</b><br><span class="st">${lab(L)} · ${repShort(L,R).replace(/<[^>]+>/g," ")} · Stage ${ROM[si]} · ${target(L,+si)} bpm</span></span>
         <button type="button" data-open="${lid}" data-rep="${si}:${ri}"${it.rev?` data-rev="${i}"`:""}>${ok?"Again":"Open ▸"}</button></div>`;}).join("")}</div>
     ${all?`<div class="row"><button type="button" class="play big" data-newsess="1">Start the next session ▸</button></div>`:""}</section>`;}
@@ -1365,8 +1339,7 @@ function header(){document.getElementById("hLevel").textContent=curLevel()+1;doc
 function goalCard(){return `<div class="card goal"><div class="row between"><h3>Daily goal · ${goalMin()} min</h3><span class="num">all of Guitar Studio</span></div>
   <div class="gbar"><i id="goalBar"></i></div><p id="goalTxt"></p></div>`;}
 function aboutCard(){return `<section class="card"><details class="more"><summary>How this path works</summary><div class="lesson-txt" style="margin-top:10px">
-  <p>One path for all your pick playing. It alternates <b>technique levels</b> (rock lead technique from a technique book: slides, bends, legato, vibrato, hybrid picking, dynamics, solo building, one-string and double-stop improvising) with <b>CAGED levels</b> (the five shapes as chords and arpeggios, the practice sessions and the playbook). Technique you learn in one level gets used on the shapes in the next.</p>
-  <p>Your <b>Melodic Lead</b> patterns run alongside: every session includes the next shape of the pattern you're on. Writing patterns and playing them happens on the Melodic Lead page, which keeps its own tempo course (20 → 160 bpm).</p>
+  <p>One course for your pick technique. It alternates <b>technique levels</b> (rock lead technique from a technique book: slides, bends, legato, vibrato, hybrid picking, dynamics, solo building, one-string and double-stop improvising) with <b>CAGED levels</b> (the five shapes as chords and arpeggios, the practice sessions and the playbook). Technique you learn in one level gets used on the shapes in the next.</p>
   <p>Every lesson has <b>three stages</b> (slow, steady, goal tempo) of <b>three reps</b>, usually three keys in different parts of the neck. Tick a rep when it's clean at the stage tempo. A finished stage opens the next; a finished level opens the next level. Locked lessons can still be read and played.</p>
   <p>Tab marks: <b>h p</b> hammer and pull, <b>/ \\</b> slides, <b>b</b> bend with its size, <b>(9)</b> the pitch a bend reaches, <b>r7</b> release, <b>pb</b> pre-bend, <b>∿</b> vibrato, <b>m a</b> fingers, <b>(5)</b> ghost note, <b>&gt;</b> accent. In CAGED lessons the arrows show economy picking.</p>
   <p>Minutes count towards the daily goal shared by all of Guitar Studio.</p></div></details></section>`;}
@@ -1377,7 +1350,6 @@ function homeView(){
     <p class="muted">${esc(LEVELS[nx.lv].n)} · lesson ${LEVELS[nx.lv].ls.findIndex(x=>x.id===nx.id)+1} of ${LEVELS[nx.lv].ls.length} · ${lessonCount(nx)} of ${lessonTotal(nx)} reps${nr?` · next rep: Stage ${ROM[nr[0]]}, ${target(nx,nr[0])} bpm`:""}</p>
     <div class="row"><button type="button" class="play big" data-open="${nx.id}">Continue ▸</button></div></section>
   ${sessCard()}
-  ${mlCard()}
   <section class="card"><h3>The path · ${LEVELS.length} levels</h3><div class="levels">${LEVELS.map((Lv,li)=>{const un=levelOpen(li),fin=levelDone(li),cur=li===cl&&!fin;
     const sec=li===0?"Part 1 · Core technique and the five shapes":li===12?"Part 2 · Expression and practice":li===18?"Part 3 · Soloing and the playbook":"";
     const ls=Lv.ls.map(x=>byId(x.id)),dn=ls.reduce((a,L)=>a+lessonCount(L),0),tot=ls.reduce((a,L)=>a+lessonTotal(L),0);

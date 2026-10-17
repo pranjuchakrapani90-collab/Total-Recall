@@ -51,7 +51,7 @@ a.sec.cg::before{background:#0f766e}.cg .tag{background:#e6f6f4;color:#0f766e}.c
   <a class="backlink" href="./">← Total Recall &amp; Melodies</a>
   <div class="eyebrow">Guitar practice</div>
   <h1>Guitar Studio</h1>
-  <p>Two ways to practise, one daily goal. Pick a section to start.</p>
+  <p>Three ways to practise, one daily goal. Pick a section to start.</p>
 </div></header>
 <main class="wrap">
   <section class="goal" aria-label="Daily goal">
@@ -60,13 +60,21 @@ a.sec.cg::before{background:#0f766e}.cg .tag{background:#e6f6f4;color:#0f766e}.c
     <div class="gweek" id="week"></div>
   </section>
   <div class="sections">
-    <a class="sec" href="lead.html">
+    <a class="sec" href="guitar.html">
       <div class="ico">🎸</div>
-      <h2>Lead Guitar</h2>
-      <p>One path for all your pick playing: rock lead technique (slides, bends, legato, vibrato, hybrid picking, dynamics, soloing) alternating with the five CAGED shapes, plus your own Melodic Lead patterns in every session.</p>
-      <div class="tags"><span class="tag">24 levels</span><span class="tag">147 lessons</span><span class="tag">your patterns</span></div>
-      <div class="now"><div><b id="lDone">0</b><span>reps done</span></div><div><b id="lPats">0</b><span>patterns</span></div><div><b id="lTempo">–</b><span>pattern bpm</span></div></div>
-      <div class="go"><span id="lNext">Start with core soloing</span><b>Open ▸</b></div>
+      <h2>Melodic Lead</h2>
+      <p>Your own sequence patterns, written from your book onto tab. Each one is played through the five major shapes and the five pentatonic boxes, with the tempo climbing from 20 to 160 bpm.</p>
+      <div class="tags"><span class="tag">your patterns</span><span class="tag">10 shapes each</span><span class="tag">20 → 160 bpm</span></div>
+      <div class="now"><div><b id="lStage">–</b><span>patterns</span></div><div><b id="lTempo">–</b><span>bpm</span></div><div><b id="lDone">–</b><span>this session</span></div></div>
+      <div class="go"><span id="lNext">Open your current session</span><b>Open ▸</b></div>
+    </a>
+    <a class="sec cg" href="lead.html">
+      <div class="ico">⚡</div>
+      <h2>Lead Course</h2>
+      <p>One course for pick technique: rock lead skills (slides, bends, legato, vibrato, hybrid picking, dynamics, soloing) alternating with the five CAGED shapes as chords, arpeggios and the playbook.</p>
+      <div class="tags"><span class="tag">24 levels</span><span class="tag">147 lessons</span><span class="tag">1323 reps</span></div>
+      <div class="now"><div><b id="cLevel">1</b><span>level</span></div><div><b id="cDone">0</b><span>reps done</span></div><div><b id="cSess">–</b><span>session</span></div></div>
+      <div class="go"><span id="cNext">Start with core soloing</span><b>Open ▸</b></div>
     </a>
     <a class="sec fs" href="fingerstyle.html">
       <div class="ico">🎶</div>
@@ -91,12 +99,13 @@ document.getElementById("tGoal").textContent=goal;
 document.getElementById("tBar").style.width=Math.min(100,today/60/goal*100)+"%";
 document.getElementById("week").innerHTML=[...Array(7)].map((_,i)=>{const d=new Date();d.setDate(d.getDate()-6+i);const m=Math.floor(secOn(dkey(d))/60);
   return `<span class="gd${m>=goal?" met":m>0?" part":""}" title="${m} min"><b>${m}</b><small>${i===6?"Today":d.toLocaleDateString(undefined,{weekday:"short"})}</small></span>`;}).join("");
-// Lead Guitar: reps ticked on the path, and where the Melodic Lead patterns stand
-{const pats=(mel.st&&mel.st.myPats)||[],open=sessions.filter(x=>x.kind==="own"&&!x.free&&!x.finished).sort((a,b)=>(b.started>a.started?1:-1))[0];
- const dn=old.reduce((a,c)=>a+Object.keys(c.done||{}).filter(k=>c.done[k]).length,0);
- document.getElementById("lDone").textContent=dn;document.getElementById("lPats").textContent=pats.length;
- if(open)document.getElementById("lTempo").textContent=open.tempo||"–";
- if(dn)document.getElementById("lNext").textContent=`Continue · ${dn} of 1323 reps`;}
+// Melodic Lead: the open session
+const pats=(mel.st&&mel.st.myPats)||[],open=sessions.filter(x=>x.kind==="own"&&!x.free&&!x.finished).sort((a,b)=>(b.started>a.started?1:-1))[0];
+document.getElementById("lStage").textContent=pats.length;
+if(open){document.getElementById("lTempo").textContent=open.tempo||"–";
+  document.getElementById("lDone").textContent=`${(open.done||[]).length}/10`;
+  document.getElementById("lNext").textContent=`Continue: ${open.pname||"your pattern"}`;}
+else document.getElementById("lNext").textContent=pats.length?"Write your next pattern":"Write your first pattern";
 // Fingerstyle Solo: levels are finished lesson by lesson
 const LV=[["1a","1b","1c","1d","1e"],["2a","2b","2c","2d","2e"],["3a","3b","3c","3d","3e"],["4a","4b","4c","4d"],["5a","5b","5c"],["6a","6b","6c","6d"],["7a","7b","7c","7d","7e"],["8a","8b","8c","8d"]];
 const done=fs.done||{},all=LV.flat(),n=all.filter(id=>done[id]).length;
@@ -106,5 +115,12 @@ document.getElementById("fLevel").textContent=lvl+1;
 document.getElementById("fDone").textContent=n;
 document.getElementById("fLeft").textContent=all.length-n;
 document.getElementById("fNext").textContent=n===all.length?"Course complete: review any lesson":nx?`Next: lesson ${nx}`:"Start with lesson 1a";
+// Lead Course: reps ticked, today's session, furthest level reached
+{const ORDER=["La","f","Lb","c","Lc","a","Ld","g","Le","e","Lf","d","Lg","j","Lh","t","Li","b","r","Lj","p","s","Lk","x"];
+ const D=lp?(lp.done||{}):Object.assign({},(old[0].done||{}),Object.fromEntries(Object.entries(old[1].done||{}).map(([k,v])=>["L"+k,v])));
+ const ids=Object.keys(D).filter(k=>D[k]),cd=ids.length;document.getElementById("cDone").textContent=cd;
+ const ss=lp&&lp.sess;if(ss&&ss.items&&ss.items.length){const it=ss.items.filter(x=>!x.ml),ok=it.filter((x,i)=>x.rev?(ss.ok&&ss.ok[ss.items.indexOf(x)]):D[x.id]).length;document.getElementById("cSess").textContent=`${ok}/${it.length}`;}
+ let hi=0;ids.forEach(k=>{const lv=k[0]==="L"?k.slice(0,2):k[0],i=ORDER.indexOf(lv);if(i>hi)hi=i;});document.getElementById("cLevel").textContent=hi+1;
+ if(cd)document.getElementById("cNext").textContent=`Continue · ${cd} of 1323 reps`;}
 </script>
 </body></html>
