@@ -735,7 +735,7 @@ CLEVELS.forEach(Lv=>{Lv.src="cg";Lv.ls.forEach(L=>{L.reps.forEach(st=>st.forEach
 /* ===================== Lead technique engine: licks written in A minor, bends and vibrato as pitch curves ===================== */
 const KN=["C","C#","D","Eb","E","F","F#","G","G#","A","Bb","B"];
 
-const SCL={mp:{n:"minor pentatonic",iv:[0,3,5,7,10]},bl:{n:"blues scale",iv:[0,3,5,6,7,10]},nm:{n:"natural minor",iv:[0,2,3,5,7,8,10]}};
+const SCL={mj:{n:"major scale",iv:[0,2,4,5,7,9,11]},mp:{n:"minor pentatonic",iv:[0,3,5,7,10]},bl:{n:"blues scale",iv:[0,3,5,6,7,10]},nm:{n:"natural minor",iv:[0,2,3,5,7,8,10]}};
 const LKEYS=[[9,4,2],[7,11,0],[6,5,1]]; // stage I, II, III: A E D · G B C · F# F C#
 
 /* ===================== Licks: written once in A minor, moved to any key =====================
@@ -791,7 +791,7 @@ function buildLick(L,R){
     if(t.k==="grp"){const hy=t.ns.some(n=>n.fg),ord=t.ns.slice().sort((x,y)=>y.s-x.s);
       ord.forEach((n,i)=>put(t.slide?{...n,tech:"sl"}:n,t.d,hy||t.slide?{}:{role:"c",st:i}));b=r12(b+t.d);}});
   const total=Math.max(4,Math.ceil(b/4-1e-6)*4);
-  if(!ch.length)ch.push({b:0,name:`${KN[key]} minor`});
+  if(!ch.length)ch.push({b:0,name:`${KN[key]} ${L.maj?"major":"minor"}`});
   /* the scale around the lick, faint on the fretboard */
   const fs=ev.map(e=>e.f),lo=Math.max(0,Math.min(...fs)-1),hi=Math.max(...fs)+1,sc=SCL[L.sc||"mp"].iv,box=[];
   for(let s=1;s<=6;s++)for(let f=lo;f<=hi;f++)if(sc.includes(mod(OPEN[s]+f-key,12)))box.push({...nt(s,f,key),sc:1});
@@ -817,7 +817,7 @@ function semiAt(e,tb,sec){let cur=e.pb||0;
   return cur;}
 
 /* ===================== Technique levels: chapters 1–11 of a rock-lead technique book ===================== */
-Object.assign(TEMPI,{le:[60,80,100],ls:[50,65,80],lb:[60,70,80],lt:[50,65,80],lv:[60,70,80],lx:[70,85,100]});
+Object.assign(TEMPI,{ear:[50,60,70],le:[60,80,100],ls:[50,65,80],lb:[60,70,80],lt:[50,65,80],lv:[60,70,80],lx:[70,85,100]});
 const LLEVELS=[
  {id:"La",n:"Core soloing techniques",d:"Clean alternate picking through the box, muting what you don't play, and slides: between notes, into notes and between positions.",ls:[
   {id:"La1",t:"Alternate picking through the box",rate:"le",sc:"mp",lick:"6:5@.5 6:8 5:5 5:7 4:5 4:7 3:5 3:7 | 2:5 2:8 1:5 1:8 1:5 2:8 2:5 3:7 | 3:5 4:7 4:5 5:7 5:5 6:8 6:5@1",
@@ -835,6 +835,11 @@ const LLEVELS=[
   {id:"La5",t:"Shifting position with slides",rate:"lb",sc:"mp",lick:"6:5@.5 6:8 5:5 5:7 ^5:10@1 4:7@.5 4:10@.5 | ^4:12@1 3:9@.5 3:12@.5 ^3:14@1 2:13@.5 2:15@.5 | 1:12@2 r@2",
    txt:["Staying in one box makes every solo sound the same. A slide on one string lets you walk diagonally up the neck, box to box, without a gap.","This run climbs from the first box to the fourth by sliding on the A, D and G strings, then lands high on the first string.","Learn which finger arrives on each slide: here it's the <b>ring finger</b> each time, which leaves the index ready for the next string."],
    how:["Say the box you're in as you slide into it.","Slide in time; the slide is part of the rhythm.","Repeat bars 1 and 2 on their own until the shifts are automatic."]},
+  /* Ear lessons (opt): from Eli Koskoff, "The Ultimate Exercise to Freely Express Yourself on Guitar". Hear it → sing it → see it → play it.
+     Written in A MAJOR (maj:1); they count towards reps but never hold a level shut, and the daily session gives one ear rep each time. */
+  {id:"La6",opt:1,maj:1,t:"Ear: sing the major scale by numbers",rate:"ear",sc:"mj",lick:"<A:4> 6:5@2 r@2 | <A:4> r@1 6:7@1 r@1 5:4@1 | <A:4> r@1 5:5@1 r@1 5:7@1 | <A:4> r@1 4:4@1 r@1 4:6@1 | <A:4> r@1 4:7@3 | <A:4> r@1 4:6@1 r@1 4:4@1 | <A:4> r@1 5:7@1 r@1 5:5@1 | <A:4> r@1 5:4@1 r@1 6:7@1 | <A:4> r@1 6:5@3",
+   txt:["Free expression means playing what you hear in your head, and that starts with the ear, not the fingers. This is a daily ear rep: one octave of the <b>major scale</b> over a major chord, with a gap before every note.","In each gap, <b>sing the next note first</b> and say its number out loud ('one', 'two', 'three'…). Then play it to check. The number to sing is printed under each tab note. You don't need note names: think only in numbers and every key becomes the same.","The major scale is all <b>whole steps</b> (two frets) except <b>3→4</b> and <b>7→1</b>, which are <b>half steps</b> (one fret). Give each a sound you already know: the two-note <b>Jaws</b> theme for a half step, the opening riff of <b>“You Really Got Me”</b> for a whole step. Each rep changes key, so you calibrate a fresh 'one' with your voice every time."],
+   how:["Hum the root against the backing chord until your voice sits on it, and call it 'one'.","Sing before you play, never after. If the fret doesn't match your voice, sing again before going on.","Listen hardest at 3–4 and 7–1: they should feel smaller. When it's easy, sing and play together up and down."]},
  ]},
  {id:"Lb",n:"String bending",d:"Whole-step, half-step and quarter-tone bends, bend and release, and the bigger bends, always checked against the pitch you're aiming for.",ls:[
   {id:"Lb1",t:"Bend to a reference pitch",rate:"lv",sc:"mp",lick:"3:9@1 3:7b1@2 r@1 | 2:10@1 2:8b1@2 r@1 | 1:10@1 1:8b1@2 r@1 | 3:9@1 3:7b1@3",
@@ -855,6 +860,9 @@ const LLEVELS=[
   {id:"Lb6",t:"Bigger bends: one and a half steps",rate:"lv",sc:"mp",lick:"1:8@1 2:10b1.5@2 r@1 | 2:10b1.5@1.5 1:8@.5 1:5@.5 2:8@.5 2:5@1 | 3:7b1@4",
    txt:["A <b>1½-step bend</b> (three frets) takes the root up to the b3. It's a big, crying sound, and it's hard work: the string moves a long way.","Light strings help; strong technique helps more. Use all three fingers, and drive the movement from the wrist rotation.","Check the target first: it's the b3 on the high e string, right next door."],
    how:["Warm up with whole-step bends first.","Go slowly, and stop if the hand gets sore.","Expect this one to take weeks to get fully in tune."]},
+  {id:"Lb7",opt:1,maj:1,t:"Ear: hear an interval, see it, then play it",rate:"ear",sc:"mj",lick:"<A:4> 6:5@1 r@1 5:4@2 | <A:4> 6:5@1 5:4@1 6:5@1 5:4@1 | <A:4> 6:5@1 r@1 5:5@2 | <A:4> 6:5@1 5:5@1 6:5@1 5:5@1 | <A:4> 6:5@1 r@1 5:7@2 | <A:4> 6:5@1 5:7@1 6:5@1 5:7@1 | <A:4> 6:5@1 r@1 4:4@2 | <A:4> 6:5@1 4:4@1 6:5@1 4:4@1 | <A:4> 6:5@1 r@1 4:6@2 | <A:4> 6:5@1 4:6@1 6:5@1 4:6@1",
+   txt:["Bending taught you to aim at a pitch you can already hear. Now jump straight from the root to one note: the <b>3rd</b>, <b>4th</b>, <b>5th</b>, <b>6th</b> and <b>7th</b>, two bars each. Play the root, <b>sing the target in the gap</b>, then play it to check; the second bar swaps between the two so the distance sinks in.","If you can't hear the jump yet, sing up the scale to it first (1-2-3), then sing just the jump (1… 3, 1… 3) until you don't need the steps in between. A tune you know helps too: pick one that starts with that jump and use it as your reference.","Then <b>see it before you play it</b>. From a root on the low E or A string every interval is a fixed shape: <b>3rd</b> next string, one fret back · <b>4th</b> next string, same fret · <b>5th</b> next string, two frets up (the power chord) · <b>6th</b> two strings over, one fret back · <b>7th</b> two strings over, one fret up. (Shapes that cross onto the B string move up one fret.) Play it as if it had to be right first time."],
+   how:["Don't touch the guitar again until you've sung the target.","Say the number as you play it.","Learn them in this order. The 6th and 7th are big jumps; if one won't come, sing up the scale to it again."]},
  ]},
  {id:"Lc",n:"Legato",d:"Hammer-ons, pull-offs, rolls and trills: notes sounded by the fretting hand, for smooth, fast, vocal lines.",ls:[
   {id:"Lc1",t:"Hammer-ons",rate:"le",sc:"mp",lick:"6:5@.5 h6:8 5:5 h5:7 4:5 h4:7 3:5 h3:7 | 2:5 h2:8 1:5 h1:8@2.5",
@@ -968,6 +976,9 @@ const LLEVELS=[
   {id:"Li5",t:"Building the solo",rate:"lx",sc:"mp",lick:"<Am:4> 4:7@1 3:5@1 4:7@2 | <G:4> 4:5@1 4:7@1 3:5@2 | <F:4> 3:5@.5 3:7@.5 2:5@1 3:7b1@2 | <G:4> 2:5@.5 2:8@.5 1:5@.5 2:8@.5 2:5@1 3:7@1 | <Am:4> 1:5@.5 1:8@.5 2:10@.5 1:8@.5 1:10@1 1:8@1 | <G:4> 1:10@.5 1:12@.5 1:10b1@1 1:8@.5 1:10@1.5 | <F:4> 1:12@.25 1:10@.25 1:8@.25 2:10@.25 1:12@.25 1:10@.25 1:8@.25 2:10@.25 1:13b1@2 | <Am:4> 1:12b1~w@4",
    txt:["Eight bars that grow: <b>low and sparse</b> at the start, then a little higher and busier, then high on the neck with fast notes and bends, ending on a big held note.","Tension in a solo comes from three things: going higher, playing more notes, and playing louder. Save all three for the end."],
    how:["Play the first bars almost lazily.","Let the bend in bar 6 and the 16ths in bar 7 be the peak.","Hold the last note with a wide vibrato until the bar ends."]},
+  {id:"Li6",opt:1,maj:1,t:"Ear: hear it, sing it, see it, play it",rate:"ear",sc:"mj",lick:"<A:4> r@4 | <A:4> 6:5@1 5:4@1 4:4@1 5:7@1 | <A:4> r@4 | <A:4> 6:5@1 5:5@1 4:6@1 5:7@1 | <A:4> r@4 | <A:4> 5:7@1 4:4@1 5:7@1 5:4@1 | <A:4> r@4 | <A:4> 5:4@1 6:7@1 6:5@2",
+   txt:["This is improvising in slow motion: every step between your head and your hands, one at a time. Four short melodies, each after an empty bar. In the empty bar, read the next melody's numbers (under the tab), <b>hear</b> it in your head, <b>sing</b> it with its numbers, <b>see</b> where each note sits on the neck, and only then <b>play</b> it.","To pin down a note you're unsure of, use more than one route. In 1-3-6-5, the last note is a whole step down from 6 <i>and</i> a 5th up from the root: when both routes agree, you know it. The more connections you hear, the surer you are.","The harder way round is the real goal: hum a short phrase of your own, or a tune you know by heart, work out its numbers by singing, picture it, then play it first time. When it goes wrong, ask which step failed (hearing, naming, seeing or playing) and practise that one."],
+   how:["Don't play during the empty bars.","Melodies 1 and 2 are the two from the video: 1-3-6-5 and 1-4-7-5.","Five to ten minutes of this every day beats an hour once a week."]},
  ]},
  {id:"Lj",n:"Single-string improvisation",d:"The pentatonic along one string: pick it, slide it, bend it, then improvise a whole phrase on one string.",ls:[
   {id:"Lj1",t:"Pentatonic along one string",rate:"le",sc:"mp",keys:[[9,0,2],[11,4,1],[3,10,8]],lick:"3:2@.5 3:5 3:7 3:9 3:12 3:14@1.5 | 3:14@.5 3:12 3:9 3:7 3:5 3:2@1.5 | 2:3@.5 2:5 2:8 2:10 2:13 2:15@1.5 | 2:15@.5 2:13 2:10 2:8 2:5 2:3@1.5",
@@ -1045,11 +1056,11 @@ const stageOpen=(L,si)=>si===0||stageDone(L,si-1);
 const lessonDone=L=>L.reps.every((s,si)=>stageDone(L,si));
 const lessonCount=L=>L.reps.reduce((a,s,si)=>a+s.filter((r,ri)=>isDone(rid(L,si,ri))).length,0);
 const lessonTotal=L=>L.reps.reduce((a,s)=>a+s.length,0);
-const levelDone=li=>LEVELS[li].ls.every(x=>lessonDone(byId(x.id)));
+const levelDone=li=>LEVELS[li].ls.every(x=>x.opt||lessonDone(byId(x.id))); // ear lessons (opt) never hold a level shut
 const levelOpen=li=>li===0||levelDone(li-1);
 const curLevel=()=>{for(let i=0;i<LEVELS.length;i++)if(!levelDone(i))return i;return LEVELS.length-1;};
 function nextRepOf(L){for(let si=0;si<L.reps.length;si++){if(!stageOpen(L,si))break;for(let ri=0;ri<L.reps[si].length;ri++)if(!isDone(rid(L,si,ri)))return [si,ri];}return null;}
-const nextLesson=()=>ALL.find(L=>levelOpen(L.lv)&&!lessonDone(L))||ALL[ALL.length-1];
+const nextLesson=()=>ALL.find(L=>!L.opt&&levelOpen(L.lv)&&!lessonDone(L))||ALL[ALL.length-1];
 const TOTAL=ALL.reduce((a,L)=>a+lessonTotal(L),0);
 const doneCount=()=>Object.keys(st.done).filter(id=>{const L=byId(id.split(":")[0]);return L&&st.done[id];}).length;
 const target=(L,si)=>TEMPI[L.rate][si];
@@ -1057,7 +1068,7 @@ const target=(L,si)=>TEMPI[L.rate][si];
 /* ===================== Exercises ===================== */
 const EXC={};
 function exOf(L,R){const k=L.id+JSON.stringify(R);if(!EXC[k]){const E=L.lick?buildLick(L,R):GEN[L.g](L,R);E.ev.forEach((e,i)=>e.k=i);EXC[k]=E;}return EXC[k];}
-function repShort(L,R){if(L.lick){const E=exOf(L,R),lo=Math.min(...E.ev.map(e=>e.f));return `${KN[R.k]}m <small>fret ${lo}</small>`;}if(L.g==="roots")return NM[R.k];const nm=chordName(R.k,R.q);return R.p!=null?`${nm} · ${PROGS[R.p].n.split(" ")[0]}…`:nm+(R.S?` <small>${R.S}</small>`:"");}
+function repShort(L,R){if(L.lick){const E=exOf(L,R),lo=Math.min(...E.ev.map(e=>e.f));return `${KN[R.k]}${L.maj?"":"m"} <small>fret ${lo}</small>`;}if(L.g==="roots")return NM[R.k];const nm=chordName(R.k,R.q);return R.p!=null?`${nm} · ${PROGS[R.p].n.split(" ")[0]}…`:nm+(R.S?` <small>${R.S}</small>`:"");}
 function repLong(L,R,E){
   if(L.lick){const lo=Math.min(...E.ev.map(e=>e.f)),hi=Math.max(...E.ev.map(e=>e.f));
     return `<b>${KN[R.k]} ${SCL[L.sc||"mp"].n}</b> · frets ${lo}–${hi}${E.bk.length?` · over ${[...new Set(E.ch.map(c=>c.name))].join(", ")}`:""}`;}
@@ -1315,8 +1326,11 @@ window.addEventListener("resize",()=>setTimeout(fixClefs,100));
 
 /* ===================== Today's session: five reps, fixed until all are done ===================== */
 function buildSess(){const items=[];
-  for(const L of ALL){if(items.length>=4)break;if(!levelOpen(L.lv)||lessonDone(L))continue;
-    for(let si=0;si<L.reps.length&&items.length<4;si++){if(!stageOpen(L,si))break;L.reps[si].forEach((r,ri)=>{const id=rid(L,si,ri);if(items.length<4&&!isDone(id))items.push({id});});}}
+  /* one daily ear rep: the next unticked rep of the first open ear lesson */
+  for(const L of ALL){if(!L.opt||!levelOpen(L.lv)||lessonDone(L))continue;const nr=nextRepOf(L);if(nr){items.push({id:rid(L,nr[0],nr[1])});break;}}
+  const cap=4; // ear rep + path reps = 4, plus one review = five
+  for(const L of ALL){if(items.length>=cap)break;if(L.opt||!levelOpen(L.lv)||lessonDone(L))continue;
+    for(let si=0;si<L.reps.length&&items.length<cap;si++){if(!stageOpen(L,si))break;L.reps[si].forEach((r,ri)=>{const id=rid(L,si,ri);if(items.length<cap&&!isDone(id))items.push({id});});}}
   const doneIds=Object.keys(st.done).filter(id=>byId(id.split(":")[0])&&st.done[id]);
   if(doneIds.length)items.push({id:doneIds[Math.floor(Math.random()*doneIds.length)],rev:1});
   st.sess={items,at:Date.now(),ok:{}};st.sessT=Date.now();save();}
@@ -1324,7 +1338,7 @@ const sessOk=(it,i)=>it.ml?true:it.rev?!!(st.sess.ok&&st.sess.ok[i]):isDone(it.i
 const sessDone=()=>st.sess&&st.sess.items.length&&st.sess.items.every(sessOk);
 function sessCard(){
   if(!st.sess||!st.sess.items.length)return `<section class="card"><div class="num">Today's session</div><h2>Five reps, chosen for you</h2>
-    <p class="muted">A session is the next four reps on your path plus one review rep from what you've already finished. It stays the same until you've done all five, however many sittings that takes.</p>
+    <p class="muted">A session is one ear rep (hear it, sing it, see it, play it), the next reps on your path, and one review rep from what you've already finished. It stays the same until you've done all five, however many sittings that takes.</p>
     <div class="row"><button type="button" class="play big" data-newsess="1">Start a session ▸</button></div></section>`;
   const n=st.sess.items.filter(sessOk).length,all=sessDone();
   return `<section class="card"><div class="row between"><div class="num">Today's session · ${n} of ${st.sess.items.length} done</div>${all?`<span class="chip g">complete</span>`:""}</div>

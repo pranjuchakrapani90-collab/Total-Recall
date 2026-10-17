@@ -204,6 +204,7 @@ button:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visi
 .undo{font-size:13px}
 .board svg{width:100%;max-width:560px;height:auto;display:block}
 .ptime{font-size:13px;color:var(--muted);margin:0}
+.eartip{font-size:13px;line-height:1.45;margin:0;padding:8px 10px;border-radius:10px;background:#f5f3ff;color:#3b3363}
 .tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
 @media (max-width:600px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .tile{background:var(--bg);border-radius:10px;padding:12px}
@@ -1671,6 +1672,20 @@ function ownBoxView(){
                    :navHTML("4",done?`<button type="button" class="play big" data-go="5">Next: 6. ${shLab(CSH[5])} ▸</button>`:`<button type="button" class="play big donego" data-boxdone="P">✓ Box done, next ▸</button>`);
   const i=h.lastIndexOf('<div class="navf">');return h.slice(0,i)+nav+"\n  </section>";
 }
+/* Ear cues, one per shape: hear it → sing it → see it → play it (from Eli Koskoff's "freely express yourself" exercise) */
+function earTip(sh,j){const k=NOTE[S.keyPc],maj=sh.sc==="major";
+  const T=maj?[
+    `before ▶, hum ${k} (your 'one') and sing the first group of the pattern by scale numbers. Then play it and check you sang what you played.`,
+    `play bar 1, stop, and sing bar 2 by numbers before you play it. Wherever singing breaks down is where your ear is ahead of or behind your fingers.`,
+    `as the pattern passes 3→4 and 7→1, listen for the half step (one fret). Everything else in the major scale is a whole step.`,
+    `before each group, look at the tab and picture where it lands in this shape. Aim to play every group right first time rather than finding it.`,
+    `once it's comfortable, play one bar, then sing the same bar with the guitar silent, saying the numbers.`]
+   :[`hum ${k}, the root of this box, and call it 'one'. The minor pentatonic is 1, b3, 4, 5, b7: no half steps, so every move is either a whole step or a jump of three frets.`,
+    `play bar 1, stop, and sing bar 2 by numbers (1, b3, 4, 5, b7) before you play it.`,
+    `listen for the three-fret jumps (1→b3 and 5→b7). They're the sound of the box; sing one before you play it.`,
+    `before each group, picture where it lands in this box. Aim to play every group right first time.`,
+    `once it's comfortable, play one bar, then sing it back with the guitar silent.`];
+  return T[j%5];}
 function ownItemView(j){
   const p=curPat(),sh=CSH[j],id="i"+j,E=eventsFor(id,false,false,true),A=patA(p),done=itemDone(j),t=today.time&&today.time[sh.k];
   const back=j===0?"boxM":j===5?"boxP":String(j-1),nxt=j===4?"boxP":j===9?"summary":String(j+1);
@@ -1687,6 +1702,7 @@ function ownItemView(j){
     </div></div>
     ${barsBar(id,E)}
     <div class="tabscroll"><div class="tab${barSel[selKey(id)]?" hassel":""}">${tabHTML(E,id)}</div></div>
+    <p class="eartip">👂 <b>Ear:</b> ${earTip(sh,j)}</p>
     <details class="more"><summary>Your pattern as written, space and drums</summary>
       <div class="tabscroll"><div class="tab mini">${tabHTML(W0,"pv"+pi)}</div></div>
       <div class="pact"><button type="button" data-play="pv${pi}" aria-pressed="false">▶ Hear it as written</button></div>

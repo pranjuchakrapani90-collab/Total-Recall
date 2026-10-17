@@ -487,6 +487,10 @@ function homeView(){
     return `<div class="lvl${un?"":" lock"}${fin?" fin":""}${cur?" cur":""}"><div class="lvh"><b>Level ${li+1}: ${L.n}</b><span>${fin?"✓ complete":un?`${L.ls.filter(x=>st.done[x.id]).length} of ${L.ls.length} done`:"🔒 finish the level before"}</span></div>
       <p>${L.d}</p><div class="lessons">${L.ls.map(x=>`<button type="button" class="les${st.done[x.id]?" ok":x.id===nx.id?" next":""}" ${un?`data-open="${x.id}"`:"disabled"}>${st.done[x.id]?"✓ ":""}${x.id} ${x.t}</button>`).join("")}</div></div>`;}).join("")}</div></section>`;
 }
+/* hear it → sing it → see it → play it, on tunes you already know (Eli Koskoff's melody exercise) */
+function earSong(L){const o={Twinkle:"1 1 5 5 6 6 5",Ode:"3 3 4 5 5 4 3 2",Amazing:"5 1 3 1 3 2 1 6 5"},k=Object.keys(o).find(x=>L.t.includes(x));
+  const how="Before you read the tab, hum the root of the key and call it 'one', sing the first phrase by scale numbers, picture where those notes sit on the top strings, then try to play the phrase first time. Check it against the tab afterwards.";
+  return k?`${how} It starts <b>${o[k]}</b>: sing that before you play.`:`${how} Work the numbers out by singing up the scale from the root.`;}
 function lessonView(L){
   const E=eventsOf(L),Lv=LEVELS[L.lv],idx=Lv.ls.indexOf(L),all=ALL.indexOf(L),prev=ALL[all-1],next=ALL[all+1];
   const chords=[...new Set(E.ch.map(c=>cname(c.name)))].filter(Boolean);
@@ -496,6 +500,7 @@ function lessonView(L){
     <div class="chips"><span class="chip">${L.meter}/4</span>${chords.length?`<span class="chip t">${chords.join(" · ")}</span>`:""}<span class="chip">${nb} bars</span><span class="chip g">goal ${L.tempo[1]} bpm</span>${L.song?`<span class="chip t">song</span>`:""}</div>
     <p class="pdesc"><b>In words:</b> ${L.w}</p>
     <p class="tip">💡 ${L.tip}</p>
+    ${L.song?`<p class="tip">👂 <b>Ear first.</b> ${earSong(L)}</p>`:""}
     <div class="row"><label class="ctl">Tempo <input type="range" id="tempo" min="30" max="160" step="1" value="${tempoOf(L)}"> <b id="tempoV">${tempoOf(L)}</b> bpm</label>
       <label class="chk"><input type="checkbox" id="click"${st.set.click?" checked":""}> Metronome</label>
       <label class="chk"><input type="checkbox" id="countin"${st.set.countin?" checked":""}> Count-in</label>
