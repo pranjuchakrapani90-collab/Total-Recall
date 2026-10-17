@@ -23,6 +23,8 @@ header p{margin:0;color:#e0e7ff;max-width:60ch}
 .gweek{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
 .gd{display:flex;flex-direction:column;align-items:center;padding:6px 0;border-radius:8px;background:var(--bg);font-size:11px;color:var(--muted)}
 .gd b{font:700 15px var(--mono);color:var(--ink)}
+.plrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.plskip{font:600 14px var(--body);border:0;border-radius:10px;padding:10px 14px;background:var(--bg);color:var(--muted);cursor:pointer}
 .plango{align-self:flex-start;text-decoration:none;font:650 15px var(--body);color:#fff;background:var(--steel);border-radius:10px;padding:10px 16px}.plango.fin{background:var(--good)}
 .gd.part{background:var(--brass-soft)}.gd.met{background:var(--good-soft)}.gd.met b{color:var(--good)}
 .sections{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
@@ -59,9 +61,10 @@ a.sec.cg::before{background:#0f766e}.cg .tag{background:#e6f6f4;color:#0f766e}.c
     <div class="gtop"><h2>Today</h2><span><b id="tMin">0</b> of <span id="tGoal">30</span> min</span></div>
     <div class="gbar"><i id="tBar"></i></div>
     <div class="gweek" id="week"></div>
-    <div class="gtop" style="margin-top:6px"><h2>Today's plan · 10 + 10 + 10</h2><span id="planTxt" style="font-size:13px;color:var(--muted)"></span></div>
+    <div class="gtop" style="margin-top:6px"><h2 id="cycTitle">Current cycle · 10 + 10 + 10</h2><span id="planTxt" style="font-size:13px;color:var(--muted)"></span></div>
     <div id="planBar"></div>
-    <a id="planGo" class="plango" href="guitar.html"></a>
+    <div class="plrow"><a id="planGo" class="plango" href="guitar.html"></a><button id="planSkip" type="button" class="plskip">Skip for now ↷</button></div>
+    <p id="cycNote" style="margin:0;font-size:13px;color:var(--muted)"></p>
   </section>
   <div class="sections">
     <a class="sec" href="guitar.html">
@@ -129,10 +132,16 @@ document.getElementById("fNext").textContent=n===all.length?"Course complete: re
 </script>
 <script src="plan.js"></script>
 <script>
-{GSPlan.style();const rows=GSPlan.today(),nx=GSPlan.next(rows),go=document.getElementById("planGo");
- document.getElementById("planBar").innerHTML=GSPlan.barHTML(rows,nx&&nx.k);
- const left=rows.reduce((a,r)=>a+Math.max(0,r.min*60-r.sec),0);
- document.getElementById("planTxt").textContent=nx?`${Math.ceil(left/60)} min to go`:"done for today";
- if(nx){go.href=nx.href;go.textContent=`Next: ${nx.ico} ${nx.n} ▸`;}else{go.className="plango fin";go.href="#";go.textContent="✓ All three done today";}}
+{GSPlan.style();
+ function draw(){const c=GSPlan.cycle(),rows=c.rows,nx=GSPlan.next(rows),go=document.getElementById("planGo"),sk=document.getElementById("planSkip");
+  document.getElementById("cycTitle").textContent=`Cycle ${c.n} · 10 + 10 + 10`;
+  document.getElementById("planBar").innerHTML=GSPlan.barHTML(rows,nx&&nx.k);
+  const left=rows.reduce((a,r)=>a+Math.max(0,r.min*60-r.sec),0);
+  document.getElementById("planTxt").textContent=`${Math.ceil(left/60)} min to finish`;
+  go.href=nx.href;go.textContent=`Next: ${nx.ico} ${nx.n} ▸`;
+  const open=rows.filter(r=>r.sec<r.min*60);sk.hidden=open.length<2;
+  sk.onclick=()=>{GSPlan.skip(nx.k);draw();};
+  document.getElementById("cycNote").textContent=(c.done?`${c.done} cycle${c.done>1?"s":""} completed. `:"")+"A cycle carries over to the next day until all three sections have had their 10 minutes.";}
+ draw();}
 </script>
 </body></html>
