@@ -30,6 +30,7 @@ a.sec{display:flex;flex-direction:column;gap:12px;background:var(--paper);border
 a.sec:hover,a.sec:focus-visible{transform:translateY(-2px);box-shadow:0 10px 26px #141e371c;border-color:var(--steel);outline:none}
 a.sec::before{content:"";position:absolute;left:0;top:0;right:0;height:5px;background:var(--steel)}
 a.sec.fs::before{background:var(--brass)}
+a.sec.ld::before{background:#be123c}.ld .tag{background:#ffe4e6;color:#9f1239}.ld .go b{background:#be123c}
 a.sec.cg::before{background:#0f766e}.cg .tag{background:#e6f6f4;color:#0f766e}.cg .go b{background:#0f766e}
 .ico{font-size:34px;line-height:1}
 .sec h2{font:750 24px/1.15 var(--body);margin:0}
@@ -83,15 +84,23 @@ a.sec.cg::before{background:#0f766e}.cg .tag{background:#e6f6f4;color:#0f766e}.c
       <div class="now"><div><b id="cLevel">1</b><span>level</span></div><div><b id="cDone">0</b><span>reps done</span></div><div><b id="cSess">–</b><span>session</span></div></div>
       <div class="go"><span id="cNext">Start with Foundations</span><b>Open ▸</b></div>
     </a>
+    <a class="sec ld" href="lead.html">
+      <div class="ico">⚡</div>
+      <h2>Lead Techniques</h2>
+      <p>Rock lead technique with a pick: slides, bends of every kind, legato, vibrato, hybrid picking, dynamics, then building solos, one-string and double-stop improvising.</p>
+      <div class="tags"><span class="tag">11 levels</span><span class="tag">53 lessons</span><span class="tag">477 reps</span></div>
+      <div class="now"><div><b id="dLevel">1</b><span>level</span></div><div><b id="dDone">0</b><span>reps done</span></div><div><b id="dSess">–</b><span>session</span></div></div>
+      <div class="go"><span id="dNext">Start with core soloing</span><b>Open ▸</b></div>
+    </a>
   </div>
 </main>
 <script>
 "use strict";
 const get=k=>{try{return JSON.parse(localStorage.getItem(k)||"null");}catch(e){return null;}};
-const mel=get("mss-sessions")||{},fs=get("fs-v1")||{},cg=get("caged-v1")||{};
+const mel=get("mss-sessions")||{},fs=get("fs-v1")||{},cg=get("caged-v1")||{},ld=get("lead-v1")||{};
 const pad=n=>String(n).padStart(2,"0"),dkey=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 const sessions=Object.values(mel.ds||{});
-function secOn(k){let s=sessions.reduce((a,x)=>a+((x.days&&x.days[k])||0),0);s+=(fs.days&&fs.days[k])||0;Object.values(fs.odays||{}).forEach(d=>{s+=d[k]||0;});s+=(cg.days&&cg.days[k])||0;Object.values(cg.odays||{}).forEach(d=>{s+=d[k]||0;});return s;}
+function secOn(k){let s=sessions.reduce((a,x)=>a+((x.days&&x.days[k])||0),0);s+=(fs.days&&fs.days[k])||0;Object.values(fs.odays||{}).forEach(d=>{s+=d[k]||0;});s+=(cg.days&&cg.days[k])||0;Object.values(cg.odays||{}).forEach(d=>{s+=d[k]||0;});s+=(ld.days&&ld.days[k])||0;Object.values(ld.odays||{}).forEach(d=>{s+=d[k]||0;});return s;}
 const goal=(mel.st&&mel.st.goalMin)||30,today=secOn(dkey(new Date()));
 document.getElementById("tMin").textContent=Math.floor(today/60);
 document.getElementById("tGoal").textContent=goal;
@@ -119,5 +128,10 @@ document.getElementById("fNext").textContent=n===all.length?"Course complete: re
  const ss=cg.sess;if(ss&&ss.items&&ss.items.length){const ok=ss.items.filter((it,i)=>it.rev?(ss.ok&&ss.ok[i]):(cg.done||{})[it.id]).length;document.getElementById("cSess").textContent=`${ok}/${ss.items.length}`;}
  const lv=["f","c","a","g","e","d","j","t","b","r","p","s","x"];let hi=0;Object.keys(cg.done||{}).forEach(k=>{const i=lv.indexOf(k[0]);if(i>hi)hi=i;});document.getElementById("cLevel").textContent=hi+1;
  if(cd)document.getElementById("cNext").textContent=`Continue · ${cd} of 846 reps`;}
+// Lead Techniques: reps ticked, today's session
+{const dd=Object.keys(ld.done||{}).filter(k=>ld.done[k]).length;document.getElementById("dDone").textContent=dd;
+ const ss=ld.sess;if(ss&&ss.items&&ss.items.length){const ok=ss.items.filter((it,i)=>it.rev?(ss.ok&&ss.ok[i]):(ld.done||{})[it.id]).length;document.getElementById("dSess").textContent=`${ok}/${ss.items.length}`;}
+ const lv="abcdefghijk";let hi=0;Object.keys(ld.done||{}).forEach(k=>{const i=lv.indexOf(k[0]);if(i>hi)hi=i;});document.getElementById("dLevel").textContent=hi+1;
+ if(dd)document.getElementById("dNext").textContent=`Continue · ${dd} of 477 reps`;}
 </script>
 </body></html>

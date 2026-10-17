@@ -1,0 +1,860 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#9f1239">
+<title>Lead Techniques · Guitar Studio</title>
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+:root{
+  --bg:#f4f7fb;--paper:#fff;--ink:#172033;--muted:#697386;--line:#e5e7eb;
+  --steel:#4f46e5;--steel-soft:#eef0ff;--brass:#7c3aed;--brass-soft:#f5f3ff;--good:#059669;--good-soft:#ecfdf5;
+  --teal:#0f766e;--teal-soft:#e6f6f4;--root:#0d9488;--b3:#7c3aed;--b7:#c2410c;--dot:#1f2937;--scale:#94a3b8;--amber:#b45309;--amber-soft:#fef3c7;
+  --body:system-ui,-apple-system,"Segoe UI",sans-serif;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color-scheme:light;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 var(--body)}
+[hidden]{display:none!important}
+header.top{background:linear-gradient(135deg,#9f1239,#c2410c);color:#fff;padding:22px 16px}
+.hin{max-width:980px;margin:0 auto;display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap}
+.toprow{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px}
+.backlink{font-size:13px;color:#fff;opacity:.9;text-decoration:none}
+.eyebrow{font:600 11px/1 var(--body);letter-spacing:.14em;text-transform:uppercase;color:#fde2e4}
+h1{font:750 clamp(26px,5vw,36px)/1.1 var(--body);margin:4px 0 0}
+.stats{display:flex;gap:16px;flex-wrap:wrap}
+.stat{text-align:right}.stat b{display:block;font:700 24px/1 var(--mono)}.stat span{font-size:12px;color:#fde2e4}
+.stat.met b{color:#a7f3d0}
+.studio{display:inline-flex;gap:4px;margin-top:12px;background:#ffffff2e;border-radius:12px;padding:4px;flex-wrap:wrap}
+.studio a{color:#fff;text-decoration:none;font:650 14px var(--body);padding:8px 14px;border-radius:9px;white-space:nowrap}
+.studio a.on{background:#fff;color:#9f1239}
+.studio a:not(.on):hover{background:#ffffff1f}
+.wrap{max-width:980px;margin:0 auto;padding:20px 16px 110px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:12px;margin-bottom:16px;min-width:0}
+.card h2{font:700 22px/1.2 var(--body);margin:0}
+.card h3{font:650 16px/1.3 var(--body);margin:0}
+.num{font:500 12px var(--mono);color:var(--muted)}
+.card p{margin:0;max-width:72ch}
+.muted{color:var(--muted)}
+button,select{font:650 14px var(--body);cursor:pointer;border:0;border-radius:10px;background:var(--teal-soft);color:var(--teal);padding:9px 14px}
+select{padding:8px 10px;border:1px solid var(--line);background:#fff;color:var(--ink)}
+button:disabled{opacity:.45;cursor:default}
+.play{background:var(--teal);color:#fff}
+.play.on{background:var(--brass)}
+.big{padding:12px 18px;font-size:15px}
+.good{background:var(--good);color:#fff}
+.linkb{background:none;padding:0;color:var(--teal);text-decoration:underline;font-weight:500}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{font:600 11px/1 var(--body);letter-spacing:.06em;text-transform:uppercase;padding:6px 9px;border-radius:999px;background:var(--teal-soft);color:var(--teal)}
+.chip.t{background:var(--brass-soft);color:#5b21b6}.chip.g{background:var(--good-soft);color:var(--good)}.chip.a{background:var(--amber-soft);color:var(--amber)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.between{justify-content:space-between}
+.gbar{height:10px;border-radius:6px;background:var(--teal-soft);overflow:hidden}
+.gbar i{display:block;height:100%;width:0;background:var(--good);transition:width .5s}
+.tip{background:var(--brass-soft);border-radius:10px;padding:10px 12px;font-size:14px}
+.lesson-txt p{margin:0 0 10px}
+.lesson-txt p:last-child{margin:0}
+ol.how{margin:0;padding-left:22px}ol.how li{margin:2px 0}
+details.more summary{cursor:pointer;color:var(--teal);font-weight:600}
+/* levels */
+.levels{display:flex;flex-direction:column;gap:10px}
+.lvl{border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.lvl.lock{opacity:.6}
+.lvl.cur{border-color:var(--teal);box-shadow:0 0 0 1px var(--teal)}
+.lvl.fin{border-left:5px solid var(--good)}
+.lvh{display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap}
+.lvh b{font-size:16px}.lvh span{font-size:12px;color:var(--muted)}
+.lvl p{margin:4px 0 8px;font-size:14px;color:var(--muted)}
+.sec-t{font:700 11px/1 var(--body);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:10px 0 2px}
+.lessons{display:flex;flex-wrap:wrap;gap:8px}
+.les{font:500 13px var(--body);padding:7px 11px;border-radius:999px;background:var(--bg);color:var(--ink);position:relative;overflow:hidden}
+.les i{position:absolute;left:0;bottom:0;height:3px;background:var(--teal)}
+.les.ok{background:var(--good-soft);color:var(--good)}
+.les.next{background:var(--teal);color:#fff}
+.les.next i{background:#fff}
+/* reps */
+.stages{display:flex;flex-direction:column;gap:8px}
+.stage{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.stage .sl{font:700 12px var(--mono);min-width:118px;color:var(--muted)}
+.stage.lock .sl{opacity:.6}
+.rep{font:650 13px var(--body);padding:7px 11px;border-radius:10px;background:var(--bg);color:var(--ink);border:2px solid transparent}
+.rep.ok{background:var(--good-soft);color:var(--good)}
+.rep.sel{border-color:var(--teal)}
+.rep.lockd{opacity:.5}
+.repinfo{font-size:14px;background:var(--teal-soft);border-radius:10px;padding:10px 12px}
+/* session */
+.sess{display:flex;flex-direction:column;gap:6px}
+.si{display:flex;gap:10px;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:10px;padding:8px 10px;flex-wrap:wrap}
+.si.ok{background:var(--good-soft);border-color:#a7f3d0}
+.si .st{font-size:13px;color:var(--muted)}
+/* fretboard */
+.fbwrap{overflow-x:auto;border-radius:10px;background:#fbf8f3;border:1px solid #eadfcc}
+svg.fb{display:block;min-width:100%}
+.fb .str{stroke:#8a7a63;stroke-width:1.2}
+.fb .fr{stroke:#c9b99c;stroke-width:2}
+.fb .nut{stroke:#5b4b33;stroke-width:5}
+.fb .inl{fill:#e7dcc8}
+.fb .fn{font:600 11px var(--mono);fill:#8a7a63;text-anchor:middle}
+.fb .sn{font:600 10px var(--mono);fill:#8a7a63;text-anchor:end}
+.fb .d circle,.fb .d rect{stroke:#fff;stroke-width:1.5}
+.fb .d text{font:700 11px var(--mono);fill:#fff;text-anchor:middle;dominant-baseline:central;pointer-events:none}
+.fb .d.i1 rect{fill:var(--root)}
+.fb .d.i3 circle{fill:var(--dot)}.fb .d.ib3 circle{fill:var(--b3)}.fb .d.ib7 circle{fill:var(--b7)}.fb .d.i5 circle{fill:#334155}
+.fb .d.i4 circle{fill:#2563eb}.fb .d.ib5 circle{fill:#be123c}.fb .d.i2 circle,.fb .d.ib6 circle{fill:#0891b2}
+.fb .d.sc circle{fill:var(--scale)}.fb .d.sc rect{fill:#5eead4}
+.fb .d.rel rect{fill:#fff;stroke:var(--root);stroke-width:2}.fb .d.rel text{fill:var(--root)}
+.fb .d.gh circle{fill:#fff;stroke:#9ca3af;stroke-dasharray:3 2;stroke-width:1.5}.fb .d.gh text{fill:#9ca3af}
+.fb .d.gm circle{fill:#fff;stroke:var(--root);stroke-dasharray:3 2;stroke-width:1.5}.fb .d.gm text{fill:var(--root)}
+.fb .d.hit circle,.fb .d.hit rect{stroke:#f59e0b;stroke-width:4}
+.fb .band{opacity:.12}
+.fb .bandl{font:800 13px var(--body);text-anchor:middle}
+.fb .dim{opacity:.18}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:4px;vertical-align:-1px}
+.legend i.sq{border-radius:3px}
+.ctl{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.ctl b{font:700 15px var(--mono);color:var(--ink);min-width:3ch}
+.ctl input[type=range]{width:160px}
+.chk{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer}
+input{accent-color:var(--teal)}
+/* tab */
+.tabscroll{overflow-x:auto}
+.tab{display:flex;flex-wrap:wrap;row-gap:6px;font:600 13px var(--mono)}
+.tbar{display:flex;position:relative;padding:18px 4px 0 2px;border-radius:8px;cursor:pointer}
+.tbar::before,.tbar::after{content:"";position:absolute;top:27px;height:90px;border-left:2px solid var(--line)}
+.tbar::before{left:24px}.tbar::after{right:0}
+.tbar.nc::before{left:0}.tbar.nc .clef{display:none}
+.tbar.sel{background:var(--teal-soft);box-shadow:inset 0 0 0 2px var(--teal)}
+.tab.hassel .tbar:not(.sel){opacity:.4}
+.bno{position:absolute;top:1px;right:6px;font:700 11px var(--mono);color:var(--muted)}
+.chd{position:absolute;top:1px;left:26px;right:22px;font:700 12px var(--body);color:var(--teal);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tbar.nc .chd{left:4px}
+.clef{display:flex;flex-direction:column;justify-content:space-between;align-items:center;height:96px;margin:6px 6px 54px 0;width:16px;font:800 19px/1 var(--body);flex:none}
+.col{display:grid;grid-template-rows:repeat(6,18px) 16px 16px 16px;flex:none;width:clamp(17px,calc((min(100vw,940px) - 108px) / var(--n,8)),38px);border-radius:4px}
+.c{position:relative;text-align:center;line-height:18px}
+.c::before{content:"";position:absolute;left:-1px;right:-1px;top:50%;border-top:1px solid var(--line)}
+.c i{position:relative;font-style:normal;background:var(--paper);padding:0 1px;letter-spacing:-.5px}
+.c i.r{color:var(--root);font-weight:800}.c i.cs{color:#64748b}.c i.s{color:#475569}
+.c i sup{font-size:8px;color:var(--brass);margin-right:1px}
+.c i.gh{color:#9ca3af;font-weight:500}.c i.ac{font-weight:900}.c i.qt{opacity:.55}
+.c i.su{color:var(--brass);font-weight:700;font-size:11px}.c i.vb{color:#94a3b8;font-weight:400;letter-spacing:-2px}
+.c i b.bnd{font-size:8px;color:#be123c;margin-left:1px;vertical-align:super}
+.col.dy{grid-template-rows:repeat(6,18px) 16px 16px 16px 14px}
+.dyn{font:italic 700 10px/14px Georgia,serif;text-align:center;color:#be123c}
+.cnt{font:500 10px/16px var(--mono);text-align:center;color:#c4c9d4}
+.col.bt .cnt{color:#8c94a3;font-weight:700}
+.ivr{font:700 10px/16px var(--mono);text-align:center;color:var(--teal);white-space:nowrap;letter-spacing:-.5px}
+.ivr.b3{color:var(--b3)}.ivr.b7{color:var(--b7)}.ivr.sc{color:var(--scale)}
+.pk{font:700 11px/16px var(--mono);text-align:center;color:#64748b}
+.col.on{background:var(--teal-soft)}
+.col.tick{background:#e6f6f4}.col.tick .cnt{color:var(--teal)}
+.barsbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.barsbar button{padding:7px 11px;font-size:13px}
+.barsbar b{color:var(--teal);font-size:14px}
+/* now bar */
+.nowbar{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;align-items:center;gap:12px;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));background:#fff;border-top:1px solid var(--line);box-shadow:0 -6px 18px #141e3714}
+#nbPlay{min-width:96px}
+.nbtxt{display:flex;flex-direction:column;flex:1;min-width:0;line-height:1.3;overflow:hidden}
+.nbinfo{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nbgoal{font:600 12px var(--mono);color:var(--muted);white-space:nowrap}
+.nbgoal.met{color:var(--good)}
+.nbtempo{display:flex;align-items:center;gap:6px;font:600 13px var(--mono);flex:none}
+.nbtempo button{padding:6px 10px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:84px;z-index:30;background:var(--good);color:#fff;padding:10px 16px;border-radius:12px;font-weight:600;max-width:calc(100% - 32px);text-align:center}
+.navf{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;border-top:1px solid var(--line);padding-top:12px}
+.mapctl{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.shbtn{padding:6px 10px;font-size:13px;border:2px solid transparent}
+.shbtn.off{opacity:.4}
+.prog3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.prog3 div{background:var(--bg);border-radius:10px;padding:8px 10px}
+.prog3 b{display:block;font:700 18px var(--mono)}
+.prog3 span{font-size:11px;color:var(--muted)}
+@media(max-width:560px){.stage .sl{min-width:100%}.ctl input[type=range]{width:120px}}
+</style></head><body>
+<header class="top"><div class="hin">
+  <div><div class="toprow"><a class="backlink" href="studio.html">← Guitar Studio</a><span id="syncBadge" class="backlink">☁ Sync off</span></div>
+    <div class="eyebrow">Bends · vibrato · legato · phrasing</div><h1><a href="studio.html" style="color:inherit;text-decoration:none">Guitar Studio</a></h1>
+    <nav class="studio" aria-label="Guitar Studio sections"><a href="guitar.html">🎸 Melodic Lead</a><a href="fingerstyle.html">🎶 Fingerstyle Solo</a><a href="caged.html">🧭 CAGED Course</a><a href="lead.html" class="on" aria-current="page">⚡ Lead Techniques</a></nav></div>
+  <div class="stats"><div class="stat"><b id="hLevel">1</b><span>level</span></div><div class="stat"><b id="hReps">0</b><span>reps done</span></div><div class="stat" id="hTodayS"><b id="hToday">0/30</b><span>min today</span></div></div>
+</div></header>
+<main class="wrap" id="view"></main>
+<div id="toast" class="toast" hidden role="status"></div>
+<div id="nowbar" class="nowbar" hidden><button type="button" class="play" id="nbPlay">▶ Play</button>
+  <span class="nbtxt"><span id="nbInfo" class="nbinfo"></span><span id="nbGoal" class="nbgoal"></span></span>
+  <span class="nbtempo"><button type="button" data-tdelta="-5" aria-label="Slower">−</button><span id="nbT">60</span><button type="button" data-tdelta="5" aria-label="Faster">+</button></span></div>
+<script>
+"use strict";
+/*ENGINE-START*/
+/* ===================== Theory ===================== */
+const OPEN={1:64,2:59,3:55,4:50,5:45,6:40};
+const NM=["C","C#","D","Eb","E","F","F#","G","G#","A","Bb","B"];
+const IVN=["1","b2","2","b3","3","4","b5","5","b6","6","b7","7"];
+const mod=(a,b)=>((a%b)+b)%b;
+const r12=x=>Math.round(x*48)/48;
+const STR={1:"high e",2:"B",3:"G",4:"D",5:"A",6:"low E"};
+const nt=(s,f,key)=>({s,f,m:OPEN[s]+f,iv:IVN[mod(OPEN[s]+f-key,12)]});
+const SCL={mp:{n:"minor pentatonic",iv:[0,3,5,7,10]},bl:{n:"blues scale",iv:[0,3,5,6,7,10]},nm:{n:"natural minor",iv:[0,2,3,5,7,8,10]}};
+const KEYS=[[9,4,2],[7,11,0],[6,5,1]]; // stage I, II, III: A E D · G B C · F# F C#
+
+/* ===================== Licks: written once in A minor, moved to any key =====================
+   token  = [prefix] string:fret [mods] [@duration]   (duration in beats, carries forward; 1/3 allowed)
+   prefix : h hammer-on · p pull-off · ^ slide from the previous note (no new pick)
+   mods   : b1 bend (½ ¼ 1 1½ as .5 .25 1 1.5) · br1 bend and release · pb1 pre-bend · pr1 pre-bend and release
+            q1-0-1-0 square bend steps · c1-0-1-0 circular bend · ~ vibrato (~w wide, ~t triplet speed, ~s slow, ~c classical)
+            m / a hybrid finger · ! accent · g ghost note · v.4 volume
+   [3:7b1+2:5] notes together · r@2 rest · | bar line · <Am:4> backing chord for 4 beats (doesn't move time) */
+function parseLick(src){
+  const out=[],re=/<([A-G][#b]?)(m|7|m7)?:([\d.\/]+)>|\||(\^?)\[([^\]]+)\]((?:@[\d.\/]+)?)|r@([\d.\/]+)|([hp^]?)(\d):(\d+)([^\s@]*)((?:@[\d.\/]+)?)/g;
+  const num=x=>x.includes("/")?x.split("/").reduce((a,b)=>Number(a)/Number(b)):Number(x);
+  let m,dur=1;
+  while((m=re.exec(src))){
+    if(m[1]){out.push({k:"ch",root:"C C# D Eb E F F# G G# A Bb B".split(" ").indexOf(m[1].replace("Db","C#")),q:m[2]||"",d:num(m[3])});continue;}
+    if(m[0]==="|"){out.push({k:"bar"});continue;}
+    if(m[7]){out.push({k:"rest",d:num(m[7])});continue;}
+    if(m[5]){if(m[6])dur=num(m[6].slice(1));out.push({k:"grp",slide:!!m[4],d:dur,ns:m[5].split("+").map(x=>tok(x.trim()))});continue;}
+    if(m[12])dur=num(m[12].slice(1));
+    out.push({k:"n",...mods(m[8],Number(m[9]),Number(m[10]),m[11]),d:dur});}
+  function tok(x){const t=/^([hp^]?)(\d):(\d+)(.*)$/.exec(x);return mods(t[1],Number(t[2]),Number(t[3]),t[4]);}
+  function mods(pre,s,f,ms){const o={s,f};if(pre==="h")o.tech="h";else if(pre==="p")o.tech="p";else if(pre==="^")o.tech="sl";
+    let x;
+    if((x=/(br|pr|pb|b)(\d*\.?\d+)/.exec(ms))){o.bt=x[1];o.bend=Number(x[2])*2;}
+    if((x=/([qc])((?:\d*\.?\d+-?)+)/.exec(ms))){o.bt=x[1];o.steps=x[2].split("-").filter(Boolean).map(v=>Number(v)*2);o.bend=Math.max(...o.steps);}
+    if((x=/~([wtsc]*)/.exec(ms))){const z=x[1];o.vib=z.includes("c")?{w:.3,hz:5.5,sym:1}:{w:z.includes("w")?1:.5,r:z.includes("t")?3:z.includes("s")?1:2};}
+    if(/(^|[^\d.])m/.test(ms))o.fg="m";if(/a/.test(ms.replace(/pa|ma/g,"")))o.fg=o.fg||"a";
+    if(ms.includes("!"))o.acc=1;if(/(^|[^\d.])g/.test(ms))o.gh=1;
+    if((x=/v(\d*\.?\d+)/.exec(ms)))o.v=Number(x[1]);
+    return o;}
+  return out;}
+/* a lick's fret range in A, so a key can be placed where it fits on the neck */
+function lickRange(toks){let lo=99,hi=-1;toks.forEach(t=>{(t.k==="n"?[t]:t.k==="grp"?t.ns:[]).forEach(n=>{lo=Math.min(lo,n.f);hi=Math.max(hi,n.f+Math.ceil(n.bend||0));});});return [lo,hi];}
+function shiftFor(L,k){const [lo,hi]=lickRange(parseLick(L.lick)),d0=mod(k-9,12),min=L.minF||1,max=21;
+  const ok=[d0-12,d0].filter(d=>lo+d>=min&&hi+d<=max);if(ok.length)return ok.sort((a,b)=>Math.abs(a)-Math.abs(b))[0];
+  return [d0-12,d0].sort((a,b)=>Math.max(0,min-lo-a,hi+a-max)-Math.max(0,min-lo-b,hi+b-max))[0];}
+const QS={"":"",m:"m","7":"7",m7:"m7"};
+function chordTones(root,q){const r=45+mod(root-9,12),th=q.startsWith("m")?3:4,t=[r,r+7,r+12,r+12+th];if(q.includes("7"))t.push(r+10+12);return t;}
+
+/* build the exercise: events on a beat grid */
+function buildLick(L,R){
+  const toks=parseLick(L.lick),d=shiftFor(L,R.k),key=mod(R.k,12),ev=[],bk=[],ch=[],dv=L.dyn?.5:.75;let b=0,last={};
+  const put=(n,dd,extra)=>{const f=n.f+d,e={...nt(n.s,f,key),b:r12(b),d:dd,...extra};
+    ["tech","bt","bend","steps","vib","fg","acc","gh","v"].forEach(k=>{if(n[k]!=null)e[k]=n[k];});
+    if(e.tech==="sl"){const p=last[n.s];e.tech=p&&p.f>f?"\\":"/";}
+    if(e.v==null)e.v=e.gh?.15:e.acc?1:dv;
+    shape(e);last[n.s]=e;ev.push(e);return e;};
+  toks.forEach(t=>{
+    if(t.k==="ch"){const r=mod(t.root+d,12);bk.push({b:r12(b),d:t.d,m:chordTones(r,t.q)});ch.push({b:r12(b),name:NM[r]+QS[t.q]});return;}
+    if(t.k==="bar"){const r=mod(-b,4);if(r>1e-6&&r<4-1e-6)b=r12(b+r);return;}
+    if(t.k==="rest"){b=r12(b+t.d);return;}
+    if(t.k==="n"){put(t,t.d);b=r12(b+t.d);return;}
+    if(t.k==="grp"){const hy=t.ns.some(n=>n.fg),ord=t.ns.slice().sort((x,y)=>y.s-x.s);
+      ord.forEach((n,i)=>put(t.slide?{...n,tech:"sl"}:n,t.d,hy||t.slide?{}:{role:"c",st:i}));b=r12(b+t.d);}});
+  const total=Math.max(4,Math.ceil(b/4-1e-6)*4);
+  if(!ch.length)ch.push({b:0,name:`${NM[key]} minor`});
+  /* the scale around the lick, faint on the fretboard */
+  const fs=ev.map(e=>e.f),lo=Math.max(0,Math.min(...fs)-1),hi=Math.max(...fs)+1,sc=SCL[L.sc||"mp"].iv,box=[];
+  for(let s=1;s<=6;s++)for(let f=lo;f<=hi;f++)if(sc.includes(mod(OPEN[s]+f-key,12)))box.push({...nt(s,f,key),sc:1});
+  const ghost=[];ev.forEach(e=>{if(e.bend>=1&&e.bend%1===0){const g=nt(e.s,e.f+e.bend,key);ghost.push({...g,gh:"ext"});}});
+  return {ev,ch,bk,total,meter:4,box:{notes:box},ghost,shift:d,key,dyn:!!L.dyn};}
+
+/* pitch movement of one note: start offset, then glides (beats from the note's start), then vibrato */
+function shape(e){const d=e.d,gl=x=>Math.min(x,d*.4);e.auto=[];e.pb=0;
+  switch(e.bt){
+    case "b":e.auto.push({at:0,to:e.bend,gl:e.bend<1?gl(.25):gl(.5)});break;
+    case "br":e.auto.push({at:0,to:e.bend,gl:gl(.5)},{at:d*.55,to:0,gl:gl(.5)});break;
+    case "pb":e.pb=e.bend;break;
+    case "pr":e.pb=e.bend;e.auto.push({at:Math.min(.5,d*.3),to:0,gl:gl(.5)});break;
+    case "q":{const st=d/e.steps.length;e.steps.forEach((v,i)=>e.auto.push({at:i*st,to:v,gl:Math.min(.08,st*.3)}));break;}
+    case "c":{const st=d/e.steps.length;e.steps.forEach((v,i)=>e.auto.push({at:i*st,to:v,gl:st}));break;}}
+  if(e.vib){const end=e.auto.length?e.auto[e.auto.length-1].at+e.auto[e.auto.length-1].gl:0;
+    e.vib={...e.vib,del:Math.max(end,Math.min(.25,d*.2)),dn:e.bend&&e.bt==="b"?1:0};}
+  if(!e.auto.length&&!e.pb&&!e.vib)delete e.auto;}
+function semiAt(e,tb,sec){let cur=e.pb||0;
+  for(const p of e.auto||[]){if(tb<p.at)break;if(tb<p.at+p.gl){const k=(tb-p.at)/Math.max(1e-3,p.gl);cur=cur+(p.to-cur)*(.5-.5*Math.cos(Math.PI*k));break;}cur=p.to;}
+  const v=e.vib;if(v&&tb>v.del){const t=tb-v.del,amp=v.w*Math.min(1,t/.35),ph=v.hz?t*sec*v.hz:t*v.r;
+    if(v.sym)cur+=amp/2*Math.sin(2*Math.PI*ph);else cur+=(v.dn?-1:1)*amp*(.5-.5*Math.cos(2*Math.PI*ph));}
+  return cur;}
+/*ENGINE-END*/
+/*COURSE-START*/
+/* ===================== The course: chapters 1–11 of a rock-lead technique book, as practice ===================== */
+const TEMPI={e:[60,80,100],s:[50,65,80],b:[60,70,80],t:[50,65,80],v:[60,70,80],x:[70,85,100]};
+const reps=()=>KEYS.map(r=>r.map(k=>({k})));
+const LEVELS=[
+ {id:"a",n:"Core soloing techniques",d:"Clean alternate picking through the box, muting what you don't play, and slides: between notes, into notes and between positions.",ls:[
+  {id:"a1",t:"Alternate picking through the box",rate:"e",sc:"mp",lick:"6:5@.5 6:8 5:5 5:7 4:5 4:7 3:5 3:7 | 2:5 2:8 1:5 1:8 1:5 2:8 2:5 3:7 | 3:5 4:7 4:5 5:7 5:5 6:8 6:5@1",
+   txt:["Everything in rock lead sits on the <b>minor pentatonic box</b>: two notes per string, five notes per octave, and almost no wrong notes over a minor or blues backing.","Pick strictly <b>down–up</b> all the way through, even when you cross strings. Small, relaxed pick strokes are the goal: the tip of the pick should only just pass the string.","Each rep moves the box to another key, so your hand gets used to the bigger frets low on the neck and the tight frets up high."],
+   how:["Index finger on the lower fret of every string, ring or pinky on the upper.","Keep the pick motion from the wrist, not the elbow.","Listen for every note the same volume and length."]},
+  {id:"a2",t:"Muting the strings you aren't playing",rate:"e",sc:"mp",lick:"6:5@.5 4:5 5:5 3:5 4:5 2:5 3:5 1:5 | 1:8 3:7 2:8 4:7 3:7 5:7 4:7 6:8 | 6:5@2 r@2",
+   txt:["Loud, driven guitar makes every untouched string ring. Good lead players kill that noise with <b>both hands</b>.","The <b>picking hand</b> rests its palm edge on the thicker strings below the one you play. The <b>fretting hand</b> lets the underside of the index finger lightly touch the thinner strings above.","This exercise skips a string every time, which is where noise sneaks in. If you hear anything ring after you leave a string, slow down and find which hand should be covering it."],
+   how:["Play it once loudly with no muting to hear the problem.","Then add the palm on the low strings and the index finger on the high ones.","Stop the last note dead at the rest."]},
+  {id:"a3",t:"Slides between notes",rate:"b",sc:"mp",lick:"3:5@.5 ^3:7@1.5 2:5@1 2:8@1 | 2:8@.5 ^2:10@1.5 1:8@1 1:10@1 | 1:10@.5 ^1:8@.5 2:10@.5 ^2:8@.5 3:9@.5 ^3:7@.5 3:5@1 | 4:7@4",
+   txt:["A <b>legato slide</b> is one pick stroke and two notes: pick the first, keep the finger pressed and glide to the second. The <b>/</b> and <b>\\</b> in the tab mean don't pick again.","Keep the same pressure all the way. Press too hard and the slide stalls; too lightly and the note dies halfway.","Slides are also your bus between box positions: three of these slides move you out of the first box into the next one up."],
+   how:["Watch the target fret, not the fret you start on.","Arrive exactly on the count; don't drift into the note late.","Use the same finger for both notes of a slide."]},
+  {id:"a4",t:"Sliding into a note",rate:"b",sc:"mp",lick:"3:5@.25 ^3:7@.75 2:5@.5 2:8@.5 2:5@.5 3:7@1.5 | 2:6@.25 ^2:8@.75 1:5@.5 2:8@.5 2:5@.5 3:7@.5 3:5@1 | 4:5@.25 ^4:7@1.75 r@2",
+   txt:["A <b>grace slide</b> starts a fret or two below the note and arrives almost at once. It's how a singer scoops up into a note, and it makes a plain line sound vocal.","The starting fret hardly sounds: it's a 16th note at most. What matters is that the target note lands on the beat.","One of these starts on a fret outside the scale. That's fine: a note you slide through only adds colour."],
+   how:["Pick the lower fret slightly before the beat in your head.","Slide fast and stop dead on the target fret.","Add vibrato to the held notes once the slides are easy."]},
+  {id:"a5",t:"Shifting position with slides",rate:"b",sc:"mp",lick:"6:5@.5 6:8 5:5 5:7 ^5:10@1 4:7@.5 4:10@.5 | ^4:12@1 3:9@.5 3:12@.5 ^3:14@1 2:13@.5 2:15@.5 | 1:12@2 r@2",
+   txt:["Staying in one box makes every solo sound the same. A slide on one string lets you walk diagonally up the neck, box to box, without a gap.","This run climbs from the first box to the fourth by sliding on the A, D and G strings, then lands high on the first string.","Learn which finger arrives on each slide: here it's the <b>ring finger</b> each time, which leaves the index ready for the next string."],
+   how:["Say the box you're in as you slide into it.","Slide in time; the slide is part of the rhythm.","Repeat bars 1 and 2 on their own until the shifts are automatic."]},
+ ]},
+ {id:"b",n:"String bending",d:"Whole-step, half-step and quarter-tone bends, bend and release, and the bigger bends, always checked against the pitch you're aiming for.",ls:[
+  {id:"b1",t:"Bend to a reference pitch",rate:"v",sc:"mp",lick:"3:9@1 3:7b1@2 r@1 | 2:10@1 2:8b1@2 r@1 | 1:10@1 1:8b1@2 r@1 | 3:9@1 3:7b1@3",
+   txt:["A bend is only as good as where it ends. Every bend in this lesson is preceded by its <b>target note</b>: play the fret two higher, hear it, then bend up until the bent note matches.","Bend with <b>three fingers</b> on the string (ring finger bending, middle and index behind it pushing too) and turn the wrist as if turning a door handle. The fingers alone aren't strong enough.","On the G, B and high e strings you push the string up towards the ceiling."],
+   how:["Sing the target note before you bend.","Stop the bend when the pitch matches. Overshooting is as wrong as falling short.","Let the thumb hook over the top of the neck for leverage."]},
+  {id:"b2",t:"Whole-step bends in licks",rate:"b",sc:"mp",lick:"1:5@.5 2:8@.5 2:5@.5 3:7b1@2.5 | 3:7b1@1 2:5@.5 2:8@.5 1:5@2 | 2:8b1@1.5 1:5@.5 2:8@.5 2:5@.5 3:7@1 | 4:7@4",
+   txt:["The two most-used bends in rock both go up a <b>whole step</b> (two frets): the <b>4 up to the 5</b> on the G string, and the <b>b7 up to the root</b> on the B string.","Both land on strong notes of the key, which is why they sound so final. The fretboard shows the bend's target as an open circle.","The bent note here has a definite rhythm: it starts on the count, reaches pitch quickly, and holds."],
+   how:["Reach pitch fast and hold it steady.","Don't let the bend sag while you hold it.","Mute the string below with the side of the bending finger."]},
+  {id:"b3",t:"Half-step bends and the blue note",rate:"b",sc:"bl",lick:"3:7b.5@1 3:7@1 3:5@1 4:7@1 | 3:5b.5@1 4:7@1 4:5@2 | 3:7b.5@.5 3:7@.5 3:5@.5 4:7@.5 3:7b1@2 | 4:7@4",
+   txt:["A half-step bend moves one fret. From the <b>4</b> it reaches the <b>b5</b>, the 'blue note' that gives blues its tension. From the <b>b3</b> it reaches the major 3: the sound of minor and major rubbing together.","Half-step bends are harder to get in tune than whole steps because the movement is small. Check by playing the next fret first."],
+   how:["Use the ring finger with the middle behind it.","Compare with the fret above until you can hear the half step without checking.","Make the difference between the half and whole bend obvious."]},
+  {id:"b4",t:"Quarter-tone curls",rate:"b",sc:"mp",lick:"1:8b.25@1 1:5@.5 2:8@.5 2:5@1 3:7@1 | 3:5b.25@.5 4:7@.5 4:5@1 5:7b.25@1 5:5@1 | 6:8b.25@.5 6:5@.5 r@3",
+   txt:["A <b>curl</b> is a tiny bend, less than a fret, usually on the <b>b3</b>. It doesn't reach another note; it just pulls the pitch slightly sharp, between minor and major.","Blues players do this all the time, often without thinking. It's a small twist of the fingertip, not a full wrist bend.","On the thick strings you pull the string down towards the floor instead of pushing it up."],
+   how:["Pick the note and nudge it sharp straight away.","Keep it small: if it sounds like the next fret, it's too far.","Try it on every b3 you play in solos."]},
+  {id:"b5",t:"Bend and release",rate:"b",sc:"mp",lick:"3:7br1@2 3:5@1 4:7@1 | 2:8br1@2 2:5@1 3:7@1 | 1:8br1@1 1:5@.5 2:8@.5 2:5@.5 3:7@.5 3:5@1 | 4:7@4",
+   txt:["Bend up, then let the string back down to the fretted pitch without picking again. The release is a note in its own right, so it has to land in tune and in time.","Control the way down: the string wants to snap back. Keep the fingers pressing and lower it as slowly as you raised it.","In the tab, <b>(9)</b> shows the pitch you bend to and <b>r7</b> where you release to."],
+   how:["Count: up on the beat, release halfway through the note.","Keep the string pressed on the way down so it keeps sounding.","Pick only once per bend."]},
+  {id:"b6",t:"Bigger bends: one and a half steps",rate:"v",sc:"mp",lick:"1:8@1 2:10b1.5@2 r@1 | 2:10b1.5@1.5 1:8@.5 1:5@.5 2:8@.5 2:5@1 | 3:7b1@4",
+   txt:["A <b>1½-step bend</b> (three frets) takes the root up to the b3. It's a big, crying sound, and it's hard work: the string moves a long way.","Light strings help; strong technique helps more. Use all three fingers, and drive the movement from the wrist rotation.","Check the target first: it's the b3 on the high e string, right next door."],
+   how:["Warm up with whole-step bends first.","Go slowly, and stop if the hand gets sore.","Expect this one to take weeks to get fully in tune."]},
+ ]},
+ {id:"c",n:"Legato",d:"Hammer-ons, pull-offs, rolls and trills: notes sounded by the fretting hand, for smooth, fast, vocal lines.",ls:[
+  {id:"c1",t:"Hammer-ons",rate:"e",sc:"mp",lick:"6:5@.5 h6:8 5:5 h5:7 4:5 h4:7 3:5 h3:7 | 2:5 h2:8 1:5 h1:8@2.5",
+   txt:["Pick the lower note, then bring a finger down hard on the higher fret so it sounds without picking. That's a <b>hammer-on</b>.","Hammer from the knuckle with the fingertip, right behind the fret. The hammered note should be nearly as loud as the picked one.","Only the first note on each string is picked here: the pick stroke rows show where."],
+   how:["Lift the hammering finger only a little; speed comes from a short distance.","Keep the index finger pressed while you hammer.","Match the volumes of the two notes."]},
+  {id:"c2",t:"Pull-offs",rate:"e",sc:"mp",lick:"1:8@.5 p1:5 2:8 p2:5 3:7 p3:5 4:7 p4:5 | 5:7 p5:5 6:8 p6:5@2.5",
+   txt:["A <b>pull-off</b> is the reverse: both fingers down, pick the higher note, then flick the top finger off the string sideways so the lower note sounds.","Don't just lift the finger: that gives a weak, quiet note. Pull slightly down towards the floor, as if plucking the string with the fretting finger.","The lower finger must already be in place and pressing before you pull."],
+   how:["Plant both fingers before you pick.","Flick down and away from the string.","Mute the next string with the pulling finger as it lands."]},
+  {id:"c3",t:"Hammer-pull triplets",rate:"t",sc:"mp",lick:"1:5@1/3 h1:8 p1:5 2:5 h2:8 p2:5 3:5 h3:7 p3:5 4:5 h4:7 p4:5 | 3:5 h3:7 p3:5 2:5 h2:8 p2:5 1:5 h1:8 p1:5 1:8@1",
+   txt:["Pick, hammer, pull: three notes, one pick stroke. As triplets this is one of the most-used rock licks there is, and it rolls round smoothly.","Count 'one-tri-let, two-tri-let'. The picked note falls on each count, so the picking hand is only playing quarter notes."],
+   how:["Accent the picked note slightly so the triplets keep their shape.","Keep the index finger anchored on its fret the whole time.","Speed up only when all three notes are even."]},
+  {id:"c4",t:"Trills",rate:"s",sc:"mp",lick:"3:5@.25 h3:7 p3:5 h3:7 p3:5 h3:7 p3:5 h3:7 3:5@2 | 2:5@.25 h2:8 p2:5 h2:8 p2:5 h2:8 p2:5 h2:8 2:5@2",
+   txt:["A <b>trill</b> is a fast run of hammer-ons and pull-offs between two notes from a single pick. It builds stamina for every other legato move.","Start in time as 16th notes. Real trills are faster and looser, but the even version is what makes the fast one clean."],
+   how:["Only the top finger moves.","Keep the volume up to the last note; it fades if the pull-offs get lazy.","Rest the hand between reps; trills tire the fingers quickly."]},
+  {id:"c5",t:"Legato runs: one pick per string",rate:"s",sc:"mp",lick:"6:5@.25 h6:8 5:5 h5:7 4:5 h4:7 3:5 h3:7 2:5 h2:8 1:5 h1:8 p1:5 2:8 p2:5 3:7 | p3:5 4:7 p4:5 5:7 p5:5 6:8 p6:5@2.5",
+   txt:["Put the last three lessons together: pick only the first note on each string and let hammer-ons carry you up, pull-offs carry you down.","Played fast this is the fluid, horn-like sound of players like Satriani and Gilbert. Played slow it's just as useful for smooth melodies."],
+   how:["Every string change gets one pick stroke, down going up and up coming down.","The fretting hand does most of the work; keep the pick light.","Make sure every note is equally loud."]},
+ ]},
+ {id:"d",n:"Vibrato",d:"Classical finger vibrato and modern rock wrist vibrato, narrow and wide, at speeds locked to the beat.",ls:[
+  {id:"d1",t:"Classical vibrato",rate:"v",sc:"nm",lick:"3:7~c@4 | 2:5~c@4 | 2:8~c@2 1:5~c@2 | 4:7~c@4",
+   txt:["Classical guitarists rock the fingertip <b>along the string</b>, towards and away from the nut. The pitch moves a little either side of the note: subtle, warm, and fast.","It works best on nylon strings and for clean, melodic tones. On a rock guitar it's a gentle shimmer for ballads.","Your finger stays on the same spot of the string; the hand rocks from side to side."],
+   how:["Press, then rock the whole hand gently along the neck.","Keep it even and fairly fast; this is colour, not drama.","Compare it with the rock vibrato in the next lesson."]},
+  {id:"d2",t:"Rock vibrato: narrow and in time",rate:"v",sc:"mp",lick:"3:7~s@4 | 3:7~@4 | 3:7~t@4 | 2:8~@2 1:5~@2",
+   txt:["Rock vibrato is a <b>series of tiny bends</b>: push the string up and let it back, over and over, driven by rotating the wrist like the bend lesson.","The pitch only goes <b>above</b> the note, never below. Good vibrato is <b>in time</b>: here the cycles go in quarter notes, then 8ths, then triplets.","Width here is about a quarter tone, just enough to make the note sing."],
+   how:["Pivot from the wrist with the thumb over the neck.","Lock each wave to the count of the click.","Return fully to the true pitch each time."]},
+  {id:"d3",t:"Wide vibrato",rate:"v",sc:"mp",lick:"2:8~w@4 | 1:5~w@4 | 1:8~w@2 1:5~w@2 | 3:7~w@4",
+   txt:["Make each wave a full <b>half step</b>: the heavy, aggressive vibrato of blues-rock players. Wide vibrato sounds wrong if it's fast, so it's usually in 8ths or slower.","This is the same wrist rotation as before, just bigger. If it wobbles out of time, narrow it back down and build up."],
+   how:["Check the width: the top of each wave should reach the next fret's pitch.","Keep the rhythm even; wide and uneven sounds out of control.","Try it on every finger, not just the ring finger."]},
+  {id:"d4",t:"Vibrato on every finger",rate:"v",sc:"mp",lick:"1:5~@2 2:8~@2 | 3:7~@2 3:5~@2 | 4:7~@2 4:5~@2 | 6:5~@4",
+   txt:["Most players only have vibrato with the ring finger. In real solos the note you land on might be under any finger.","<b>Index finger</b> vibrato is the hardest: there is nothing behind it to help. Rotate the wrist and keep the finger firm.","On the D and low E strings, pull the string down towards the floor instead of pushing up."],
+   how:["Say which finger you're using before each note.","Match the sound of the index-finger vibrato to the ring finger's.","Keep the other fingers off the string so they don't damp the note."]},
+  {id:"d5",t:"Vibrato on the target note",rate:"b",sc:"mp",lick:"1:5@.5 2:8 2:5 3:7 3:5 4:7~@1.5 | 3:5@.5 h3:7 2:5 2:8 1:5~@2 | 1:8@.5 1:5 2:8 2:5 3:7~w@2 | 4:7~@4",
+   txt:["Vibrato belongs on the note a phrase is heading for: the long one at the end. Add it on every note and it means nothing.","Wait a moment before starting the vibrato. Hearing the note pure first and then the wave come in is what makes it sound expressive."],
+   how:["Play the run evenly, then hold the last note.","Start the vibrato just after the note sounds.","Stop the vibrato together with the note, in time."]},
+ ]},
+ {id:"e",n:"Advanced bending",d:"Pre-bends, pre-bend and release, pre-bend licks, and the square and circular bends that turn a bend into a rhythm.",ls:[
+  {id:"e1",t:"The pre-bend",rate:"b",sc:"mp",lick:"3:7pb1@1 3:5@1 4:7@2 | 2:8pb1@1 2:5@1 3:7@2 | 1:8pb1@1 1:5@1 2:8@2 | 3:7pb1@1 3:5@1 4:7@2",
+   txt:["Bend the string <b>before</b> you pick it, silently, then pick it already bent. The listener never hears the bend happen, only the note.","Because you can't hear the pitch until you pick, you have to know how far a whole step feels in your fingers. That's why we spent a whole level on bending in tune."],
+   how:["Bend, then pick. Check the pitch against the fret two higher.","If it's out, adjust as fast as you can.","Mute the string with the pick hand while you prepare the bend."]},
+  {id:"e2",t:"Pre-bend and release",rate:"b",sc:"mp",lick:"3:7pr1@2 3:5@1 4:7@1 | 2:8pr1@2 2:5@1 3:7@1 | 1:8pr1@2 1:5@1 2:8@1 | 2:8pr1@1 2:5@1 3:7@2",
+   txt:["Pick the pre-bent note, then let it fall to the fretted pitch. It sounds like a note sighing downwards: a pure, vocal effect.","Shape the release: here it starts a little after the note and glides back. Slow releases sound sad; fast ones sound like a sob."],
+   how:["Check the starting pitch, then release smoothly.","Keep the fingers pressed so the note doesn't die.","Make the released note arrive in tune."]},
+  {id:"e3",t:"Pre-bend licks",rate:"b",sc:"mp",lick:"1:8pr1@1 p1:5@.5 2:8@.5 2:8pr1@1 p2:5@1 | 3:7pr1@1 p3:5@.5 4:7@.5 4:7@2 | 2:8pb1@.5 1:5@.5 2:8pr1@1 2:5@.5 3:7@.5 3:5@1 | 4:7~@4",
+   txt:["Pre-bend, release, then pull off: three notes from one pick stroke, falling down the scale. It's one of the most recognisable sounds in rock lead.","The release must finish exactly when the pull-off starts, so think of it as one smooth movement down."],
+   how:["Do bar 1 alone until the pull-off after the release is clean.","Keep the index finger planted before the release starts.","Add vibrato to the last note."]},
+  {id:"e4",t:"The square bend",rate:"b",sc:"mp",lick:"3:7q1-0-1-0@4 | 2:8q1-0-1-0-1-0-1-0@4 | 1:8q1-0@2 1:5@.5 2:8@.5 2:5@1 | 3:7q1-0-1@3 4:7@1",
+   txt:["Here the bend becomes a <b>rhythm</b>: up exactly on one count, down exactly on the next, with very fast moves in between. Drawn on a graph the pitch looks like a square wave, hence the name.","Pick only once. All the rhythm comes from the bending hand, so lock every movement to the click: quarter notes first, then 8ths."],
+   how:["Move fast between the two pitches; hold still in between.","Count aloud: 'up, down, up, down'.","Both pitches must be in tune; check the bent one against the fret above."]},
+  {id:"e5",t:"The circular bend",rate:"b",sc:"mp",lick:"3:7c1-0-1-0@4 | 2:8c1-0-1-0@4 | 3:7c1-0@2 2:5@1 3:7@1 | 4:7~@4",
+   txt:["Now the opposite: bend up and down <b>continuously</b>, never stopping, so the pitch flows like a slow, deep wave. Each movement takes a whole beat.","It's like a very slow, very wide vibrato, and the hand moves in a smooth circle rather than in steps."],
+   how:["Never stop moving: the top and bottom of each wave are only passing points.","Reach exactly a whole step at the top every time.","Compare it with the square bend: same notes, completely different feel."]},
+ ]},
+ {id:"f",n:"Unison bends and bend vibrato",d:"Bending one string to match another, broken unisons, vibrato on a held bend, and a mini solo built from bends.",ls:[
+  {id:"f1",t:"Unison bends",rate:"b",sc:"mp",lick:"[3:7b1+2:5]@4 | [2:8b1+1:5]@4 | [3:7b1+2:5]@2 [2:8b1+1:5]@2 | 4:7@4",
+   txt:["Fret a note on the higher string and bend the lower string up to <b>the same pitch</b>, both ringing together. As the bend closes in you hear a fast wobble that slows and stops when they match.","That wobble is your tuner. If it speeds up again you've bent too far."],
+   how:["Index finger on the higher string, ring finger bending the lower one.","Bend slowly the first few times and listen for the beating to stop.","Keep the fretted note pressed firmly; the bend tends to push it sharp."]},
+  {id:"f2",t:"Broken unison bends",rate:"b",sc:"mp",lick:"2:5@1 3:7b1@1 2:5@1 3:7b1@1 | 1:5@1 2:8b1@1 1:5@1 2:8b1@1 | 2:5@.5 3:7b1@.5 2:5@.5 3:7b1@.5 1:5@.5 2:8b1@.5 1:5@1 | 4:7@4",
+   txt:["Play the two notes of a unison one after the other: fretted, then bent. It's a hard-edged, repetitive sound heard in countless rock solos.","Separated in time, you can't use the wobble to tune, so your ear has to compare the two notes directly."],
+   how:["Keep both fingers down the whole time.","Bend fast so the bent note arrives in time.","At 8th notes, pick down on the fretted note, up on the bend."]},
+  {id:"f3",t:"Bend vibrato",rate:"v",sc:"mp",lick:"3:7b1~@4 | 2:8b1~@4 | 1:8b1~@2 1:5~@2 | 3:7b1~w@4",
+   txt:["Hold a bend, then add vibrato by <b>releasing slightly</b> and pushing back up, again and again. The bent pitch is the top of the wave.","It's the hardest vibrato because the fingers are already carrying the string's tension. Done well, it's the most singing sound a guitar makes."],
+   how:["Get the bend in tune and steady first.","Let it down only a little; wide drops sound out of tune.","Keep the waves in time with the click."]},
+  {id:"f4",t:"Mini solo using bends",rate:"x",sc:"mp",lick:"<Am:4> 1:5@.5 2:8@.5 2:8b1@1.5 2:5@.5 3:7@1 | <G:4> 2:8pr1@1 2:5@.5 3:7@.5 3:5@1 4:7@1 | <F:4> 3:7b1@1.5 2:5@.5 2:8b1@1 1:5@1 | <G:4> 1:8b.25@.5 1:5@.5 2:8@.5 2:5@.5 3:7br1@2 | <Am:4> [3:7b1+2:5]@2 2:5@.5 3:7@.5 3:5@1 | <G:4> 2:5@1 3:7b1@1 2:5@1 3:7b1@1 | <F:4> 1:8pr1@1 p1:5@.5 2:8@.5 2:5@.5 3:7@.5 3:5@1 | <Am:4> 4:7b.25@1 3:5@1 4:7~w@2",
+   txt:["Eight bars over a backing (A minor, G, F, G) using every kind of bend from the last two levels: whole steps, pre-bend releases, curls, a bend and release, a unison and broken unisons.","Turn on the backing chords and play it as music: every bend should be in tune against the chords."],
+   how:["Learn it two bars at a time with the bar loop.","Mark the bends you find hardest and loop those bars.","Play the last note with a slow, wide vibrato."]},
+ ]},
+ {id:"g",n:"Hybrid picking",d:"Pick plus middle and ring fingers: string skips, pinches, rolls and hybrid licks.",ls:[
+  {id:"g1",t:"Pick and middle finger",rate:"e",sc:"mp",lick:"3:5@.5 1:5m 3:7 1:8m 3:5 1:5m 3:7 1:8m | 4:5@.5 2:5m 4:7 2:8m 4:5 2:5m 4:7@1 | 5:5@.5 3:5m 5:7 3:7m 6:5 4:5m 6:8@1 | 4:7@4",
+   txt:["Hold the pick normally and use the <b>middle finger</b> (m) to pluck a higher string. Skipping a string with a pick means a big jump; with the finger it's no jump at all.","The pick plays downstrokes on the lower string; the finger plucks upwards on the higher one. Under the tab, <b>m</b> marks a middle-finger note."],
+   how:["Rest the middle finger lightly on its string ready to pluck.","Pluck by curling the finger into the palm, not pulling away from the guitar.","Match the finger notes' volume to the picked notes."]},
+  {id:"g2",t:"Pinches with middle and ring",rate:"e",sc:"mp",lick:"4:7@.5 [3:5m+2:5a]@.5 4:7@.5 [3:5m+2:5a]@.5 4:5@.5 [3:7m+2:8a]@.5 4:5@.5 [3:7m+2:8a]@.5 | 5:7@.5 [4:7m+3:5a]@.5 5:7@.5 [4:7m+3:5a]@.5 6:8@.5 [4:5m+3:5a]@.5 6:8@.5 [4:5m+3:5a]@.5 | 4:7@.5 [3:5m+2:5a]@.5 4:7@.5 [3:5m+2:5a]@.5 4:5@.5 [3:7m+2:8a]@.5 4:5@.5 [3:7m+2:8a]@.5 | [4:7+3:5m+2:5a]@4",
+   txt:["Add the <b>ring finger</b> (a) and you can pluck two strings at once while the pick plays a bass note: a bass-and-chord pattern you can't play with a pick alone.","The pick takes the lowest string on the beat; middle and ring snap the two upper strings together on the 'and'."],
+   how:["Keep the two fingers together so both strings sound as one.","Let the bass note ring under the pinch.","Finish by playing all three together."]},
+  {id:"g3",t:"Hybrid rolls",rate:"t",sc:"mp",lick:"4:7@1/3 3:5m 2:5a 4:7 3:5m 2:5a 4:5 3:7m 2:8a 4:5 3:7m 2:8a | 5:7 4:7m 3:5a 5:7 4:7m 3:5a 4:7 3:5m 2:5a 4:7@1",
+   txt:["Pick, middle, ring, over and over across three strings: a <b>roll</b>. As triplets it sounds like a fingerstyle arpeggio but keeps the attack of the pick on the bass.","Country and rock players use rolls to make chords shimmer under a vocal."],
+   how:["Fret the whole three-note shape at once and let it ring.","Pick down, then m, then a, evenly.","Change shape on the beat without a gap."]},
+  {id:"g4",t:"Hybrid picking licks",rate:"e",sc:"mp",lick:"3:7@.5 1:5m 2:8 1:5m 3:5 1:5m 2:5 1:8m | 3:7@.5 1:8m 2:5 1:5m 3:7 2:8m 2:5@1 | 4:7@.5 2:5m 3:5 2:8m 4:5 2:5m 3:7 2:8m | [3:7+2:8m]@1 [3:5+2:5m]@1 4:7@2",
+   txt:["Now pentatonic lines where the finger takes the higher, skipped notes. The skips make wide, bright intervals that sound nothing like box runs, and the finger gives them a snappy attack.","Mix in two-note double stops at the end, picked and plucked together."],
+   how:["Keep the pick doing downstrokes on the picked notes.","Snap the finger notes slightly harder for the country 'pop'.","Loop each bar before joining them."]},
+ ]},
+ {id:"h",n:"Dynamics",d:"Accents, crescendos, ghost notes and loud–soft phrasing: playing with the volume knob in your hands.",ls:[
+  {id:"h1",t:"Accents on the beat",rate:"e",sc:"mp",dyn:1,lick:"6:5!@.5 6:8 5:5! 5:7 4:5! 4:7 3:5! 3:7 | 2:5! 2:8 1:5! 1:8 1:5! 2:8 2:5! 3:7 | 3:5! 4:7 4:5! 5:7 5:5! 6:8 6:5!@1",
+   txt:["Dynamics, meaning how loud or soft you play, are the easiest way to make a solo sound alive, and the most ignored. Start with <b>accents</b>: dig in on the beat, play the in-between notes lightly.","The accented notes are marked <b>&gt;</b>. Pick them harder and closer to the bridge; pick the others softly."],
+   how:["Make the difference between loud and soft large.","Keep the timing exactly the same as the plain version.","Listen to the playback: you'll hear the beat in the line itself."]},
+  {id:"h2",t:"Moving accents",rate:"s",sc:"mp",dyn:1,lick:"6:5!@.25 6:8 5:5 5:7! 4:5 4:7 3:5! 3:7 2:5 2:8! 1:5 1:8 1:5! 2:8 2:5 3:7! | 3:5 4:7 4:5! 5:7 5:5 6:8! 6:5@2.5",
+   txt:["Accent <b>every third</b> 16th note. The accents drift across the beat and you hear a groove of threes over a pulse of fours, a trick used everywhere from blues to metal.","Your foot taps the beat; your pick hand accents in threes. It feels odd at first: that's the point."],
+   how:["Count the 16ths aloud and accent each '1' of a 1-2-3 count.","Keep strict alternate picking even when the accent falls on an upstroke.","Tap your foot on the beat."]},
+  {id:"h3",t:"Crescendo and diminuendo",rate:"e",sc:"mp",dyn:1,lick:"6:5v.2@.5 6:8v.25 5:5v.3 5:7v.35 4:5v.45 4:7v.5 3:5v.6 3:7v.65 | 2:5v.75 2:8v.8 1:5v.9 1:8v1@2.5 | 1:8v1@.5 1:5v.9 2:8v.8 2:5v.7 3:7v.6 3:5v.5 4:7v.4 4:5v.35 | 5:7v.3 5:5v.25 6:8v.2 6:5v.15@2.5",
+   txt:["Grow louder going up (<b>crescendo</b>), softer coming down (<b>diminuendo</b>). A line that swells as it climbs sounds like it's going somewhere.","Spread the change evenly: no sudden jumps. The dynamics row under the tab shows the level from <b>pp</b> (very soft) to <b>ff</b> (very loud)."],
+   how:["Start barely touching the strings.","Arrive at full volume on the top note.","Come down just as smoothly."]},
+  {id:"h4",t:"Ghost notes",rate:"s",sc:"mp",dyn:1,lick:"4:7!@.25 4:7g 3:5 3:5g 3:7! 3:7g 3:5 4:7g 4:7! 4:7g 3:5 3:5g 3:7!@.5 3:5@.5 | 2:5!@.25 2:5g 2:8 2:8g 2:5! 2:5g 3:7 3:7g 3:5!@.5 3:5g 4:7@1 | 4:7!@.25 4:7g 3:5 3:5g 3:7! 3:7g 3:5 4:7g 4:7! 4:7g 3:5 3:5g 3:7!@.5 3:5@.5 | 4:7~@4",
+   txt:["A <b>ghost note</b> is almost silent: the pick touches the string while the fretting hand barely presses. You feel it more than hear it. In the tab it's in brackets.","Ghost notes keep the picking hand moving in 16ths and give a line a funky, percussive groove between the real notes."],
+   how:["For ghosts, relax the fretting finger until the note just clicks.","Accents loud, normal notes medium, ghosts nearly silent: three levels.","Keep the pick moving down-up constantly."]},
+  {id:"h5",t:"Loud question, soft answer",rate:"x",sc:"mp",dyn:1,lick:"<Am:4> 1:5!@.5 1:8! 1:5! 2:8!@1.5 1:5@1 | <Am:4> 3:7v.35@.5 3:5v.35 4:7v.3@3 | <G:4> 1:8!@.5 1:5! 2:8b1!@2 2:5@1 | <Am:4> 3:5v.35@.5 h3:7v.3@.5 4:7v.25~@3",
+   txt:["Use dynamics to shape phrases: a loud phrase, then a quiet reply, like two people talking. The same notes played softly feel like an afterthought, played loudly like a statement.","It's also how to build a solo: start quieter than you think, so there's somewhere to go."],
+   how:["Pick hard near the bridge for the loud phrases.","Pick softly over the neck for the quiet ones.","Leave the space between phrases empty."]},
+ ]},
+ {id:"i",n:"Building a melodic solo",d:"Motifs, rhythm variations, target notes, call and response, and building a solo from low and sparse to high and intense.",ls:[
+  {id:"i1",t:"One motif, repeated",rate:"x",sc:"mp",lick:"<Am:4> 2:5@.5 1:5@.5 2:8@1 r@2 | <G:4> 2:5@.5 1:5@.5 2:8@1 r@2 | <F:4> 2:5@.5 1:5@.5 2:8@1 r@2 | <G:4> 2:5@.5 1:5@.5 1:8~@3",
+   txt:["Great solos are built from <b>motifs</b>: short ideas that come back. Listeners remember a solo because it repeats something they can hold on to.","This motif is three notes. Over each chord it sounds different, even though it's the same notes, because the harmony underneath changes. At the end it lifts to a new note."],
+   how:["Turn on the backing chords.","Leave the rests completely silent.","Hear how the motif's mood changes over each chord."]},
+  {id:"i2",t:"Varying the rhythm",rate:"x",sc:"mp",lick:"<Am:4> 2:5@.5 1:5@.5 2:8@1 r@2 | <G:4> r@.5 2:5@.5 1:5@.5 2:8@1.5 r@1 | <F:4> 2:5@1/3 1:5@1/3 2:8@1/3 2:5@1/3 1:5@1/3 2:8@1/3 r@2 | <G:4> 2:5@.25 1:5@.25 2:8@1.5 2:8b1@2",
+   txt:["Keep the notes, change the rhythm: start it later, stretch it, double it up as triplets. Each version is new but clearly related.","This is how you get more out of fewer notes, and it's what separates melodic soloing from running up and down scales."],
+   how:["Notice where each variation starts relative to the beat.","Sing each bar before you play it.","Invent a fifth version of your own."]},
+  {id:"i3",t:"Targeting chord tones",rate:"x",sc:"mp",lick:"<Am:4> 1:8@.5 1:5@.5 2:8@.5 2:5@1.5 2:8@1 | <C:4> 1:8@2 1:5@.5 2:8@.5 2:5@1 | <G:4> 2:8@2 2:5@.5 3:7@.5 2:5@1 | <Am:4> 1:5~@4",
+   txt:["Each chord has its own notes (A minor: A C E, C: C E G, G: G B D). A solo sounds as if it follows the chords when you <b>land on one of those notes as the chord changes</b>.","Here every bar starts on a chord tone of its chord: E over Am, C over C, G over G, A over Am. The notes in between can be anything in the scale."],
+   how:["Find the target note for each chord before you play.","Land the target exactly on beat 1.","Try ending each bar so the next target is one step away."]},
+  {id:"i4",t:"Call and response",rate:"x",sc:"mp",lick:"<Am:4> 3:5@.5 3:7@.5 2:5@.5 2:8@.5 1:5@2 | <G:4> r@2 1:5@.5 2:8@.5 2:5@1 | <F:4> 3:5@.5 3:7@.5 2:5@.5 2:8@.5 1:8b1@2 | <Am:4> r@1 1:5@.5 2:8@.5 2:5@.5 3:7@.5 3:5@.5 4:7@.5",
+   txt:["A <b>call</b> rises and stops on a note that wants to go on; the <b>response</b> answers and comes home to the root. It's how blues singers and their bands talk to each other.","The second call goes higher than the first, and its answer goes further, so the solo grows."],
+   how:["Leave the gaps empty: they're part of the conversation.","End every response on the root.","Make up your own answers to the same calls."]},
+  {id:"i5",t:"Building the solo",rate:"x",sc:"mp",lick:"<Am:4> 4:7@1 3:5@1 4:7@2 | <G:4> 4:5@1 4:7@1 3:5@2 | <F:4> 3:5@.5 3:7@.5 2:5@1 3:7b1@2 | <G:4> 2:5@.5 2:8@.5 1:5@.5 2:8@.5 2:5@1 3:7@1 | <Am:4> 1:5@.5 1:8@.5 2:10@.5 1:8@.5 1:10@1 1:8@1 | <G:4> 1:10@.5 1:12@.5 1:10b1@1 1:8@.5 1:10@1.5 | <F:4> 1:12@.25 1:10@.25 1:8@.25 2:10@.25 1:12@.25 1:10@.25 1:8@.25 2:10@.25 1:13b1@2 | <Am:4> 1:12b1~w@4",
+   txt:["Eight bars that grow: <b>low and sparse</b> at the start, then a little higher and busier, then high on the neck with fast notes and bends, ending on a big held note.","Tension in a solo comes from three things: going higher, playing more notes, and playing louder. Save all three for the end."],
+   how:["Play the first bars almost lazily.","Let the bend in bar 6 and the 16ths in bar 7 be the peak.","Hold the last note with a wide vibrato until the bar ends."]},
+ ]},
+ {id:"j",n:"Single-string improvisation",d:"The pentatonic along one string: pick it, slide it, bend it, then improvise a whole phrase on one string.",ls:[
+  {id:"j1",t:"Pentatonic along one string",rate:"e",sc:"mp",keys:[[9,0,2],[11,4,1],[3,10,8]],lick:"3:2@.5 3:5 3:7 3:9 3:12 3:14@1.5 | 3:14@.5 3:12 3:9 3:7 3:5 3:2@1.5 | 2:3@.5 2:5 2:8 2:10 2:13 2:15@1.5 | 2:15@.5 2:13 2:10 2:8 2:5 2:3@1.5",
+   txt:["Boxes are vertical. A <b>single string</b> is horizontal: the same scale laid out along the neck, in steps of two and three frets. It frees you to move anywhere.","Learn the gaps: on one string the minor pentatonic is three frets, two, two, three, two. Say the intervals as you go."],
+   how:["Shift with the index or middle finger and keep the hand relaxed.","Look ahead to the next fret before you move.","Do the same on every string once this is easy."]},
+  {id:"j2",t:"Sliding along one string",rate:"b",sc:"mp",lick:"3:5@.5 ^3:7@.5 3:7@.5 ^3:9@.5 3:9@.5 ^3:12@1.5 | 3:14@.5 ^3:12@.5 3:12@.5 ^3:9@.5 3:7@.5 ^3:5@1.5 | 2:8@.5 ^2:10@.5 2:13@1 ^2:15@1 2:13@.5 2:10@.5 | 2:10@.5 ^2:8@.5 2:5@1 3:7@2",
+   txt:["On one string, slides are the natural way to move between notes, and they make a line sound like a voice or a slide guitar.","Mix picked notes and slid notes. Where you slide changes the phrasing as much as which notes you play."],
+   how:["Keep pressure on through every slide.","Land each slide exactly in time.","Use one finger for the whole lick if you can."]},
+  {id:"j3",t:"Bends and vibrato on one string",rate:"b",sc:"mp",lick:"2:5@.5 2:8@.5 2:8b1@1 2:10~@2 | 2:13@.5 2:10@.5 2:13b1@2 2:10@1 | 2:15b1@1 2:13@.5 2:10@.5 2:8pr1@1 2:5@1 | 2:10~w@4",
+   txt:["Add bends and vibrato. On one string every scale note can be reached by a bend from the note below, so you can play the same melody fretted or bent: two very different sounds.","This whole lick lives on the B string, the best string for singing bends."],
+   how:["Check each bend against the fretted note it aims for.","Play the line once all fretted, once with the bends.","Hear the difference in feel."]},
+  {id:"j4",t:"A phrase on one string",rate:"x",sc:"mp",lick:"<Am:4> 1:5@.5 1:8@.5 ^1:10@1 1:8@.5 1:5@1.5 | <G:4> 1:10@.5 1:12@.5 1:10b1@1 1:8@.5 1:10@1.5 | <F:4> 1:12@.5 ^1:15@1.5 1:15b1@1 1:12@1 | <Am:4> 1:12@.5 1:10@.5 1:8b.25@1 1:5~@2",
+   txt:["Four bars on the high e string over the backing: picks, slides, bends and vibrato. Limiting yourself to one string forces you to think about <b>phrasing</b> rather than patterns.","Then improvise your own: choose one string, set the backing looping, and play."],
+   how:["Follow the backing chords: notice the bend landing on the chord change.","Loop bar 3 until the slide and bend flow.","Improvise on the same string afterwards for a few minutes."]},
+ ]},
+ {id:"k",n:"Double-stop improvisation",d:"Two notes at once from the minor pentatonic, the blues scale and the natural minor: 4ths, 3rds and 6ths.",ls:[
+  {id:"k1",t:"Minor pentatonic double-stops",rate:"e",sc:"mp",lick:"[2:8+1:8]@.5 [2:5+1:5] [2:8+1:8] [2:5+1:5] [3:7+2:8]@1 [3:5+2:5]@1 | [3:7+2:8]@.5 [3:5+2:5] [4:7+3:7] [4:5+3:5] [4:7+3:7]@2 | [2:8+1:8]@.5 ^[2:10+1:10]@1.5 [2:8+1:8]@.5 [2:5+1:5]@1.5 | [3:5+2:5]@1 [4:7+3:7]@3",
+   txt:["Play two neighbouring strings at the same fret in the box and you get pairs of pentatonic notes: mostly 4ths, and 3rds between the G and B strings. Chuck Berry, Hendrix and every rock 'n' roll guitarist live here.","Flatten one finger across both strings (a mini barre) where both notes are on the same fret."],
+   how:["Pick both strings in one stroke; mute the rest.","Roll the fingertip flat for the barre pairs.","Slide the pair in bar 3 as one shape."]},
+  {id:"k2",t:"Blues-scale double-stops",rate:"e",sc:"bl",lick:"[3:7+2:8]@.5 [3:8+2:8] [3:7+2:8] [3:5+2:5] 4:7@2 | [2:8b1+1:8]@1.5 [2:8+1:8]@.5 [2:5+1:5]@2 | [2:5+1:5]@.5 [2:5+1:5] [2:5+1:5] [2:5+1:5] [3:7+2:8] [3:8+2:8] [3:7+2:8] [3:5+2:5] | 4:7~@4",
+   txt:["The <b>blues scale</b> is the minor pentatonic plus one note, the <b>b5</b>. In double-stops it becomes a gritty chromatic move: hold the top note and walk the lower one up a fret and back.","Bar 2 bends one note of the pair while the other holds: a double-stop bend, the heart of rock 'n' roll guitar."],
+   how:["Keep the top note still while the lower one moves.","In the double-stop bend, bend only the B string; the e string stays fretted.","Play bar 3 with a swagger: it's pure Chuck Berry."]},
+  {id:"k3",t:"Natural minor: 3rds on the top strings",rate:"e",sc:"nm",lick:"[2:5+1:3]@1 [2:6+1:5]@1 [2:8+1:7]@1 [2:10+1:8]@1 | [2:12+1:10]@1 [2:13+1:12]@1 [2:12+1:10]@1 [2:10+1:8]@1 | [2:8+1:7]@.5 ^[2:10+1:8]@1.5 [2:8+1:7]@.5 [2:6+1:5]@1.5 | [2:6+1:5]@2 [2:5+1:5]@2",
+   txt:["The <b>natural minor</b> adds the 2 and b6 to the pentatonic: seven notes, a fuller, more melodic minor. Played as <b>3rds</b> on the B and e strings it climbs in sweet, sliding pairs, the sound of southern rock and soul.","The shapes alternate between a stretch of two frets and one fret apart. Learn them by sound: each pair is a major or a minor 3rd."],
+   how:["Use index and middle or index and ring, whatever reaches.","Climb slowly and hear each pair as one sound.","Slide the pairs in bar 3 together."]},
+  {id:"k4",t:"Natural minor: 6ths",rate:"e",sc:"nm",lick:"[3:5+1:5m]@1 [3:7+1:7m]@1 [3:9+1:8m]@1 [3:10+1:10m]@1 | [3:12+1:12m]@1.5 [3:10+1:10m]@.5 [3:9+1:8m]@1 [3:7+1:7m]@1 | [3:5+1:5m]@.5 [3:7+1:7m]@.5 [3:9+1:8m]@1 [3:7+1:7m]@.5 [3:5+1:5m]@.5 [3:4+1:3m]@1 | [3:5+1:5m]@4",
+   txt:["<b>6ths</b> skip a string: the G with the high e. They have a wide, open sound used in soul, Motown and countless ballads.","The skipped B string has to be silent, so play them <b>hybrid</b>: pick on the G string, middle finger on the e. The finger flesh mutes the B string as a bonus."],
+   how:["Mute the B string with the underside of the finger fretting the G string.","Pinch both notes at once with pick and middle finger.","Hear each pair as one interval, not two notes."]},
+  {id:"k5",t:"A double-stop solo",rate:"x",sc:"nm",lick:"<Am:4> [2:5+1:5]@.5 [2:5+1:5]@.5 [2:8+1:8]@1 [2:8b1+1:8]@2 | <G:4> [3:7+2:8]@.5 [3:8+2:8]@.5 [3:7+2:8]@1 [3:5+2:5]@2 | <F:4> [2:6+1:5]@1 [2:8+1:7]@1 ^[2:10+1:8]@2 | <Am:4> [2:8+1:7]@.5 [2:6+1:5]@.5 [2:5+1:5]@1 [4:7+3:5]@2",
+   txt:["Pentatonic pairs, the blues b5 and natural-minor 3rds in one phrase over the backing. Mixing them is what makes double-stop playing sound like music rather than an exercise.","Notice how the 3rds in bar 3 match the F chord: the pairs land on the F chord's own notes."],
+   how:["Turn on the backing chords.","Keep every pair clean; mute the strings around them.","Then improvise your own double-stops over the loop."]},
+ ]},
+];
+LEVELS.forEach(Lv=>Lv.ls.forEach(L=>L.reps=(L.keys||KEYS).map(r=>r.map(k=>({k})))));
+const ALL=LEVELS.flatMap((Lv,li)=>Lv.ls.map(x=>({...x,lv:li})));
+const byId=id=>ALL.find(x=>x.id===id);
+/*COURSE-END*/
+/*APP-START*/
+/* ===================== State (daily timer shared with the rest of Guitar Studio) ===================== */
+const KEY="lead-v1";
+let st={done:{},doneT:{},offT:{},tempo:{},tUpd:0,days:{},odays:{},sess:null,sessT:0,set:{click:true,countin:true,loop:true,back:true,lab:"iv",cmp:true,drive:true},sel:{},map:{k:9,sc:"mp"}};
+try{const x=JSON.parse(localStorage.getItem(KEY)||"null");if(x)st={...st,...x,set:{...st.set,...(x.set||{})},map:{...st.map,...(x.map||{})}};}catch(e){}
+st.dev=st.dev||Math.random().toString(36).slice(2,10);
+Object.keys(st.done).forEach(id=>{if(!st.doneT[id])st.doneT[id]=Date.now();});
+const save=quiet=>{try{localStorage.setItem(KEY,JSON.stringify(st));}catch(e){}if(!quiet)scheduleSync();};
+const pad=n=>String(n).padStart(2,"0"),dkey=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function lsJ(k){try{return JSON.parse(localStorage.getItem(k)||"null")||{};}catch(e){return {};}}
+const goalMin=()=>{const m=lsJ("mss-sessions");return (m.st&&m.st.goalMin)||30;};
+function daySec(k){let s=((st.days&&st.days[k])||0)+Object.values(st.odays||{}).reduce((a,d)=>a+(d[k]||0),0);
+  const m=lsJ("mss-sessions");Object.values(m.ds||{}).forEach(x=>{s+=(x.days&&x.days[k])||0;});
+  ["fs-v1","caged-v1"].forEach(key=>{const f=lsJ(key);s+=((f.days&&f.days[k])||0)+Object.values(f.odays||{}).reduce((a,d)=>a+(d[k]||0),0);});return s;}
+
+/* ===================== Progress ===================== */
+const ROM=["I","II","III"];
+const rid=(L,si,ri)=>`${L.id}:${si}:${ri}`;
+const isDone=id=>!!st.done[id];
+const stageDone=(L,si)=>L.reps[si].every((r,ri)=>isDone(rid(L,si,ri)));
+const stageOpen=(L,si)=>si===0||stageDone(L,si-1);
+const lessonDone=L=>L.reps.every((s,si)=>stageDone(L,si));
+const lessonCount=L=>L.reps.reduce((a,s,si)=>a+s.filter((r,ri)=>isDone(rid(L,si,ri))).length,0);
+const lessonTotal=L=>L.reps.reduce((a,s)=>a+s.length,0);
+const levelDone=li=>LEVELS[li].ls.every(x=>lessonDone(byId(x.id)));
+const levelOpen=li=>li===0||levelDone(li-1);
+const curLevel=()=>{for(let i=0;i<LEVELS.length;i++)if(!levelDone(i))return i;return LEVELS.length-1;};
+function nextRepOf(L){for(let si=0;si<L.reps.length;si++){if(!stageOpen(L,si))break;for(let ri=0;ri<L.reps[si].length;ri++)if(!isDone(rid(L,si,ri)))return [si,ri];}return null;}
+const nextLesson=()=>ALL.find(L=>levelOpen(L.lv)&&!lessonDone(L))||ALL[ALL.length-1];
+const TOTAL=ALL.reduce((a,L)=>a+lessonTotal(L),0);
+const doneCount=()=>Object.keys(st.done).filter(id=>{const L=byId(id.split(":")[0]);return L&&st.done[id];}).length;
+const target=(L,si)=>TEMPI[L.rate][si];
+
+/* ===================== Exercises ===================== */
+const EXC={};
+function exOf(L,R){const k=L.id+JSON.stringify(R);if(!EXC[k]){const E=buildLick(L,R);E.ev.forEach((e,i)=>e.k=i);EXC[k]=E;}return EXC[k];}
+function repShort(L,R){const E=exOf(L,R),lo=Math.min(...E.ev.map(e=>e.f));return `${NM[R.k]}m <small>fret ${lo}</small>`;}
+function repLong(L,R,E){const lo=Math.min(...E.ev.map(e=>e.f)),hi=Math.max(...E.ev.map(e=>e.f));
+  return `<b>${NM[R.k]} ${SCL[L.sc||"mp"].n}</b> · frets ${lo}–${hi}${E.bk.length?` · over ${[...new Set(E.ch.map(c=>c.name))].join(", ")}`:""}`;}
+function curRep(L){let s=st.sel[L.id];if(!s){const n=nextRepOf(L)||[0,0];s=n.join(":");}const [si,ri]=s.split(":").map(Number);
+  if(!L.reps[si]||!L.reps[si][ri])return [0,0];return [si,ri];}
+
+/* ===================== Device sync: your Total Recall sync code, encrypted, its own slot for this course ===================== */
+const SYNC_KEY="totalRecallSyncCode_v1",SYNC_URL=(()=>{try{return localStorage.getItem("totalRecallTickTickUrl");}catch(e){return null;}})()||"https://total-recall-ticktick.pranjuchakrapani90.workers.dev";
+const SY={busy:false,again:false,timer:0,state:"off",msg:"",last:null};
+const syncCode=()=>{try{return localStorage.getItem(SYNC_KEY)||"";}catch(e){return "";}};
+const b64=a=>{let s="";new Uint8Array(a).forEach(x=>s+=String.fromCharCode(x));return btoa(s);};
+const unb64=s=>{const r=atob(s),u=new Uint8Array(r.length);for(let i=0;i<r.length;i++)u[i]=r.charCodeAt(i);return u;};
+async function keyOf(code){const h=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(code+"#lead"));return crypto.subtle.importKey("raw",h,{name:"AES-GCM"},false,["encrypt","decrypt"]);}
+async function enc(o,code){const iv=crypto.getRandomValues(new Uint8Array(12)),c=await crypto.subtle.encrypt({name:"AES-GCM",iv},await keyOf(code),new TextEncoder().encode(JSON.stringify(o)));return JSON.stringify({v:1,iv:b64(iv),data:b64(c)});}
+async function dec(blob,code){const x=JSON.parse(blob||"{}"),p=await crypto.subtle.decrypt({name:"AES-GCM",iv:unb64(x.iv)},await keyOf(code),unb64(x.data));return JSON.parse(new TextDecoder().decode(p));}
+function payload(){const done={};Object.keys(st.doneT).forEach(id=>{if(st.done[id])done[id]={d:st.done[id],t:st.doneT[id]};});
+  return {v:1,done,off:st.offT,tempo:st.tempo,tUpd:st.tUpd,days:{...st.odays,[st.dev]:st.days},sess:st.sess,sessT:st.sessT};}
+function merge(R){let ch=false;
+  Object.entries(R.done||{}).forEach(([id,x])=>{if(!st.doneT[id]||x.t>st.doneT[id]){st.doneT[id]=x.t;st.done[id]=x.d;ch=true;}});
+  Object.entries(R.off||{}).forEach(([id,t])=>{if(!st.offT[id]||t>st.offT[id]){st.offT[id]=t;ch=true;}});
+  Object.keys(st.offT).forEach(id=>{if(st.done[id]&&(st.offT[id]||0)>(st.doneT[id]||0)){delete st.done[id];ch=true;}});
+  if((R.tUpd||0)>st.tUpd){st.tempo={...R.tempo};st.tUpd=R.tUpd;ch=true;}
+  if((R.sessT||0)>(st.sessT||0)){st.sess=R.sess;st.sessT=R.sessT;ch=true;}
+  Object.entries(R.days||{}).forEach(([dev,days])=>{const tgt=dev===st.dev?st.days:(st.odays[dev]=st.odays[dev]||{});
+    Object.entries(days||{}).forEach(([k,v])=>{if(v>(tgt[k]||0)){tgt[k]=v;ch=true;}});});
+  return ch;}
+function setSync(state,msg){SY.state=state;SY.msg=msg||"";if(state==="ok")SY.last=new Date();
+  const b=document.getElementById("syncBadge");if(b){b.textContent=state==="busy"?"☁ Syncing…":state==="ok"?"☁ Synced":state==="err"?"☁ Sync problem":"☁ Sync off";b.title=SY.msg;}
+  const t=document.getElementById("syncState");if(t)t.innerHTML=syncText();}
+function syncText(){if(!syncCode())return "Sync is off. Progress stays on this device.";if(SY.state==="err")return `Couldn't sync: ${esc(SY.msg)}. It will retry automatically.`;if(SY.state==="busy")return "Syncing…";
+  return SY.last?`Synced at ${SY.last.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"})}. Reps, tempos, today's session and minutes appear on your other devices.`:"Sync is on.";}
+function scheduleSync(){if(!syncCode())return;clearTimeout(SY.timer);SY.timer=setTimeout(cloudSync,1500);}
+async function cloudSync(){
+  const code=syncCode();if(!code){setSync("off");return false;}if(SY.busy){SY.again=true;return false;}
+  SY.busy=true;setSync("busy");let ch=false;
+  try{const url=SYNC_URL+(SYNC_URL.indexOf("?")>=0?"&":"?")+"mode=sync",headers={"Content-Type":"application/json","X-Total-Recall-Sync":code+"#lead"};
+    const r=await fetch(url,{method:"POST",headers,body:JSON.stringify({state:{app:"lead"}}),cache:"no-store"});if(!r.ok)throw new Error("the sync bridge answered HTTP "+r.status);
+    const data=await r.json();if(data.error)throw new Error(data.error);
+    if(data.blob)ch=merge(await dec(data.blob,code));
+    if(ch)save(true);
+    const w=await fetch(url,{method:"PUT",headers,body:await enc(payload(),code),cache:"no-store"});if(!w.ok)throw new Error("upload failed with HTTP "+w.status);
+    setSync("ok");
+  }catch(e){setSync("err",String(e&&e.message||e));}
+  finally{SY.busy=false;if(SY.again){SY.again=false;scheduleSync();}}
+  if(ch&&!play)render();
+  return ch;}
+function syncCard(){const on=!!syncCode();return `<section class="card"><div class="row between"><h3>Device sync</h3><span class="num">same code as Total Recall</span></div>
+  <p id="syncState">${syncText()}</p>
+  ${on?`<div class="row"><button type="button" data-syncnow="1">Sync now</button><button type="button" class="linkb" data-syncoff="1">Turn sync off on this device</button></div>`
+  :`<div class="row"><input type="password" id="syncIn" placeholder="Your Total Recall sync code" autocomplete="off" style="flex:1;min-width:0;font:500 14px var(--body);border:1px solid var(--line);border-radius:8px;padding:8px"><button type="button" class="play" data-syncon="1">Turn on sync</button></div>
+    <p class="muted">If you set the code in Total Recall or another Guitar Studio section on this device, sync is already on here.</p>`}</section>`;}
+
+/* ===================== Audio: plucked strings, a little drive on the lead, bends and vibrato as pitch curves ===================== */
+let ctx=null,MASTER=null,LEAD=null;const cache={};
+function audio(){if(!ctx)ctx=new (window.AudioContext||window.webkitAudioContext)({latencyHint:"interactive"});ctx.resume().catch(()=>{});return ctx;}
+function out(){if(!MASTER||MASTER.context!==ctx){const g=ctx.createGain(),mk=ctx.createGain(),lim=ctx.createDynamicsCompressor();
+  mk.gain.value=2.2;lim.threshold.value=-6;lim.knee.value=4;lim.ratio.value=20;lim.attack.value=.001;lim.release.value=.1;
+  g.connect(mk).connect(lim).connect(ctx.destination);MASTER=g;LEAD=null;}return MASTER;}
+function leadOut(){if(!st.set.drive)return out();if(!LEAD||LEAD.context!==ctx){const pre=ctx.createGain(),ws=ctx.createWaveShaper(),lp=ctx.createBiquadFilter(),post=ctx.createGain();
+  const N=1024,c=new Float32Array(N);for(let i=0;i<N;i++){const x=i/(N-1)*2-1;c[i]=Math.tanh(3.2*x)/Math.tanh(3.2);}ws.curve=c;ws.oversample="2x";
+  pre.gain.value=1.6;lp.type="lowpass";lp.frequency.value=3600;lp.Q.value=.7;post.gain.value=.42;
+  pre.connect(ws).connect(lp).connect(post).connect(out());LEAD=pre;}return LEAD;}
+function pluckBuf(m){const k=m+"@"+ctx.sampleRate;if(cache[k])return cache[k];
+  const sr=ctx.sampleRate,len=Math.floor(sr*5),buf=ctx.createBuffer(1,len,sr),d=buf.getChannelData(0);
+  const N=Math.max(2,Math.round(sr/(440*Math.pow(2,(m-69)/12)))),dl=new Float32Array(N);let p=0;
+  for(let i=0;i<N;i++){const r=Math.random()*2-1;dl[i]=.55*r+.45*p;p=dl[i];}
+  let x=0;for(let i=0;i<len;i++){const v=dl[x],nx=dl[(x+1)%N];dl[x]=.9988*.5*(v+nx);d[i]=v;x=(x+1)%N;}
+  return cache[k]=buf;}
+function note(e,t,dur){
+  const g=ctx.createGain(),s=ctx.createBufferSource();s.buffer=pluckBuf(e.m);
+  const legato=e.tech==="p"||e.tech==="h"||e.tech==="/"||e.tech==="\\",bk=e.role==="bk";
+  const vol=(bk?.13:e.role==="c"?.42:.6)*(bk?1:(e.v==null?.75:e.v)/.75),tt=t+(e.role==="c"||bk?(e.st||0)*.014:0);
+  if(e.auto&&!bk){const sec=spb(),n=Math.max(8,Math.ceil(dur*150)),cv=new Float32Array(n);
+    for(let i=0;i<n;i++){const tb=i/(n-1)*dur/sec;cv[i]=Math.pow(2,semiAt(e,tb,sec)/12);}
+    try{s.playbackRate.setValueCurveAtTime(cv,tt,dur);}catch(x){}}
+  g.gain.setValueAtTime(vol*(legato?.62:1),tt);g.gain.setTargetAtTime(0,tt+Math.max(dur,.08),bk?.25:.07);
+  s.connect(g);g.connect(bk?out():leadOut());s.start(tt);s.stop(tt+Math.min(5,dur+.8));}
+function click(t,acc){const o=ctx.createOscillator(),g=ctx.createGain();o.frequency.value=acc?1900:1500;
+  g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(acc?.5:.32,t+.001);g.gain.exponentialRampToValueAtTime(.0001,t+.05);
+  o.connect(g).connect(out());o.start(t);o.stop(t+.06);}
+
+/* ===================== Playback ===================== */
+let play=null,view={k:"home"},sel=null;
+const tempoOf=L=>st.tempo[L.id]||target(L,curRep(L)[0]);
+const spb=()=>60/play.tempo;
+function audioList(E){const a=E.ev.map(e=>({...e}));if(st.set.back&&E.bk)E.bk.forEach(b=>b.m.forEach((m,j)=>a.push({m,b:b.b,d:b.d,role:"bk",st:j})));return a.sort((x,y)=>x.b-y.b);}
+function slice(E){if(!sel)return {...E,ev:audioList(E),off:0};const s=sel.a*4,en=Math.min((sel.b+1)*4,E.total);
+  return {...E,ev:audioList(E).filter(e=>e.b>=s-1e-6&&e.b<en-1e-6).map(e=>({...e,b:e.b-s})),total:en-s,off:s};}
+function start(){
+  const L=byId(view.id);if(!L)return;audio();stop();const [si,ri]=curRep(L),R=L.reps[si][ri];
+  const E0=exOf(L,R),E=slice(E0),ci=st.set.countin?4:0;
+  play={L,E,E0,tempo:tempoOf(L),t0:ctx.currentTime+.12,ci,i:0,cyc:0,cb:-ci,vis:[],lf:performance.now(),off:E.off||0,seg:-1};
+  play.timer=setInterval(sched,25);sched();play.raf=requestAnimationFrame(draw);setBar();
+  try{if(navigator.wakeLock)navigator.wakeLock.request("screen").then(l=>{play&&(play.wake=l);}).catch(()=>{});}catch(e){}}
+function stop(){if(!play)return;flush();scheduleSync();clearInterval(play.timer);cancelAnimationFrame(play.raf);try{play.wake&&play.wake.release();}catch(e){}
+  play=null;document.querySelectorAll(".col.on,.col.tick").forEach(c=>c.classList.remove("on","tick"));document.querySelectorAll(".d.hit").forEach(c=>c.classList.remove("hit"));setBar();}
+const bt=b=>play.t0+(b+play.ci)*spb();
+function sched(){
+  if(!play)return;const hz=ctx.currentTime+.15,E=play.E;
+  for(;;){
+    const base=play.cyc*E.total,tn=play.i<E.ev.length?bt(base+E.ev[play.i].b):Infinity,tc=bt(play.cb);
+    const t=Math.min(tn,tc);if(t>hz)break;
+    if(tc<=tn){if(play.cb<0||st.set.click)click(tc,(((play.cb%4)+4)%4)===0);play.cb++;
+      if(play.cb>=base+E.total&&play.i>=E.ev.length){if(st.set.loop||sel){play.cyc++;play.i=0;}else{const p=play;setTimeout(()=>{if(play===p)stop();},(tc-ctx.currentTime)*1000+400);play.cb=Infinity;}}
+      continue;}
+    const e=E.ev[play.i++];note(e,tn,e.d*spb()*(e.role==="bk"?1:1.04));if(e.role!=="bk")play.vis.push([tn,e]);}}
+function draw(){if(!play)return;let hit=null;
+  while(play.vis.length&&play.vis[0][0]<=ctx.currentTime){hit=play.vis.shift()[1];}
+  if(hit){document.querySelectorAll(".col.on").forEach(c=>c.classList.remove("on"));const c=document.querySelector(`.col[data-s="${Math.round((hit.b+play.off)*SUB)}"]`);if(c){c.classList.add("on");follow(c);}
+    const sg=segOf(play.E0,hit.b+play.off);if(sg!==fbSeg){fbSeg=sg;paintFB();}
+    document.querySelectorAll(".d.hit").forEach(x=>x.classList.remove("hit"));
+    const same=play.E.ev.filter(e=>e.role!=="bk"&&Math.abs(e.b-hit.b)<1e-6);same.forEach(e=>{const d=document.querySelector(`.d[data-k="${e.s}-${e.f}"]`);if(d)d.classList.add("hit");});}
+  let b=(ctx.currentTime-play.t0)/spb()-play.ci;if(b>=0&&(st.set.loop||sel))b=b%play.E.total;
+  const g=b>=0&&b<play.E.total?Math.floor((b+play.off)*SUB+1e-6):null;
+  if(g!==play.tg){play.tg=g;document.querySelectorAll(".col.tick").forEach(c=>c.classList.remove("tick"));if(g!=null){const c=document.querySelector(`.col[data-s="${g}"]`);if(c)c.classList.add("tick");}}
+  play.raf=requestAnimationFrame(draw);}
+let lastRow=null;
+function follow(el){const row=el.closest(".tbar"),r=row.getBoundingClientRect(),bot=window.innerHeight-80;
+  if(row!==lastRow&&(r.top<10||r.bottom>bot)){lastRow=row;window.scrollTo({top:window.scrollY+r.top-70,behavior:"smooth"});}}
+let SUB=2;
+
+/* ----- time played counts towards the shared daily goal ----- */
+function flush(){if(!play)return;const now=performance.now();let s=Math.min(90,(now-play.lf)/1000);play.lf=now;if(s<=0)return;
+  const k=dkey(new Date());st.days[k]=Math.round(((st.days[k]||0)+s)*10)/10;save(true);}
+const mmss=s=>{s=Math.floor(s);return Math.floor(s/60)+":"+pad(s%60);};
+let toastDay=null;
+function toast(msg,ms){const t=document.getElementById("toast");t.textContent=msg;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>t.hidden=true,ms||4000);}
+setInterval(()=>{if(play&&performance.now()-play.lf>15000)flush();paintGoal();},1000);
+function paintGoal(){const k=dkey(new Date()),g=goalMin()*60;let s=daySec(k);if(play)s+=Math.min(90,(performance.now()-play.lf)/1000);const met=s>=g;
+  const nb=document.getElementById("nbGoal");nb.textContent=met?`✓ ${mmss(s)} played`:`⏱ ${mmss(s)} / ${mmss(g)}`;nb.classList.toggle("met",met);
+  document.getElementById("hToday").textContent=`${Math.floor(s/60)}/${goalMin()}`;document.getElementById("hTodayS").classList.toggle("met",met);
+  const gb=document.getElementById("goalBar");if(gb)gb.style.width=Math.min(100,s/g*100)+"%";
+  const gt=document.getElementById("goalTxt");if(gt)gt.innerHTML=met?`<b>Goal reached:</b> ${mmss(s)} played today in Guitar Studio.`:`<b>${mmss(s)}</b> played today across Guitar Studio. <b>${Math.ceil((g-s)/60)} min</b> to go.`;
+  if(met&&play&&toastDay!==k){toastDay=k;toast("🎸 Today's goal reached. Keep going if you like!",5000);}}
+
+/* ===================== Fretboard diagram ===================== */
+let fbSeg=0;
+function segs(E){const c=E.ch.slice().sort((a,b)=>a.b-b.b);return c.map((x,i)=>({b:x.b,e:i+1<c.length?c[i+1].b:E.total,name:x.name}));}
+function segOf(E,b){const S=segs(E);let i=0;S.forEach((s,j)=>{if(b>=s.b-1e-6)i=j;});return i;}
+const SHC={C:"#2563eb",A:"#db2777",G:"#16a34a",E:"#ea580c",D:"#7c3aed"};
+function fbGeom(lo,hi){const W=48,X0=36,Y0=18,H=24;const x=f=>f===0?X0-14:X0+(f-lo-.5)*W,xl=fr=>X0+(fr-lo)*W;return {W,X0,Y0,H,x,xl,w:X0+(hi-lo)*W+14,h:Y0+5*H+34,y:s=>Y0+(s-1)*H};}
+function fbFrame(G,lo,hi){let h="";
+  [3,5,7,9,15,17].forEach(f=>{if(f>lo&&f<=hi)h+=`<circle class="inl" cx="${G.x(f)}" cy="${G.y(3.5)}" r="6"/>`;});
+  if(12>lo&&12<=hi)h+=`<circle class="inl" cx="${G.x(12)}" cy="${G.y(2)+G.H/2}" r="6"/><circle class="inl" cx="${G.x(12)}" cy="${G.y(4)+G.H/2}" r="6"/>`;
+  for(let fr=lo;fr<=hi;fr++)h+=`<line class="${fr===0?"nut":"fr"}" x1="${G.xl(fr)}" x2="${G.xl(fr)}" y1="${G.y(1)}" y2="${G.y(6)}"/>`;
+  for(let s=1;s<=6;s++)h+=`<line class="str" x1="${G.X0-4}" x2="${G.xl(hi)}" y1="${G.y(s)}" y2="${G.y(s)}" style="stroke-width:${.8+s*.25}"/><text class="sn" x="${lo===0?G.X0-26:G.X0-6}" y="${G.y(s)+3}">${"eBGDAE"[s-1]}</text>`;
+  for(let f=Math.max(1,lo+1);f<=hi;f++)h+=`<text class="fn" x="${G.x(f)}" y="${G.y(6)+22}">${f}</text>`;
+  return h;}
+function dotSVG(G,n,cls){const lab=st.set.lab==="note"?NM[mod(n.m,12)]:n.iv,ic="i"+n.iv,x=G.x(n.f),y=G.y(n.s);
+  const shape=n.iv==="1"||(cls.includes("rel"))?`<rect x="${x-11}" y="${y-11}" width="22" height="22" rx="5"/>`:`<circle cx="${x}" cy="${y}" r="11"/>`;
+  return `<g class="d ${ic} ${cls}" data-k="${n.s}-${n.f}">${shape}<text x="${x}" y="${y+.5}">${esc(lab)}</text></g>`;}
+function fbSVG(E,seg){
+  const S=segs(E),cur=S[seg]||{b:0,e:E.total},pts=new Map(),put=(n,cls,pri)=>{const k=n.s+"-"+n.f,o=pts.get(k);if(!o||pri>o.pri)pts.set(k,{n,cls,pri});};
+  (E.ghost||[]).forEach(n=>{if(n.gh==="maj3"&&!st.set.cmp)return;put(n,n.gh==="maj3"?"gm":"gh",1);});
+  if(E.box)E.box.notes.forEach(n=>put(n,"sc dim2",0));
+  E.ev.forEach(e=>{const inSeg=e.b>=cur.b-1e-6&&e.b<cur.e-1e-6;put(e,(e.sc?"sc":"")+(inSeg?"":" dim"),inSeg?3:2);});
+  if(E.rel)E.ev.forEach(e=>{if(e.iv==="b3")put(e,"rel sc",4);});
+  const fs=[...pts.values()].map(x=>x.n.f),lo=Math.max(0,Math.min(...fs)-1),hi=Math.max(Math.max(...fs)+1,lo+5),G=fbGeom(lo,hi);
+  let h=`<svg class="fb" viewBox="0 0 ${G.w} ${G.h}" width="${G.w}" height="${G.h}" role="img" aria-label="Fretboard">${fbFrame(G,lo,hi)}`;
+  [...pts.values()].sort((a,b)=>a.pri-b.pri).forEach(({n,cls})=>{h+=dotSVG(G,n,cls.replace("dim2","dim"));});
+  return h+"</svg>";}
+function paintFB(){const el=document.getElementById("fb");if(!el)return;const L=byId(view.id);if(!L)return;const [si,ri]=curRep(L),E=exOf(L,L.reps[si][ri]);
+  el.innerHTML=fbSVG(E,fbSeg);const S=segs(E),t=document.getElementById("fbSeg");if(t)t.innerHTML=S.length>1?`Showing <b>${esc((S[fbSeg]||S[0]).name)}</b> (${fbSeg+1} of ${S.length}). Other parts are faded.`:"";}
+function legendHTML(E){return `<div class="legend"><span><i class="sq" style="background:var(--root)"></i>1 root</span><span><i style="background:var(--b3)"></i>b3</span><span><i style="background:#2563eb"></i>4</span><span><i style="background:#be123c"></i>b5</span><span><i style="background:#334155"></i>5</span><span><i style="background:var(--b7)"></i>b7</span><span><i style="background:#0891b2"></i>2 / b6</span><span><i style="background:var(--scale)"></i>rest of the scale</span>${(E.ghost||[]).length?`<span><i style="background:#fff;border:1.5px dashed #9ca3af"></i>where a bend goes</span>`:""}</div>`;}
+/* whole-neck scale map */
+function mapSVG(){const {k,sc}=st.map,lo=0,hi=17,G=fbGeom(lo,hi),iv=SCL[sc].iv;let h=`<svg class="fb" viewBox="0 0 ${G.w} ${G.h}" width="${G.w}" height="${G.h}" role="img" aria-label="Scale map">${fbFrame(G,lo,hi)}`;
+  for(let s=1;s<=6;s++)for(let f=0;f<=hi;f++){const m=OPEN[s]+f;if(!iv.includes(mod(m-k,12)))continue;h+=dotSVG(G,nt(s,f,k),"");}
+  return h+"</svg>";}
+function mapCard(){const {k,sc}=st.map;return `<section class="card"><div class="row between"><h3>Scale map: whole neck</h3><span class="num">reference</span></div>
+  <p class="muted">The three scales this course uses, across the whole neck in any key. Squares are roots.</p>
+  <div class="mapctl"><select id="mapK" aria-label="Key">${NM.map((n,i)=>`<option value="${i}"${i===k?" selected":""}>${n} minor</option>`).join("")}</select>
+    <select id="mapQ" aria-label="Scale">${Object.entries(SCL).map(([x,v])=>`<option value="${x}"${x===sc?" selected":""}>${v.n}</option>`).join("")}</select>
+    <label class="chk"><input type="checkbox" data-lab="1"${st.set.lab==="note"?" checked":""}> Note names</label></div>
+  <div class="fbwrap" id="map">${mapSVG()}</div>${legendHTML({})}</section>`;}
+
+/* ===================== Tab ===================== */
+function gridOf(ev){const pos=ev.map(e=>e.b);
+  for(const s of [2,3,4,6,12])if(pos.every(b=>Math.abs(b*s-Math.round(b*s))<1e-3))return s;return 12;}
+function cntLbl(pos,sub){const beat=Math.floor(pos+1e-6),f=pos-beat,b=String(beat%4+1),is=x=>Math.abs(f-x)<1e-3;
+  if(f<1e-6)return b;if(sub%3===0){if(is(1/3))return "tri";if(is(2/3))return "let";}
+  if(is(.5))return "&";if(sub%4===0){if(is(.25))return "e";if(is(.75))return "a";}return "";}
+function picks(ev,sub){const res=new Map();let prev=null,dir=null;const grid=sub===2||sub===4;
+  ev.slice().sort((a,b)=>a.b-b.b||b.s-a.s).forEach(e=>{
+    if(e.fg){res.set(e,e.fg);return;}
+    if(e.role==="c"){res.set(e,e.st===0?"↓":"");prev=null;dir=null;return;}
+    if(e.tech){res.set(e,"");prev=e;return;}
+    let d;if(grid){const i=Math.round(e.b*sub);d=i%2===0?"↓":"↑";}else if(!prev)d="↓";else if(Math.abs(e.b-prev.b)<1e-6)d=dir;else if(e.s!==prev.s)d=e.s<prev.s?"↓":"↑";else d=dir==="↓"?"↑":"↓";
+    res.set(e,d);dir=d;prev=e;});
+  return res;}
+const FR={.25:"¼",.5:"½",1:"1",1.5:"1½",2:"2"};
+function techSup(e){const t=e.tech;let s=t==="p"||t==="h"||t==="/"||t==="\\"?t:"";
+  if(e.bt==="pb"||e.bt==="pr")s+="pb";else if(e.bt==="q")s+="sq";else if(e.bt==="c")s+="cb";else if(e.bt==="b"&&e.bend<1)s+="¼";else if(e.bt)s+="b";
+  return s?`<sup>${s}</sup>`:"";}
+const DYN=v=>v>=.95?"ff":v>=.8?"f":v>=.6?"mf":v>=.45?"mp":v>=.28?"p":"pp";
+function tabHTML(E){
+  const ev=E.ev,sub=gridOf(ev);SUB=sub;const per=4*sub,nb=Math.ceil(E.total/4-1e-6),at={},pk=picks(ev,sub),sus={};
+  ev.forEach(e=>{const k=Math.round(e.b*sub);(at[k]=at[k]||[]).push(e);});
+  /* what a held note does after it's picked: bend arrives (9), release r7, vibrato ~ */
+  ev.forEach(e=>{if(e.role==="c")return;const g0=Math.round(e.b*sub),g1=Math.round((e.b+e.d)*sub),mk={};
+    (e.auto||[]).forEach(p=>{const g=Math.round((e.b+p.at+(e.bt==="c"?p.gl:Math.min(p.gl,.12)))*sub);if(p.to>0&&p.to<1)return;const tgt=p.to>0?`(${e.f+Math.round(p.to)})`:`r${e.f}`;
+      const gg=Math.max(g,g0+1);if(gg<g1)mk[gg]=tgt;});
+    if(e.bt==="b"&&e.bend>=.5){/* bend shown in the note's own cell */}
+    for(let g=g0+1;g<g1;g++){const free=!(at[g]||[]).some(x=>x.s===e.s);if(!free)continue;
+      if(mk[g])(sus[g]=sus[g]||{})[e.s]=`<i class="su">${mk[g]}</i>`;
+      else if(e.vib&&(g/sub-e.b)>=e.vib.del-1e-6)(sus[g]=sus[g]||{})[e.s]=`<i class="vb">∿</i>`;}});
+  const labels={};E.ch.forEach(c=>{const bi=Math.floor(c.b/4+1e-6);(labels[bi]=labels[bi]||[]).push(c.name);});
+  let h="",lastDyn=null;
+  for(let br=0;br<nb;br++){const on=sel&&br>=sel.a&&br<=sel.b,lab=labels[br]?labels[br].join(" → "):"";
+    h+=`<div class="tbar${on?" sel":""}" style="--n:${per}" data-bar="${br}" title="${esc(lab||"Tap to loop this bar")}">${lab?`<span class="chd">${esc(lab)}</span>`:""}<span class="bno">${br+1}</span><div class="clef" aria-hidden="true"><b>T</b><b>A</b><b>B</b></div>`;
+    for(let i=0;i<per;i++){const g=br*per+i,es=at[g]||[],pos=g/sub;
+      h+=`<div class="col${i%sub===0?" bt":""}${E.dyn?" dy":""}" data-s="${g}">`;
+      for(let s=1;s<=6;s++){const e=es.find(x=>x.s===s);
+        if(e){const bt=(e.bt==="b"&&e.bend>=1)||["br","pb","pr"].includes(e.bt)?`<b class="bnd">${FR[e.bend/2]||e.bend/2}</b>`:"";
+          const cls=[e.iv==="1"?"r":e.role==="c"?"cs":"",e.gh?"gh":"",e.acc&&E.dyn?"ac":"",E.dyn&&!e.gh&&e.v<.35?"qt":""].filter(Boolean).join(" ");
+          h+=`<div class="c"><i class="${cls}">${techSup(e)}${e.gh?"(":""}${e.f}${e.gh?")":""}${bt}</i></div>`;}
+        else h+=`<div class="c">${sus[g]&&sus[g][s]||""}</div>`;}
+      const single=es.filter(e=>!e.gh).sort((x,y)=>y.s-x.s),one=single.length===1?single[0]:null;
+      const iv=single.length?single.map(e=>e.bend>=1&&e.bend%1===0&&e.bt!=="pr"?`${e.iv}→${IVN[mod(e.m+e.bend-E.key,12)]}`:e.iv).join("/"):"",ivc=one?(one.iv==="b3"?" b3":one.iv==="b7"?" b7":""):"";
+      const pks=es.map(e=>pk.get(e)).filter(Boolean).join("")||"";
+      let dy="";if(E.dyn&&es.length){const e=es[0];if(e.acc)dy="&gt;";else if(!e.gh){const d=DYN(e.v);if(d!==lastDyn)dy=d;lastDyn=d;}}
+      h+=`<div class="cnt">${cntLbl(pos,sub)}</div><div class="ivr${ivc}">${esc(iv)}</div><div class="pk">${pks}</div>${E.dyn?`<div class="dyn">${dy}</div>`:""}</div>`;}
+    h+="</div>";}
+  return h;}
+function fixClefs(){document.querySelectorAll(".tab").forEach(t=>{let last=null;[...t.children].forEach(b=>{b.classList.toggle("nc",b.offsetTop===last);last=b.offsetTop;});});}
+window.addEventListener("resize",()=>setTimeout(fixClefs,100));
+
+/* ===================== Today's session: five reps, fixed until all are done ===================== */
+function buildSess(){const items=[];
+  for(const L of ALL){if(items.length>=4)break;if(!levelOpen(L.lv)||lessonDone(L))continue;
+    for(let si=0;si<L.reps.length&&items.length<4;si++){if(!stageOpen(L,si))break;L.reps[si].forEach((r,ri)=>{const id=rid(L,si,ri);if(items.length<4&&!isDone(id))items.push({id});});}}
+  const doneIds=Object.keys(st.done).filter(id=>byId(id.split(":")[0]));
+  if(doneIds.length)items.push({id:doneIds[Math.floor(Math.random()*doneIds.length)],rev:1});
+  st.sess={items,at:Date.now(),ok:{}};st.sessT=Date.now();save();}
+const sessOk=(it,i)=>it.rev?!!(st.sess.ok&&st.sess.ok[i]):isDone(it.id);
+const sessDone=()=>st.sess&&st.sess.items.length&&st.sess.items.every(sessOk);
+function sessCard(){
+  if(!st.sess||!st.sess.items.length)return `<section class="card"><div class="num">Today's session</div><h2>Five reps, chosen for you</h2>
+    <p class="muted">A session is the next four reps on your path plus one review rep from what you've already finished. It stays the same until you've done all five, however many sittings that takes.</p>
+    <div class="row"><button type="button" class="play big" data-newsess="1">Start a session ▸</button></div></section>`;
+  const n=st.sess.items.filter(sessOk).length,all=sessDone();
+  return `<section class="card"><div class="row between"><div class="num">Today's session · ${n} of ${st.sess.items.length} done</div>${all?`<span class="chip g">complete</span>`:""}</div>
+    <h2>${all?"Session complete":`Your next ${st.sess.items.length} reps`}</h2>
+    <div class="sess">${st.sess.items.map((it,i)=>{const [lid,si,ri]=it.id.split(":"),L=byId(lid);if(!L)return "";const R=L.reps[si][ri],ok=sessOk(it,i);
+      return `<div class="si${ok?" ok":""}"><span><b>${ok?"✓ ":""}${it.rev?"Review · ":""}${esc(L.t)}</b><br><span class="st">${L.id} · ${repShort(L,R).replace(/<[^>]+>/g," ")} · Stage ${ROM[si]} · ${target(L,+si)} bpm</span></span>
+        <button type="button" data-open="${lid}" data-rep="${si}:${ri}"${it.rev?` data-rev="${i}"`:""}>${ok?"Again":"Open ▸"}</button></div>`;}).join("")}</div>
+    ${all?`<div class="row"><button type="button" class="play big" data-newsess="1">Start the next session ▸</button></div>`:""}</section>`;}
+
+/* ===================== Views ===================== */
+function header(){document.getElementById("hLevel").textContent=curLevel()+1;document.getElementById("hReps").textContent=`${doneCount()}/${TOTAL}`;}
+function goalCard(){return `<div class="card goal"><div class="row between"><h3>Daily goal · ${goalMin()} min</h3><span class="num">all of Guitar Studio</span></div>
+  <div class="gbar"><i id="goalBar"></i></div><p id="goalTxt"></p></div>`;}
+function aboutCard(){return `<section class="card"><details class="more"><summary>How this course works</summary><div class="lesson-txt" style="margin-top:10px">
+  <p>The course follows chapters 1 to 11 of a rock-lead technique book and turns each technique into practice: core picking and slides, bending, legato, vibrato, advanced bends, unison bends, hybrid picking, dynamics, building a melodic solo, single-string and double-stop improvisation. Everything is played with a pick, in minor keys, from the scales rock lead lives in.</p>
+  <p>Every lesson has <b>three stages</b>: slow, steady and goal tempo. Each stage has <b>three reps</b>: the same lick in three keys, so it moves to different parts of the neck (bends feel very different at fret 3 and fret 13). Tick a rep when it's clean at the stage tempo. A finished stage opens the next; a finished level opens the next level. Locked lessons can still be read and played.</p>
+  <p>The player plays real bends, releases and vibrato so you can hear exactly what to aim for, with a little overdrive on the lead (switch it off for a clean tone). In the tab: <b>b</b> bend, with the size beside the fret (½, 1, 1½), <b>(9)</b> the pitch it reaches, <b>r7</b> the release, <b>pb</b> pre-bend, <b>∿</b> vibrato, <b>m</b> and <b>a</b> middle and ring finger, <b>(5)</b> ghost note, <b>&gt;</b> accent.</p>
+  <p>Minutes count while the player is running, towards the same daily goal as the rest of Guitar Studio.</p></div></details></section>`;}
+function homeView(){
+  const nx=nextLesson(),cl=curLevel(),nr=nextRepOf(nx);
+  return `${goalCard()}
+  <section class="card"><div class="num">Next on your path · Level ${nx.lv+1}</div><h2>${esc(nx.t)}</h2>
+    <p class="muted">${esc(LEVELS[nx.lv].n)} · lesson ${LEVELS[nx.lv].ls.findIndex(x=>x.id===nx.id)+1} of ${LEVELS[nx.lv].ls.length} · ${lessonCount(nx)} of ${lessonTotal(nx)} reps${nr?` · next rep: Stage ${ROM[nr[0]]}, ${target(nx,nr[0])} bpm`:""}</p>
+    <div class="row"><button type="button" class="play big" data-open="${nx.id}">Continue ▸</button></div></section>
+  ${sessCard()}
+  <section class="card"><h3>The course</h3><div class="levels">${LEVELS.map((Lv,li)=>{const un=levelOpen(li),fin=levelDone(li),cur=li===cl&&!fin;
+    const sec=li===0?"Part 1 · Techniques":li===7?"Part 2 · Expression":li===8?"Part 3 · Soloing":"";
+    const ls=Lv.ls.map(x=>byId(x.id)),dn=ls.reduce((a,L)=>a+lessonCount(L),0),tot=ls.reduce((a,L)=>a+lessonTotal(L),0);
+    return `${sec?`<div class="sec-t">${sec}</div>`:""}<div class="lvl${un?"":" lock"}${fin?" fin":""}${cur?" cur":""}"><div class="lvh"><b>Level ${li+1}: ${esc(Lv.n)}</b><span>${fin?"✓ complete":un?`${dn} of ${tot} reps`:"🔒 finish the level before"}</span></div>
+      <details${cur||(fin&&false)?" open":""}><summary class="muted" style="cursor:pointer;font-size:13px;margin:4px 0">${esc(Lv.d)}</summary><div class="lessons" style="margin-top:8px">${ls.map(L=>{const c=lessonCount(L),t=lessonTotal(L),ok=c===t;
+        return `<button type="button" class="les${ok?" ok":L.id===nx.id?" next":""}" data-open="${L.id}" title="${c} of ${t} reps">${ok?"✓ ":un?"":"🔒 "}${L.id} ${esc(L.t)}<i style="width:${c/t*100}%"></i></button>`;}).join("")}</div></details></div>`;}).join("")}</div></section>
+  ${mapCard()}
+  ${aboutCard()}
+  ${syncCard()}`;}
+function lessonView(L){
+  const Lv=LEVELS[L.lv],idx=Lv.ls.findIndex(x=>x.id===L.id),all=ALL.indexOf(L),prev=ALL[all-1],next=ALL[all+1],[si,ri]=curRep(L),R=L.reps[si][ri],E=exOf(L,R);
+  const lockLv=!levelOpen(L.lv),lockSt=!stageOpen(L,si),id=rid(L,si,ri),done=isDone(id),tg=target(L,si),tp=tempoOf(L);
+  const revI=view.rev!=null?view.rev:null,rev=revI!=null&&st.sess&&st.sess.items[revI]&&st.sess.items[revI].id===id;
+  const nb=Math.ceil(E.total/4-1e-6),sub=gridOf(E.ev);
+  let btn;
+  if(lockLv)btn=`<button type="button" class="big" disabled>🔒 Finish level ${L.lv} to tick reps here</button>`;
+  else if(lockSt)btn=`<button type="button" class="big" disabled>🔒 Finish stage ${ROM[si-1]} first</button>`;
+  else if(tp<tg)btn=`<button type="button" class="big" data-settempo="${tg}">Raise to ${tg} bpm to tick (now ${tp})</button>`;
+  else if(rev)btn=st.sess.ok&&st.sess.ok[revI]?`<button type="button" class="big" disabled>✓ Review done</button>`:`<button type="button" class="good big" data-revdone="${revI}">✓ Review clean at ${tp} bpm</button>`;
+  else btn=done?`<button type="button" data-undone="${id}">✓ Done · mark as not done</button>`:`<button type="button" class="good big" data-done="${id}">✓ Clean at ${tp} bpm in ${esc(repShort(L,R).replace(/<[^>]+>/g," ").trim())}</button>`;
+  return `<section class="card"><div class="num">Level ${L.lv+1} · ${esc(Lv.n)} · lesson ${idx+1} of ${Lv.ls.length} · ${L.id}</div>
+    <h2>${esc(L.t)}</h2>
+    ${lockLv?`<p class="tip">🔒 Preview. This level opens when you finish Level ${L.lv}. You can read, listen and play along; ticking reps unlocks with your progress.</p>`:""}
+    <div class="chips"><span class="chip">${lessonCount(L)} of ${lessonTotal(L)} reps</span><span class="chip t">${sub===3||sub===6?"triplets":sub===4?"16ths":sub===12?"mixed rhythm":sub===2?"8ths":"quarters"}</span><span class="chip a">stage tempos ${TEMPI[L.rate].join(" → ")} bpm</span><span class="chip">${nb} bars</span></div>
+    <div class="lesson-txt">${L.txt.map(p=>`<p>${p}</p>`).join("")}</div>
+    <div><h3 style="margin-bottom:4px">How to practise</h3><ol class="how">${L.how.map(x=>`<li>${x}</li>`).join("")}</ol></div></section>
+  <section class="card"><div class="row between"><h3>Your reps</h3><span class="num">tick each one when it's clean at the stage tempo</span></div>
+    <div class="stages">${L.reps.map((S,s)=>{const op=stageOpen(L,s),sd=stageDone(L,s);
+      return `<div class="stage${op?"":" lock"}"><span class="sl">${sd?"✓ ":op?"":"🔒 "}Stage ${ROM[s]} · ${target(L,s)} bpm</span>${S.map((r,j)=>{const d=isDone(rid(L,s,j));
+        return `<button type="button" class="rep${d?" ok":""}${s===si&&j===ri?" sel":""}${op?"":" lockd"}" data-rep="${s}:${j}" data-open="${L.id}">${d?"✓ ":""}${repShort(L,r)}</button>`;}).join("")}</div>`;}).join("")}</div>
+    <p class="repinfo">Now: ${repLong(L,R,E)} · Stage ${ROM[si]}, target <b>${tg} bpm</b>${done?" · <b>done</b>":""}</p></section>
+  <section class="card"><div class="row between"><h3>Fretboard</h3><span class="row" style="gap:12px"><label class="chk"><input type="checkbox" data-lab="1"${st.set.lab==="note"?" checked":""}> Note names</label></span></div>
+    <div class="fbwrap" id="fb"></div><p class="muted" id="fbSeg" style="font-size:13px"></p>${legendHTML(E)}</section>
+  <section class="card"><div class="row"><label class="ctl">Tempo <input type="range" id="tempo" min="30" max="180" step="1" value="${tp}"> <b id="tempoV">${tp}</b> bpm</label>
+      <label class="chk"><input type="checkbox" id="click"${st.set.click?" checked":""}> Metronome</label>
+      <label class="chk"><input type="checkbox" id="countin"${st.set.countin?" checked":""}> Count-in</label>
+      <label class="chk"><input type="checkbox" id="loop"${st.set.loop?" checked":""}> Loop</label>
+      ${E.bk&&E.bk.length?`<label class="chk"><input type="checkbox" id="back"${st.set.back?" checked":""}> Backing chords</label>`:""}
+      <label class="chk"><input type="checkbox" id="drive"${st.set.drive?" checked":""}> Overdrive</label></div>
+    <div class="legend"><span>Under each count: the interval, then the pick stroke (<b>m</b>/<b>a</b> = finger)</span><span><b>h</b> hammer · <b>p</b> pull · <b>/ \\</b> slide · <b>b</b> bend · <b>(9)</b> reaches · <b>r</b> release · <b>pb</b> pre-bend · <b>∿</b> vibrato</span></div>
+    <div class="barsbar"><span class="num">Bar practice</span><b id="selLbl">${sel?(sel.a===sel.b?`Looping bar ${sel.a+1}`:`Looping bars ${sel.a+1}–${sel.b+1}`):"Whole exercise"}</b>
+      <button type="button" data-bars="add">＋ Add next bar</button><button type="button" data-bars="next">Next bar only ▶</button><button type="button" data-bars="all"${sel?"":" disabled"}>All bars</button></div>
+    <div class="tabscroll"><div class="tab${sel?" hassel":""}">${tabHTML(E)}</div></div>
+    <div class="navf">${prev?`<button type="button" data-open="${prev.id}">◂ ${prev.id}</button>`:"<span></span>"}<button type="button" class="linkb" data-home="1">All levels</button>
+      ${btn}
+      ${next?`<button type="button" data-open="${next.id}">${next.id} ▸</button>`:""}</div></section>`;}
+function render(){
+  stop();const v=document.getElementById("view");
+  if(view.k==="lesson"){const L=byId(view.id);v.innerHTML=lessonView(L);const [si,ri]=curRep(L),E=exOf(L,L.reps[si][ri]);fbSeg=sel?segOf(E,sel.a*4):0;paintFB();}
+  else v.innerHTML=homeView();
+  header();setBar();paintGoal();requestAnimationFrame(fixClefs);}
+function setBar(){const nb=document.getElementById("nowbar"),L=view.k==="lesson"&&byId(view.id);nb.hidden=!L;document.body.style.paddingBottom=L?"80px":"0";
+  if(!L)return;const b=document.getElementById("nbPlay");b.textContent=play?"■ Stop":"▶ Play";b.classList.toggle("on",!!play);const [si,ri]=curRep(L),R=L.reps[si][ri];
+  document.getElementById("nbInfo").textContent=play?(sel?(sel.a===sel.b?`Looping bar ${sel.a+1}`:`Looping bars ${sel.a+1}–${sel.b+1}`):`Playing ${L.id} · ${repShort(L,R).replace(/<[^>]+>/g," ")}`):`${L.id} · ${repShort(L,R).replace(/<[^>]+>/g," ")} · Stage ${ROM[si]}`;
+  document.getElementById("nbT").textContent=tempoOf(L);}
+function open(id,rep,rev){const L=byId(id);if(!L)return;if(rep){st.sel[id]=rep;}view={k:"lesson",id,rev:rev!=null?Number(rev):null};sel=null;save(true);render();window.scrollTo({top:0});}
+function setSel(s){const wasPlaying=!!play;sel=s;render();if(wasPlaying)start();}
+function setTempo(L,v){st.tempo[L.id]=Math.max(30,Math.min(180,v));st.tUpd=Date.now();save();}
+document.addEventListener("click",e=>{
+  const o=e.target.closest("[data-open]");if(o){const rep=o.dataset.rep;if(view.k==="lesson"&&view.id===o.dataset.open&&rep&&!o.dataset.rev){st.sel[view.id]=rep;sel=null;save(true);render();return;}open(o.dataset.open,rep,o.dataset.rev);return;}
+  if(e.target.closest("[data-home]")){view={k:"home"};sel=null;render();window.scrollTo({top:0});return;}
+  if(e.target.closest("#nbPlay")){play?stop():start();return;}
+  const td=e.target.closest("[data-tdelta]");if(td){const L=byId(view.id);setTempo(L,tempoOf(L)+Number(td.dataset.tdelta));
+    if(play){stop();start();}render();return;}
+  const stt=e.target.closest("[data-settempo]");if(stt){const L=byId(view.id);setTempo(L,Number(stt.dataset.settempo));render();return;}
+  const d=e.target.closest("[data-done]");if(d){const id=d.dataset.done,L=byId(id.split(":")[0]),wasL=lessonDone(L),wasLv=levelDone(L.lv);
+    st.done[id]=dkey(new Date());st.doneT[id]=Date.now();const nr=nextRepOf(L);if(nr)st.sel[L.id]=nr.join(":");save();
+    if(lessonDone(L)&&!wasL){toast(levelDone(L.lv)&&!wasLv?`🎉 Level ${L.lv+1} complete! Level ${L.lv+2<=LEVELS.length?L.lv+2:""} is open.`:`✓ Lesson ${L.id} complete.`,5000);}
+    else if(sessDone())toast("✓ Today's session complete.",4000);else toast("✓ Rep ticked.",1500);render();return;}
+  const rv=e.target.closest("[data-revdone]");if(rv){st.sess.ok=st.sess.ok||{};st.sess.ok[rv.dataset.revdone]=true;st.sessT=Date.now();save();toast(sessDone()?"✓ Today's session complete.":"✓ Review done.",2500);render();return;}
+  const u=e.target.closest("[data-undone]");if(u){delete st.done[u.dataset.undone];st.offT[u.dataset.undone]=Date.now();save();render();return;}
+  if(e.target.closest("[data-newsess]")){buildSess();render();return;}
+  if(e.target.closest("[data-syncnow]")){cloudSync();return;}
+  if(e.target.closest("[data-syncoff]")){try{localStorage.removeItem(SYNC_KEY);}catch(x){}setSync("off");render();return;}
+  if(e.target.closest("[data-syncon]")){const v=(document.getElementById("syncIn").value||"").trim();if(v.length<8){setSync("err","use a sync code of at least 8 characters");return;}try{localStorage.setItem(SYNC_KEY,v);}catch(x){}cloudSync().then(render);return;}
+  const bb=e.target.closest("[data-bars]");if(bb){const L=byId(view.id),[si,ri]=curRep(L),E=exOf(L,L.reps[si][ri]),n=Math.ceil(E.total/4-1e-6),op=bb.dataset.bars;
+    if(op==="all")setSel(null);else if(op==="add")setSel(sel?{a:sel.a,b:Math.min(n-1,sel.b+1)}:{a:0,b:Math.min(n-1,1)});
+    else{const x=sel?Math.min(n-1,sel.b+1):0;setSel({a:x,b:x});}return;}
+  const tb=e.target.closest(".tbar");if(tb){const b=Number(tb.dataset.bar);
+    if(e.shiftKey&&sel)setSel({a:Math.min(sel.a,b),b:Math.max(sel.b,b)});else if(sel&&sel.a===b&&sel.b===b)setSel(null);else setSel({a:b,b});return;}
+});
+document.addEventListener("input",e=>{if(e.target.id==="tempo"){const L=byId(view.id);setTempo(L,Number(e.target.value));document.getElementById("tempoV").textContent=e.target.value;document.getElementById("nbT").textContent=e.target.value;}});
+document.addEventListener("change",e=>{const t=e.target;if(t.id==="tempo"){if(play){stop();start();}render();}
+  if(["click","countin","loop","back","drive"].includes(t.id)){st.set[t.id]=t.checked;save(true);if(play&&(t.id==="back"||t.id==="drive")){stop();start();}}
+  if(t.id==="cmp"){st.set.cmp=t.checked;save(true);paintFB();}
+  if(t.dataset.lab){st.set.lab=t.checked?"note":"iv";save(true);if(view.k==="lesson")paintFB();const m=document.getElementById("map");if(m)m.innerHTML=mapSVG();}
+  if(t.id==="mapK"||t.id==="mapQ"){st.map.k=Number(document.getElementById("mapK").value);st.map.sc=document.getElementById("mapQ").value;save(true);document.getElementById("map").innerHTML=mapSVG();}});
+document.addEventListener("keydown",e=>{if(e.key!==" "||["INPUT","BUTTON","SELECT"].includes(e.target.tagName)||view.k!=="lesson")return;e.preventDefault();play?stop():start();});
+document.addEventListener("visibilitychange",()=>{if(document.hidden)stop();else cloudSync();});
+setInterval(()=>{if(!document.hidden&&!play)cloudSync();},60000);
+const q0=new URLSearchParams(location.search).get("lesson");
+if(q0&&byId(q0))view={k:"lesson",id:q0};
+render();
+cloudSync();
+/*APP-END*/
+</script>
+</body></html>
