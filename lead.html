@@ -1064,7 +1064,7 @@ const pad=n=>String(n).padStart(2,"0"),dkey=d=>`${d.getFullYear()}-${pad(d.getMo
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 function lsJ(k){try{return JSON.parse(localStorage.getItem(k)||"null")||{};}catch(e){return {};}}
 const goalMin=()=>{const m=lsJ("mss-sessions");return (m.st&&m.st.goalMin)||30;};
-function daySec(k){let s=((st.days&&st.days[k])||0)+Object.values(st.odays||{}).reduce((a,d)=>a+(d[k]||0),0);
+function daySec(k){let s=k>="2026-10-18"?0:((st.days&&st.days[k])||0)+Object.values(st.odays||{}).reduce((a,d)=>a+(d[k]||0),0); // on hold from 18 Oct 2026: not in the daily goal
   const m=lsJ("mss-sessions");Object.values(m.ds||{}).forEach(x=>{s+=(x.days&&x.days[k])||0;});
   const f=lsJ("fs-v1");s+=((f.days&&f.days[k])||0)+Object.values(f.odays||{}).reduce((a,d)=>a+(d[k]||0),0);return s;}
 

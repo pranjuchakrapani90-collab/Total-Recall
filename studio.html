@@ -95,7 +95,7 @@ const get=k=>{try{return JSON.parse(localStorage.getItem(k)||"null");}catch(e){r
 const mel=get("mss-sessions")||{},fs=get("fs-v1")||{},lp=get("leadpath-v1"),old=lp?[lp]:[get("caged-v1")||{},get("lead-v1")||{}];
 const pad=n=>String(n).padStart(2,"0"),dkey=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 const sessions=Object.values(mel.ds||{});
-function secOn(k){let s=sessions.reduce((a,x)=>a+((x.days&&x.days[k])||0),0);s+=(fs.days&&fs.days[k])||0;Object.values(fs.odays||{}).forEach(d=>{s+=d[k]||0;});old.forEach(c=>{s+=(c.days&&c.days[k])||0;Object.values(c.odays||{}).forEach(d=>{s+=d[k]||0;});});return s;}
+function secOn(k){let s=sessions.reduce((a,x)=>a+((x.days&&x.days[k])||0),0);s+=(fs.days&&fs.days[k])||0;Object.values(fs.odays||{}).forEach(d=>{s+=d[k]||0;});if(k<"2026-10-18")old.forEach(c=>{s+=(c.days&&c.days[k])||0;Object.values(c.odays||{}).forEach(d=>{s+=d[k]||0;});});return s;}
 const goal=(mel.st&&mel.st.goalMin)||30,today=secOn(dkey(new Date()));
 document.getElementById("tMin").textContent=Math.floor(today/60);
 document.getElementById("tGoal").textContent=goal;

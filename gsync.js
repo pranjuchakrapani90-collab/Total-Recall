@@ -54,7 +54,16 @@ function mergeMelodies(local,remote,localOnly){
     const pats=newer?mergePats(R.myPats,S.myPats,del):mergePats(S.myPats,R.myPats,del);
     if(newer){const keep={};(localOnly||[]).forEach(k=>{if(k in S)keep[k]=S[k];});S={...S,...R,...keep};}
     S.myPats=pats;S.patDel=del;}
+  oneTimeFix(sessions);
   return {sessions,settings:S};}
+/* one-time correction asked for on 18 Oct 2026: Melodic Lead counts exactly 15 minutes that day
+   (minutes were lost to a sync bug). Stored as its own bucket so it syncs once and is never applied twice. */
+const FIX={b:"fix-20261018",day:"2026-10-18",sec:900};
+function oneTimeFix(sessions){const L=Object.values(sessions||{}).filter(Boolean);if(!L.length)return;
+  if(L.some(x=>x.dd&&x.dd[FIX.b]))return;
+  const tot=L.reduce((a,x)=>a+((x.days&&x.days[FIX.day])||0),0);
+  const host=L.slice().sort((a,b)=>((b.days&&b.days[FIX.day])||0)-((a.days&&a.days[FIX.day])||0)||(b.upd||0)-(a.upd||0))[0];
+  const dd=ddOf(host);dd[FIX.b]={[FIX.day]:Math.round((FIX.sec-tot)*10)/10};host.dd=dd;host.days=sumDd(dd);}
 
 /* ---------- Lead Course and Fingerstyle Solo: the same merge their pages use ---------- */
 function mergeReps(st,R,withSess){let ch=false;st.doneT=st.doneT||{};st.done=st.done||{};st.offT=st.offT||{};st.days=st.days||{};st.odays=st.odays||{};st.tUpd=st.tUpd||0;

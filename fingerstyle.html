@@ -244,7 +244,7 @@ const pad=n=>String(n).padStart(2,"0"),dkey=d=>`${d.getFullYear()}-${pad(d.getMo
 function melodyData(){try{return JSON.parse(localStorage.getItem("mss-sessions")||"null")||{};}catch(e){return {};}}
 const goalMin=()=>{const m=melodyData();return (m.st&&m.st.goalMin)||30;};
 function daySec(k){const m=melodyData();let s=((st.days&&st.days[k])||0)+Object.values(st.odays||{}).reduce((a,d)=>a+(d[k]||0),0);Object.values(m.ds||{}).forEach(x=>{s+=(x.days&&x.days[k])||0;});
-  (localStorage.getItem("leadpath-v1")?["leadpath-v1"]:["caged-v1","lead-v1"]).forEach(key=>{try{const c=JSON.parse(localStorage.getItem(key)||"null");if(c)s+=((c.days&&c.days[k])||0)+Object.values(c.odays||{}).reduce((a,d)=>a+(d[k]||0),0);}catch(e){}});return s;}
+  if(k<"2026-10-18")(localStorage.getItem("leadpath-v1")?["leadpath-v1"]:["caged-v1","lead-v1"]).forEach(key=>{try{const c=JSON.parse(localStorage.getItem(key)||"null");if(c)s+=((c.days&&c.days[k])||0)+Object.values(c.odays||{}).reduce((a,d)=>a+(d[k]||0),0);}catch(e){}});return s;}
 const PR=()=>FSC.progress(st.done);
 const levelDone=li=>PR().levelDone(li);
 const unlockedLv=li=>PR().unlocked(li);

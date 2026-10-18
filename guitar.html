@@ -2193,7 +2193,7 @@ function flushTime(p,final){ // add the time since the last flush to today's tot
 }
 function logTime(p){flushTime(p,true);}
 const goalSec=()=>(S.goalMin||30)*60;
-const fsSec=k=>(localStorage.getItem("leadpath-v1")?["fs-v1","leadpath-v1"]:["fs-v1","caged-v1","lead-v1"]).reduce((t,key)=>{try{const f=JSON.parse(localStorage.getItem(key)||"null");if(!f)return t;return t+((f.days&&f.days[k])||0)+Object.values(f.odays||{}).reduce((x,d)=>x+(d[k]||0),0);}catch(e){return t;}},0); // fingerstyle trainer minutes
+const fsSec=k=>(k>="2026-10-18"?["fs-v1"]:localStorage.getItem("leadpath-v1")?["fs-v1","leadpath-v1"]:["fs-v1","caged-v1","lead-v1"]).reduce((t,key)=>{try{const f=JSON.parse(localStorage.getItem(key)||"null");if(!f)return t;return t+((f.days&&f.days[k])||0)+Object.values(f.odays||{}).reduce((x,d)=>x+(d[k]||0),0);}catch(e){return t;}},0); // fingerstyle trainer minutes
 function todaySec(){const day=dkey(new Date());let s=Object.values(sessions).reduce((a,x)=>a+((x.days&&x.days[day])||0),0)+fsSec(day);
   if(play)s+=Math.min(90,(performance.now()-(play.lf||play.t0))/1000);return s;}
 const mmss=s=>{s=Math.floor(s);return Math.floor(s/60)+":"+String(s%60).padStart(2,"0");};
