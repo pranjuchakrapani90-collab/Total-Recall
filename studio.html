@@ -79,7 +79,7 @@ a.sec.cg::before{background:#0f766e}.cg .tag{background:#e6f6f4;color:#0f766e}.c
       <div class="ico">⚡</div>
       <h2>Lead Course</h2>
       <p>One course for pick technique: rock lead skills (slides, bends, legato, vibrato, hybrid picking, dynamics, soloing) alternating with the five CAGED shapes as chords, arpeggios and the playbook. Plus a daily ear rep: hear it, sing it, see it, play it.</p>
-      <div class="tags"><span class="tag">24 levels</span><span class="tag">153 lessons</span><span class="tag">1377 reps</span></div>
+      <div class="tags"><span class="tag">24 levels</span><span class="tag">156 lessons</span><span class="tag">1404 reps</span></div>
       <div class="now"><div><b id="cLevel">1</b><span>level</span></div><div><b id="cDone">0</b><span>reps done</span></div><div><b id="cSess">–</b><span>session</span></div></div>
       <div class="go"><span id="cNext">Start with core soloing</span><b>Open ▸</b></div>
     </a>
@@ -128,7 +128,7 @@ document.getElementById("fNext").textContent=n===all.length?"Course complete: re
  const ids=Object.keys(D).filter(k=>D[k]),cd=ids.length;document.getElementById("cDone").textContent=cd;
  const ss=lp&&lp.sess;if(ss&&ss.items&&ss.items.length){const it=ss.items.filter(x=>!x.ml),ok=it.filter((x,i)=>x.rev?(ss.ok&&ss.ok[ss.items.indexOf(x)]):D[x.id]).length;document.getElementById("cSess").textContent=`${ok}/${it.length}`;}
  let hi=0;ids.forEach(k=>{const lv=k[0]==="L"?k.slice(0,2):k[0],i=ORDER.indexOf(lv);if(i>hi)hi=i;});document.getElementById("cLevel").textContent=hi+1;
- if(cd)document.getElementById("cNext").textContent=`Continue · ${cd} of 1377 reps`;}
+ if(cd)document.getElementById("cNext").textContent=`Continue · ${cd} of 1404 reps`;}
 </script>
 <script src="plan.js"></script>
 <script>
