@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#9f1239">
 <title>Lead Course · Guitar Studio</title>
+<script src="gsync.js"></script>
 <link rel="manifest" href="manifest.webmanifest">
 <style>
 :root{
@@ -1141,16 +1142,17 @@ async function cloudSync(){
       st.imp[slot]=1;ch=true;}
     const r=await fetch(url,{method:"POST",headers,body:JSON.stringify({state:{app:"path"}}),cache:"no-store"});if(!r.ok)throw new Error("the sync bridge answered HTTP "+r.status);
     const data=await r.json();if(data.error)throw new Error(data.error);
-    if(data.blob)ch=merge(await dec(data.blob,code));
+    let R=null;if(data.blob){R=await dec(data.blob,code);if(merge(R))ch=true;}
     if(ch)save(true);
-    const w=await fetch(url,{method:"PUT",headers,body:await enc(payload(),code),cache:"no-store"});if(!w.ok)throw new Error("upload failed with HTTP "+w.status);
+    if(!R||GSync.canon(payload())!==GSync.canon(R)){ // only upload when the cloud is missing something
+      const w=await fetch(url,{method:"PUT",headers,body:await enc(payload(),code),cache:"no-store"});if(!w.ok)throw new Error("upload failed with HTTP "+w.status);}
     setSync("ok");
   }catch(e){setSync("err",String(e&&e.message||e));}
   finally{SY.busy=false;if(SY.again){SY.again=false;scheduleSync();}}
   if(ch&&!play)render();
   return ch;}
 function syncCard(){const on=!!syncCode();return `<section class="card"><div class="row between"><h3>Device sync</h3><span class="num">same code as Total Recall</span></div>
-  <p id="syncState">${syncText()}</p>
+  <p id="syncState">${syncText()}</p>${syncCode()?`<p class="muted" style="font-size:12px">Code check: <b class="gsfp">····</b>, which must be the same on every phone.</p>`:""}
   ${on?`<div class="row"><button type="button" data-syncnow="1">Sync now</button><button type="button" class="linkb" data-syncoff="1">Turn sync off on this device</button></div>`
   :`<div class="row"><input type="password" id="syncIn" placeholder="Your Total Recall sync code" autocomplete="off" style="flex:1;min-width:0;font:500 14px var(--body);border:1px solid var(--line);border-radius:8px;padding:8px"><button type="button" class="play" data-syncon="1">Turn on sync</button></div>
     <p class="muted">If you set the code in Total Recall or another Guitar Studio section on this device, sync is already on here.</p>`}</section>`;}

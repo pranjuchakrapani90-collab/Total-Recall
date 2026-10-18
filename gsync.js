@@ -1,0 +1,82 @@
+/* Guitar Studio sync helpers, shared by the hub (studio.html) and Melodic Lead (guitar.html).
+   - canon(): stable JSON for "does the cloud already have everything I have?" checks, so pages only upload when needed
+   - melodies merge: sessions and patterns merge item by item instead of newest-wins
+   - pullAll(): the hub pulls all three sections from the cloud into this device's storage (read-only, never uploads)
+   - fingerprint(): 4 characters derived from the sync code, to check two phones use exactly the same code */
+(function(){
+"use strict";
+const SYNC_KEY="totalRecallSyncCode_v1";
+const url=()=>{let u=null;try{u=localStorage.getItem("totalRecallTickTickUrl");}catch(e){}u=u||"https://total-recall-ticktick.pranjuchakrapani90.workers.dev";return u+(u.indexOf("?")>=0?"&":"?")+"mode=sync";};
+const code=()=>{try{return localStorage.getItem(SYNC_KEY)||"";}catch(e){return "";}};
+const get=k=>{try{return JSON.parse(localStorage.getItem(k)||"null");}catch(e){return null;}};
+const put=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}};
+const unb64=s=>{const r=atob(s),u=new Uint8Array(r.length);for(let i=0;i<r.length;i++)u[i]=r.charCodeAt(i);return u;};
+async function dec(blob,c,slot){const x=JSON.parse(blob||"{}"),h=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(c+slot)),
+  k=await crypto.subtle.importKey("raw",h,{name:"AES-GCM"},false,["decrypt"]),p=await crypto.subtle.decrypt({name:"AES-GCM",iv:unb64(x.iv)},k,unb64(x.data));
+  return JSON.parse(new TextDecoder().decode(p));}
+async function fetchSlot(c,slot){const r=await fetch(url(),{method:"POST",headers:{"Content-Type":"application/json","X-Total-Recall-Sync":c+slot},body:JSON.stringify({state:{app:slot.slice(1)}}),cache:"no-store"});
+  if(!r.ok)throw new Error("the sync bridge answered HTTP "+r.status);const d=await r.json();if(d.error)throw new Error(d.error);return d.blob?dec(d.blob,c,slot):null;}
+
+/* stable JSON: object keys sorted, arrays of plain values sorted */
+function canon(x){
+  if(Array.isArray(x)){const a=x.map(canon);return "["+(x.every(v=>v===null||typeof v!=="object")?a.sort():a).join(",")+"]";}
+  if(x&&typeof x==="object")return "{"+Object.keys(x).filter(k=>x[k]!==undefined).sort().map(k=>JSON.stringify(k)+":"+canon(x[k])).join(",")+"}";
+  return JSON.stringify(x===undefined?null:x);}
+
+/* ---------- Melodic Lead ---------- */
+const maxMap=(a,b)=>{const o={...(a||{})};Object.entries(b||{}).forEach(([k,v])=>{if(typeof v==="number"&&!(o[k]>=v))o[k]=v;else if(!(k in o))o[k]=v;});return o;};
+function mergeSession(l,r){ // same session on two phones: keep every ticked shape and the larger minute counts
+  if(!l)return JSON.parse(JSON.stringify(r));if(!r)return l;
+  const nw=(r.upd||0)>(l.upd||0)?r:l,o=JSON.parse(JSON.stringify(nw));
+  o.done=[...new Set([...(l.done||[]),...(r.done||[])])];
+  o.days=maxMap(l.days,r.days);o.time=maxMap(l.time,r.time);
+  if(l.finished||r.finished)o.finished=l.finished||r.finished;
+  o.upd=Math.max(l.upd||0,r.upd||0);return o;}
+function mergePats(base,other,del){ // base = list from the newer settings; patterns are kept per id, newest edit wins
+  const out=[],seen=new Set(),byO=new Map((other||[]).map(p=>[p.id,p]));
+  (base||[]).forEach(p=>{const q=byO.get(p.id);out.push(q&&(q.t||0)>(p.t||0)?q:p);seen.add(p.id);});
+  (other||[]).forEach((p,i)=>{if(seen.has(p.id))return;out.splice(Math.min(i,out.length),0,p);seen.add(p.id);});
+  return out.filter(p=>!(del&&del[p.id]&&del[p.id]>=(p.t||0)));}
+/* merge a remote Melodic Lead state into local {sessions,settings}; localOnly = settings that stay per device */
+function mergeMelodies(local,remote,localOnly){
+  const sessions={...(local.sessions||{})};
+  Object.values(remote.sessions||{}).forEach(r=>{if(r&&r.id)sessions[r.id]=mergeSession(sessions[r.id],r);});
+  let S={...(local.settings||{})};const R=remote.settings||null;
+  if(R){const del=maxMap(S.patDel,R.patDel),newer=(R._upd||0)>(S._upd||0);
+    const pats=newer?mergePats(R.myPats,S.myPats,del):mergePats(S.myPats,R.myPats,del);
+    if(newer){const keep={};(localOnly||[]).forEach(k=>{if(k in S)keep[k]=S[k];});S={...S,...R,...keep};}
+    S.myPats=pats;S.patDel=del;}
+  return {sessions,settings:S};}
+
+/* ---------- Lead Course and Fingerstyle Solo: the same merge their pages use ---------- */
+function mergeReps(st,R,withSess){let ch=false;st.doneT=st.doneT||{};st.done=st.done||{};st.offT=st.offT||{};st.days=st.days||{};st.odays=st.odays||{};st.tUpd=st.tUpd||0;
+  Object.entries(R.done||{}).forEach(([id,x])=>{if(!st.doneT[id]||x.t>st.doneT[id]){st.doneT[id]=x.t;st.done[id]=x.d;ch=true;}});
+  Object.entries(R.off||{}).forEach(([id,t])=>{if(!st.offT[id]||t>st.offT[id]){st.offT[id]=t;ch=true;}});
+  Object.keys(st.offT).forEach(id=>{if(st.done[id]&&(st.offT[id]||0)>(st.doneT[id]||0)){delete st.done[id];ch=true;}});
+  if((R.tUpd||0)>st.tUpd){st.tempo={...R.tempo};st.tUpd=R.tUpd;ch=true;}
+  if(withSess&&(R.sessT||0)>(st.sessT||0)){st.sess=R.sess;st.sessT=R.sessT;ch=true;}
+  Object.entries(R.days||{}).forEach(([dev,days])=>{const tgt=dev===st.dev?st.days:(st.odays[dev]=st.odays[dev]||{});
+    Object.entries(days||{}).forEach(([k,v])=>{if(v>(tgt[k]||0)){tgt[k]=v;ch=true;}});});
+  return ch;}
+
+/* hub: pull every section into this device's storage; returns true if anything changed */
+async function pullAll(){
+  const c=code();if(!c)return false;let ch=false;
+  const [mel,path,fs]=await Promise.all([fetchSlot(c,"#melodies"),fetchSlot(c,"#path"),fetchSlot(c,"#fingerstyle")]);
+  if(mel){const m=get("mss-sessions")||{ds:{},st:null},before=canon(m);
+    const out=mergeMelodies({sessions:m.ds||{},settings:m.st||{}},mel,["micId","latency","audioMode"]);
+    const nm={ds:out.sessions,st:Object.keys(out.settings).length?out.settings:(m.st||null)};if(canon(nm)!==before){put("mss-sessions",nm);ch=true;}}
+  /* a section never used on this phone has no record yet: start one from the cloud copy (the page fills in its defaults on open) */
+  const fresh=()=>({dev:Math.random().toString(36).slice(2,10),done:{},doneT:{},offT:{},tempo:{},tUpd:0,days:{},odays:{}});
+  const oldLead=!!(localStorage.getItem("caged-v1")||localStorage.getItem("lead-v1")); // leave the Lead Course's own first-open import alone
+  if(path){let st=get("leadpath-v1");if(!st&&!oldLead)st=fresh();if(st){if(!st.dev)st.dev=fresh().dev;if(mergeReps(st,path,true)){put("leadpath-v1",st);ch=true;}}}
+  if(fs){let st=get("fs-v1")||fresh();if(!st.dev)st.dev=fresh().dev;if(mergeReps(st,fs,false)){put("fs-v1",st);ch=true;}}
+  return ch;}
+async function fingerprint(){const c=code();if(!c)return "";const h=new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(c)));
+  return Array.from(h.slice(0,2)).map(b=>b.toString(16).padStart(2,"0")).join("").toUpperCase();}
+/* fill any "code check" spot (class gsfp) on the page, now and whenever the page re-renders */
+let fpV=null;function fillFp(){document.querySelectorAll(".gsfp").forEach(el=>{if(fpV!==null&&el.textContent!==fpV)el.textContent=fpV||"no code";});}
+fingerprint().then(v=>{fpV=v;fillFp();});
+document.addEventListener("DOMContentLoaded",()=>{fillFp();try{new MutationObserver(fillFp).observe(document.body,{childList:true,subtree:true});}catch(e){}});
+window.GSync={canon,mergeMelodies,mergeSession,mergePats,mergeReps,pullAll,fingerprint,code};
+})();

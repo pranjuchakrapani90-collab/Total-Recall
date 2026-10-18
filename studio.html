@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#4f46e5">
 <title>Guitar Studio · Total Recall &amp; Melodies</title>
+<script src="gsync.js"></script>
 <link rel="manifest" href="manifest.webmanifest">
 <style>
 :root{--bg:#f4f7fb;--paper:#fff;--ink:#172033;--muted:#697386;--line:#e5e7eb;--steel:#4f46e5;--steel-soft:#eef0ff;--brass:#7c3aed;--brass-soft:#f5f3ff;--good:#059669;--good-soft:#ecfdf5;
@@ -55,6 +56,7 @@ a.sec.cg::before{background:#0f766e}.cg .tag{background:#e6f6f4;color:#0f766e}.c
   <div class="eyebrow">Guitar practice</div>
   <h1>Guitar Studio</h1>
   <p>Three ways to practise, one daily goal. Pick a section to start.</p>
+  <p id="hubSync" style="margin-top:8px;font-size:12px;opacity:.9"></p>
 </div></header>
 <main class="wrap">
   <section class="goal" aria-label="Daily goal">
@@ -143,5 +145,20 @@ document.getElementById("fNext").textContent=n===all.length?"Course complete: re
   sk.onclick=()=>{GSPlan.skip(nx.k);draw();};
   document.getElementById("cycNote").textContent=(c.done?`${c.done} cycle${c.done>1?"s":""} completed. `:"")+"A cycle carries over to the next day until all three sections have had their 10 minutes.";}
  draw();}
+</script>
+<script>
+/* the hub pulls all three sections from the cloud (read-only) so this phone shows practice done on your other phones */
+{const el=document.getElementById("hubSync");
+ const show=t=>{el.innerHTML=t;};
+ async function pull(){
+  if(!GSync.code()){show("☁ Sync is off on this phone. Turn it on in Total Recall's Device Sync, or inside any section.");return;}
+  show(`☁ Checking your other phones… · code check <b class="gsfp">····</b>`);
+  try{const ch=await GSync.pullAll();
+    let last=0;try{last=Number(sessionStorage.getItem("gs-hub-pulled")||0);}catch(e){}
+    if(ch&&Date.now()-last>10000){try{sessionStorage.setItem("gs-hub-pulled",String(Date.now()));}catch(e){}location.reload();return;}
+    show(`☁ Up to date with your other phones at ${new Date().toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"})} · code check <b class="gsfp">····</b> (must match on every phone)`);
+  }catch(e){show(`☁ Sync problem: ${String(e&&e.message||e).replace(/</g,"&lt;")} · code check <b class="gsfp">····</b>`);}}
+ pull();
+ document.addEventListener("visibilitychange",()=>{if(!document.hidden)pull();});}
 </script>
 </body></html>

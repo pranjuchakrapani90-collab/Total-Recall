@@ -1,5 +1,6 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Melodic Lead · Guitar Studio</title>
+<script src="gsync.js"></script>
 <style>
 /* Layout: header with today's date + progress; sticky settings bar; today's position card; five exercise sheets; history + extra builder */
 :root{
@@ -1560,7 +1561,7 @@ function wHandleClick(e){
     if(!wA().ok)return true;
     const L=S.myPats=S.myPats||[],old=L.find(p=>p.id===W.editId);
     const rec={id:W.editId||("u"+Date.now().toString(36)),name:W.name,cols:[...W.cols],key:W.key,scale:W.scale,group:W.group,rhy:W.rhy,gr:W.gr,mode:W.mode,prog:old&&old.prog||{}};
-    rec.rev=old?old.rev||0:0;
+    rec.rev=old?old.rev||0:0;rec.t=Date.now();
     if(old&&patSig(patA(old))!==patSig(wA())){rec.prog={};rec.rev++;} // different notes: this pattern starts its shapes again
     const BK=S.myCourse&&S.myCourse.bulk;
     if(old)L[L.indexOf(old)]=rec;else if(BK){L.splice(Math.min(BK.pos,L.length),0,rec);S.myCourse={...S.myCourse,bulk:{pos:BK.pos+1}};}else L.push(rec);
@@ -1580,7 +1581,7 @@ function wHandleClick(e){
   if(e.target.closest("[data-wnew]")){stop();Object.assign(W,{cols:Array(12).fill(null),sel:null,key:"auto",scale:"auto",group:"auto",rhy:"auto",gr:"auto",name:"",editId:null});WA=null;saveDraft();render();return true;}
   const ld=e.target.closest("[data-wload]");if(ld){const p=(S.myPats||[]).find(x=>x.id===ld.dataset.wload);if(p){stop();Object.assign(W,{cols:[...p.cols],key:p.key,scale:p.scale,group:p.group,rhy:p.rhy,gr:p.gr||"auto",mode:p.mode||"asis",name:p.name,editId:p.id,sel:null});WA=null;saveDraft();render();const ed=document.querySelector(".wcard");if(ed)ed.scrollIntoView({behavior:"smooth",block:"start"});}return true;}
   const rm=e.target.closest("[data-wrm]");if(rm){ // tap ✕ twice to delete
-    if(rm.dataset.armed){stop();S.myPats=(S.myPats||[]).filter(p=>p.id!==rm.dataset.wrm);if(W.editId===rm.dataset.wrm)W.editId=null;persistSettings();saveDraft();render();}
+    if(rm.dataset.armed){stop();S.myPats=(S.myPats||[]).filter(p=>p.id!==rm.dataset.wrm);S.patDel={...(S.patDel||{}),[rm.dataset.wrm]:Date.now()};if(W.editId===rm.dataset.wrm)W.editId=null;persistSettings();saveDraft();render();}
     else{rm.dataset.armed="1";rm.textContent="Delete?";rm.classList.add("arm");setTimeout(()=>{if(rm.isConnected){delete rm.dataset.armed;rm.textContent="✕";rm.classList.remove("arm");}},3000);}
     return true;}
   return false;
@@ -2672,11 +2673,12 @@ async function encryptState(state,code){const iv=crypto.getRandomValues(new Uint
 async function decryptState(blob,code){const x=JSON.parse(blob||"{}"),k=await syncKeyOf(code),p=await crypto.subtle.decrypt({name:"AES-GCM",iv:unb64(x.iv)},k,unb64(x.data));return JSON.parse(new TextDecoder().decode(p));}
 const syncCode=()=>{try{return localStorage.getItem(SYNC_KEY)||"";}catch(e){return "";}};
 function sharedSettings(){const o={...S};LOCAL_ONLY.forEach(k=>delete o[k]);return o;}
-function mergeRemote(remote){
-  let changed=false;
-  Object.values(remote.sessions||{}).forEach(r=>{const l=sessions[r.id];
-    if(!l||(r.upd||0)>(l.upd||0)){sessions[r.id]=normalize(JSON.parse(JSON.stringify(r)));changed=true;}});
-  if(remote.settings&&(remote.settings._upd||0)>(S._upd||0)){const keep={};LOCAL_ONLY.forEach(k=>keep[k]=S[k]);Object.assign(S,remote.settings,keep);changed=true;}
+function mergeRemote(remote){ // item by item (gsync.js): ticked shapes, minutes and patterns from both phones are kept
+  const before=GSync.canon({s:sessions,t:sharedSettings()});
+  const out=GSync.mergeMelodies({sessions,settings:S},remote,LOCAL_ONLY);
+  Object.keys(out.sessions).forEach(id=>{sessions[id]=normalize(out.sessions[id]);});
+  const keep={};LOCAL_ONLY.forEach(k=>keep[k]=S[k]);Object.assign(S,out.settings,keep);
+  const changed=GSync.canon({s:sessions,t:sharedSettings()})!==before;
   if(changed&&store&&store._w)store._w();
   return changed;
 }
@@ -2699,10 +2701,11 @@ async function cloudSync(){
     const r=await fetch(url,{method:"POST",headers,body:JSON.stringify({state:{app:"melodies"}}),cache:"no-store"});
     if(!r.ok)throw new Error("the sync bridge answered HTTP "+r.status);
     const data=await r.json();if(data.error)throw new Error(data.error);
-    if(data.blob)changed=mergeRemote(await decryptState(data.blob,code));
-    const blob=await encryptState({v:1,sessions,settings:sharedSettings()},code);
-    const w=await fetch(url,{method:"PUT",headers,body:blob,cache:"no-store"});
-    if(!w.ok)throw new Error("upload failed with HTTP "+w.status);
+    let R=null;if(data.blob){R=await decryptState(data.blob,code);changed=mergeRemote(R);}
+    const mine={v:1,sessions,settings:sharedSettings()};
+    if(!R||GSync.canon(mine)!==GSync.canon({v:1,sessions:R.sessions||{},settings:R.settings||{}})){ // only upload when the cloud is missing something
+      const w=await fetch(url,{method:"PUT",headers,body:await encryptState(mine,code),cache:"no-store"});
+      if(!w.ok)throw new Error("upload failed with HTTP "+w.status);}
     setSync("ok");
   }catch(e){setSync("err",String(e&&e.message||e));}
   finally{SY.busy=false;if(SY.again){SY.again=false;scheduleSync();}}
@@ -2729,7 +2732,7 @@ function syncPanel(){
   return `<div class="listen"><h3>Device sync</h3>
     <p class="tnote" id="syncState">${syncStateHTML()}</p>
     ${on?`<div class="lrow"><button type="button" data-syncnow="1">Sync now</button><button type="button" class="linkb" data-syncoff="1">Turn sync off on this device</button></div>
-      <p class="tnote">Uses your Total Recall sync code. Sessions, scores, practice time and settings sync; the microphone choice and earphone calibration stay per device.</p>`
+      <p class="tnote">Uses your Total Recall sync code. Sessions, scores, practice time and settings sync; the microphone choice and earphone calibration stay per device. Code check: <b class="gsfp">····</b>, which must be the same on every phone.</p>`
     :`<div class="lrow"><input type="password" id="syncIn" placeholder="Your Total Recall sync code" autocomplete="off" style="flex:1;min-width:0"><button type="button" class="play" data-syncon="1">Turn on sync</button></div>
       <p class="tnote">Use the same code as Total Recall's Device Sync on every device. If you already set it in Total Recall on this device, this page uses it automatically.</p>`}
   </div>`;
