@@ -2674,7 +2674,11 @@ function sharedSettings(){const o={...S};LOCAL_ONLY.forEach(k=>delete o[k]);retu
 function mergeRemote(remote){ // item by item (gsync.js): ticked shapes, minutes and patterns from both phones are kept
   const before=GSync.canon({s:sessions,t:sharedSettings()});
   const out=GSync.mergeMelodies({sessions,settings:S},remote,LOCAL_ONLY);
-  Object.keys(out.sessions).forEach(id=>{sessions[id]=normalize(out.sessions[id]);});
+  /* update sessions in place: the open session (today) and the player keep pointing at the same object,
+     so seconds being played are never written into a detached copy */
+  Object.keys(out.sessions).forEach(id=>{const n=normalize(out.sessions[id]),cur=sessions[id];
+    if(!cur){sessions[id]=n;return;}
+    Object.keys(cur).forEach(k=>{if(!(k in n))delete cur[k];});Object.assign(cur,n);});
   const keep={};LOCAL_ONLY.forEach(k=>keep[k]=S[k]);Object.assign(S,out.settings,keep);
   const changed=GSync.canon({s:sessions,t:sharedSettings()})!==before;
   if(changed&&store&&store._w)store._w();
