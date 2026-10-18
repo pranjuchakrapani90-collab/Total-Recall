@@ -2836,5 +2836,5 @@ function restartInNewFormat(old){
 })();
 </script>
 
-<script src="plan.js"></script><script>GSPlan.watch("ml");</script>
+<script src="plan.js"></script><script>GSPlan.watch("ml",{live:()=>play?(performance.now()-(play.lf||play.t0))/1000:0,playing:()=>!!play,stop:()=>stop()});</script>
 </body></html>

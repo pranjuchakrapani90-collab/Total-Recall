@@ -1486,5 +1486,5 @@ render();
 cloudSync();
 /*APP-END*/
 </script>
-<script src="plan.js"></script><script>GSPlan.watch("lc");</script>
+<script src="plan.js"></script><script>GSPlan.watch("lc",{live:()=>play?(performance.now()-play.lf)/1000:0,playing:()=>!!play,stop:()=>stop()});</script>
 </body></html>

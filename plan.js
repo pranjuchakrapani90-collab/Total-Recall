@@ -53,22 +53,37 @@ a.gsp-seg,.gsp-nudge a.gsp-seg{position:relative;overflow:hidden;display:flex!im
 .gsp-nudge{position:fixed;left:50%;transform:translateX(-50%);top:calc(10px + env(safe-area-inset-top,0px));z-index:60;width:min(560px,calc(100% - 24px));background:#fff;border:1px solid #e5e7eb;border-radius:14px;box-shadow:0 10px 30px #0f172a33;padding:12px 14px;display:flex;flex-direction:column;gap:10px;font:15px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif;color:#172033}
 .gsp-nudge .row{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
 .gsp-nudge a,.gsp-nudge button{font:650 14px system-ui,sans-serif;border:0;border-radius:10px;padding:9px 14px;cursor:pointer;text-decoration:none}
-.gsp-nudge .row a{background:var(--c);color:#fff}.gsp-nudge button{background:#f1f5f9;color:#475569}`;
+.gsp-nudge .row a{background:var(--c);color:#fff}.gsp-nudge button{background:#f1f5f9;color:#475569}
+.gsp-here{display:flex;align-items:center;gap:10px;margin-top:10px;padding:8px 12px;border-radius:12px;background:#ffffff26;color:inherit;font:13px/1.3 system-ui,-apple-system,"Segoe UI",sans-serif}
+.gsp-here span{white-space:nowrap}.gsp-here i{flex:1;height:8px;border-radius:5px;background:#ffffff40;overflow:hidden;min-width:40px}
+.gsp-here s{display:block;height:100%;background:#fff;text-decoration:none}.gsp-here b.t{font:700 14px ui-monospace,Menlo,Consolas,monospace;white-space:nowrap}`;
 let styled=false;function style(){if(styled)return;styled=true;const s=document.createElement("style");s.textContent=CSS;document.head.appendChild(s);}
 
-/* inside a section: once its 10 minutes of the cycle are in, suggest the next section (once per cycle, player keeps running) */
-function watch(here,liveExtra){style();
-  setInterval(()=>{const c=cycle(liveExtra?{[here]:liveExtra()||0}:null),key="gsp-nudged-"+here+"-c"+c.n;let shown;
-    try{shown=localStorage.getItem(key);}catch(e){shown="1";}if(shown)return;
+/* inside a section: a live "this section in this cycle" timer under the page's stats, and when the section's
+   10 minutes are in, the player stops and a card offers to keep going here or move to the next section (once per cycle).
+   o = {live: unsaved seconds being played right now, playing: is the player running, stop: stop the player} */
+function watch(here,o){style();o=o||{};const live=()=>{try{return Math.max(0,Math.min(90,o.live?o.live():0));}catch(e){return 0;}};
+  const P=PLAN.find(p=>p.k===here);
+  function chip(c){let el=document.getElementById("gspHere");
+    if(!el){const a=document.getElementById("hTodayS"),host=a&&a.parentElement;if(!host)return;
+      el=document.createElement("div");el.id="gspHere";el.className="gsp-here";host.insertAdjacentElement("afterend",el);}
+    const me=c.rows.find(r=>r.k===here),f=Math.min(1,me.sec/(me.min*60));
+    el.style.setProperty("--c",P.col);
+    el.innerHTML=`<span>${P.ico} <b>${P.n}</b> this cycle</span><i><s style="width:${f*100}%"></s></i><b class="t">${mm(Math.min(me.sec,me.min*60))} / ${me.min}:00</b>`;}
+  function tick(){const c=cycle({[here]:live()});chip(c);
+    const key="gsp-nudged-"+here+"-c"+c.n;let shown;try{shown=localStorage.getItem(key);}catch(e){shown="1";}
     /* the cycle closed while playing here: celebrate once, the new cycle is already open */
     const prevKey="gsp-celebrated-c"+c.done;let cel=null;try{cel=localStorage.getItem(prevKey);}catch(e){cel="1";}
-    const me=c.rows.find(r=>r.k===here);
     if(c.done&&c.closedOn===dkey(new Date())&&!cel){try{localStorage.setItem(prevKey,"1");}catch(e){}
-      show(`<div><b>🎉 Cycle ${c.done} complete.</b> All three sections have had their 10 minutes. Cycle ${c.n} starts now.</div>${barHTML(c.rows,here)}<div class="row"><button type="button">Close</button></div>`,"#059669");return;}
-    if(me.sec<me.min*60)return;
+      const was=o.playing&&o.playing();if(was&&o.stop)o.stop();
+      show(`<div><b>🎉 Cycle ${c.done} complete.</b> All three sections have had their 10 minutes${was?", so the player has stopped":""}. Cycle ${c.n} starts now.</div>${barHTML(c.rows,here)}<div class="row"><button type="button">Keep going here</button></div>`,"#059669");return;}
+    if(shown)return;
+    const me=c.rows.find(r=>r.k===here);if(me.sec<me.min*60)return;
     try{localStorage.setItem(key,"1");}catch(e){}
     const nx=next(c.rows);if(!nx)return;
-    show(`<div><b>✓ ${me.min} minutes of ${me.n} done.</b> Next in cycle ${c.n}: ${nx.ico} <b>${nx.n}</b>.</div>${barHTML(c.rows,here)}<div class="row"><button type="button">Keep going here</button><a href="${nx.href}">Go to ${nx.n} ▸</a></div>`,nx.col);},5000);}
+    const was=o.playing&&o.playing();if(was&&o.stop)o.stop();
+    show(`<div><b>✓ ${me.min} minutes of ${me.n} done${was?". The player has stopped":""}.</b> Next in cycle ${c.n}: ${nx.ico} <b>${nx.n}</b>.</div>${barHTML(c.rows,here)}<div class="row"><button type="button">Keep going here</button><a href="${nx.href}">Go to ${nx.n} ▸</a></div>`,nx.col);}
+  tick();setInterval(tick,1000);}
 function show(html,col){const el=document.createElement("div");el.className="gsp-nudge";el.setAttribute("role","status");el.style.setProperty("--c",col);el.innerHTML=html;
   el.querySelector("button").onclick=()=>el.remove();document.body.appendChild(el);}
 window.GSPlan={PLAN,today,cycle,next,skip,barHTML,watch,style,mm};

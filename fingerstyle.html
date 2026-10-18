@@ -558,5 +558,5 @@ if(q&&byId(q))view={k:"lesson",id:q};
 render();
 cloudSync();
 </script>
-<script src="plan.js"></script><script>GSPlan.watch("fs");</script>
+<script src="plan.js"></script><script>GSPlan.watch("fs",{live:()=>play?(performance.now()-play.lf)/1000:0,playing:()=>!!play,stop:()=>stop()});</script>
 </body></html>
