@@ -56,7 +56,7 @@ a.sec.cg::before{background:#0f766e}.cg .tag{background:#e6f6f4;color:#0f766e}.c
   <a class="backlink" href="./">← Total Recall &amp; Melodies</a>
   <div class="eyebrow">Guitar practice</div>
   <h1>Guitar Studio</h1>
-  <p>Three ways to practise, one daily goal. Pick a section to start.</p>
+  <p>Two ways to practise, one daily goal: 15 minutes of Melodic Lead, then 15 of Fingerstyle Solo.</p>
   <p id="hubSync" style="margin-top:8px;font-size:12px;opacity:.9"></p>
 </div></header>
 <main class="wrap">
@@ -64,7 +64,7 @@ a.sec.cg::before{background:#0f766e}.cg .tag{background:#e6f6f4;color:#0f766e}.c
     <div class="gtop"><h2>Today</h2><span><b id="tMin">0</b> of <span id="tGoal">30</span> min</span></div>
     <div class="gbar"><i id="tBar"></i></div>
     <div class="gweek" id="week"></div>
-    <div class="gtop" style="margin-top:6px"><h2 id="cycTitle">Current cycle · 10 + 10 + 10</h2><span id="planTxt" style="font-size:13px;color:var(--muted)"></span></div>
+    <div class="gtop" style="margin-top:6px"><h2 id="cycTitle">Current cycle · 15 + 15</h2><span id="planTxt" style="font-size:13px;color:var(--muted)"></span></div>
     <div id="planBar"></div>
     <div class="plrow"><a id="planGo" class="plango" href="guitar.html"></a><button id="planSkip" type="button" class="plskip">Skip for now ↷</button></div>
     <p id="cycNote" style="margin:0;font-size:13px;color:var(--muted)"></p>
@@ -78,14 +78,7 @@ a.sec.cg::before{background:#0f766e}.cg .tag{background:#e6f6f4;color:#0f766e}.c
       <div class="now"><div><b id="lStage">–</b><span>patterns</span></div><div><b id="lTempo">–</b><span>bpm</span></div><div><b id="lDone">–</b><span>this session</span></div></div>
       <div class="go"><span id="lNext">Open your current session</span><b>Open ▸</b></div>
     </a>
-    <a class="sec cg" href="lead.html">
-      <div class="ico">⚡</div>
-      <h2>Lead Course</h2>
-      <p>One course for pick technique: rock lead skills (slides, bends, legato, vibrato, hybrid picking, dynamics, soloing) alternating with the five CAGED shapes as chords, arpeggios and the playbook. Plus a daily ear rep: hear it, sing it, see it, play it.</p>
-      <div class="tags"><span class="tag">24 levels</span><span class="tag">156 lessons</span><span class="tag">1404 reps</span></div>
-      <div class="now"><div><b id="cLevel">1</b><span>level</span></div><div><b id="cDone">0</b><span>reps done</span></div><div><b id="cSess">–</b><span>session</span></div></div>
-      <div class="go"><span id="cNext">Start with core soloing</span><b>Open ▸</b></div>
-    </a>
+    <!-- Lead Course (lead.html) is on hold: card removed until further notice; its page and saved progress are untouched. -->
     <a class="sec fs" href="fingerstyle.html">
       <div class="ico">🎶</div>
       <h2>Fingerstyle Solo</h2>
@@ -124,8 +117,8 @@ else document.getElementById("lNext").textContent=pats.length?"Write your next p
  document.getElementById("fDone").textContent=P.n;
  document.getElementById("fLeft").textContent=P.total-P.n;
  document.getElementById("fNext").textContent=P.n===P.total?"Course complete: review any lesson":P.next?`Next: ${P.next.id} ${P.next.t}`:"Start with lesson 1a";}
-// Lead Course: reps ticked, today's session, furthest level reached
-{const ORDER=["La","f","Lb","c","Lc","a","Ld","g","Le","e","Lf","d","Lg","j","Lh","t","Li","b","r","Lj","p","s","Lk","x"];
+// Lead Course (on hold): stats only if its card is on the page
+if(document.getElementById("cDone")){const ORDER=["La","f","Lb","c","Lc","a","Ld","g","Le","e","Lf","d","Lg","j","Lh","t","Li","b","r","Lj","p","s","Lk","x"];
  const D=lp?(lp.done||{}):Object.assign({},(old[0].done||{}),Object.fromEntries(Object.entries(old[1].done||{}).map(([k,v])=>["L"+k,v])));
  const ids=Object.keys(D).filter(k=>D[k]),cd=ids.length;document.getElementById("cDone").textContent=cd;
  const ss=lp&&lp.sess;if(ss&&ss.items&&ss.items.length){const it=ss.items.filter(x=>!x.ml),ok=it.filter((x,i)=>x.rev?(ss.ok&&ss.ok[ss.items.indexOf(x)]):D[x.id]).length;document.getElementById("cSess").textContent=`${ok}/${it.length}`;}
@@ -136,14 +129,14 @@ else document.getElementById("lNext").textContent=pats.length?"Write your next p
 <script>
 {GSPlan.style();
  function draw(){const c=GSPlan.cycle(),rows=c.rows,nx=GSPlan.next(rows),go=document.getElementById("planGo"),sk=document.getElementById("planSkip");
-  document.getElementById("cycTitle").textContent=`Cycle ${c.n} · 10 + 10 + 10`;
+  document.getElementById("cycTitle").textContent=`Cycle ${c.n} · ${GSPlan.LABEL}`;
   document.getElementById("planBar").innerHTML=GSPlan.barHTML(rows,nx&&nx.k);
   const left=rows.reduce((a,r)=>a+Math.max(0,r.min*60-r.sec),0);
   document.getElementById("planTxt").textContent=`${Math.ceil(left/60)} min to finish`;
   go.href=nx.href;go.textContent=`Next: ${nx.ico} ${nx.n} ▸`;
   const open=rows.filter(r=>r.sec<r.min*60);sk.hidden=open.length<2;
   sk.onclick=()=>{GSPlan.skip(nx.k);draw();};
-  document.getElementById("cycNote").textContent=(c.done?`${c.done} cycle${c.done>1?"s":""} completed. `:"")+"A cycle carries over to the next day until all three sections have had their 10 minutes.";}
+  document.getElementById("cycNote").textContent=(c.done?`${c.done} cycle${c.done>1?"s":""} completed. `:"")+"A cycle carries over to the next day until both sections have had their 15 minutes.";}
  draw();}
 </script>
 <script>

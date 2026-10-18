@@ -1,16 +1,17 @@
-/* Guitar Studio · the 30-minute cycle: 10 min Melodic Lead → 10 min Lead Course → 10 min Fingerstyle Solo.
-   A cycle is not a day: it stays open across days until all three sections have had their 10 minutes,
+/* Guitar Studio · the 30-minute cycle: 15 min Melodic Lead → 15 min Fingerstyle Solo.
+   (Lead Course is on hold since 18 Oct 2026: to bring it back, uncomment its line in PLAN and set its minutes.)
+   A cycle is not a day: it stays open across days until every section has had its minutes,
    so a day with only one section done picks up with the next section tomorrow.
    The cycle is worked out by replaying each section's own minute counters day by day (each section already
    merges minutes synced from your other devices into those counters), so every device agrees on it.
-   Time beyond a section's 10 minutes carries into the next cycle, up to one block (10 min) per section. */
+   Time beyond a section's minutes carries into the next cycle, up to one block per section. */
 (function(){
 "use strict";
 const PLAN=[
-  {k:"ml",n:"Melodic Lead",ico:"🎸",href:"guitar.html",min:10,col:"#4f46e5"},
-  {k:"lc",n:"Lead Course",ico:"⚡",href:"lead.html",min:10,col:"#0f766e"},
-  {k:"fs",n:"Fingerstyle Solo",ico:"🎶",href:"fingerstyle.html",min:10,col:"#7c3aed"}];
-const START="2026-10-17"; // cycles count from the day the 10 + 10 + 10 plan started
+  {k:"ml",n:"Melodic Lead",ico:"🎸",href:"guitar.html",min:15,col:"#4f46e5"},
+  // {k:"lc",n:"Lead Course",ico:"⚡",href:"lead.html",min:10,col:"#0f766e"}, // on hold
+  {k:"fs",n:"Fingerstyle Solo",ico:"🎶",href:"fingerstyle.html",min:15,col:"#7c3aed"}];
+const START="2026-10-18"; // cycles count from the day the 15 + 15 plan started
 const get=k=>{try{return JSON.parse(localStorage.getItem(k)||"null");}catch(e){return null;}};
 const pad=n=>String(n).padStart(2,"0"),dkey=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 const counter=o=>k=>o?((o.days&&o.days[k])||0)+Object.values(o.odays||{}).reduce((a,d)=>a+((d&&d[k])||0),0):0;
@@ -23,7 +24,7 @@ function secs(sec,k){
 function today(extra){const k=dkey(new Date());return PLAN.map(p=>({...p,sec:secs(p.k,k)+((extra&&extra[p.k])||0)}));}
 /* the open cycle: replay every day since START; a cycle closes once each section has 10 minutes in it */
 function cycle(extra){
-  const tk=dkey(new Date()),bank={ml:0,lc:0,fs:0};let n=0,closed=null;
+  const tk=dkey(new Date()),bank={};PLAN.forEach(p=>{bank[p.k]=0;});let n=0,closed=null;
   const [y,m,d]=START.split("-").map(Number),day=new Date(y,m-1,d);
   for(let guard=0;guard<4000;guard++){const k=dkey(day);
     PLAN.forEach(p=>{bank[p.k]+=secs(p.k,k)+((k===tk&&extra&&extra[p.k])||0);});
@@ -44,7 +45,7 @@ function skip(k){const c=cycle();let s=null;try{s=JSON.parse(localStorage.getIte
 const mm=s=>{s=Math.floor(s);return Math.floor(s/60)+":"+pad(s%60);};
 function barHTML(rows,here){return `<div class="gsp-bar">${rows.map(r=>{const f=Math.min(1,r.sec/(r.min*60));
   return `<a class="gsp-seg${r.k===here?" here":""}${f>=1?" done":""}" href="${r.href}" style="--c:${r.col}" title="${r.n}: ${mm(r.sec)} of ${r.min}:00"><i style="width:${f*100}%"></i><span>${f>=1?"✓ ":""}${r.ico} ${r.n}</span><b>${Math.min(r.min,Math.floor(r.sec/60))}/${r.min}</b></a>`;}).join("")}</div>`;}
-const CSS=`.gsp-bar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+const CSS=`.gsp-bar{display:grid;grid-template-columns:repeat(${PLAN.length},minmax(0,1fr));gap:6px}
 a.gsp-seg,.gsp-nudge a.gsp-seg{position:relative;overflow:hidden;display:flex!important;flex-direction:column;gap:2px;padding:8px 10px!important;border-radius:10px;background:#f1f5f9!important;color:#172033!important;text-decoration:none;font:600 12px/1.25 system-ui,-apple-system,"Segoe UI",sans-serif!important;border:2px solid transparent;box-shadow:none!important;min-width:0}
 .gsp-seg i{position:absolute;left:0;top:0;bottom:0;background:var(--c);opacity:.16}
 .gsp-seg.done i{opacity:.24}a.gsp-seg.here{border-color:var(--c)}
@@ -63,7 +64,7 @@ let styled=false;function style(){if(styled)return;styled=true;const s=document.
    10 minutes are in, the player stops and a card offers to keep going here or move to the next section (once per cycle).
    o = {live: unsaved seconds being played right now, playing: is the player running, stop: stop the player} */
 function watch(here,o){style();o=o||{};const live=()=>{try{return Math.max(0,Math.min(90,o.live?o.live():0));}catch(e){return 0;}};
-  const P=PLAN.find(p=>p.k===here);
+  const P=PLAN.find(p=>p.k===here);if(!P)return; // a section on hold has no cycle timer
   function chip(c){let el=document.getElementById("gspHere");
     if(!el){const a=document.getElementById("hTodayS"),host=a&&a.parentElement;if(!host)return;
       el=document.createElement("div");el.id="gspHere";el.className="gsp-here";host.insertAdjacentElement("afterend",el);}
@@ -76,7 +77,7 @@ function watch(here,o){style();o=o||{};const live=()=>{try{return Math.max(0,Mat
     const prevKey="gsp-celebrated-c"+c.done;let cel=null;try{cel=localStorage.getItem(prevKey);}catch(e){cel="1";}
     if(c.done&&c.closedOn===dkey(new Date())&&!cel){try{localStorage.setItem(prevKey,"1");}catch(e){}
       const was=o.playing&&o.playing();if(was&&o.stop)o.stop();
-      show(`<div><b>🎉 Cycle ${c.done} complete.</b> All three sections have had their 10 minutes${was?", so the player has stopped":""}. Cycle ${c.n} starts now.</div>${barHTML(c.rows,here)}<div class="row"><button type="button">Keep going here</button></div>`,"#059669");return;}
+      show(`<div><b>🎉 Cycle ${c.done} complete.</b> Every section has had its minutes${was?", so the player has stopped":""}. Cycle ${c.n} starts now.</div>${barHTML(c.rows,here)}<div class="row"><button type="button">Keep going here</button></div>`,"#059669");return;}
     if(shown)return;
     const me=c.rows.find(r=>r.k===here);if(me.sec<me.min*60)return;
     try{localStorage.setItem(key,"1");}catch(e){}
@@ -86,5 +87,5 @@ function watch(here,o){style();o=o||{};const live=()=>{try{return Math.max(0,Mat
   tick();setInterval(tick,1000);}
 function show(html,col){const el=document.createElement("div");el.className="gsp-nudge";el.setAttribute("role","status");el.style.setProperty("--c",col);el.innerHTML=html;
   el.querySelector("button").onclick=()=>el.remove();document.body.appendChild(el);}
-window.GSPlan={PLAN,today,cycle,next,skip,barHTML,watch,style,mm};
+window.GSPlan={LABEL:PLAN.map(p=>p.min).join(" + "),PLAN,today,cycle,next,skip,barHTML,watch,style,mm};
 })();
