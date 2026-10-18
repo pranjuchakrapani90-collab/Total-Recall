@@ -2188,7 +2188,7 @@ function flushTime(p,final){ // add the time since the last flush to today's tot
   const now=performance.now();let sec=(now-(p.lf||p.t0))/1000;p.lf=now;if(!today||sec<=0)return;
   sec=Math.min(sec,90); // ignore gaps where the device was asleep
   const day=dkey(new Date()),r=x=>Math.round(x*10)/10;
-  today.days=today.days||{};today.days[day]=r((today.days[day]||0)+sec);
+  GSync.addMinutes(today,day,sec); // per-phone minute counts, so two phones practising the same session add up
   const k=p.id==="pos"?(view==="boxP"?"boxP":"boxM"):/^i\d$/.test(p.id)?keyOf(today.items[Number(p.id.slice(1))]):null;
   if(k&&!p.ro){today.time=today.time||{};today.time[k]=r((today.time[k]||0)+sec);}
   persistDay(!final);

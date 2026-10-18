@@ -25,11 +25,19 @@ function canon(x){
 
 /* ---------- Melodic Lead ---------- */
 const maxMap=(a,b)=>{const o={...(a||{})};Object.entries(b||{}).forEach(([k,v])=>{if(typeof v==="number"&&!(o[k]>=v))o[k]=v;else if(!(k in o))o[k]=v;});return o;};
+/* Melodic Lead minutes per phone: session.dd = {phone:{day:sec}}, session.days = their sum (what every page reads).
+   Minutes recorded before this existed sit in a "legacy" bucket. */
+function dev(){let d=null;try{d=localStorage.getItem("gs-dev");}catch(e){}if(!d){d="d"+Math.random().toString(36).slice(2,10);try{localStorage.setItem("gs-dev",d);}catch(e){}}return d;}
+const ddOf=x=>x.dd||(x.days&&Object.keys(x.days).length?{legacy:{...x.days}}:{});
+function sumDd(dd){const o={};Object.values(dd||{}).forEach(m=>Object.entries(m||{}).forEach(([k,v])=>{o[k]=Math.round(((o[k]||0)+v)*10)/10;}));return o;}
+function addMinutes(x,day,sec){const dd=ddOf(x),me=dd[dev()]=dd[dev()]||{};me[day]=Math.round(((me[day]||0)+sec)*10)/10;x.dd=dd;x.days=sumDd(dd);}
 function mergeSession(l,r){ // same session on two phones: keep every ticked shape and the larger minute counts
   if(!l)return JSON.parse(JSON.stringify(r));if(!r)return l;
   const nw=(r.upd||0)>(l.upd||0)?r:l,o=JSON.parse(JSON.stringify(nw));
   o.done=[...new Set([...(l.done||[]),...(r.done||[])])];
-  o.days=maxMap(l.days,r.days);o.time=maxMap(l.time,r.time);
+  const a=ddOf(l),b=ddOf(r),dd={};new Set([...Object.keys(a),...Object.keys(b)]).forEach(k=>{dd[k]=maxMap(a[k],b[k]);});
+  if(Object.keys(dd).length){o.dd=dd;o.days=sumDd(dd);}else o.days=maxMap(l.days,r.days);
+  o.time=maxMap(l.time,r.time);
   if(l.finished||r.finished)o.finished=l.finished||r.finished;
   o.upd=Math.max(l.upd||0,r.upd||0);return o;}
 function mergePats(base,other,del){ // base = list from the newer settings; patterns are kept per id, newest edit wins
@@ -59,7 +67,17 @@ function mergeReps(st,R,withSess){let ch=false;st.doneT=st.doneT||{};st.done=st.
     Object.entries(days||{}).forEach(([k,v])=>{if(v>(tgt[k]||0)){tgt[k]=v;ch=true;}});});
   return ch;}
 
-/* hub: pull every section into this device's storage; returns true if anything changed */
+async function enc(o,c,slot){const h=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(c+slot)),k=await crypto.subtle.importKey("raw",h,{name:"AES-GCM"},false,["encrypt"]),
+  iv=crypto.getRandomValues(new Uint8Array(12)),ct=await crypto.subtle.encrypt({name:"AES-GCM",iv},k,new TextEncoder().encode(JSON.stringify(o)));
+  let b="";const t=x=>{let s="";new Uint8Array(x).forEach(v=>s+=String.fromCharCode(v));return btoa(s);};return JSON.stringify({v:1,iv:t(iv),data:t(ct)});}
+async function putSlot(c,slot,o){const r=await fetch(url(),{method:"PUT",headers:{"Content-Type":"application/json","X-Total-Recall-Sync":c+slot},body:await enc(o,c,slot),cache:"no-store"});
+  if(!r.ok)throw new Error("upload failed with HTTP "+r.status);}
+/* the same payloads the section pages upload */
+function repsPayload(st,withSess){const done={};Object.keys(st.doneT||{}).forEach(id=>{if(st.done&&st.done[id])done[id]={d:st.done[id],t:st.doneT[id]};});
+  const o={v:1,done,off:st.offT||{},tempo:st.tempo||{},tUpd:st.tUpd||0,days:{...(st.odays||{}),[st.dev]:st.days||{}}};if(withSess){o.sess=st.sess||null;o.sessT=st.sessT||0;}return o;}
+const LOCAL_ONLY=["micId","latency","audioMode"];
+function melPayload(m){const S={...(m.st||{})};LOCAL_ONLY.forEach(k=>delete S[k]);return {v:1,sessions:m.ds||{},settings:S};}
+/* hub: merge every section from the cloud into this phone, then upload whatever the cloud is missing; returns true if this phone changed */
 async function pullAll(){
   const c=code();if(!c)return false;let ch=false;
   const [mel,path,fs]=await Promise.all([fetchSlot(c,"#melodies"),fetchSlot(c,"#path"),fetchSlot(c,"#fingerstyle")]);
@@ -71,6 +89,10 @@ async function pullAll(){
   const oldLead=!!(localStorage.getItem("caged-v1")||localStorage.getItem("lead-v1")); // leave the Lead Course's own first-open import alone
   if(path){let st=get("leadpath-v1");if(!st&&!oldLead)st=fresh();if(st){if(!st.dev)st.dev=fresh().dev;if(mergeReps(st,path,true)){put("leadpath-v1",st);ch=true;}}}
   if(fs){let st=get("fs-v1")||fresh();if(!st.dev)st.dev=fresh().dev;if(mergeReps(st,fs,false)){put("fs-v1",st);ch=true;}}
+  /* upload what only this phone has (the sections do the same when opened) */
+  const m=get("mss-sessions");if(m&&(Object.keys(m.ds||{}).length||m.st)){const o=melPayload(m);if(!mel||canon(o)!==canon({v:1,sessions:mel.sessions||{},settings:mel.settings||{}}))await putSlot(c,"#melodies",o);}
+  const lp=get("leadpath-v1");if(lp&&lp.dev){const o=repsPayload(lp,true);if(!path||canon(o)!==canon(path))await putSlot(c,"#path",o);}
+  const f=get("fs-v1");if(f&&f.dev){const o=repsPayload(f,false);if(!fs||canon(o)!==canon(fs))await putSlot(c,"#fingerstyle",o);}
   return ch;}
 async function fingerprint(){const c=code();if(!c)return "";const h=new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(c)));
   return Array.from(h.slice(0,2)).map(b=>b.toString(16).padStart(2,"0")).join("").toUpperCase();}
@@ -78,5 +100,5 @@ async function fingerprint(){const c=code();if(!c)return "";const h=new Uint8Arr
 let fpV=null;function fillFp(){document.querySelectorAll(".gsfp").forEach(el=>{if(fpV!==null&&el.textContent!==fpV)el.textContent=fpV||"no code";});}
 fingerprint().then(v=>{fpV=v;fillFp();});
 document.addEventListener("DOMContentLoaded",()=>{fillFp();try{new MutationObserver(fillFp).observe(document.body,{childList:true,subtree:true});}catch(e){}});
-window.GSync={canon,mergeMelodies,mergeSession,mergePats,mergeReps,pullAll,fingerprint,code};
+window.GSync={dev,addMinutes,canon,mergeMelodies,mergeSession,mergePats,mergeReps,pullAll,fingerprint,code};
 })();
