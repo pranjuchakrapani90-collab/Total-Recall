@@ -1685,7 +1685,14 @@ function earTip(sh,j){const k=NOTE[S.keyPc],maj=sh.sc==="major";
     `listen for the three-fret jumps (1→b3 and 5→b7). They're the sound of the box; sing one before you play it.`,
     `before each group, picture where it lands in this box. Aim to play every group right first time.`,
     `once it's comfortable, play one bar, then sing it back with the guitar silent.`];
-  return T[j%5];}
+  /* fretboard cues (Brian Kelly, Zombie Guitar): relative roots and chord-tone destinations */
+  const rm=NOTE[(S.keyPc+9)%12],rM=NOTE[(S.keyPc+3)%12];
+  const F=maj?[`${k} major and ${rm} minor share these seven notes. Find both roots in this shape: ${k} is home for the major sound and ${rm} for the minor. Same shape, two keys.`,
+    `1, 3 and 5 are the notes of the ${k} chord. As the pattern passes them, lean on them slightly. They're the destinations a solo lands on over ${k}; every other note is the path.`]
+   :[`this box is also ${rM} major pentatonic. In the box where your index finger sits on the ${k} minor root (low E string), your pinky sits on the ${rM} major root. Find both roots here before you start.`,
+    `the box is five of the key's seven notes. Once the pattern is easy, try it with the other two added (the 2 and b6 of ${k} minor) and hear it turn melodic.`];
+  return (n=>n<T.length?`👂 <b>Ear:</b> ${T[n]}`:`🎯 <b>Fretboard:</b> ${F[n-T.length]}`)((j+(tip0||0))%(T.length+F.length));}
+let tip0=0;
 function ownItemView(j){
   const p=curPat(),sh=CSH[j],id="i"+j,E=eventsFor(id,false,false,true),A=patA(p),done=itemDone(j),t=today.time&&today.time[sh.k];
   const back=j===0?"boxM":j===5?"boxP":String(j-1),nxt=j===4?"boxP":j===9?"summary":String(j+1);
@@ -1702,7 +1709,7 @@ function ownItemView(j){
     </div></div>
     ${barsBar(id,E)}
     <div class="tabscroll"><div class="tab${barSel[selKey(id)]?" hassel":""}">${tabHTML(E,id)}</div></div>
-    <p class="eartip">👂 <b>Ear:</b> ${earTip(sh,j)}</p>
+    <p class="eartip">${(tip0=pi*3,earTip(sh,j))}</p>
     <details class="more"><summary>Your pattern as written, space and drums</summary>
       <div class="tabscroll"><div class="tab mini">${tabHTML(W0,"pv"+pi)}</div></div>
       <div class="pact"><button type="button" data-play="pv${pi}" aria-pressed="false">▶ Hear it as written</button></div>

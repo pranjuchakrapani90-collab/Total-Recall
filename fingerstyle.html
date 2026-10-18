@@ -501,6 +501,7 @@ function lessonView(L){
     <p class="pdesc"><b>In words:</b> ${L.w}</p>
     <p class="tip">💡 ${L.tip}</p>
     ${L.song?`<p class="tip">👂 <b>Ear first.</b> ${earSong(L)}</p>`:""}
+    ${/^6/.test(L.id)?`<p class="tip">🎨 <b>Colour, then theory.</b> Once the pattern flows, lift one fretting finger off the barre so an open string rings through the arpeggio, or let a neighbouring scale note ring on top. The chord underneath is still the same major or minor triad; you've just added colour (an add9 or add11). Keep what sounds good, then name it afterwards by writing down its notes.</p>`:""}
     <div class="row"><label class="ctl">Tempo <input type="range" id="tempo" min="30" max="160" step="1" value="${tempoOf(L)}"> <b id="tempoV">${tempoOf(L)}</b> bpm</label>
       <label class="chk"><input type="checkbox" id="click"${st.set.click?" checked":""}> Metronome</label>
       <label class="chk"><input type="checkbox" id="countin"${st.set.countin?" checked":""}> Count-in</label>
