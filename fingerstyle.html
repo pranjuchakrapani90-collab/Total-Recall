@@ -2,6 +2,7 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Fingerstyle Solo · Guitar Studio</title>
 <script src="gsync.js"></script>
+<script src="fs-course.js"></script>
 <link rel="manifest" href="manifest.webmanifest">
 <style>
 :root{
@@ -101,6 +102,13 @@ input{accent-color:var(--steel)}
 .nbtempo{display:flex;align-items:center;gap:6px;font:600 13px var(--mono);flex:none}
 .nbtempo button{padding:6px 10px}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:84px;z-index:30;background:var(--good);color:#fff;padding:10px 16px;border-radius:12px;font-weight:600;max-width:calc(100% - 32px);text-align:center}
+.sess{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.sess li{display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:var(--bg);border-radius:10px;padding:10px 12px}
+.sess li div{flex:1;min-width:180px;font-size:14px}.sess li div span{color:var(--muted);font-size:13px}
+.sm{font:700 13px var(--mono);color:var(--brass);min-width:44px}
+.steps{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:8px}
+.how{background:var(--steel-soft);border-radius:10px;padding:10px 12px;font-size:14px}.how summary{cursor:pointer;font-weight:650;color:#3730a3}
+.how ol{margin:8px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:4px}
 .navf{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;border-top:1px solid var(--line);padding-top:12px}
 .studio{display:inline-flex;gap:4px;margin-top:12px;background:#ffffff2e;border-radius:12px;padding:4px;flex-wrap:wrap}
 .studio a{color:#fff;text-decoration:none;font:650 14px var(--body);padding:8px 14px;border-radius:9px;white-space:nowrap}
@@ -119,110 +127,18 @@ input{accent-color:var(--steel)}
   <span class="nbtempo"><button type="button" data-tdelta="-5" aria-label="Slower">−</button><span id="nbT">60</span><button type="button" data-tdelta="5" aria-label="Faster">+</button></span></div>
 <script>
 "use strict";
-/* ===================== Chords =====================
-   Frets from low E to high e (null = not played). r = root bass [string, fret], a = alternate bass. */
-const OPEN={1:64,2:59,3:55,4:50,5:45,6:40};
+/* ===================== The course: chords, levels and lessons live in fs-course.js (shared with the hub) ===================== */
+const {TUNINGS,CH,LEVELS,ALL}=FSC;
+let TUNE=TUNINGS.std.o; // open-string pitches for the lesson being built
 const X=null;
-const CH={
-  C:{f:[X,3,2,0,1,0],r:[5,3],a:[4,2]}, G:{f:[3,2,0,0,0,3],r:[6,3],a:[4,0]}, Am:{f:[X,0,2,2,1,0],r:[5,0],a:[4,2]},
-  Em:{f:[0,2,2,0,0,0],r:[6,0],a:[4,2]}, D:{f:[X,X,0,2,3,2],r:[4,0],a:[5,0]}, Dm:{f:[X,X,0,2,3,1],r:[4,0],a:[5,0]},
-  E:{f:[0,2,2,1,0,0],r:[6,0],a:[4,2]}, A:{f:[X,0,2,2,2,0],r:[5,0],a:[4,2]}, E7:{f:[0,2,0,1,0,0],r:[6,0],a:[4,0]},
-  A7:{f:[X,0,2,0,2,0],r:[5,0],a:[4,2]}, D7:{f:[X,X,0,2,1,2],r:[4,0],a:[5,0]}, G7:{f:[3,2,0,0,0,1],r:[6,3],a:[4,0]},
-  C7:{f:[X,3,2,3,1,0],r:[5,3],a:[4,2]}, Fmaj7:{f:[X,X,3,2,1,0],r:[4,3],a:[5,0]},
-  // closed (barre) shapes
-  F:{f:[1,3,3,2,1,1],r:[6,1],a:[4,3],cl:1}, "G(3)":{f:[3,5,5,4,3,3],r:[6,3],a:[4,5],cl:1}, "Am(5)":{f:[5,7,7,5,5,5],r:[6,5],a:[4,7],cl:1},
-  Bb:{f:[X,1,3,3,3,1],r:[5,1],a:[4,3],cl:1}, "C(3)":{f:[X,3,5,5,5,3],r:[5,3],a:[4,5],cl:1}, "D(5)":{f:[X,5,7,7,7,5],r:[5,5],a:[4,7],cl:1},
-  "Dm(5)":{f:[X,5,7,7,6,5],r:[5,5],a:[4,7],cl:1}, Bm:{f:[X,2,4,4,3,2],r:[5,2],a:[4,4],cl:1},
-};
 const fretOn=(c,s)=>c.f[6-s];
-const cname=n=>n.replace(/\(\d+\)/,"");
-
-/* ===================== The course =====================
-   Pattern lessons: "beat:parts" steps, beats counted from 1; parts joined by "+".
-   B = root bass, A = alternate bass, 1–4 = that string of the chord, W = walking bass note to the next chord,
-   techniques: 3h hammer-on from open (or 2 frets below), 2p pull-off to open, 3/ slide up 2 frets, <12>4 natural harmonic, Bm muted bass.
-   Song lessons: melody "note:beats" per bar ("|" between bars), chords per bar ("," = two chords in a bar), style bass | alt | full. */
-const LEVELS=[
- {n:"Thumb and fingers",d:"Your thumb (p) owns the bass strings and your fingers own the top three: i on the G string, m on the B, a on the high e. Every later level is built on this division of labour.",ls:[
-  {id:"1a",t:"Thumb on the bass",w:"Hold each chord and let your thumb play its root on every beat. The fingers rest lightly on the top three strings.",tip:"Rest your thumb on the next string after each stroke (a rest stroke) so the bass is even and full.",meter:4,prog:"C|Am|Em|G",pat:"1:B 2:B 3:B 4:B",tempo:[50,90]},
-  {id:"1b",t:"p, i, m, a one at a time",w:"Thumb plays the root on beat 1, then the fingers pluck one string each on beats 2, 3 and 4: i on G, m on B, a on high e.",tip:"Keep each finger over its own string. Only the tip moves, curling into the palm.",meter:4,prog:"C|Am|Em|G",pat:"1:B 2:3 3:2 4:1",tempo:[50,90]},
-  {id:"1c",t:"The pinch",w:"Thumb and ring finger pluck together on beat 1 (a pinch), then i and m answer, then i again.",tip:"Squeeze thumb and a towards each other like picking up a coin; both notes must start at exactly the same moment.",meter:4,prog:"C|G|Am|Em",pat:"1:B+1 2:3 3:2 4:3",tempo:[50,90]},
-  {id:"1d",t:"Bass, then the chord together",w:"Thumb on beat 1, then i, m and a pluck the top three strings together on beat 2. Thumb plays the alternate bass on 3, fingers again on 4.",tip:"The three fingers move as one hand: think of closing a gentle fist.",meter:4,prog:"C|Am|D|G",pat:"1:B 2:3+2+1 3:A 4:3+2+1",tempo:[50,90]},
-  {id:"1e",t:"p-i-m-a in eighth notes",w:"The basic arpeggio: thumb, then i, m, a one after the other in even eighth notes, twice in each bar (the second time from the alternate bass).",tip:"Say it out loud: thumb-i-m-a, thumb-i-m-a. Let every note ring into the next.",meter:4,prog:"C|Am|Em|G",pat:"1:B 1.5:3 2:2 2.5:1 3:A 3.5:3 4:2 4.5:1",tempo:[50,90]},
- ]},
- {n:"Arpeggio patterns",d:"The rolling patterns behind ballads, film songs and classical studies. The left hand holds the chord; the right hand keeps a steady loop.",ls:[
-  {id:"2a",t:"Up and back: p-i-m-a-m-i",w:"Six eighth notes to a bar of 3/4: thumb, then up through i-m-a and back down m-i. The classic waltz arpeggio.",tip:"Feel the bar as ONE-two-three with the thumb on ONE.",meter:3,prog:"Am|Dm|E|Am",pat:"1:B 1.5:3 2:2 2.5:1 3:2 3.5:3",tempo:[50,100]},
-  {id:"2b",t:"Falling: p-a-m-i",w:"Thumb, then the fingers come down from the high e: a, m, i. Twice a bar.",tip:"Starting with a feels odd at first. Plant a on its string before the thumb plays.",meter:4,prog:"Am|C|G|Em",pat:"1:B 1.5:1 2:2 2.5:3 3:A 3.5:1 4:2 4.5:3",tempo:[50,90]},
-  {id:"2c",t:"Rolling: p-i-m-i-a-i-m-i",w:"Eight eighth notes with i returning between every other finger. A smooth, flowing pattern heard under countless songs.",tip:"i works twice as hard here. Keep it relaxed and close to the string.",meter:4,prog:"C|Am|Fmaj7|G",pat:"1:B 1.5:3 2:2 2.5:3 3:1 3.5:3 4:2 4.5:3",tempo:[50,90]},
-  {id:"2d",t:"Pinch and roll",w:"The rolling pattern with a pinch (thumb + a) on beats 1 and 3, which puts a little melody on top of the arpeggio.",tip:"Let the pinched top note sing slightly louder than the rest.",meter:4,prog:"C|Am|Fmaj7|G",pat:"1:B+1 1.5:3 2:2 2.5:3 3:A+1 3.5:3 4:2 4.5:3",tempo:[50,90]},
-  {id:"2e",t:"Triplet arpeggio",w:"Three notes to every beat: thumb, i, m, then a, m, i, and so on: twelve notes to the bar in a rolling triplet feel.",tip:"Count 1-tri-let 2-tri-let; the thumb lands on 1 and 3.",meter:4,prog:"Em|C|G|D",pat:"1:B 1.333:3 1.667:2 2:1 2.333:2 2.667:3 3:A 3.333:3 3.667:2 4:1 4.333:2 4.667:3",tempo:[40,80]},
- ]},
- {n:"Travis picking",d:"The thumb alternates between two bass strings like a steady heartbeat while the fingers play off-beats on top. The engine of folk and country fingerstyle.",ls:[
-  {id:"3a",t:"Alternating thumb",w:"Thumb only: root on beats 1 and 3, the alternate bass string on 2 and 4. Nothing else.",tip:"This must become automatic. Practise it while talking or looking away.",meter:4,prog:"C|G|Am|Em",pat:"1:B 2:A 3:B 4:A",tempo:[50,100]},
-  {id:"3b",t:"Basic Travis pattern",w:"The thumb keeps alternating on every beat; the fingers fill the gaps: a pinch with m on beat 1, then i, m, i, m on the off-beats.",tip:"Never let the fingers drag the thumb. If it wobbles, go back to the thumb alone.",meter:4,prog:"C|G|Am|Em",pat:"1:B+2 1.5:3 2:A 2.5:2 3:B 3.5:3 4:A 4.5:2",tempo:[50,100]},
-  {id:"3c",t:"Travis with the high e",w:"The same pattern with the ring finger pinching the high e on beats 1 and 3, which adds a melody voice.",tip:"Listen for three layers: bass, middle and the top note.",meter:4,prog:"C|Am|D|G",pat:"1:B+1 1.5:3 2:A 2.5:2 3:B+1 3.5:3 4:A 4.5:2",tempo:[50,100]},
-  {id:"3d",t:"Changing chords mid-bar",w:"Two chords in every bar, two beats each, without the thumb losing its place.",tip:"Change the left hand on the off-beat before the new chord, so the thumb lands on the new root on time.",meter:4,prog:"C,G|Am,Em|Fmaj7,C|D7,G",pat:"1:B+2 1.5:3 2:A 2.5:2 3:B+2 3.5:3 4:A 4.5:2",tempo:[50,90]},
-  {id:"3e",t:"Syncopated Travis",w:"The finger notes land just before the beat on 2-and and 4-and, giving the bouncing, pushing sound of country picking.",tip:"Keep the thumb rock solid; only the fingers move around it.",meter:4,prog:"G|C|D7|G",pat:"1:B+1 2:A 2.5:2 3:B 3.5:3 4:A 4.5:1",tempo:[50,100]},
- ]},
- {n:"Bass and melody",d:"Two voices at once: a tune on the top strings played by the fingers, and a bass line under it played by the thumb. All tunes here are traditional or classical, free for anyone to play.",ls:[
-  {id:"4a",t:"Twinkle Twinkle Little Star",song:1,w:"The tune on the top strings with the thumb playing the chord root on beats 1 and 3 (traditional, 1761).",tip:"Let the bass ring under the melody; fingers and thumb are independent.",meter:4,key:"A",style:"bass",
-   mel:"A3:1 A3:1 E4:1 E4:1|F#4:1 F#4:1 E4:2|D4:1 D4:1 C#4:1 C#4:1|B3:1 B3:1 A3:2|E4:1 E4:1 D4:1 D4:1|C#4:1 C#4:1 B3:2|E4:1 E4:1 D4:1 D4:1|C#4:1 C#4:1 B3:2|A3:1 A3:1 E4:1 E4:1|F#4:1 F#4:1 E4:2|D4:1 D4:1 C#4:1 C#4:1|B3:1 B3:1 A3:2",
-   ch:"A|D,A|D,A|E,A|A,D|A,E|A,D|A,E|A|D,A|D,A|E,A",tempo:[60,100]},
-  {id:"4b",t:"Ode to Joy",song:1,w:"Beethoven's theme (1824) on the B and high e strings, with the root in the bass on beats 1 and 3.",tip:"The melody stays in one place: open e, frets 1 and 3 on the e, frets 1 and 3 on the B.",meter:4,key:"C",style:"bass",
-   mel:"E4:1 E4:1 F4:1 G4:1|G4:1 F4:1 E4:1 D4:1|C4:1 C4:1 D4:1 E4:1|E4:1.5 D4:.5 D4:2|E4:1 E4:1 F4:1 G4:1|G4:1 F4:1 E4:1 D4:1|C4:1 C4:1 D4:1 E4:1|D4:1.5 C4:.5 C4:2",
-   ch:"C|G7|C|C,G7|C|G7|C|G7,C",tempo:[60,110]},
-  {id:"4c",t:"Walking bass between chords",w:"Bass and chord on beat 1, the chord on top on 2 and 3, and a walking note on beat 4 that steps into the next chord's root.",tip:"The walking note pulls the ear to the next chord. Play it a little stronger.",meter:4,key:"C",prog:"C|Am|Fmaj7|G|C|Em|Am|G",pat:"1:B+2 2:3+1 3:A 4:W",tempo:[50,90]},
-  {id:"4d",t:"Ode to Joy, alternating bass",song:1,w:"The same tune with the thumb alternating on every beat underneath: two independent parts.",tip:"Learn two bars at a time with bar practice; it is the hardest step so far.",meter:4,key:"C",style:"alt",
-   mel:"E4:1 E4:1 F4:1 G4:1|G4:1 F4:1 E4:1 D4:1|C4:1 C4:1 D4:1 E4:1|E4:1.5 D4:.5 D4:2|E4:1 E4:1 F4:1 G4:1|G4:1 F4:1 E4:1 D4:1|C4:1 C4:1 D4:1 E4:1|D4:1.5 C4:.5 C4:2",
-   ch:"C|G7|C|C,G7|C|G7|C|G7,C",tempo:[50,100]},
- ]},
- {n:"Full arrangements",d:"Melody, bass and chord together: the complete fingerstyle sound. The thumb plays the bass, the fingers play the tune and fill in chord notes underneath it.",ls:[
-  {id:"5a",t:"Twinkle Twinkle, full",song:1,w:"Melody on top, root in the bass, and chord notes filled in on the beats between melody notes.",tip:"The melody must stay the loudest voice. Fill notes are soft.",meter:4,key:"A",style:"full",
-   mel:"A3:1 A3:1 E4:1 E4:1|F#4:1 F#4:1 E4:2|D4:1 D4:1 C#4:1 C#4:1|B3:1 B3:1 A3:2|E4:1 E4:1 D4:1 D4:1|C#4:1 C#4:1 B3:2|E4:1 E4:1 D4:1 D4:1|C#4:1 C#4:1 B3:2|A3:1 A3:1 E4:1 E4:1|F#4:1 F#4:1 E4:2|D4:1 D4:1 C#4:1 C#4:1|B3:1 B3:1 A3:2",
-   ch:"A|D,A|D,A|E,A|A,D|A,E|A,D|A,E|A|D,A|D,A|E,A",tempo:[50,90]},
-  {id:"5b",t:"Amazing Grace",song:1,w:"The hymn tune 'New Britain' (1829) in C, in 3/4: bass on beat 1, chord notes on 2 and 3 under the melody.",tip:"Hold the chord shape and let the melody notes come out of it wherever possible.",meter:3,key:"C",style:"full",
-   mel:"r:2 G3:1|C4:2 E4:.5 C4:.5|E4:2 D4:1|C4:2 A3:1|G3:2 G3:1|C4:2 E4:.5 C4:.5|E4:2 D4:1|G4:3|G4:2 E4:1|G4:2 E4:.5 C4:.5|E4:2 D4:1|C4:2 A3:1|G3:2 G3:1|C4:2 E4:.5 C4:.5|E4:2 D4:1|C4:3",
-   ch:"-|C|C7|Fmaj7|C|C|G|G|G7|C|C7|Fmaj7|C|C|G7|C",tempo:[50,90]},
-  {id:"5c",t:"Greensleeves",song:1,w:"The 16th-century English tune in A minor, 3/4: bass on beat 1, melody on top, chord notes filling the gaps.",tip:"The dotted rhythm (long-short) gives Greensleeves its lilt. Don't straighten it.",meter:3,key:"Am",style:"full",
-   mel:"r:2 A3:1|C4:2 D4:1|E4:1.5 F4:.5 E4:1|D4:2 B3:1|G3:1.5 A3:.5 B3:1|C4:2 A3:1|A3:1.5 G#3:.5 A3:1|B3:2 G#3:1|E3:2 A3:1|C4:2 D4:1|E4:1.5 F4:.5 E4:1|D4:2 B3:1|G3:1.5 A3:.5 B3:1|C4:1.5 B3:.5 A3:1|G#3:1.5 F#3:.5 G#3:1|A3:3",
-   ch:"-|Am|C|G|Em|Am|E|E|E|Am|C|G|Em|Am|E|Am",tempo:[50,90]},
- ]},
- {n:"Up the neck: barre shapes",d:"The same right-hand patterns on closed, movable shapes. The E-shape (root on the low E) and A-shape (root on the A string) barres work in every key.",ls:[
-  {id:"6a",t:"E-shape barre arpeggios",w:"p-i-m-a in eighth notes over F, G and A minor, all played as E-shape barre chords.",tip:"Press the barre with the side of the index finger, not the soft middle.",meter:4,prog:"F|G(3)|Am(5)|G(3)",pat:"1:B 1.5:3 2:2 2.5:1 3:A 3.5:3 4:2 4.5:1",tempo:[50,90]},
-  {id:"6b",t:"A-shape barre arpeggios",w:"The rolling pattern over B♭, C and D minor as A-shape barres, root on the A string.",tip:"Only the strings you pluck need to ring. Don't squeeze harder than that.",meter:4,prog:"Bb|C(3)|Dm(5)|C(3)",pat:"1:B 1.5:3 2:2 2.5:3 3:1 3.5:3 4:2 4.5:3",tempo:[50,90]},
-  {id:"6c",t:"Travis on barre chords",w:"Alternating bass with pinches over F, B♭, C and back, moving between E-shape and A-shape barres.",tip:"Look for the shortest move: F (fret 1) to B♭ (fret 1) is just a shape change.",meter:4,prog:"F|Bb|C(3)|F",pat:"1:B+1 1.5:3 2:A 2.5:2 3:B+1 3.5:3 4:A 4.5:2",tempo:[50,90]},
-  {id:"6d",t:"Mixing shapes in one key",w:"G, C, D and B minor in the key of G, alternating E-shape and A-shape barres so the hand barely moves.",tip:"Name the root string of each chord before you play it: 6th, 5th, 5th, 5th.",meter:4,prog:"G(3)|C(3)|D(5)|Bm",pat:"1:B+1 1.5:3 2:2 2.5:3 3:A+1 3.5:3 4:2 4.5:3",tempo:[50,90]},
- ]},
- {n:"Expression on the strings",d:"Techniques that make fingerstyle sing, all done with the left hand and the strings: hammer-ons, pull-offs, slides, harmonics and a muted thumb.",ls:[
-  {id:"7a",t:"Hammer-ons in the arpeggio",w:"Pluck an open string, then hammer a finger onto the chord fret without plucking again. Two notes for one pluck.",tip:"Hammer close to the fret with the fingertip, fast and firm.",meter:4,prog:"Am|Dm|E|Am",pat:"1:B 1.5:3h 2.5:2 3:A 3.5:3 4:2h 4.5:1",tempo:[50,90]},
-  {id:"7b",t:"Pull-offs on the top strings",w:"Pluck a fretted chord note, then pull the finger off sideways so the open string sounds.",tip:"Pull slightly down towards the floor; you are plucking with the left hand.",meter:4,prog:"Am|Dm|C|Am",pat:"1:B 1.5:2p 2.5:1 3:A 3.5:3 4:2p 4.5:3",tempo:[50,90]},
-  {id:"7c",t:"Slides into chord notes",w:"Pluck two frets below a chord note and slide up into it, keeping the pressure on. Played on the barre shapes from Level 6, where every chord note has room below it.",tip:"Arrive exactly on the beat; the slide happens just before it.",meter:4,prog:"D(5)|C(3)|G(3)|D(5)",pat:"1:B 1.5:3/ 2.5:2 3:A 3.5:1/ 4.5:2",tempo:[50,90]},
-  {id:"7d",t:"Natural harmonic chimes",w:"Touch a string lightly right over the 12th fret (not pressing) and pluck: a bell-like note an octave up. Then the same over frets 7 and 5.",tip:"Lift the touching finger just after plucking to let the chime ring.",meter:4,prog:"-|-|-|-",pat:"1:<12>6 1.5:<12>4 2:<12>3 2.5:<12>2 3:<12>1 4:<12>3+<12>2+<12>1",pat2:"1:<7>6 1.5:<7>4 2:<7>3 2.5:<7>2 3:<5>3+<5>2+<5>1",tempo:[50,90]},
-  {id:"7e",t:"Muted thumb under ringing fingers",w:"Rest the side of the picking hand on the bass strings near the bridge so the thumb's notes are short and thumpy, while the fingers' notes ring.",tip:"Only the bass strings are muted. Keep your palm off the top three.",meter:4,prog:"E|A|E|B7",pat:"1:Bm+1 1.5:3 2:Am 2.5:2 3:Bm+1 3.5:3 4:Am 4.5:2",tempo:[60,110]},
- ]},
- {n:"Mastery: complete solo pieces",d:"Full arrangements at performance tempo, combining everything: independent thumb, melody on top, chord fills and steady time.",ls:[
-  {id:"8a",t:"Twinkle Twinkle with alternating bass",song:1,w:"The melody over a thumb that alternates on every beat: the Travis engine under a tune.",tip:"If the melody and bass collide, slow down; never let the thumb stop.",meter:4,key:"A",style:"alt",
-   mel:"A3:1 A3:1 E4:1 E4:1|F#4:1 F#4:1 E4:2|D4:1 D4:1 C#4:1 C#4:1|B3:1 B3:1 A3:2|E4:1 E4:1 D4:1 D4:1|C#4:1 C#4:1 B3:2|E4:1 E4:1 D4:1 D4:1|C#4:1 C#4:1 B3:2|A3:1 A3:1 E4:1 E4:1|F#4:1 F#4:1 E4:2|D4:1 D4:1 C#4:1 C#4:1|B3:1 B3:1 A3:2",
-   ch:"A|D,A|D,A|E,A|A,D|A,E|A,D|A,E|A|D,A|D,A|E,A",tempo:[60,110]},
-  {id:"8b",t:"Amazing Grace at tempo",song:1,w:"The full arrangement, now aiming for a flowing performance tempo with the melody singing above the chords.",tip:"Shape the phrases: lean into 'grace', 'sound', 'found' and 'see'.",meter:3,key:"C",style:"full",
-   mel:"r:2 G3:1|C4:2 E4:.5 C4:.5|E4:2 D4:1|C4:2 A3:1|G3:2 G3:1|C4:2 E4:.5 C4:.5|E4:2 D4:1|G4:3|G4:2 E4:1|G4:2 E4:.5 C4:.5|E4:2 D4:1|C4:2 A3:1|G3:2 G3:1|C4:2 E4:.5 C4:.5|E4:2 D4:1|C4:3",
-   ch:"-|C|C7|Fmaj7|C|C|G|G|G7|C|C7|Fmaj7|C|C|G7|C",tempo:[70,110]},
-  {id:"8c",t:"Greensleeves at tempo",song:1,w:"The complete Greensleeves arrangement, aiming for a flowing, singing performance.",tip:"Record yourself and listen: is the melody always on top?",meter:3,key:"Am",style:"full",
-   mel:"r:2 A3:1|C4:2 D4:1|E4:1.5 F4:.5 E4:1|D4:2 B3:1|G3:1.5 A3:.5 B3:1|C4:2 A3:1|A3:1.5 G#3:.5 A3:1|B3:2 G#3:1|E3:2 A3:1|C4:2 D4:1|E4:1.5 F4:.5 E4:1|D4:2 B3:1|G3:1.5 A3:.5 B3:1|C4:1.5 B3:.5 A3:1|G#3:1.5 F#3:.5 G#3:1|A3:3",
-   ch:"-|Am|C|G|Em|Am|E|E|E|Am|C|G|Em|Am|E|Am",tempo:[70,110]},
-  {id:"8d",t:"Ode to Joy, full with alternating bass",song:1,w:"The final piece: melody, alternating bass and the steady pulse of a complete solo arrangement.",tip:"Play it for someone. Performing is the last skill.",meter:4,key:"C",style:"alt",
-   mel:"E4:1 E4:1 F4:1 G4:1|G4:1 F4:1 E4:1 D4:1|C4:1 C4:1 D4:1 E4:1|E4:1.5 D4:.5 D4:2|E4:1 E4:1 F4:1 G4:1|G4:1 F4:1 E4:1 D4:1|C4:1 C4:1 D4:1 E4:1|D4:1.5 C4:.5 C4:2",
-   ch:"C|G7|C|C,G7|C|G7|C|G7,C",tempo:[70,120]},
- ]},
-];
-CH.B7={f:[X,2,1,2,0,2],r:[5,2],a:[4,1]};
-const ALL=LEVELS.flatMap((L,li)=>L.ls.map(x=>({...x,lv:li})));
+const cname=n=>n.replace(/\(.*?\)/,"");
 const byId=id=>ALL.find(x=>x.id===id);
 
 /* ===================== Building the notes ===================== */
-const KEYS={C:[0,2,4,5,7,9,11],G:[7,9,11,0,2,4,6],A:[9,11,1,2,4,6,8],Am:[9,11,0,2,4,5,7],D:[2,4,6,7,9,11,1]};
+const KEYS={C:[0,2,4,5,7,9,11],G:[7,9,11,0,2,4,6],A:[9,11,1,2,4,6,8],Am:[9,11,0,2,4,5,7],D:[2,4,6,7,9,11,1],E:[4,6,8,9,11,1,3]};
 const fg=(s,role)=>role==="b"?"p":s===1?"a":s===2?"m":"i";
-const midiOf=(s,f)=>OPEN[s]+f;
+const midiOf=(s,f)=>TUNE[s]+f;
 function noteName(tok){const m=/^([A-G])(#|b)?(\d)$/.exec(tok);const pc={C:0,D:2,E:4,F:5,G:7,A:9,B:11}[m[1]]+(m[2]==="#"?1:m[2]==="b"?-1:0);return (Number(m[3])+1)*12+pc;}
 const r12=x=>Math.round(x*12)/12;
 function chordsOf(spec,meter){ // per bar: [{c,name,b,d}]
@@ -232,20 +148,21 @@ function chordsOf(spec,meter){ // per bar: [{c,name,b,d}]
 function walkNote(cur,next,key){ // a bass note one scale step from the next root, on the side we are coming from
   const nr=midiOf(...next.c.r),cr=midiOf(...cur.c.r),sc=KEYS[key]||KEYS.C,inK=m=>sc.includes(((m%12)+12)%12);
   let m=nr+(cr>nr?1:-1);for(let k=0;k<3&&!inK(m);k++)m+=(cr>nr?1:-1);
-  let best=null;for(const s of [6,5,4]){const f=m-OPEN[s];if(f>=0&&f<=5&&(!best||f<best.f))best={s,f,m};}if(best)return best;
+  let best=null;for(const s of [6,5,4]){const f=m-TUNE[s];if(f>=0&&f<=5&&(!best||f<best.f))best={s,f,m};}if(best)return best;
   return {s:next.c.r[0],f:next.c.r[1],m:nr};
 }
 function patternEvents(L){
   const meter=L.meter,bars=chordsOf(L.prog,meter),ev=[];
   const parse=p=>p.split(/\s+/).map(st=>{const[b,parts]=st.split(":");return {b:r12(Number(b)-1),parts:parts.split("+")};});
   bars.forEach((segs,bi)=>{
-    const steps=parse(L.pat2&&bi%2===1?L.pat2:L.pat),t0=bi*meter;
+    const pl=L.pat.split("|"),steps=parse(L.pat2&&bi%2===1?L.pat2:pl[bi%pl.length].trim()),t0=bi*meter;
     steps.forEach((st,k)=>{
       const nb=k+1<steps.length?steps[k+1].b:meter,dur=r12(nb-st.b),at=t0+st.b;
       const seg=segs.find(g=>at>=g.b-1e-6&&at<g.b+g.d-1e-6)||segs[0];
       st.parts.forEach(p=>{
         let m;
-        if((m=/^<(\d+)>(\d)$/.exec(p))){const fr=+m[1],s=+m[2],up={12:12,7:19,5:24}[fr];ev.push({b:at,d:Math.max(dur,1),s,f:fr,m:OPEN[s]+up,role:s>=4?"b":"f",tech:"harm"});return;}
+        if((m=/^<(\d+)>(\d)$/.exec(p))){const fr=+m[1],s=+m[2],up={12:12,7:19,5:24}[fr];ev.push({b:at,d:Math.max(dur,1),s,f:fr,m:TUNE[s]+up,role:s>=4?"b":"f",tech:"harm"});return;}
+        if((m=/^(\d)@(\d+)(!)?$/.exec(p))){const s=+m[1],f=+m[2];ev.push({b:at,d:dur,s,f,m:midiOf(s,f),role:m[3]?"m":s>=4?"b":"f"});return;} // an exact string and fret
         if(!seg)return;const c=seg.c;
         if(p==="B"||p==="Bm"){const[s,f]=c.r;ev.push({b:at,d:p==="Bm"?.25:dur,s,f,m:midiOf(s,f),role:"b",tech:p==="Bm"?"pm":null});return;}
         if(p==="A"||p==="Am"){const[s,f]=c.a;ev.push({b:at,d:p==="Am"?.25:dur,s,f,m:midiOf(s,f),role:"b",tech:p==="Am"?"pm":null});return;}
@@ -268,9 +185,9 @@ function patternEvents(L){
 }
 function placeMelody(m,c,maxS,cl){ // the string and fret for a melody note, preferring notes inside the chord shape
   let best=null;
-  for(let s=1;s<=Math.min(5,maxS);s++){const f=m-OPEN[s];if(f<0||f>(cl?10:5))continue;
+  for(let s=1;s<=Math.min(5,maxS);s++){const f=m-TUNE[s];if(f<0||f>(cl?10:5))continue;
     const inShape=c&&fretOn(c,s)===f,cost=(inShape?0:1.6)+(s-1)*.45+f*.06;if(!best||cost<best.cost)best={s,f,cost};}
-  if(!best)for(let s=1;s<=6;s++){const f=m-OPEN[s];if(f>=0&&f<=12){best={s,f};break;}}
+  if(!best)for(let s=1;s<=6;s++){const f=m-TUNE[s];if(f>=0&&f<=12){best={s,f};break;}}
   return best;
 }
 function songEvents(L){
@@ -278,7 +195,7 @@ function songEvents(L){
   const segAt=(bi,x)=>(bars[bi]||[]).find(g=>x>=g.b-1e-6&&x<g.b+g.d-1e-6);
   mbars.forEach((toks,bi)=>{
     const t0=bi*meter;let t=0;const mel=[];
-    toks.forEach(tok=>{const[nm,dd]=tok.split(":"),d=Number(dd);if(nm!=="r")mel.push({m:noteName(nm),b:t0+t,d});t=r12(t+d);});
+    toks.forEach(tok=>{const[nm,dd]=tok.split(":"),d=Number(dd);if(nm!=="r")mel.push({m:noteName(nm)+(L.tr||0),b:t0+t,d});t=r12(t+d);});
     // melody first: above the bass strings used in this chord
     mel.forEach(n=>{const g=segAt(bi,n.b),c=g&&g.c,lim=c?(L.style==="alt"?Math.min(c.r[0],c.a[0]):c.r[0])-1:5;
       let p=placeMelody(n.m,c,lim,c&&c.cl);if(!p)p=placeMelody(n.m,c,5);n.s=p.s;n.f=p.f;
@@ -289,6 +206,8 @@ function songEvents(L){
       const top=sounding?sounding.s:0;
       const addBass=([s,f])=>{if(sounding&&sounding.s===s)return;ev.push({b:at,d:1,s,f,m:midiOf(s,f),role:"b"});};
       if(L.style==="alt"){if(isStart)altK=0;addBass(altK%2?c.a:c.r);altK++;}
+      else if(L.style==="mel"){} // the melody alone
+      else if(L.style==="one"){if(isStart)addBass(c.r);} // the root once, where each chord starts
       else if(L.style==="bass"){if(isStart||(meter===4&&beat===2))addBass(c.r);}
       else{ // full: bass on the chord's first beat, chord notes under the melody on the other beats
         if(isStart)addBass(c.r);
@@ -306,11 +225,17 @@ function finish(ev){ // one note per string per moment; fingers: thumb on bass, 
   out.forEach(e=>{e.fg=e.tech==="h"||e.tech==="p"||e.tech==="/"?"":fg(e.s,e.role==="b"||e.s>=4?"b":e.role);});
   return out;
 }
-const eventsOf=L=>L.mel?songEvents(L):patternEvents(L);
+function eventsOf(L){
+  TUNE=TUNINGS[L.tune||"std"].o;
+  if(L.task)return {ev:[],ch:[],total:0,meter:L.meter||4};
+  const E=L.mel?songEvents(L):patternEvents(L);
+  if(L.swing){E.ev.forEach(e=>{const w=Math.floor(e.b+1e-6);if(Math.abs(e.b-w-.5)<1e-6){e.b=w+2/3;e.d=Math.max(.25,e.d-1/6);}else if(Math.abs(e.b-w)<1e-6&&Math.abs(e.d-.5)<1e-6)e.d=2/3;});
+    E.ev.sort((a,b)=>a.b-b.b||b.s-a.s);}
+  return E;}
 
 /* ===================== State (daily timer shared with Melodic Lead) ===================== */
 const KEY="fs-v1";
-let st={done:{},tempo:{},days:{},last:null,set:{click:true,countin:true,loop:true}};
+let st={done:{},tempo:{},days:{},last:null,set:{click:true,countin:true,loop:true,climb:true}};
 try{const x=JSON.parse(localStorage.getItem(KEY)||"null");if(x)st={...st,...x,set:{...st.set,...(x.set||{})}};}catch(e){}
 st.dev=st.dev||Math.random().toString(36).slice(2,10);st.odays=st.odays||{};st.doneT=st.doneT||{};st.offT=st.offT||{};st.tUpd=st.tUpd||0;
 Object.keys(st.done).forEach(id=>{if(!st.doneT[id])st.doneT[id]=Date.now();});
@@ -320,10 +245,11 @@ function melodyData(){try{return JSON.parse(localStorage.getItem("mss-sessions")
 const goalMin=()=>{const m=melodyData();return (m.st&&m.st.goalMin)||30;};
 function daySec(k){const m=melodyData();let s=((st.days&&st.days[k])||0)+Object.values(st.odays||{}).reduce((a,d)=>a+(d[k]||0),0);Object.values(m.ds||{}).forEach(x=>{s+=(x.days&&x.days[k])||0;});
   (localStorage.getItem("leadpath-v1")?["leadpath-v1"]:["caged-v1","lead-v1"]).forEach(key=>{try{const c=JSON.parse(localStorage.getItem(key)||"null");if(c)s+=((c.days&&c.days[k])||0)+Object.values(c.odays||{}).reduce((a,d)=>a+(d[k]||0),0);}catch(e){}});return s;}
-const levelDone=li=>LEVELS[li].ls.every(x=>st.done[x.id]);
-const unlockedLv=li=>li===0||levelDone(li-1);
-const curLevel=()=>{for(let i=0;i<LEVELS.length;i++)if(!levelDone(i))return i;return LEVELS.length-1;};
-const nextLesson=()=>ALL.find(x=>unlockedLv(x.lv)&&!st.done[x.id])||ALL[ALL.length-1];
+const PR=()=>FSC.progress(st.done);
+const levelDone=li=>PR().levelDone(li);
+const unlockedLv=li=>PR().unlocked(li);
+const curLevel=()=>PR().level;
+const nextLesson=()=>PR().next||ALL[ALL.length-1];
 
 /* ===================== Device sync: your Total Recall sync code, encrypted, its own slot for fingerstyle ===================== */
 const SYNC_KEY="totalRecallSyncCode_v1",SYNC_URL=localStorage.getItem("totalRecallTickTickUrl")||"https://total-recall-ticktick.pranjuchakrapani90.workers.dev";
@@ -408,7 +334,7 @@ const spb=()=>60/play.tempo;
 function slice(E){if(!sel)return E;const s=sel.a*E.meter,en=Math.min((sel.b+1)*E.meter,E.total);
   return {...E,ev:E.ev.map((e,k)=>({...e,k})).filter(e=>e.b>=s-1e-6&&e.b<en-1e-6).map(e=>({...e,b:e.b-s})),total:en-s,off:s};}
 function start(){
-  const L=byId(view.id);if(!L)return;audio();stop();
+  const L=byId(view.id);if(!L||L.task)return;audio();stop();
   const E0=eventsOf(L);E0.ev.forEach((e,k)=>e.k=k);const E=slice(E0),ci=st.set.countin?E.meter:0;
   play={L,E,tempo:tempoOf(L),t0:ctx.currentTime+.12,ci,i:0,cyc:0,cb:-ci,vis:[],lf:performance.now(),off:E.off||0};
   play.timer=setInterval(sched,25);sched();play.raf=requestAnimationFrame(draw);setBar();
@@ -423,11 +349,18 @@ function sched(){
     const base=play.cyc*E.total,tn=play.i<E.ev.length?bt(base+E.ev[play.i].b):Infinity,tc=bt(play.cb);
     const t=Math.min(tn,tc);if(t>hz)break;
     if(tc<=tn){if(play.cb<0||st.set.click)click(tc,(((play.cb%E.meter)+E.meter)%E.meter)===0);play.cb++;
-      if(play.cb>=base+E.total&&play.i>=E.ev.length){if(st.set.loop||sel){play.cyc++;play.i=0;}else{const p=play;setTimeout(()=>{if(play===p)stop();},(tc-ctx.currentTime)*1000+400);play.cb=Infinity;}}
+      if(play.cb>=base+E.total&&play.i>=E.ev.length){if(st.set.loop||sel){play.cyc++;play.i=0;climb();}else{const p=play;setTimeout(()=>{if(play===p)stop();},(tc-ctx.currentTime)*1000+400);play.cb=Infinity;}}
       continue;}
     const e=E.ev[play.i++];note(e,tn,e.d*spb()*1.4);play.vis.push([tn,e]);
   }
 }
+/* tempo ladder: after every 2 clean loops the tempo rises 4 bpm, until the lesson's goal tempo */
+function climb(){if(!st.set.climb||!play)return;const L=play.L,goal=L.tempo[1];play.loops=(play.loops||0)+1;
+  if(play.loops%2||play.tempo>=goal)return;
+  const T=bt(play.cb),nt=Math.min(goal,play.tempo+4);play.tempo=nt;play.t0=T-(play.cb+play.ci)*60/nt;
+  st.tempo[L.id]=nt;st.tUpd=Date.now();save(true);
+  setTimeout(()=>{if(!play)return;const r=document.getElementById("tempo");if(r){r.value=nt;document.getElementById("tempoV").textContent=nt;}
+    document.getElementById("nbT").textContent=nt;if(nt>=goal)document.getElementById("nbInfo").textContent=`🎯 Goal tempo ${goal}: three clean passes, then mark it done`;},Math.max(0,(T-ctx.currentTime)*1000));}
 function draw(){if(!play)return;let hit=null;
   while(play.vis.length&&play.vis[0][0]<=ctx.currentTime){hit=play.vis.shift()[1];}
   if(hit){document.querySelectorAll(".col.on").forEach(c=>c.classList.remove("on"));const c=document.querySelector(`.col[data-s="${slotOf(hit.b+play.off)}"]`);if(c){c.classList.add("on");follow(c);}}
@@ -477,13 +410,22 @@ window.addEventListener("resize",()=>setTimeout(fixClefs,100));
 function header(){document.getElementById("hLevel").textContent=curLevel()+1;document.getElementById("hDone").textContent=Object.keys(st.done).length;}
 function goalCard(){return `<div class="card goal"><div class="row between"><h3>Daily goal · ${goalMin()} min</h3><span class="num">all of Guitar Studio</span></div>
   <div class="gbar"><i id="goalBar"></i></div><p id="goalTxt"></p></div>`;}
+/* a session: a technique warm-up you already know, the new lesson, then a finished piece to keep in your fingers */
+function sessionPlan(nx){const day=Math.floor(Date.now()/864e5),done=ALL.filter(x=>st.done[x.id]&&x.id!==nx.id);
+  const tech=done.filter(x=>!x.song&&!x.task),songs=done.filter(x=>x.song);
+  const warm=tech.length?tech[day%tech.length]:ALL[0],out=[];
+  if(warm.id!==nx.id)out.push({min:2,L:warm,h:"Warm up",why:"A pattern you already play, at a comfortable tempo, to wake up the thumb and fingers."});
+  out.push({min:songs.length?6:8,L:nx,main:1,h:nx.task?"This week's project":"New lesson",why:nx.task?"Work through the steps; it may take several sessions.":"Start slow with Climb on and loop the hardest bar first."});
+  if(songs.length){const r=songs[(day*7+3)%songs.length];out.push({min:2,L:r,h:"Keep a piece alive",why:"Play a finished piece once through without stopping, as a performance."});}
+  return out;}
 function homeView(){
-  const nx=nextLesson(),doneIds=ALL.filter(x=>st.done[x.id]),rev=doneIds.length?doneIds[Math.floor(Date.now()/864e5)%doneIds.length]:null;
+  const nx=nextLesson(),S=sessionPlan(nx),pr=PR();
   return `${goalCard()}
-  <section class="card"><div class="num">Today's practice</div>
-    <h2>${Object.keys(st.done).length?"Pick up where you left off":"Start your fingerstyle journey"}</h2>
-    <p>Each lesson has a goal tempo. Practise it with bar practice and the tempo buttons, and mark it done when you can play it cleanly at the goal. Finishing every lesson in a level opens the next.</p>
-    <div class="row">${rev?`<button type="button" data-open="${rev.id}">↺ Warm up: ${rev.t}</button>`:""}<button type="button" class="play big" data-open="${nx.id}">Lesson ${nx.id}: ${nx.t} ▸</button></div></section>
+  <section class="card"><div class="row between"><div class="num">Today's 10-minute session</div><span class="num">${pr.n} of ${pr.total} lessons · ${Math.round(pr.n/pr.total*100)}%</span></div>
+    <h2>${pr.n?"Pick up where you left off":"Start your fingerstyle journey"}</h2>
+    <div class="gbar" style="height:8px;border-radius:5px;background:var(--steel-soft);overflow:hidden"><i style="display:block;height:100%;width:${pr.n/pr.total*100}%;background:var(--good)"></i></div>
+    <ol class="sess">${S.map(x=>`<li><span class="sm">${x.min} min</span><div><b>${x.h}</b><br><span>${x.why}</span></div><button type="button" class="${x.main?"play":""}" data-open="${x.L.id}">${x.L.id} ${x.L.t} ▸</button></li>`).join("")}</ol>
+    <p>Every lesson has a goal tempo. With <b>Climb</b> on, the tempo rises 4 bpm after every two clean loops until it reaches the goal. Mark a lesson done when you can play it three times in a row at the goal; finishing a level opens the next.</p></section>
   ${syncCard()}
   <section class="card"><h3>The course</h3><div class="levels">${LEVELS.map((L,li)=>{const un=unlockedLv(li),fin=levelDone(li),cur=li===curLevel()&&!fin;
     return `<div class="lvl${un?"":" lock"}${fin?" fin":""}${cur?" cur":""}"><div class="lvh"><b>Level ${li+1}: ${L.n}</b><span>${fin?"✓ complete":un?`${L.ls.filter(x=>st.done[x.id]).length} of ${L.ls.length} done`:"🔒 finish the level before"}</span></div>
@@ -493,23 +435,41 @@ function homeView(){
 function earSong(L){const o={Twinkle:"1 1 5 5 6 6 5",Ode:"3 3 4 5 5 4 3 2",Amazing:"5 1 3 1 3 2 1 6 5"},k=Object.keys(o).find(x=>L.t.includes(x));
   const how="Before you read the tab, hum the root of the key and call it 'one', sing the first phrase by scale numbers, picture where those notes sit on the top strings, then try to play the phrase first time. Check it against the tab afterwards.";
   return k?`${how} It starts <b>${o[k]}</b>: sing that before you play.`:`${how} Work the numbers out by singing up the scale from the root.`;}
+function taskView(L){const Lv=LEVELS[L.lv],all=ALL.indexOf(L),prev=ALL[all-1],next=ALL[all+1];
+  return `<section class="card"><div class="num">Level ${L.lv+1} · ${Lv.n}</div><h2>${L.t}</h2>
+    <div class="chips"><span class="chip t">project</span></div>
+    <p class="pdesc">${L.w}</p><p class="tip">💡 ${L.tip}</p>
+    <ol class="steps">${L.steps.map(x=>`<li>${x}</li>`).join("")}</ol>
+    <div class="navf">${prev?`<button type="button" data-open="${prev.id}">◂ ${prev.id}</button>`:"<span></span>"}<button type="button" class="linkb" data-home="1">All levels</button>
+      ${st.done[L.id]?`<button type="button" data-undone="${L.id}">Mark as not done</button>`:`<button type="button" class="good big" data-done="${L.id}">✓ Done</button>`}
+      ${next?`<button type="button" data-open="${next.id}"${unlockedLv(next.lv)||next.lv===L.lv?"":" disabled"}>${next.id} ▸</button>`:""}</div></section>`;}
+function howTo(L){const lo=L.tempo[0],hi=L.tempo[1];
+  const a=L.song?["Sing or hum the tune first, then play the melody notes alone (the orange numbers) until they are secure.","Add the thumb: loop two bars with bar practice, slowly, until the bass never stops under the melody."]
+    :["Play the pattern on the first chord only, looping bar 1, until the right hand runs without thinking.","Then the whole progression: change chords without breaking the rhythm."];
+  return `<details class="how"><summary>How to practise this lesson</summary><ol>${a.map(x=>`<li>${x}</li>`).join("")}
+    <li>Turn on <b>Climb</b>: start at ${lo} bpm and let the tempo rise 4 bpm every two loops. If it gets messy, drop back 8 bpm and climb again.</li>
+    <li>At ${hi} bpm, play it three times in a row without a mistake, then mark it done.</li></ol></details>`;}
 function lessonView(L){
-  const E=eventsOf(L),Lv=LEVELS[L.lv],idx=Lv.ls.indexOf(L),all=ALL.indexOf(L),prev=ALL[all-1],next=ALL[all+1];
+  if(L.task)return taskView(L);
+  const E=eventsOf(L),Lv=LEVELS[L.lv],idx=Lv.ls.findIndex(x=>x.id===L.id),all=ALL.indexOf(L),prev=ALL[all-1],next=ALL[all+1];
   const chords=[...new Set(E.ch.map(c=>cname(c.name)))].filter(Boolean);
   const nb=Math.ceil(E.total/E.meter-1e-6);
   return `<section class="card"><div class="num">Level ${L.lv+1} · ${Lv.n} · lesson ${idx+1} of ${Lv.ls.length}</div>
     <h2>${L.t}</h2>
-    <div class="chips"><span class="chip">${L.meter}/4</span>${chords.length?`<span class="chip t">${chords.join(" · ")}</span>`:""}<span class="chip">${nb} bars</span><span class="chip g">goal ${L.tempo[1]} bpm</span>${L.song?`<span class="chip t">song</span>`:""}</div>
+    <div class="chips"><span class="chip">${L.meter}/4</span>${chords.length?`<span class="chip t">${chords.join(" · ")}</span>`:""}<span class="chip">${nb} bars</span><span class="chip g">goal ${L.tempo[1]} bpm</span>${L.song?`<span class="chip t">song</span>`:""}${L.tune?`<span class="chip t">🎛 ${TUNINGS[L.tune].n} tuning</span>`:""}${L.swing?`<span class="chip">swing</span>`:""}</div>
     <p class="pdesc"><b>In words:</b> ${L.w}</p>
     <p class="tip">💡 ${L.tip}</p>
+    ${L.tune?`<p class="tip">🎛 <b>Retune first:</b> ${L.tune==="dd"?"low string down to D (D A D G B E)":"D A D G A D, low to high"}. Tune back to standard afterwards.</p>`:""}
+    ${howTo(L)}
     ${L.song?`<p class="tip">👂 <b>Ear first.</b> ${earSong(L)}</p>`:""}
     ${L.prog&&/maj7|sus|add|[m\d]?[679](?![\d])/.test(L.prog)?`<p class="tip">🧩 <b>The last word matters.</b> In a chord like ${(L.prog.match(/[A-G][#b]?(?:maj7|m7|sus\d|add\d|m?[679])/)||["Fmaj7"])[0]}, the last part of the name (the 7, the 6, the sus) is the note that gives the chord its sound. Find it in the shape, one or two frets from the plain triad, and let it ring clearly in the arpeggio.</p>`:""}
     ${/^6/.test(L.id)?`<p class="tip">🎨 <b>Colour, then theory.</b> Once the pattern flows, lift one fretting finger off the barre so an open string rings through the arpeggio, or let a neighbouring scale note ring on top. The chord underneath is still the same major or minor triad; you've just added colour (an add9 or add11). Keep what sounds good, then name it afterwards by writing down its notes.</p>`:""}
     <div class="row"><label class="ctl">Tempo <input type="range" id="tempo" min="30" max="160" step="1" value="${tempoOf(L)}"> <b id="tempoV">${tempoOf(L)}</b> bpm</label>
       <label class="chk"><input type="checkbox" id="click"${st.set.click?" checked":""}> Metronome</label>
       <label class="chk"><input type="checkbox" id="countin"${st.set.countin?" checked":""}> Count-in</label>
-      <label class="chk"><input type="checkbox" id="loop"${st.set.loop?" checked":""}> Loop</label></div>
-    <div class="legend"><span><i style="background:var(--thumb)"></i>thumb (p) on the bass</span>${L.song?`<span><i style="background:var(--mel)"></i>melody</span>`:""}<span><i style="background:var(--fill)"></i>fingers (i m a)</span><span>Letters under each count: which finger plucks</span>${/h|p|\/|<|m/.test(L.pat||"")?`<span><b>h</b> hammer-on · <b>p</b> pull-off · <b>/</b> slide · <b>‹12›</b> harmonic · <b>pm</b> muted thumb</span>`:""}</div>
+      <label class="chk"><input type="checkbox" id="loop"${st.set.loop?" checked":""}> Loop</label>
+      <label class="chk" title="Raise the tempo 4 bpm after every two loops, up to the goal"><input type="checkbox" id="climb"${st.set.climb?" checked":""}> Climb to ${L.tempo[1]}</label></div>
+    <div class="legend"><span><i style="background:var(--thumb)"></i>thumb (p) on the bass</span>${L.song||/!/.test(L.pat||"")?`<span><i style="background:var(--mel)"></i>melody</span>`:""}<span><i style="background:var(--fill)"></i>fingers (i m a)</span><span>Letters under each count: which finger plucks</span>${/\d[hp\/]|<|m/.test(L.pat||"")?`<span><b>h</b> hammer-on · <b>p</b> pull-off · <b>/</b> slide · <b>‹12›</b> harmonic · <b>pm</b> muted thumb</span>`:""}</div>
     <div class="barsbar"><span class="num">Bar practice</span><b id="selLbl">${sel?(sel.a===sel.b?`Looping bar ${sel.a+1}`:`Looping bars ${sel.a+1}–${sel.b+1}`):"Whole piece"}</b>
       <button type="button" data-bars="add">＋ Add next bar</button><button type="button" data-bars="next">Next bar only ▶</button><button type="button" data-bars="all"${sel?"":" disabled"}>All bars</button></div>
     <div class="tabscroll"><div class="tab${sel?" hassel":""}">${tabHTML(E)}</div></div>
@@ -522,7 +482,7 @@ function render(){
   if(view.k==="lesson"){const L=byId(view.id);v.innerHTML=lessonView(L);}else v.innerHTML=homeView();
   header();setBar();paintGoal();requestAnimationFrame(fixClefs);
 }
-function setBar(){const nb=document.getElementById("nowbar"),L=view.k==="lesson"&&byId(view.id);nb.hidden=!L;document.body.style.paddingBottom=L?"80px":"0";
+function setBar(){const nb=document.getElementById("nowbar"),L0=view.k==="lesson"&&byId(view.id),L=L0&&!L0.task?L0:null;nb.hidden=!L;document.body.style.paddingBottom=L?"80px":"0";
   if(!L)return;const b=document.getElementById("nbPlay");b.textContent=play?"■ Stop":"▶ Play";b.classList.toggle("on",!!play);
   document.getElementById("nbInfo").textContent=play?(sel?(sel.a===sel.b?`Looping bar ${sel.a+1}`:`Looping bars ${sel.a+1}–${sel.b+1}`):`Playing ${L.id}`):`Lesson ${L.id}${sel?` · bar${sel.a===sel.b?" "+(sel.a+1):"s "+(sel.a+1)+"–"+(sel.b+1)}`:""}`;
   document.getElementById("nbT").textContent=tempoOf(L);
@@ -549,8 +509,8 @@ document.addEventListener("click",e=>{
 });
 document.addEventListener("input",e=>{if(e.target.id==="tempo"){const L=byId(view.id);st.tempo[L.id]=Number(e.target.value);st.tUpd=Date.now();document.getElementById("tempoV").textContent=e.target.value;document.getElementById("nbT").textContent=e.target.value;save();}});
 document.addEventListener("change",e=>{const t=e.target;if(t.id==="tempo"&&play){stop();start();}
-  if(["click","countin","loop"].includes(t.id)){st.set[t.id]=t.checked;save();}});
-document.addEventListener("keydown",e=>{if(e.key!==" "||["INPUT","BUTTON"].includes(e.target.tagName)||view.k!=="lesson")return;e.preventDefault();play?stop():start();});
+  if(["click","countin","loop","climb"].includes(t.id)){st.set[t.id]=t.checked;save();}});
+document.addEventListener("keydown",e=>{if(e.key!==" "||["INPUT","BUTTON"].includes(e.target.tagName)||view.k!=="lesson"||byId(view.id).task)return;e.preventDefault();play?stop():start();});
 document.addEventListener("visibilitychange",()=>{if(document.hidden)stop();else cloudSync();});
 setInterval(()=>{if(!document.hidden&&!play)cloudSync();},60000);
 const q=new URLSearchParams(location.search).get("lesson");

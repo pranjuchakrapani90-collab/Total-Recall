@@ -2,6 +2,7 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#4f46e5">
 <title>Guitar Studio · Total Recall &amp; Melodies</title>
 <script src="gsync.js"></script>
+<script src="fs-course.js"></script>
 <link rel="manifest" href="manifest.webmanifest">
 <style>
 :root{--bg:#f4f7fb;--paper:#fff;--ink:#172033;--muted:#697386;--line:#e5e7eb;--steel:#4f46e5;--steel-soft:#eef0ff;--brass:#7c3aed;--brass-soft:#f5f3ff;--good:#059669;--good-soft:#ecfdf5;
@@ -88,8 +89,8 @@ a.sec.cg::before{background:#0f766e}.cg .tag{background:#e6f6f4;color:#0f766e}.c
     <a class="sec fs" href="fingerstyle.html">
       <div class="ico">🎶</div>
       <h2>Fingerstyle Solo</h2>
-      <p>Thumb on the bass, fingers on the melody: from p-i-m-a and Travis picking to complete solo arrangements, in eight levels you unlock.</p>
-      <div class="tags"><span class="tag">8 levels</span><span class="tag">35 lessons</span><span class="tag">songs</span></div>
+      <p>A complete solo fingerstyle course, strings only: from p-i-m-a and Travis picking through bass runs, full arrangements, arranging your own songs, blues, drop D and DADGAD to performance pieces.</p>
+      <div class="tags"><span class="tag" id="fLv">11 levels</span><span class="tag" id="fN">lessons</span><span class="tag">songs · tunings</span></div>
       <div class="now"><div><b id="fLevel">1</b><span>level</span></div><div><b id="fDone">0</b><span>lessons done</span></div><div><b id="fLeft">35</b><span>to go</span></div></div>
       <div class="go"><span id="fNext">Start with lesson 1a</span><b>Open ▸</b></div>
     </a>
@@ -116,14 +117,13 @@ if(open){document.getElementById("lTempo").textContent=open.tempo||"–";
   document.getElementById("lNext").textContent=`Continue: ${open.pname||"your pattern"}`;}
 else document.getElementById("lNext").textContent=pats.length?"Write your next pattern":"Write your first pattern";
 // Fingerstyle Solo: levels are finished lesson by lesson
-const LV=[["1a","1b","1c","1d","1e"],["2a","2b","2c","2d","2e"],["3a","3b","3c","3d","3e"],["4a","4b","4c","4d"],["5a","5b","5c"],["6a","6b","6c","6d"],["7a","7b","7c","7d","7e"],["8a","8b","8c","8d"]];
-const done=fs.done||{},all=LV.flat(),n=all.filter(id=>done[id]).length;
-let lvl=LV.findIndex(l=>!l.every(id=>done[id]));if(lvl<0)lvl=LV.length-1;
-const nx=all.find((id,i)=>!done[id]&&LV.findIndex(l=>l.includes(id))<=lvl);
-document.getElementById("fLevel").textContent=lvl+1;
-document.getElementById("fDone").textContent=n;
-document.getElementById("fLeft").textContent=all.length-n;
-document.getElementById("fNext").textContent=n===all.length?"Course complete: review any lesson":nx?`Next: lesson ${nx}`:"Start with lesson 1a";
+{const P=FSC.progress(fs.done||{});
+ document.getElementById("fLv").textContent=FSC.LEVELS.length+" levels";
+ document.getElementById("fN").textContent=P.total+" lessons";
+ document.getElementById("fLevel").textContent=P.level+1;
+ document.getElementById("fDone").textContent=P.n;
+ document.getElementById("fLeft").textContent=P.total-P.n;
+ document.getElementById("fNext").textContent=P.n===P.total?"Course complete: review any lesson":P.next?`Next: ${P.next.id} ${P.next.t}`:"Start with lesson 1a";}
 // Lead Course: reps ticked, today's session, furthest level reached
 {const ORDER=["La","f","Lb","c","Lc","a","Ld","g","Le","e","Lf","d","Lg","j","Lh","t","Li","b","r","Lj","p","s","Lk","x"];
  const D=lp?(lp.done||{}):Object.assign({},(old[0].done||{}),Object.fromEntries(Object.entries(old[1].done||{}).map(([k,v])=>["L"+k,v])));
