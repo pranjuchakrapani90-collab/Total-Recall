@@ -174,7 +174,9 @@ button:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visi
 .stp.ok{background:var(--good-soft);border-color:var(--good);color:var(--good)}
 .stp.cur{background:var(--ink);border-color:var(--ink);color:var(--paper)}
 .stp:disabled{opacity:.45;cursor:not-allowed}
+.stp.bx{min-width:0;padding:7px 8px;font-size:10.5px;font-weight:500}
 .sep{width:10px;height:2px;background:var(--line);display:inline-block}
+.sep.sm{width:4px}
 .ctx{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:8px 14px;margin-bottom:12px;font-size:13px;color:var(--muted)}
 .ctx b{color:var(--brass);font-family:var(--mono)}
 .card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:14px}
@@ -1606,9 +1608,10 @@ function wKey(e){ // a hardware keyboard works too: digits (two quick digits mak
 
 /* ===================== Sessions built from your own patterns =====================
    One session = one of your patterns at the course tempo:
-   Setup → major box → 1–5 (C A G E D shapes) → pentatonic box → 6–10 (the five boxes) → summary and revision sheet. */
-const OWN_STEPS=["setup","boxM",0,1,2,3,4,"boxP",5,6,7,8,9,"summary"];
-const isBox=v=>v==="boxM"||v==="boxP";
+   Setup → for each of the ten shapes (C A G E D major, then the five pentatonic boxes): that shape's box warm-up, then the pattern in it → summary and revision sheet. */
+const OWN_STEPS=["setup",...[0,1,2,3,4,5,6,7,8,9].flatMap(j=>["b"+j,j]),"summary"];
+const isBox=v=>typeof v==="string"&&/^b\d$/.test(v);
+const boxJ=v=>Number(v.slice(1));
 const ownId=(p,t)=>`o-${p.id}-${p.rev||0}-${t}`;
 const stamp=()=>{const now=new Date();return dkey(now)+"T"+pad(now.getHours())+":"+pad(now.getMinutes())+":"+pad(now.getSeconds());};
 function ownSession(p,t){const id=ownId(p,t);let s=sessions[id];
@@ -1620,6 +1623,8 @@ const curPat=()=>(S.myPats||[]).find(p=>p.id===today.pid)||null;
 const patIndex=p=>(S.myPats||[]).indexOf(p);
 const ownSessions=()=>Object.values(sessions).filter(x=>x.kind==="own"&&!x.free);
 const bdOf=()=>today.boxDone&&typeof today.boxDone==="object"?today.boxDone:(today.boxDone={});
+/* box j done; sessions started before the per-shape order count the old major/pentatonic box as shapes 1 and 6 */
+const boxOk=j=>{const bd=bdOf();return !!(bd["b"+j]||(j===0&&bd.M)||(j===5&&bd.P));};
 function spaceTxt(A){if(seqGapMode()!=="space")return "";const g=A.c.length*A.dur,b=breathLen(g,A.dur);return `${b===1?"one beat":b===2?"two beats":b===4?"a bar":b+" beats"} of space after each group`;}
 function ownSetupView(){
   const C=course(),L=S.myPats||[];
@@ -1631,18 +1636,15 @@ function ownSetupView(){
     return `<section class="card"><div class="num">${C.empty?"Getting started":`Stage ${CSTG[cStage(C.T||160)].n} · ${C.T||160} bpm`}</div>${head}
       <div class="crbtns"><button type="button" class="play big" data-go="write">✏️ ${C.empty?"Write a pattern":"Write your next pattern"} ▸</button>${!C.empty&&!C.fin?`<button type="button" class="ghost" data-crclose="1">I've entered all my patterns · move to ${C.T+5} bpm ▸</button>`:""}</div>
       ${extras}</section>`;}
-  const p=curPat(),fo=firstOpen(),fresh=!today.done.length&&!bdOf().M,st=CSTG[cStage(today.tempo)];
-  const goLbl=fo==="boxM"?"Start with the major box":fo==="boxP"?"Continue with the pentatonic box":fo==="summary"?"See the summary":`Continue with ${fo+1}: ${shLab(CSH[fo])}`;
-  const li=(k,lbl,name,ok)=>`<li class="${ok?"ok":""}"><span class="pk">${lbl}</span><span class="pn">${name}</span><span class="pd">${ok?"✓":""}</span></li>`;
-  const plan=[li("bm","Box",`${NOTE[S.keyPc]} major · ${CAGED[(today.bpos&&today.bpos.M||1)-1].n} shape warm-up`,bdOf().M),
-    ...[0,1,2,3,4].map(j=>li(j,j+1,shLab(CSH[j]),itemDone(j))),
-    li("bp","Box",`${NOTE[S.keyPc]} minor pentatonic · ${CAGED[(today.bpos&&today.bpos.P||1)-1].n} box warm-up`,bdOf().P),
-    ...[5,6,7,8,9].map(j=>li(j,j+1,shLab(CSH[j]),itemDone(j)))].join("");
+  const p=curPat(),fo=firstOpen(),fresh=!today.done.length&&!boxOk(0),st=CSTG[cStage(today.tempo)];
+  const goLbl=fo==="summary"?"See the summary":isBox(fo)?`${fresh?"Start":"Continue"} with ${boxJ(fo)+1}: ${shLab(CSH[boxJ(fo)])} · box warm-up`:`Continue with ${fo+1}: ${shLab(CSH[fo])} · pattern`;
+  const plan=CSH.map((x,j)=>{const b=boxOk(j),d=itemDone(j);
+    return `<li class="${b&&d?"ok":""}"><span class="pk">${j+1}</span><span class="pn">${shLab(x)}<span class="tnote"> · box, then pattern</span></span><span class="pd">${b&&d?"✓":b?"box ✓":""}</span></li>`;}).join("");
   const ladder=CT.filter(t=>t>=st.from&&t<=st.to).map(t=>`<span class="lstep${t<today.tempo?" done":""}${t===today.tempo?" cur":""}">${t}</span>`).join("");
   return `<section class="card">
     <div class="num">Pattern ${patIndex(p)+1} of ${L.length} · Stage ${st.n} · ${today.tempo} bpm</div>
     <h2>${escH(p?p.name:"")}</h2>
-    <p class="lead">${fresh?"Warm up on the major box, then play your pattern through the five major shapes, warm up on the pentatonic box, and play it through the five pentatonic boxes. Take as many days as you need; the session waits for you.":`${today.done.length} of 10 shapes done. Pick up where you left off.`}</p>
+    <p class="lead">${fresh?"Shape by shape: warm up on a shape's box, then play your pattern in that shape, then move to the next. Five major shapes, then the five pentatonic boxes. Take as many days as you need; the session waits for you.":`${today.done.length} of 10 shapes done. Pick up where you left off.`}</p>
     ${navHTML(null,`<button type="button" class="play big" data-go="${fo}">${goLbl} ▸</button>`).replace('class="navf"','class="navf top"')}
     <div class="ladder" aria-label="Tempo ladder">${ladder}</div>
     <div><h3>This session</h3><ol class="plan">${plan}</ol></div>
@@ -1664,13 +1666,10 @@ function settingsHTML(){return `<details class="more"><summary>⚙️ Settings, 
     </details>`;}
 function revisionHTML(){return ownSessions().some(x=>x.done.length>=10)?`<details class="more"><summary>📄 Revision sheets for completed sessions</summary><p class="tnote">Each completed session as a one-page PDF: your pattern as written and its first bar in all ten shapes.</p>${histHTML()}</details>`:"";}
 function ownBoxView(){
-  const k=view==="boxM"?"M":"P",done=!!bdOf()[k],pos=(today.bpos&&today.bpos[k])||1;
-  const sw=`<div class="lblsw" role="group" aria-label="Shape"><span>Shape</span>${[1,2,3,4,5].map(n=>`<button type="button" class="seg" data-bpos="${k}${n}" aria-pressed="${n===pos}">${CAGED[n-1].n}</button>`).join("")}</div>`;
+  const j=boxJ(view),done=boxOk(j);
   let h=boxView();
-  h=h.replace('<p id="posWhy" hidden></p>',sw+'<p id="posWhy" hidden></p>');
-  h=h.replace(/<div class="num">Warm-up · The box/,`<div class="num">Warm-up · ${k==="M"?"Major":"Pentatonic"} box`);
-  const nav=k==="M"?navHTML("setup",done?`<button type="button" class="play big" data-go="0">Next: 1. ${shLab(CSH[0])} ▸</button>`:`<button type="button" class="play big donego" data-boxdone="M">✓ Box done, next ▸</button>`)
-                   :navHTML("4",done?`<button type="button" class="play big" data-go="5">Next: 6. ${shLab(CSH[5])} ▸</button>`:`<button type="button" class="play big donego" data-boxdone="P">✓ Box done, next ▸</button>`);
+  h=h.replace(/<div class="num">Warm-up · The box/,`<div class="num">${j+1} of 10 · Warm-up · ${shLab(CSH[j])} box`);
+  const nav=navHTML(j===0?"setup":String(j-1),done?`<button type="button" class="play big" data-go="${j}">Next: the pattern in this shape ▸</button>`:`<button type="button" class="play big donego" data-boxdone="${j}">✓ Box done, now the pattern ▸</button>`);
   const i=h.lastIndexOf('<div class="navf">');return h.slice(0,i)+nav+"\n  </section>";
 }
 /* Ear cues, one per shape: hear it → sing it → see it → play it (from Eli Koskoff's "freely express yourself" exercise) */
@@ -1697,8 +1696,8 @@ function earTip(sh,j){const k=NOTE[S.keyPc],maj=sh.sc==="major";
 let tip0=0;
 function ownItemView(j){
   const p=curPat(),sh=CSH[j],id="i"+j,E=eventsFor(id,false,false,true),A=patA(p),done=itemDone(j),t=today.time&&today.time[sh.k];
-  const back=j===0?"boxM":j===5?"boxP":String(j-1),nxt=j===4?"boxP":j===9?"summary":String(j+1);
-  const nextLbl=j===4?"Next: pentatonic box":j===9?"Finish the session":`Next: ${j+2}. ${shLab(CSH[j+1])}`;
+  const back="b"+j,nxt=j===9?"summary":"b"+(j+1);
+  const nextLbl=j===9?"Finish the session":`Next: ${j+2}. ${shLab(CSH[j+1])} box ▸`;
   const main=done?`<span class="undo"><button type="button" class="linkb" data-undo="${j}">Mark as not done</button></span><button type="button" class="play big" data-go="${nxt}">${nextLbl} ▸</button>`
                  :`<button type="button" class="play big donego" data-itemdone="${j}">✓ Done, ${j===9?"finish":"next"} ▸</button>`;
   const P=positionNotes(sh.sc,S.keyPc,sh.p),fr=P.notes.map(n=>n.f),pi=patIndex(p),W0=cellEvents(A,"asis"),sp=spaceTxt(A);
@@ -1735,7 +1734,7 @@ function ownSummaryView(){
     <div class="tiles">${tile(today.tempo,"bpm")}${tile(fmtMin(tot),"playing time")}${tile(10,"shapes")}${tile("Stage "+CSTG[cStage(today.tempo)].n,"stage")}</div>
     <h3>What you practised</h3>
     <table class="hist"><thead><tr><th>#</th><th>Shape</th><th>Time</th></tr></thead><tbody>
-      <tr><td class="n">–</td><td>Boxes (warm-up)</td><td class="n">${fmtMin(((today.time||{}).boxM||0)+((today.time||{}).boxP||0)+((today.time||{}).box||0))}</td></tr>${rows}</tbody></table>
+      <tr><td class="n">–</td><td>Boxes (warm-up)</td><td class="n">${fmtMin(Object.entries(today.time||{}).filter(([k])=>/^box/.test(k)).reduce((a,[,v])=>a+v,0))}</td></tr>${rows}</tbody></table>
     ${nxt}
     <div class="row" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><button type="button" class="play" data-pdf="${today.id}">📄 Revision sheet (PDF)</button><span class="tnote">One page: your pattern as written and its first bar in all ten shapes.</span></div>
     <details class="more"><summary>Recent sessions</summary>${histHTML()}</details>
@@ -1786,14 +1785,13 @@ const itemDone=j=>today.done.includes(keyOf(today.items[j]));
 function unlocked(v){
   if(v==="setup"||v==="write")return true;
   if(!today||today.free)return false;
-  const bd=bdOf(),upTo=n=>[...Array(n).keys()].every(itemDone);
-  if(v==="boxM")return true;
-  if(v==="boxP")return upTo(5);
-  if(typeof v==="number")return v<5?!!bd.M&&upTo(v):!!bd.P&&upTo(v);
+  const upTo=n=>[...Array(n).keys()].every(itemDone);
+  if(isBox(v))return upTo(boxJ(v));
+  if(typeof v==="number")return boxOk(v)&&upTo(v);
   return today.done.length>=10;
 }
-function firstOpen(){if(today.free)return "setup";const bd=bdOf();if(!bd.M)return "boxM";
-  for(let j=0;j<5;j++)if(!itemDone(j))return j;if(!bd.P)return "boxP";for(let j=5;j<10;j++)if(!itemDone(j))return j;return "summary";}
+function firstOpen(){if(today.free)return "setup";
+  for(let j=0;j<10;j++){if(itemDone(j))continue;return boxOk(j)?j:"b"+j;}return "summary";}
 function go(v){stop();paused=null;if(v!=="write"&&today.free&&course().cur){ensureToday();resetTempo();}if(view==="write"&&v!=="write")resetTempo();if(v==="write"&&view!=="write"){W.back=view;if(!W.sel){const c=W.cols.findIndex(x=>!x);W.sel={c:c<0?0:c,s:6};}}view=v;render();window.scrollTo({top:0,behavior:"smooth"});}
 const fmtMin=sec=>{const m=Math.round((sec||0)/60);return m<60?`${m}m`:`${Math.floor(m/60)}h ${m%60}m`;};
 const sesTime=d=>Object.values(d.time||{}).reduce((a,b)=>a+b,0);
@@ -2049,11 +2047,11 @@ function renderModes(){
 function renderStepper(){
   document.getElementById("stepper").hidden=view==="write"||today.free;
   if(view==="write"||today.free){document.getElementById("stepper").innerHTML="";return;}
-  const lbl=v=>v==="setup"?"Setup":v==="boxM"?"Major box":v==="boxP"?"Pent. box":v==="summary"?"Summary":String(v+1);
-  const st=v=>v==="setup"?(view!=="setup"):isBox(v)?!!bdOf()[v==="boxM"?"M":"P"]:v==="summary"?false:itemDone(v);
+  const lbl=v=>v==="setup"?"Setup":isBox(v)?"box":v==="summary"?"Summary":String(v+1);
+  const st=v=>v==="setup"?(view!=="setup"):isBox(v)?boxOk(boxJ(v)):v==="summary"?false:itemDone(v);
   document.getElementById("stepper").innerHTML=STEPS.map(v=>{const on=view===v,ok=unlocked(v);
-    const title=typeof v==="number"?`${v+1}. ${itemName(today.items[v])}`:lbl(v);
-    return `<button type="button" class="stp${on?" cur":""}${st(v)?" ok":""}" ${ok?`data-go="${v}"`:"disabled"} title="${title}" aria-current="${on?"step":"false"}">${st(v)&&!on&&typeof v==="number"?"✓":lbl(v)}</button>`;}).join('<i class="sep"></i>');
+    const title=typeof v==="number"?`${v+1}. ${itemName(today.items[v])}`:isBox(v)?`${boxJ(v)+1}. ${shLab(CSH[boxJ(v)])} · box warm-up`:lbl(v);
+    return `${typeof v==="number"?'<i class="sep sm"></i>':isBox(v)?'<i class="sep"></i>':v==="summary"?'<i class="sep"></i>':""}<button type="button" class="stp${isBox(v)?" bx":""}${on?" cur":""}${st(v)?" ok":""}" ${ok?`data-go="${v}"`:"disabled"} title="${title}" aria-current="${on?"step":"false"}">${st(v)&&!on&&v!=="setup"?"✓":lbl(v)}</button>`;}).join("");
 }
 function renderCtx(){
   const c=document.getElementById("ctx");if(view==="setup"||view==="summary"||view==="write"){c.hidden=true;return;}
@@ -2065,7 +2063,7 @@ function resetTempo(){curTempo=today.tempo!=null?today.tempo:(S.tempo||72);}
 function render(){
   stop();
   {const C=course();if(C.cur&&(today.free||(today.kind==="own"&&!today.finished&&(today.pid!==C.cur.id||today.tempo!==C.T)))){ensureToday();resetTempo();if(view!=="write")view="setup";}}
-  if(isBox(view)){const k=view==="boxM"?"M":"P";today.scale=k==="M"?"major":"minpent";today.position=(today.bpos&&today.bpos[k])||1;}
+  if(isBox(view)){const sh=CSH[boxJ(view)];today.scale=sh.sc;today.position=sh.p;}
   posData=positionNotes(today.scale,S.keyPc,today.position);
   if(!unlocked(view))view="setup";
   WA=null;if(view==="write"){const A=wA();if(A.ok)posData=A.P;const C=course();curTempo=C.T||160;}
@@ -2189,7 +2187,7 @@ function flushTime(p,final){ // add the time since the last flush to today's tot
   sec=Math.min(sec,90); // ignore gaps where the device was asleep
   const day=dkey(new Date()),r=x=>Math.round(x*10)/10;
   GSync.addMinutes(today,day,sec); // per-phone minute counts, so two phones practising the same session add up
-  const k=p.id==="pos"?(view==="boxP"?"boxP":"boxM"):/^i\d$/.test(p.id)?keyOf(today.items[Number(p.id.slice(1))]):null;
+  const k=p.id==="pos"?(isBox(view)?"box"+boxJ(view):"box"):/^i\d$/.test(p.id)?keyOf(today.items[Number(p.id.slice(1))]):null;
   if(k&&!p.ro){today.time=today.time||{};today.time[k]=r((today.time[k]||0)+sec);}
   persistDay(!final);
 }
@@ -2764,10 +2762,10 @@ document.addEventListener("click",e=>{
   if(e.target.closest("[data-syncon]")){const i=document.getElementById("syncIn");turnOnSync(i?i.value:"");return;}
   if(e.target.closest("[data-calibrate]")){calibrate();return;}
   const lb=e.target.closest("[data-labels]");if(lb){S.labels=lb.dataset.labels;persistSettings();render();return;}
-  const bxd=e.target.closest("[data-boxdone]");if(bxd){const k=bxd.dataset.boxdone;bdOf()[k]=true;persistDay();go(k==="M"?0:5);return;}
+  const bxd=e.target.closest("[data-boxdone]");if(bxd){const j=Number(bxd.dataset.boxdone);bdOf()["b"+j]=true;persistDay();go(j);return;}
   const bp=e.target.closest("[data-bpos]");if(bp){const k=bp.dataset.bpos[0];today.bpos={...(today.bpos||{}),[k]:Number(bp.dataset.bpos.slice(1))};persistDay();render();return;}
   if(e.target.closest("[data-crclose]")){S.myCourse={...(S.myCourse||{}),closed:true};persistSettings();ensureToday();resetTempo();go("setup");return;}
-  const d=e.target.closest("[data-itemdone]");if(d){const j=Number(d.dataset.itemdone);markDone(j,true);go(j===4?"boxP":j===9?"summary":j+1);return;}
+  const d=e.target.closest("[data-itemdone]");if(d){const j=Number(d.dataset.itemdone);markDone(j,true);go(j===9?"summary":"b"+(j+1));return;}
   const u=e.target.closest("[data-undo]");if(u){markDone(Number(u.dataset.undo),false);render();return;}
   if(e.target.closest("[data-newsession]")){stop();ensureToday();persistDay();resetTempo();go("setup");}
 });
