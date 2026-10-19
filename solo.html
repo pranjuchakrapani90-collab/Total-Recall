@@ -394,7 +394,7 @@ function start(a,b,src){stop();audio();if(!src){load();const s=S();src={key:s.ke
     const dt=now-play.last;play.last=now;if(now>play.t0&&dt>0&&dt<1){const k=dkey(new Date());st.days[k]=Math.round(((st.days[k]||0)+dt)*10)/10;}};
   play.timer=setInterval(sched,50);sched();
   const draw=()=>{if(!play)return;const pos=(ctx.currentTime-play.t0)/play.spb;let bar=-1;if(pos>=0)bar=play.a+Math.floor((pos%play.len)/4);
-    document.querySelectorAll(".bar").forEach(e=>e.classList.toggle("play",+e.dataset.bar===bar));
+    document.querySelectorAll(".bar").forEach(e=>e.classList.toggle("play",e.dataset.cb!=null?(e.dataset.cex===play.cex&&+e.dataset.cb===bar):+e.dataset.bar===bar));
     if(view==="jam"){const el=document.getElementById("jamT"),left=Math.max(0,120-Math.max(0,ctx.currentTime-play.t0));if(el)el.textContent=GSPlanMM(left);
       const ce=document.getElementById("jamC");if(ce&&bar>=0)ce.textContent=chordName(play.src.ch[bar],play.src.key);
       if(left<=0){stop();toast("Warm-up done ✓ Now build today's solo.");render();return;}}
@@ -413,7 +413,7 @@ function previewBar(b){if(play)return;start(b,b);const tok=play;setTimeout(()=>{
 const app=document.getElementById("app"),esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const fretSpan=()=>{const fs=P.map(p=>p.f);return [Math.min(...fs),Math.max(...fs)];};
 function metaLine(s){const sp=shapeNotes(s.key,s.shape).map(p=>p.f);return `${keyName(s.key)} major · ${CAGED[s.shape].n} shape (frets ${Math.min(...sp)}–${Math.max(...sp)}) · ${PROGS[s.prog].n}: ${PROGS[s.prog].d.map(c=>chordName(c,s.key)).join(" ")}`;}
-function render(){if(view==="jam")renderJam();else if(view==="build"&&S()){load();renderBuild();}else{view="home";renderHome();}renderTransport();}
+function render(){if(view==="course"&&window.renderCourse)window.renderCourse();else if(view==="jam")renderJam();else if(view==="build"&&S()){load();renderBuild();}else{view="home";renderHome();}renderTransport();}
 
 /* warm-ups: limits make it easier to be creative (note limits, one string, rhythm-only, sing first) */
 const WARMUPS=[
@@ -457,6 +457,7 @@ function renderHome(){const br=brief(),sp=shapeNotes(br.key,br.shape).map(p=>p.f
   </section>
   <section class="card"><div class="row between"><h3>Warm-up first · 2 min</h3><button class="linkb" data-wunext="1">another ↻</button></div>
     <p><b>${wu().t}:</b> ${wu().d}</p><div class="row"><button data-jam="1">▶ Warm up over the band</button></div></section>
+  ${window.courseCard?window.courseCard():""}
   ${primer()}
   <section class="card"><div class="row between"><h2>Your solos</h2><span class="muted small">${sol.length} saved</span></div>
     ${sol.length?`<div class="lib">${sol.map(s=>`<div class="solo"><div style="min-width:0"><b>${esc(s.name)}</b><span>${keyName(s.key)} major · ${CAGED[s.shape].n} shape · ${PROGS[s.prog].n} · ${new Date(s.upd).toLocaleDateString(undefined,{day:"numeric",month:"short"})}</span></div>
@@ -571,7 +572,7 @@ function barBox(b){const s=S(),bar=s.bars[b]||[],W=160,T=8,G=9,H=T+G*5+8,x=p=>6+
     pos+=n.d;});
   return `<div class="bar${b===sel?" sel":""}" data-bar="${b}"><div class="bh">${chordName(C16[b],s.key)}<span>${ui.skel&&SK.length?`◎${nn(P[SK[b]].m,s.key)} · `:""}${b+1}</span></div><svg viewBox="0 0 ${W} ${H}">${g}</svg></div>`;}
 
-function renderTransport(){const el=document.getElementById("transport");if(view==="jam"){el.hidden=true;return;}if(view!=="build"||!S()){el.hidden=true;return;}el.hidden=false;const s=S(),ph=Math.floor(sel/4);
+function renderTransport(){const el=document.getElementById("transport");if(view==="jam"||view==="course"){el.hidden=true;return;}if(view!=="build"||!S()){el.hidden=true;return;}el.hidden=false;const s=S(),ph=Math.floor(sel/4);
   el.innerHTML=`<div class="tin">${play?`<button class="pri" data-stop="1">■ Stop</button>`:`<button class="pri" data-playph="1">▶ Phrase ${ph+1}</button><button data-playall="1">▶ All 16</button>`}
     <span class="tempo"><button data-tempo="-4">−</button>${s.tempo}<button data-tempo="4">+</button></span>
     <button data-lead="1" class="${ui.lead===false?"":"on"}" title="Your solo">🎸</button><button data-band="1" class="${ui.band===false?"":"on"}" title="Band">🥁</button></div>`;}
@@ -615,7 +616,7 @@ document.addEventListener("click",e=>{const t=e.target.closest("[data-i],[data-j
   if(d.redraw){brief(true);render();return;}
   if(d.setbrief){Object.assign(st.brief,{key:+document.getElementById("selKey").value,shape:+document.getElementById("selShape").value,prog:document.getElementById("selProg").value,form:document.getElementById("selForm").value});save();render();return;}
   if(d.open){stop();st.cur=d.open;view="build";const sb=st.solos[d.open];sel=Math.max(0,Math.min(15,(sb.bars||[]).findIndex(b=>used(b)<BAR)));if(sel<0)sel=0;save(true);render();window.scrollTo(0,0);return;}
-  if(d.home){stop();if(view==="jam"){view=st.cur&&S()?"build":"home";render();return;}st.cur=null;view="home";save(true);render();window.scrollTo(0,0);return;}
+  if(d.home){stop();if(view==="course"){view=st.cur&&S()?"build":"home";render();window.scrollTo(0,0);return;}if(view==="jam"){view=st.cur&&S()?"build":"home";render();return;}st.cur=null;view="home";save(true);render();window.scrollTo(0,0);return;}
   if(d.syncnow){cloudSync();return;}
   if(d.syncoff){try{localStorage.removeItem(SYNC_KEY);}catch(x){}setSync("off");render();return;}
   if(d.syncon){const v=(document.getElementById("syncIn").value||"").trim();if(v.length<8){setSync("err","use a sync code of at least 8 characters");return;}try{localStorage.setItem(SYNC_KEY,v);}catch(x){}cloudSync().then(render);return;}
@@ -677,11 +678,14 @@ const unb64=s=>{const r=atob(s),u=new Uint8Array(r.length);for(let i=0;i<r.lengt
 async function keyOf(code){const h=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(code+SLOT));return crypto.subtle.importKey("raw",h,{name:"AES-GCM"},false,["encrypt","decrypt"]);}
 async function enc(o,code){const iv=crypto.getRandomValues(new Uint8Array(12)),c=await crypto.subtle.encrypt({name:"AES-GCM",iv},await keyOf(code),new TextEncoder().encode(JSON.stringify(o)));return JSON.stringify({v:1,iv:b64(iv),data:b64(c)});}
 async function dec(blob,code){const x=JSON.parse(blob||"{}"),p=await crypto.subtle.decrypt({name:"AES-GCM",iv:unb64(x.iv)},await keyOf(code),unb64(x.data));return JSON.parse(new TextDecoder().decode(p));}
-function payload(){const solos={};Object.values(st.solos).forEach(s=>{if(s)solos[s.id]=s;});return {v:1,solos,del:st.del,days:{...st.odays,[st.dev]:st.days}};}
+function payload(){const solos={};Object.values(st.solos).forEach(s=>{if(s)solos[s.id]=s;});return {v:1,solos,del:st.del,days:{...st.odays,[st.dev]:st.days},course:st.course||{done:{}}};}
 function merge(R){let ch=false;
   Object.entries(R.del||{}).forEach(([id,t])=>{if(!(st.del[id]>=t)){st.del[id]=t;ch=true;}});
   Object.values(R.solos||{}).forEach(r=>{if(!r||!r.id)return;const l=st.solos[r.id];if(!l||(r.upd||0)>(l.upd||0)){st.solos[r.id]=mig(r);ch=true;}});
   Object.keys(st.solos).forEach(id=>{const s=st.solos[id];if(s&&st.del[id]>=s.upd){delete st.solos[id];if(st.cur===id){st.cur=null;view="home";}ch=true;}});
+  if(R.course){st.course=st.course||{done:{}};st.course.done=st.course.done||{};const L=st.course;
+    if((R.course.t||0)>(L.t||0)){L.done={...(R.course.done||{})};L.t=R.course.t;if(R.course.tempo)L.tempo=R.course.tempo;ch=true;}
+    else Object.entries(R.course.done||{}).forEach(([k,v])=>{if(!L.done[k]&&!(L.t>v)){L.done[k]=v;ch=true;}});}
   Object.entries(R.days||{}).forEach(([dev,days])=>{const tgt=dev===st.dev?st.days:(st.odays[dev]=st.odays[dev]||{});Object.entries(days||{}).forEach(([k,v])=>{if(v>(tgt[k]||0)){tgt[k]=v;ch=true;}});});
   return ch;}
 function setSync(state,msg){SY.state=state;SY.msg=msg||"";if(state==="ok")SY.last=new Date();
@@ -709,4 +713,6 @@ function syncCard(){const on=!!syncCode();return `<section class="card"><div cla
 
 render();setSync(syncCode()?"busy":"off");cloudSync().then(ch=>{if(ch&&!play)render();});
 </script>
+<script src="triad-course.js"></script>
+<script>render();</script>
 </body></html>
