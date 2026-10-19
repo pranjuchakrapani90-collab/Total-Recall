@@ -166,14 +166,91 @@ const LEVELS=[
  ]},
 ];
 const ALL=LEVELS.flatMap((L,li)=>L.ls.map(x=>({...x,lv:li})));
+
+/* ===================== Exhaustive exercises =====================
+   Every lesson is broken into exercises you tick one by one; a lesson is finished when all of them are.
+   · Pattern lessons: the same right-hand pattern in every open-chord key, C G D A E and Am Em Dm, so the thumb
+     meets roots on the 6th, 5th and 4th strings. Where a key has no open shape for a chord, the key's own
+     open progression is used instead. Blues lessons stay with their dominant-7 chords (E A D G).
+   · Barre lessons (level 7): the pattern moved through all 12 keys on E-shape and A-shape barres.
+   · Melody-on-top patterns with fixed frets: moved to every open key their chords and frets allow.
+   · Songs: learned in stages (melody alone, bass and chords alone, first half, second half, whole piece),
+     then the whole piece in a second key.
+   · Tasks and retuned lessons stay as one exercise.
+   A tick from before the change counts for the lesson's original version ("home" exercise). */
+const NOTE={C:0,"C#":1,Db:1,D:2,"D#":3,Eb:3,E:4,F:5,"F#":6,Gb:6,G:7,"G#":8,Ab:8,A:9,"A#":10,Bb:10,B:11};
+const NM=["C","C#","D","Eb","E","F","F#","G","Ab","A","Bb","B"];
+const md=x=>((x%12)+12)%12;
+function pc(n){const m=/^([A-G][#b]?)([^(]*)(?:\((.*)\))?$/.exec(n);return m?{r:m[1],q:m[2],tag:m[3]||""}:null;}
+/* movable barre shapes: E shape (root on string 6) and A shape (root on string 5) */
+const EQ={"":[0,2,2,1,0,0],m:[0,2,2,0,0,0],"7":[0,2,0,1,0,0],m7:[0,2,0,0,0,0],maj7:[0,X,1,1,0,X]},
+      AQ={"":[X,0,2,2,2,0],m:[X,0,2,2,1,0],"7":[X,0,2,0,2,0],m7:[X,0,2,0,1,0],maj7:[X,0,2,1,2,0]};
+function barre(root,q){if(!(q in EQ))return null;const ef=md(NOTE[root]-4)||12,af=md(NOTE[root]-9)||12;
+  const useE=Math.abs(ef-5)<=Math.abs(af-5),f=useE?ef:af,sh=(useE?EQ:AQ)[q],name=`${root}${q}(${f})`;
+  if(!CH[name])CH[name]=useE?{f:sh.map(x=>x==null?X:x+f),r:[6,f],a:[4,f+2],cl:1}:{f:sh.map(x=>x==null?X:x+f),r:[5,f],a:[4,f+2],cl:1};
+  return name;}
+const FALL={m:["m7"],maj7:[""],"7":[],m7:["m"],"":["7"]};
+function tChord(n,k,bar){if(n==="-")return "-";const c=pc(n);if(!c||/dd|dg/.test(c.tag))return null;
+  const r=NM[md(NOTE[c.r]+k)];
+  if(c.tag&&CH[n]&&CH[n].cl){if(!bar)return null;if(k===0)return n;return barre(r,c.q);} // a closed shape stays a barre
+  for(const q of [c.q,...(FALL[c.q]||[])]){const nm=r+q;if(CH[nm]&&!CH[nm].cl)return nm;}
+  return bar?barre(r,c.q):null;}
+function tProg(p,k,bar){const out=p.split("|").map(b=>b.split(",").map(x=>tChord(x.trim(),k,bar)));return out.some(b=>b.includes(null))?null:out.map(b=>b.join(",")).join("|");}
+/* each key's own open progression, used where a straight move needs a barre */
+const TPL={C:["C","Am","Fmaj7","G"],G:["G","Em","C","D"],D:["D","Bm7","G","A"],A:["A","D","E7","A"],E:["E","A","B7","E"],
+  Am:["Am","Fmaj7","C","G"],Em:["Em","C","G","D"],Dm:["Dm","C","A7","Dm"]};
+CH.Bm7={f:[X,2,0,2,0,2],r:[5,2],a:[4,0]};CH.Cmaj7={f:[X,3,2,0,0,0],r:[5,3],a:[4,2]};CH.Gmaj7={f:[3,2,0,0,0,2],r:[6,3],a:[4,0]};
+CH.Dmaj7={f:[X,X,0,2,2,2],r:[4,0],a:[5,0]};CH.Amaj7={f:[X,0,2,1,2,0],r:[5,0],a:[4,2]};CH.Emaj7={f:[0,2,1,1,0,0],r:[6,0],a:[4,2]};
+CH.Am7={f:[X,0,2,0,1,0],r:[5,0],a:[4,2]};CH.Em7={f:[0,2,0,0,0,0],r:[6,0],a:[4,2]};CH.Dm7={f:[X,X,0,2,1,1],r:[4,0],a:[5,0]};
+function tpl(p,T){let i=0;return p.split("|").map(b=>b.split(",").map(x=>x.trim()==="-"?"-":TPL[T][i++%4]).join(",")).join("|");}
+const KM=["C","G","D","A","E"],Km=["Am","Em","Dm"],keyPc=K=>NOTE[K.replace(/m$/,"")],isMin=K=>/m$/.test(K);
+function homeKey(p){const c=pc(p.split("|").map(x=>x.split(",")[0].trim()).find(x=>x!=="-")||"C");return NM[NOTE[c.r]]+(/^m(?!aj)/.test(c.q)?"m":"");}
+const sl=(str,a,b)=>str.split("|").slice(a,b).join("|");
+/* notes of a song melody, for keeping a moved melody within reach */
+const midi=t=>{const m=/^([A-G][#b]?)(\d)$/.exec(t);return m?(+m[2]+1)*12+NOTE[m[1]]:null;};
+const melRange=mel=>{const ms=mel.split(/[|\s]+/).map(t=>midi(t.split(":")[0])).filter(x=>x!=null);return [Math.min(...ms),Math.max(...ms)];};
+const BARRE_LV=LEVELS.findIndex(L=>/^Up the neck/.test(L.n)),BLUES_LV=LEVELS.findIndex(L=>/^Blues/.test(L.n));
+function expand(L){const one=[{...L,pid:L.id,home:1}];
+  if(L.task||L.tune)return one;
+  if(L.song){const hk=homeKey(L.ch),n=L.mel.split("|").length,ex=[],add=(tag,vt,o)=>ex.push({...L,...o,id:`${L.id}.${tag}`,pid:L.id,vt});
+    if(L.style!=="mel")add("m","Stage 1 · melody alone",{style:"mel"});
+    if(!["mel","one"].includes(L.style))add("b","Stage 2 · bass and chords alone",{only:"b"});
+    if(n>=8){const h=Math.ceil(n/2);add("h1",`Stage 3 · first half (bars 1–${h})`,{mel:sl(L.mel,0,h),ch:sl(L.ch,0,h)});add("h2",`Stage 4 · second half (bars ${h+1}–${n})`,{mel:sl(L.mel,h),ch:sl(L.ch,h)});}
+    add("w","Whole piece",{});ex[ex.length-1].home=1;
+    const [lo,hi]=melRange(L.mel),tr=L.tr||0;
+    for(const k of [5,7,2,10,3,9]){const ch=tProg(L.ch,k,L.ch.split(/[|,]/).some(n=>CH[n.trim()]&&CH[n.trim()].cl));if(!ch)continue;
+      const d=[k,k-12].find(d=>hi+tr+d<=69&&lo+tr+d>=50);if(d==null)continue;
+      add("k",`Whole piece in ${NM[md(keyPc(hk)+k)]}${isMin(hk)?" minor":" major"}`,{ch,tr:tr+d,key:NM[md(keyPc(hk)+k)]+(isMin(hk)?"m":"")});break;}
+    return ex;}
+  if(!L.prog||/^[-|\s]+$/.test(L.prog))return one;
+  const hk=homeKey(L.prog),out=[],seen=new Set(),push=(K,prog,o)=>{if(!prog||seen.has(prog))return;seen.add(prog);
+    out.push({...L,...o,prog,key:K,id:`${L.id}.${K}`,pid:L.id,vt:`${K.replace(/m$/," minor").replace(/^([A-G][#b]?)$/,"$1 major")}`,home:out.length?0:1});};
+  if(/@/.test(L.pat+(L.pat2||""))){ // fixed frets move with the key
+    const fr=(L.pat+" "+(L.pat2||"")).match(/\d@(\d+)/g).map(x=>+x.split("@")[1]),f0=Math.min(...fr),f1=Math.max(...fr);
+    push(hk,L.prog);
+    (isMin(hk)?Km:KM).forEach(K=>{const k=md(keyPc(K)-keyPc(hk));if(!k)return;const d=[k,k-12].find(d=>f0+d>=0&&f1+d<=12);if(d==null)return;
+      const prog=tProg(L.prog,k,false);if(!prog)return;const mv=x=>x&&x.replace(/(\d)@(\d+)/g,(_,s,f)=>`${s}@${+f+d}`);
+      push(K,prog,{pat:mv(L.pat),pat2:mv(L.pat2)});});
+    return out;}
+  if(L.lv===BARRE_LV||L.prog.split(/[|,]/).some(n=>CH[n.trim()]&&CH[n.trim()].cl)){for(let i=0;i<12;i++){const k=md(i*7),K=NM[md(keyPc(hk)+k)]+(isMin(hk)?"m":"");push(K,tProg(L.prog,k,true));}return out;}
+  const blues=L.lv===BLUES_LV||L.swing;
+  push(hk,L.prog);
+  [...KM,...Km].forEach(K=>{const k=md(keyPc(K)-keyPc(hk));
+    if(isMin(K)===isMin(hk)){const p=tProg(L.prog,k,false);if(p){push(K,p);return;}}
+    if(!blues)push(K,tpl(L.prog,K),{alt:1});});
+  return out;}
+ALL.forEach(L=>{L.ex=expand(L).map(e=>({...e,ex:undefined}));});
+const EX=ALL.flatMap(L=>L.ex);
 /* progress from a done map {id:date}. A level opens when the level before it is finished, or when you have
-   already ticked a lesson in it (so lessons added to earlier levels later never lock what you reached). */
+   already ticked an exercise in it (so lessons added to earlier levels later never lock what you reached). */
 function progress(done){done=done||{};
-  const levelDone=li=>LEVELS[li].ls.every(x=>done[x.id]);
-  const unlocked=li=>li===0||levelDone(li-1)||LEVELS[li].ls.some(x=>done[x.id]);
+  const exDone=e=>!!(done[e.id]||(e.home&&done[e.pid]));
+  const lessonDone=L=>L.ex.every(exDone);
+  const levelDone=li=>ALL.filter(x=>x.lv===li).every(lessonDone);
+  const unlocked=li=>li===0||levelDone(li-1)||ALL.some(x=>x.lv===li&&x.ex.some(exDone));
   let level=LEVELS.findIndex((L,li)=>unlocked(li)&&!levelDone(li));if(level<0)level=LEVELS.length-1;
-  const next=ALL.find(x=>unlocked(x.lv)&&!done[x.id])||null;
-  const n=ALL.filter(x=>done[x.id]).length;
-  return {levelDone,unlocked,level,next,n,total:ALL.length};}
-window.FSC={TUNINGS,CH,LEVELS,ALL,progress};
+  const next=EX.find(x=>unlocked(x.lv)&&!exDone(x))||null;
+  const n=EX.filter(exDone).length;
+  return {levelDone,unlocked,lessonDone,exDone,level,next,n,total:EX.length,lessons:ALL.length};}
+window.FSC={TUNINGS,CH,LEVELS,ALL,EX,progress};
 })();

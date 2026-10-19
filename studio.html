@@ -121,11 +121,11 @@ else document.getElementById("lNext").textContent=pats.length?"Write your next p
 // Fingerstyle Solo: levels are finished lesson by lesson
 {const P=FSC.progress(fs.done||{});
  document.getElementById("fLv").textContent=FSC.LEVELS.length+" levels";
- document.getElementById("fN").textContent=P.total+" lessons";
+ document.getElementById("fN").textContent=P.total+" exercises";
  document.getElementById("fLevel").textContent=P.level+1;
  document.getElementById("fDone").textContent=P.n;
  document.getElementById("fLeft").textContent=P.total-P.n;
- document.getElementById("fNext").textContent=P.n===P.total?"Course complete: review any lesson":P.next?`Next: ${P.next.id} ${P.next.t}`:"Start with lesson 1a";}
+ document.getElementById("fNext").textContent=P.n===P.total?"Course complete: review any lesson":P.next?`Next: ${P.next.pid||P.next.id} ${P.next.t}${P.next.vt?" · "+P.next.vt:""}`:"Start with lesson 1a";}
 // Soloing Course: exercises done, saved solos and minutes (not part of the 15 + 15 cycle)
 {const so=get("solo-v1")||{},L=Object.values(so.solos||{}).filter(x=>x&&!((so.del||{})[x.id]>=x.upd));
  document.getElementById("sSolos").textContent=L.length;document.getElementById("sEx").textContent=Object.keys((so.course&&so.course.done)||{}).length;document.getElementById("sFin").textContent=L.filter(x=>x.done).length;

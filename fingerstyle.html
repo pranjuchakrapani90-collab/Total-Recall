@@ -128,15 +128,17 @@ input{accent-color:var(--steel)}
 <script>
 "use strict";
 /* ===================== The course: chords, levels and lessons live in fs-course.js (shared with the hub) ===================== */
-const {TUNINGS,CH,LEVELS,ALL}=FSC;
+const {TUNINGS,CH,LEVELS,ALL,EX}=FSC;
 let TUNE=TUNINGS.std.o; // open-string pitches for the lesson being built
 const X=null;
 const fretOn=(c,s)=>c.f[6-s];
 const cname=n=>n.replace(/\(.*?\)/,"");
-const byId=id=>ALL.find(x=>x.id===id);
+const byId=id=>EX.find(x=>x.id===id)||ALL.find(x=>x.id===id);
+const lessonOf=x=>ALL.find(l=>l.id===(x.pid||x.id));
 
 /* ===================== Building the notes ===================== */
-const KEYS={C:[0,2,4,5,7,9,11],G:[7,9,11,0,2,4,6],A:[9,11,1,2,4,6,8],Am:[9,11,0,2,4,5,7],D:[2,4,6,7,9,11,1],E:[4,6,8,9,11,1,3]};
+const KEYS=new Proxy({},{get:(o,k)=>{const R={C:0,"C#":1,Db:1,D:2,Eb:3,E:4,F:5,"F#":6,Gb:6,G:7,Ab:8,A:9,Bb:10,B:11}[String(k).replace(/m$/,"")];
+  if(R==null)return undefined;const st=/m$/.test(k)?[0,2,3,5,7,8,10]:[0,2,4,5,7,9,11];return st.map(x=>(R+x)%12);}});
 const fg=(s,role)=>role==="b"?"p":s===1?"a":s===2?"m":"i";
 const midiOf=(s,f)=>TUNE[s]+f;
 function noteName(tok){const m=/^([A-G])(#|b)?(\d)$/.exec(tok);const pc={C:0,D:2,E:4,F:5,G:7,A:9,B:11}[m[1]]+(m[2]==="#"?1:m[2]==="b"?-1:0);return (Number(m[3])+1)*12+pc;}
@@ -229,6 +231,7 @@ function eventsOf(L){
   TUNE=TUNINGS[L.tune||"std"].o;
   if(L.task)return {ev:[],ch:[],total:0,meter:L.meter||4};
   const E=L.mel?songEvents(L):patternEvents(L);
+  if(L.only==="b")E.ev=E.ev.filter(e=>e.role!=="m"); // stage: the bass and chords without the tune
   if(L.swing){E.ev.forEach(e=>{const w=Math.floor(e.b+1e-6);if(Math.abs(e.b-w-.5)<1e-6){e.b=w+2/3;e.d=Math.max(.25,e.d-1/6);}else if(Math.abs(e.b-w)<1e-6&&Math.abs(e.d-.5)<1e-6)e.d=2/3;});
     E.ev.sort((a,b)=>a.b-b.b||b.s-a.s);}
   return E;}
@@ -249,7 +252,8 @@ const PR=()=>FSC.progress(st.done);
 const levelDone=li=>PR().levelDone(li);
 const unlockedLv=li=>PR().unlocked(li);
 const curLevel=()=>PR().level;
-const nextLesson=()=>PR().next||ALL[ALL.length-1];
+const nextLesson=()=>PR().next||EX[EX.length-1];
+const exDone=e=>PR().exDone(e),lDone=L=>PR().lessonDone(L);
 
 /* ===================== Device sync: your Total Recall sync code, encrypted, its own slot for fingerstyle ===================== */
 const SYNC_KEY="totalRecallSyncCode_v1",SYNC_URL=localStorage.getItem("totalRecallTickTickUrl")||"https://total-recall-ticktick.pranjuchakrapani90.workers.dev";
@@ -407,11 +411,11 @@ function tabHTML(E){
 }
 function fixClefs(){document.querySelectorAll(".tab").forEach(t=>{let last=null;[...t.children].forEach(b=>{b.classList.toggle("nc",b.offsetTop===last);last=b.offsetTop;});});}
 window.addEventListener("resize",()=>setTimeout(fixClefs,100));
-function header(){document.getElementById("hLevel").textContent=curLevel()+1;document.getElementById("hDone").textContent=Object.keys(st.done).length;}
+function header(){document.getElementById("hLevel").textContent=curLevel()+1;document.getElementById("hDone").textContent=PR().n;}
 function goalCard(){return `<div class="card goal"><div class="row between"><h3>Daily goal · ${goalMin()} min</h3><span class="num">all of Guitar Studio</span></div>
   <div class="gbar"><i id="goalBar"></i></div><p id="goalTxt"></p></div>`;}
 /* a session: a technique warm-up you already know, the new lesson, then a finished piece to keep in your fingers */
-function sessionPlan(nx){const day=Math.floor(Date.now()/864e5),done=ALL.filter(x=>st.done[x.id]&&x.id!==nx.id);
+function sessionPlan(nx){const day=Math.floor(Date.now()/864e5),done=ALL.filter(x=>lDone(x)&&x.id!==nx.pid);
   const tech=done.filter(x=>!x.song&&!x.task),songs=done.filter(x=>x.song);
   const warm=tech.length?tech[day%tech.length]:ALL[0],out=[];
   if(warm.id!==nx.id)out.push({min:2,L:warm,h:"Warm up",why:"A pattern you already play, at a comfortable tempo, to wake up the thumb and fingers."});
@@ -421,27 +425,27 @@ function sessionPlan(nx){const day=Math.floor(Date.now()/864e5),done=ALL.filter(
 function homeView(){
   const nx=nextLesson(),S=sessionPlan(nx),pr=PR();
   return `${goalCard()}
-  <section class="card"><div class="row between"><div class="num">Today's 10-minute session</div><span class="num">${pr.n} of ${pr.total} lessons · ${Math.round(pr.n/pr.total*100)}%</span></div>
+  <section class="card"><div class="row between"><div class="num">Today's 10-minute session</div><span class="num">${pr.n} of ${pr.total} exercises · ${Math.round(pr.n/pr.total*100)}%</span></div>
     <h2>${pr.n?"Pick up where you left off":"Start your fingerstyle journey"}</h2>
     <div class="gbar" style="height:8px;border-radius:5px;background:var(--steel-soft);overflow:hidden"><i style="display:block;height:100%;width:${pr.n/pr.total*100}%;background:var(--good)"></i></div>
-    <ol class="sess">${S.map(x=>`<li><span class="sm">${x.min} min</span><div><b>${x.h}</b><br><span>${x.why}</span></div><button type="button" class="${x.main?"play":""}" data-open="${x.L.id}">${x.L.id} ${x.L.t} ▸</button></li>`).join("")}</ol>
-    <p>Every lesson has a goal tempo. With <b>Climb</b> on, the tempo rises 4 bpm after every two clean loops until it reaches the goal. Mark a lesson done when you can play it three times in a row at the goal; finishing a level opens the next.</p></section>
+    <ol class="sess">${S.map(x=>`<li><span class="sm">${x.min} min</span><div><b>${x.h}</b><br><span>${x.why}</span></div><button type="button" class="${x.main?"play":""}" data-open="${x.L.id}">${(x.L.pid||x.L.id)} ${x.L.t}${x.L.vt&&x.L.pid!==x.L.id?` · ${x.L.vt}`:""} ▸</button></li>`).join("")}</ol>
+    <p>Every lesson has a goal tempo. With <b>Climb</b> on, the tempo rises 4 bpm after every two clean loops until it reaches the goal. Each lesson is a set of exercises: the pattern in every open key (barre lessons in all 12 keys), songs in stages and then in a second key. Mark an exercise done when you can play it three times in a row at the goal; when all of a lesson's exercises are done the lesson is complete, and finishing a level opens the next.</p></section>
   ${syncCard()}
   <section class="card"><h3>The course</h3><div class="levels">${LEVELS.map((L,li)=>{const un=unlockedLv(li),fin=levelDone(li),cur=li===curLevel()&&!fin;
-    return `<div class="lvl${un?"":" lock"}${fin?" fin":""}${cur?" cur":""}"><div class="lvh"><b>Level ${li+1}: ${L.n}</b><span>${fin?"✓ complete":un?`${L.ls.filter(x=>st.done[x.id]).length} of ${L.ls.length} done`:"🔒 finish the level before"}</span></div>
-      <p>${L.d}</p><div class="lessons">${L.ls.map(x=>`<button type="button" class="les${st.done[x.id]?" ok":x.id===nx.id?" next":""}" ${un?`data-open="${x.id}"`:"disabled"}>${st.done[x.id]?"✓ ":""}${x.id} ${x.t}</button>`).join("")}</div></div>`;}).join("")}</div></section>`;
+    return `<div class="lvl${un?"":" lock"}${fin?" fin":""}${cur?" cur":""}"><div class="lvh"><b>Level ${li+1}: ${L.n}</b><span>${fin?"✓ complete":un?`${L.ls.filter(x=>lDone(ALL.find(l=>l.id===x.id))).length} of ${L.ls.length} lessons done`:"🔒 finish the level before"}</span></div>
+      <p>${L.d}</p><div class="lessons">${L.ls.map(y=>{const x=ALL.find(l=>l.id===y.id),d=lDone(x),k=x.ex.filter(exDone).length;return `<button type="button" class="les${d?" ok":x.id===nx.pid?" next":""}" ${un?`data-open="${x.id}"`:"disabled"}>${d?"✓ ":""}${x.id} ${x.t}${x.ex.length>1?` <small>${k}/${x.ex.length}</small>`:""}</button>`;}).join("")}</div></div>`;}).join("")}</div></section>`;
 }
 /* hear it → sing it → see it → play it, on tunes you already know (Eli Koskoff's melody exercise) */
 function earSong(L){const o={Twinkle:"1 1 5 5 6 6 5",Ode:"3 3 4 5 5 4 3 2",Amazing:"5 1 3 1 3 2 1 6 5"},k=Object.keys(o).find(x=>L.t.includes(x));
   const how="Before you read the tab, hum the root of the key and call it 'one', sing the first phrase by scale numbers, picture where those notes sit on the top strings, then try to play the phrase first time. Check it against the tab afterwards.";
   return k?`${how} It starts <b>${o[k]}</b>: sing that before you play.`:`${how} Work the numbers out by singing up the scale from the root.`;}
-function taskView(L){const Lv=LEVELS[L.lv],all=ALL.indexOf(L),prev=ALL[all-1],next=ALL[all+1];
+function taskView(L){const Lv=LEVELS[L.lv],all=ALL.indexOf(lessonOf(L)),prev=ALL[all-1],next=ALL[all+1];
   return `<section class="card"><div class="num">Level ${L.lv+1} · ${Lv.n}</div><h2>${L.t}</h2>
     <div class="chips"><span class="chip t">project</span></div>
     <p class="pdesc">${L.w}</p><p class="tip">💡 ${L.tip}</p>
     <ol class="steps">${L.steps.map(x=>`<li>${x}</li>`).join("")}</ol>
     <div class="navf">${prev?`<button type="button" data-open="${prev.id}">◂ ${prev.id}</button>`:"<span></span>"}<button type="button" class="linkb" data-home="1">All levels</button>
-      ${st.done[L.id]?`<button type="button" data-undone="${L.id}">Mark as not done</button>`:`<button type="button" class="good big" data-done="${L.id}">✓ Done</button>`}
+      ${exDone(L)?`<button type="button" data-undone="${L.id}">Mark as not done</button>`:`<button type="button" class="good big" data-done="${L.id}">✓ Done</button>`}
       ${next?`<button type="button" data-open="${next.id}"${unlockedLv(next.lv)||next.lv===L.lv?"":" disabled"}>${next.id} ▸</button>`:""}</div></section>`;}
 function howTo(L){const lo=L.tempo[0],hi=L.tempo[1];
   const a=L.song?["Sing or hum the tune first, then play the melody notes alone (the orange numbers) until they are secure.","Add the thumb: loop two bars with bar practice, slowly, until the bass never stops under the melody."]
@@ -449,13 +453,18 @@ function howTo(L){const lo=L.tempo[0],hi=L.tempo[1];
   return `<details class="how"><summary>How to practise this lesson</summary><ol>${a.map(x=>`<li>${x}</li>`).join("")}
     <li>Turn on <b>Climb</b>: start at ${lo} bpm and let the tempo rise 4 bpm every two loops. If it gets messy, drop back 8 bpm and climb again.</li>
     <li>At ${hi} bpm, play it three times in a row without a mistake, then mark it done.</li></ol></details>`;}
+/* the lesson's exercises: one button each, ticked when done */
+function exTabs(L,P){if(P.ex.length<2)return "";const k=P.ex.filter(exDone).length;
+  return `<div class="extabs"><div class="num">Exercise ${P.ex.indexOf(P.ex.find(e=>e.id===L.id))+1} of ${P.ex.length} · ${k} done${lDone(P)?" · lesson complete ✓":""}</div><div class="row" style="flex-wrap:wrap;gap:6px;margin:6px 0 10px">${P.ex.map((e,i)=>`<button type="button" data-open="${e.id}" class="${e.id===L.id?"play":exDone(e)?"good":""}">${exDone(e)?"✓ ":""}${esc2(e.vt||"Exercise "+(i+1))}</button>`).join("")}</div>
+    ${P.ex.length>1&&!lDone(P)?`<button type="button" class="linkb" data-lessondone="${P.id}">✓ Mark the whole lesson complete</button>`:""}</div>`;}
+const esc2=x=>String(x).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 function lessonView(L){
   if(L.task)return taskView(L);
-  const E=eventsOf(L),Lv=LEVELS[L.lv],idx=Lv.ls.findIndex(x=>x.id===L.id),all=ALL.indexOf(L),prev=ALL[all-1],next=ALL[all+1];
+  const P=lessonOf(L),E=eventsOf(L),Lv=LEVELS[L.lv],idx=Lv.ls.findIndex(x=>x.id===P.id),all=ALL.indexOf(P),prev=ALL[all-1],next=ALL[all+1];
   const chords=[...new Set(E.ch.map(c=>cname(c.name)))].filter(Boolean);
   const nb=Math.ceil(E.total/E.meter-1e-6);
   return `<section class="card"><div class="num">Level ${L.lv+1} · ${Lv.n} · lesson ${idx+1} of ${Lv.ls.length}</div>
-    <h2>${L.t}</h2>
+    <h2>${L.t}</h2>${exTabs(L,P)}
     <div class="chips"><span class="chip">${L.meter}/4</span>${chords.length?`<span class="chip t">${chords.join(" · ")}</span>`:""}<span class="chip">${nb} bars</span><span class="chip g">goal ${L.tempo[1]} bpm</span>${L.song?`<span class="chip t">song</span>`:""}${L.tune?`<span class="chip t">🎛 ${TUNINGS[L.tune].n} tuning</span>`:""}${L.swing?`<span class="chip">swing</span>`:""}</div>
     <p class="pdesc"><b>In words:</b> ${L.w}</p>
     <p class="tip">💡 ${L.tip}</p>
@@ -474,7 +483,7 @@ function lessonView(L){
       <button type="button" data-bars="add">＋ Add next bar</button><button type="button" data-bars="next">Next bar only ▶</button><button type="button" data-bars="all"${sel?"":" disabled"}>All bars</button></div>
     <div class="tabscroll"><div class="tab${sel?" hassel":""}">${tabHTML(E)}</div></div>
     <div class="navf">${prev?`<button type="button" data-open="${prev.id}">◂ ${prev.id}</button>`:"<span></span>"}<button type="button" class="linkb" data-home="1">All levels</button>
-      ${st.done[L.id]?`<button type="button" data-undone="${L.id}">Mark as not done</button>`:`<button type="button" class="good big" data-done="${L.id}">✓ I can play it at ${L.tempo[1]} bpm</button>`}
+      ${exDone(L)?`<button type="button" data-undone="${L.id}">Mark as not done</button>`:`<button type="button" class="good big" data-done="${L.id}">✓ I can play it at ${L.tempo[1]} bpm</button>`}
       ${next?`<button type="button" data-open="${next.id}"${unlockedLv(next.lv)||next.lv===L.lv?"":" disabled"}>${next.id} ▸</button>`:""}</div></section>`;
 }
 function render(){
@@ -487,7 +496,7 @@ function setBar(){const nb=document.getElementById("nowbar"),L0=view.k==="lesson
   document.getElementById("nbInfo").textContent=play?(sel?(sel.a===sel.b?`Looping bar ${sel.a+1}`:`Looping bars ${sel.a+1}–${sel.b+1}`):`Playing ${L.id}`):`Lesson ${L.id}${sel?` · bar${sel.a===sel.b?" "+(sel.a+1):"s "+(sel.a+1)+"–"+(sel.b+1)}`:""}`;
   document.getElementById("nbT").textContent=tempoOf(L);
   if(play)play.sub=SUB;}
-function open(id){view={k:"lesson",id};sel=null;st.last=id;save();render();window.scrollTo({top:0});}
+function open(id){const P=ALL.find(l=>l.id===id);if(P&&P.ex.length>1)id=(P.ex.find(e=>!exDone(e))||P.ex[0]).id;view={k:"lesson",id};sel=null;st.last=id;save();render();window.scrollTo({top:0});}
 function setSel(s){const wasPlaying=!!play;sel=s;render();if(wasPlaying)start();}
 document.addEventListener("click",e=>{
   const o=e.target.closest("[data-open]");if(o){open(o.dataset.open);return;}
@@ -495,9 +504,12 @@ document.addEventListener("click",e=>{
   if(e.target.closest("#nbPlay")){play?stop():start();return;}
   const td=e.target.closest("[data-tdelta]");if(td){const L=byId(view.id);st.tempo[L.id]=Math.max(30,Math.min(160,tempoOf(L)+Number(td.dataset.tdelta)));st.tUpd=Date.now();save();
     const r=document.getElementById("tempo");if(r){r.value=tempoOf(L);document.getElementById("tempoV").textContent=tempoOf(L);}if(play){const was=true;stop();start();}else setBar();return;}
-  const d=e.target.closest("[data-done]");if(d){st.done[d.dataset.done]=dkey(new Date());st.doneT[d.dataset.done]=Date.now();save();const L=byId(d.dataset.done),nx=ALL[ALL.indexOf(L)+1];
-    if(nx&&unlockedLv(nx.lv))open(nx.id);else{view={k:"home"};render();}return;}
-  const u=e.target.closest("[data-undone]");if(u){delete st.done[u.dataset.undone];st.offT[u.dataset.undone]=Date.now();save();render();return;}
+  const ld=e.target.closest("[data-lessondone]");if(ld){const P=ALL.find(l=>l.id===ld.dataset.lessondone);P.ex.forEach(x=>{if(!exDone(x)){st.done[x.id]=dkey(new Date());st.doneT[x.id]=Date.now();}});save();
+    const nx=ALL[ALL.indexOf(P)+1];if(nx&&unlockedLv(nx.lv))open(nx.id);else{view={k:"home"};render();}return;}
+  const d=e.target.closest("[data-done]");if(d){st.done[d.dataset.done]=dkey(new Date());st.doneT[d.dataset.done]=Date.now();save();const L=byId(d.dataset.done),P=lessonOf(L);
+    const sib=P.ex.slice(P.ex.indexOf(L)+1).concat(P.ex.slice(0,P.ex.indexOf(L))).find(x=>!exDone(x));if(sib){open(sib.id);return;}
+    const nx=ALL[ALL.indexOf(P)+1];if(nx&&unlockedLv(nx.lv))open(nx.id);else{view={k:"home"};render();}return;}
+  const u=e.target.closest("[data-undone]");if(u){const L=byId(u.dataset.undone);[L.id].concat(L.home&&L.pid!==L.id?[L.pid]:[]).forEach(id=>{if(st.done[id]){delete st.done[id];st.offT[id]=Date.now();}});save();render();return;}
   if(e.target.closest("[data-syncnow]")){cloudSync();return;}
   if(e.target.closest("[data-syncoff]")){try{localStorage.removeItem(SYNC_KEY);}catch(x){}setSync("off");render();return;}
   if(e.target.closest("[data-syncon]")){const v=(document.getElementById("syncIn").value||"").trim();if(v.length<8){setSync("err","use a sync code of at least 8 characters");return;}try{localStorage.setItem(SYNC_KEY,v);}catch(x){}cloudSync().then(render);return;}
