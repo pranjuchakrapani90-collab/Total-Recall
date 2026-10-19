@@ -36,6 +36,7 @@ a.sec:hover,a.sec:focus-visible{transform:translateY(-2px);box-shadow:0 10px 26p
 a.sec::before{content:"";position:absolute;left:0;top:0;right:0;height:5px;background:var(--steel)}
 a.sec.fs::before{background:var(--brass)}
 a.sec.ld::before{background:#be123c}.ld .tag{background:#ffe4e6;color:#9f1239}.ld .go b{background:#be123c}
+a.sec.sb::before{background:#c2410c}.sb .tag{background:#fff1e8;color:#9a3412}.sb .go b{background:#c2410c}
 a.sec.cg::before{background:#0f766e}.cg .tag{background:#e6f6f4;color:#0f766e}.cg .go b{background:#0f766e}
 .ico{font-size:34px;line-height:1}
 .sec h2{font:750 24px/1.15 var(--body);margin:0}
@@ -56,7 +57,7 @@ a.sec.cg::before{background:#0f766e}.cg .tag{background:#e6f6f4;color:#0f766e}.c
   <a class="backlink" href="./">← Total Recall &amp; Melodies</a>
   <div class="eyebrow">Guitar practice</div>
   <h1>Guitar Studio</h1>
-  <p>Two ways to practise, one daily goal: 15 minutes of Melodic Lead, then 15 of Fingerstyle Solo.</p>
+  <p>One daily goal, 15 minutes of Melodic Lead then 15 of Fingerstyle Solo, and a workshop for writing your own solos.</p>
   <p id="hubSync" style="margin-top:8px;font-size:12px;opacity:.9"></p>
 </div></header>
 <main class="wrap">
@@ -86,6 +87,14 @@ a.sec.cg::before{background:#0f766e}.cg .tag{background:#e6f6f4;color:#0f766e}.c
       <div class="tags"><span class="tag" id="fLv">11 levels</span><span class="tag" id="fN">lessons</span><span class="tag">songs · tunings</span></div>
       <div class="now"><div><b id="fLevel">1</b><span>level</span></div><div><b id="fDone">0</b><span>lessons done</span></div><div><b id="fLeft">35</b><span>to go</span></div></div>
       <div class="go"><span id="fNext">Start with lesson 1a</span><b>Open ▸</b></div>
+    </a>
+    <a class="sec sb" href="solo.html">
+      <div class="ico">✍️</div>
+      <h2>Solo Builder</h2>
+      <p>Each visit gives you a key, a CAGED shape and a chord progression. Build a 16-bar solo over a backing band, phrase by phrase: motif, answer, build, resolve. Saved as you go.</p>
+      <div class="tags"><span class="tag">your own solos</span><span class="tag">backing band</span><span class="tag">16 bars</span></div>
+      <div class="now"><div><b id="sSolos">0</b><span>solos</span></div><div><b id="sFin">0</b><span>finished</span></div><div><b id="sWeek">0</b><span>min this week</span></div></div>
+      <div class="go"><span id="sNext">Get today's key and shape</span><b>Open ▸</b></div>
     </a>
   </div>
 </main>
@@ -117,6 +126,12 @@ else document.getElementById("lNext").textContent=pats.length?"Write your next p
  document.getElementById("fDone").textContent=P.n;
  document.getElementById("fLeft").textContent=P.total-P.n;
  document.getElementById("fNext").textContent=P.n===P.total?"Course complete: review any lesson":P.next?`Next: ${P.next.id} ${P.next.t}`:"Start with lesson 1a";}
+// Solo Builder: saved solos and minutes (not part of the 15 + 15 cycle)
+{const so=get("solo-v1")||{},L=Object.values(so.solos||{}).filter(x=>x&&!((so.del||{})[x.id]>=x.upd));
+ document.getElementById("sSolos").textContent=L.length;document.getElementById("sFin").textContent=L.filter(x=>x.done).length;
+ let t=0;for(let i=0;i<7;i++){const d=new Date();d.setDate(d.getDate()-i);const k=dkey(d);t+=((so.days||{})[k]||0)+Object.values(so.odays||{}).reduce((a,o)=>a+((o&&o[k])||0),0);}
+ document.getElementById("sWeek").textContent=Math.floor(t/60);
+ const cur=so.cur&&(so.solos||{})[so.cur];if(cur&&!cur.done)document.getElementById("sNext").textContent=`Continue: ${cur.name}`;}
 // Lead Course (on hold): stats only if its card is on the page
 if(document.getElementById("cDone")){const ORDER=["La","f","Lb","c","Lc","a","Ld","g","Le","e","Lf","d","Lg","j","Lh","t","Li","b","r","Lj","p","s","Lk","x"];
  const D=lp?(lp.done||{}):Object.assign({},(old[0].done||{}),Object.fromEntries(Object.entries(old[1].done||{}).map(([k,v])=>["L"+k,v])));

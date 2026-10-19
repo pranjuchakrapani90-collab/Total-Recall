@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#c2410c">
+<title>Solo Builder · Guitar Studio</title>
+<script src="gsync.js"></script>
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+:root{--bg:#f4f7fb;--paper:#fff;--ink:#172033;--muted:#697386;--line:#e5e7eb;--acc:#c2410c;--acc-soft:#fff1e8;--steel:#4f46e5;--good:#059669;--good-soft:#ecfdf5;--warn:#b45309;--warn-soft:#fffbeb;
+  --body:system-ui,-apple-system,"Segoe UI",sans-serif;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color-scheme:light}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 var(--body);padding-bottom:96px}
+header{background:linear-gradient(135deg,#c2410c,#9a3412);color:#fff;padding:20px 16px 22px}
+.hin{max-width:900px;margin:0 auto}
+.backlink{font-size:13px;color:#fff;opacity:.9;text-decoration:none}
+.eyebrow{font:600 11px/1 var(--body);letter-spacing:.14em;text-transform:uppercase;color:#ffedd5;margin-top:12px}
+h1{font:750 clamp(26px,6vw,36px)/1.1 var(--body);margin:6px 0 4px}
+header p{margin:0;color:#ffedd5;max-width:62ch}
+.wrap{max-width:900px;margin:0 auto;padding:16px 16px 40px;display:flex;flex-direction:column;gap:14px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.card h2{font:700 18px/1.25 var(--body);margin:0}.card h3{font:700 15px var(--body);margin:0}
+.card p{margin:0}.muted{color:var(--muted)}.small{font-size:13px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.between{justify-content:space-between}
+button,.btn{font:600 14px var(--body);border:0;border-radius:10px;padding:9px 13px;background:#f1f5f9;color:var(--ink);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+button.pri,.btn.pri{background:var(--acc);color:#fff}button.good{background:var(--good);color:#fff}
+button.on{background:var(--ink);color:#fff}button:disabled{opacity:.45;cursor:default}
+button.linkb{background:none;padding:4px 2px;color:var(--muted);text-decoration:underline}
+select,input[type=text]{font:500 14px var(--body);border:1px solid var(--line);border-radius:8px;padding:8px;background:#fff;color:var(--ink);min-width:0}
+.brief{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+@media(max-width:600px){.brief{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.brief div{background:var(--acc-soft);border-radius:12px;padding:10px 12px}
+.brief b{display:block;font:750 20px/1.2 var(--body);color:#7c2d12}
+.brief span{font-size:12px;color:#9a3412}
+details.primer summary{cursor:pointer;font-weight:650}
+.primer ol{margin:6px 0 0;padding-left:20px}.primer li{margin:4px 0}
+/* story arc */
+.arc{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.ph{border-radius:10px;padding:8px;background:#f8fafc;border:2px solid transparent;cursor:pointer;text-align:left;display:block;min-width:0}
+.ph.here{border-color:var(--acc)}.ph b{display:block;font:700 13px var(--body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ph span{font-size:11px;color:var(--muted)}.ph i{display:block;height:4px;border-radius:3px;background:#e2e8f0;margin-top:6px;overflow:hidden}.ph i s{display:block;height:100%;background:var(--acc)}
+.curve{width:100%;height:auto;display:block}
+/* guide */
+.chord{font:800 30px/1 var(--body);color:#7c2d12}
+.tip{background:var(--acc-soft);border-radius:12px;padding:10px 12px;font-size:14px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{font:600 13px var(--body);border-radius:999px;padding:5px 10px;background:#f1f5f9}
+.chip.ct{background:var(--good-soft);color:#065f46}.chip.rt{background:var(--ink);color:#fff}
+/* fretboard */
+.fb{width:100%;height:auto;display:block;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.fb .dot{cursor:pointer}
+.tools{display:flex;flex-direction:column;gap:8px}
+.durs{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.durs button{flex-direction:column;gap:0;padding:6px 2px;font-size:15px;justify-content:center}
+.durs button small{font:500 10px var(--body);opacity:.75}
+.techs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
+.techs button{justify-content:center;padding:8px 4px;font-size:13px}
+.fill{height:8px;border-radius:5px;background:#f1f5f9;overflow:hidden;flex:1;min-width:60px}.fill s{display:block;height:100%;background:var(--acc);text-decoration:none}
+/* tab */
+.tabrows{display:flex;flex-direction:column;gap:12px}
+.tabph h3{font:700 13px var(--body);margin:0 0 4px;color:var(--muted)}
+.bars{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
+@media(max-width:560px){.bars{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.bar{border:2px solid var(--line);border-radius:10px;padding:4px 4px 2px;cursor:pointer;background:#fff;min-width:0}
+.bar.sel{border-color:var(--acc);background:#fffaf5}.bar.play{box-shadow:0 0 0 3px #fdba74}
+.bar .bh{display:flex;justify-content:space-between;font:700 12px var(--body);padding:0 2px}.bar .bh span{color:var(--muted);font-weight:500}
+.bar svg{width:100%;height:auto;display:block}
+.checks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.checks li{display:flex;gap:8px;align-items:flex-start;font-size:14px}.checks li b{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px;background:var(--warn-soft);color:var(--warn)}
+.checks li.ok b{background:var(--good-soft);color:var(--good)}.checks li small{display:block;color:var(--muted)}
+.lib{display:flex;flex-direction:column;gap:8px}
+.solo{display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.solo b{display:block}.solo span{font-size:12px;color:var(--muted)}
+.badge{font:600 11px var(--body);border-radius:999px;padding:3px 8px;background:var(--warn-soft);color:var(--warn)}.badge.fin{background:var(--good-soft);color:var(--good)}
+/* transport */
+.transport{position:fixed;left:0;right:0;bottom:0;z-index:40;background:#fff;border-top:1px solid var(--line);box-shadow:0 -6px 20px #0f172a14;padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px))}
+.transport .tin{max-width:900px;margin:0 auto;display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center}
+.transport .tempo{display:flex;align-items:center;gap:4px;font:700 14px var(--mono)}
+.transport .tempo button{padding:7px 10px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(80px + env(safe-area-inset-bottom,0px));z-index:60;background:var(--ink);color:#fff;border-radius:10px;padding:9px 14px;font-size:14px;max-width:calc(100% - 32px)}
+</style></head><body>
+<header><div class="hin">
+  <a class="backlink" href="studio.html">← Guitar Studio</a>
+  <div class="eyebrow">Guitar Studio · section 3</div>
+  <h1>Solo Builder</h1>
+  <p>Each time you open it you get a key, a CAGED shape and a chord progression. You build a 16-bar solo over a backing band, phrase by phrase, and save it when it's done.</p>
+  <p id="syncLine" style="margin-top:8px;font-size:12px;opacity:.9"></p>
+</div></header>
+<main class="wrap" id="app"></main>
+<div class="transport" id="transport" hidden></div>
+<script>
+"use strict";
+/* ===================== Music theory ===================== */
+const OPEN={1:64,2:59,3:55,4:50,5:45,6:40};
+/* the five CAGED shapes of the major scale for C major (frets per string), same data as Melodic Lead */
+const CAGED=[
+  {n:"C",fr:{6:[0,1,3],5:[0,2,3],4:[0,2,3],3:[0,2],2:[0,1,3],1:[0,1,3]}},
+  {n:"A",fr:{6:[3,5],5:[2,3,5],4:[2,3,5],3:[2,4,5],2:[3,5,6],1:[3,5]}},
+  {n:"G",fr:{6:[5,7,8],5:[5,7,8],4:[5,7],3:[4,5,7],2:[5,6,8],1:[5,7,8]}},
+  {n:"E",fr:{6:[7,8,10],5:[7,8,10],4:[7,9,10],3:[7,9,10],2:[8,10],1:[7,8,10]}},
+  {n:"D",fr:{6:[10,12,13],5:[10,12],4:[9,10,12],3:[9,10,12],2:[10,12,13],1:[10,12,13]}}];
+const MAJ=[0,2,4,5,7,9,11];
+const KEYS=[{n:"C",pc:0},{n:"G",pc:7},{n:"D",pc:2},{n:"A",pc:9},{n:"E",pc:4},{n:"F",pc:5},{n:"B♭",pc:10},{n:"E♭",pc:3}];
+const SHARP=["C","C♯","D","D♯","E","F","F♯","G","G♯","A","A♯","B"],FLAT=["C","D♭","D","E♭","E","F","G♭","G","A♭","A","B♭","B"];
+const QUAL=["","m","m","","","m","°"],ROM=["I","ii","iii","IV","V","vi","vii°"],DEGN=["1","2","3","4","5","6","7"];
+const PROGS={pop:{n:"Pop",d:[0,4,5,3]},fifties:{n:"Fifties",d:[0,5,3,4]},rock:{n:"Rock",d:[0,3,4,3]},lift:{n:"Lift",d:[0,3,5,4]},ballad:{n:"Ballad",d:[5,3,0,4]}};
+const nn=(pc,key)=>([5,10,3,8,1].includes(key)?FLAT:SHARP)[((pc%12)+12)%12];
+const keyName=k=>(KEYS.find(x=>x.pc===k)||{n:nn(k,k)}).n;
+const chordName=(c,key)=>nn(key+MAJ[c],key)+QUAL[c];
+const ctSet=c=>new Set([c,(c+2)%7,(c+4)%7]);
+/* the 16 chords: phrases 1–2 play the progression, phrase 3 ends on V (tension), phrase 4 ends V → I (release) */
+function chords16(prog){const d=PROGS[prog].d;return [...d,...d,d[0],d[1],d[2],4,d[0],d[1],4,0];}
+function shapeNotes(key,p){const sh=CAGED[p],all=Object.values(sh.fr).flat();let shift=key;
+  if(Math.min(...all)+shift-12>=1)shift-=12;if(Math.min(...all)+shift<1)shift+=12;
+  const seen=new Set(),out=[];for(const s of [6,5,4,3,2,1])sh.fr[s].forEach(f=>{const m=OPEN[s]+f+shift;if(seen.has(m))return;seen.add(m);out.push({s,f:f+shift,m,deg:MAJ.indexOf(((m-key)%12+12)%12)});});
+  return out.sort((a,b)=>a.m-b.m);}
+
+/* ===================== The solo's shape: four phrases ===================== */
+const PH=[
+ {n:"Statement",sub:"say one simple thing",txt:"Introduce one short idea, the motif, and leave room around it. Stay in the lower half of the shape. Simple and singable beats clever."},
+ {n:"Answer",sub:"repeat it, change it",txt:"Bring the motif back and change one thing: start it higher, end it on a different note, or shift where it starts in the bar. Repetition makes a solo memorable; the change keeps it alive."},
+ {n:"Build",sub:"tension rises",txt:"More notes, higher up the shape, bends, and notes that want to move held over the chord. Bar 12 sits on the V chord, the moment of most tension."},
+ {n:"Resolve",sub:"come home",txt:"Release the tension: quote your motif one last time, step down the shape, slow down, and land on the root over the I chord."}];
+const TIPS=[
+ "Your motif: 3 to 5 notes, short and singable. End it on a green note (a note of this chord).",
+ "Leave space. Rest for most of this bar so the motif can sink in. A short pickup into bar 3 is fine.",
+ "Play your motif again: same rhythm. Move it if needed so it ends on one of this chord's green notes.",
+ "Hold one green note and add vibrato. That's the end of your first sentence.",
+ "Answer: play the motif again, moved higher (up a string or two).",
+ "Change the motif's ending: go the other way, or end on a different green note.",
+ "Same rhythm as your motif, higher still. You're starting to climb.",
+ "Breathe: one long note, then two or three notes leading up into the build.",
+ "Build: more notes. Eighth notes moving up through the shape.",
+ "Keep climbing. Try a bend up into a green note.",
+ "The peak: reach the highest notes of the shape. Bend and hold. This is the loudest moment of the solo.",
+ "Most tension, over the V chord: end on a note that wants to move on, like the 7 (just below the root) or the 2.",
+ "Release: your motif one last time, up high, then start stepping down.",
+ "Come down the shape, step by step, in eighths or quarters.",
+ "Slow down: fewer, longer notes, heading for home.",
+ "Land on the root (dark dot) on beat 1 and hold it with vibrato. The end."];
+const IDEAL=[.25,.1,.3,.25,.35,.35,.45,.4,.6,.75,.95,.9,.6,.45,.3,.15];
+const DURS=[{d:16,s:"4",w:"whole"},{d:12,s:"3",w:"dot ½"},{d:8,s:"2",w:"half"},{d:6,s:"1½",w:"dot ¼"},{d:4,s:"1",w:"quarter"},{d:2,s:"½",w:"eighth"},{d:1,s:"¼",w:"16th"}];
+
+/* ===================== State ===================== */
+const KEY="solo-v1";
+const pad=n=>String(n).padStart(2,"0"),dkey=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+let st=(()=>{try{return JSON.parse(localStorage.getItem(KEY)||"null");}catch(e){return null;}})()||{};
+st.dev=st.dev||Math.random().toString(36).slice(2,10);st.solos=st.solos||{};st.del=st.del||{};st.days=st.days||{};st.odays=st.odays||{};
+function save(noSync){try{localStorage.setItem(KEY,JSON.stringify(st));}catch(e){}if(!noSync)scheduleSync();}
+const live=()=>Object.values(st.solos).filter(s=>s&&!(st.del[s.id]>=s.upd));
+let view=st.cur&&st.solos[st.cur]?"build":"home",sel=0,ui={dur:4,tech:{},checks:false};
+const S=()=>st.solos[st.cur];
+let P=[],N=0,C16=[];
+function load(){const s=S();if(!s)return;P=shapeNotes(s.key,s.shape);N=P.length;C16=chords16(s.prog);}
+function touch(){const s=S();if(s){s.upd=Date.now();}save();}
+
+/* today's brief: stays the same all day; favours key + shape pairs you have written the fewest solos in */
+function brief(force){const today=dkey(new Date());if(!force&&st.brief&&st.brief.day===today)return st.brief;
+  const used={};live().forEach(s=>{const k=s.key+"/"+s.shape;used[k]=(used[k]||0)+1;});
+  const all=[];KEYS.forEach(k=>[0,1,2,3,4].forEach(p=>all.push({key:k.pc,shape:p,n:used[k.pc+"/"+p]||0})));
+  const min=Math.min(...all.map(x=>x.n)),pool=all.filter(x=>x.n===min&&!(st.brief&&x.key===st.brief.key&&x.shape===st.brief.shape));
+  const pick=a=>a[Math.floor(Math.random()*a.length)],c=pick(pool.length?pool:all);
+  st.brief={day:today,key:c.key,shape:c.shape,prog:pick(Object.keys(PROGS)),tempo:pick([66,70,72,76,80])};save();return st.brief;}
+
+/* ===================== Notes ===================== */
+/* a bar is a list of items: notes {s,f,d,b,v,h,sl} or rests {r:1,d}; d is in 16ths, a bar holds 16 */
+const used=bar=>bar.reduce((a,x)=>a+x.d,0);
+const sm=n=>OPEN[n.s]+n.f+(n.b||0);
+const degOf=m=>MAJ.indexOf(((m-S().key)%12+12)%12);
+const idxOf=n=>{let i=P.findIndex(p=>p.s===n.s&&p.f===n.f);if(i<0){const m=OPEN[n.s]+n.f;i=P.reduce((b,p,j)=>Math.abs(p.m-m)<Math.abs(P[b].m-m)?j:b,0);}return i;};
+const clampI=i=>Math.max(0,Math.min(N-1,i));
+const bendSize=i=>i+1<N?Math.min(2,P[i+1].m-P[i].m):2;
+const isCT=(i,c)=>ctSet(c).has(P[clampI(i)].deg);
+const sIdx=it=>it.bend?clampI(it.i+1):it.i;
+function nearestCT(i,c,dir){i=clampI(i);for(let d=0;d<N;d++){const a=dir<0?[i-d,i+d]:[i+d,i-d];for(const j of a)if(j>=0&&j<N&&isCT(j,c))return j;}return i;}
+function nearestDeg(i,deg){i=clampI(i);for(let d=0;d<N;d++)for(const j of [i-d,i+d])if(j>=0&&j<N&&P[j].deg===deg)return j;return i;}
+function toNote(it){if(it.r)return {r:1,d:it.d};const i=clampI(it.i),p=P[i];const n={s:p.s,f:p.f,d:it.d};if(it.bend)n.b=bendSize(i);if(it.v)n.v=1;if(it.h)n.h=1;if(it.sl)n.sl=1;return n;}
+function toItems(bar){return bar.map(n=>n.r?{r:1,d:n.d}:{d:n.d,i:idxOf(n),bend:n.b?1:0,v:n.v,h:n.h,sl:n.sl});}
+function lastIdx(b){if(b<0)return null;const bar=S().bars[b]||[];const n=[...bar].reverse().find(x=>!x.r);return n?(n.b?clampI(idxOf(n)+1):idxOf(n)):null;}
+
+/* ===================== Suggestions: built from YOUR motif (bar 1) ===================== */
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const CELLS=[[4,4,8],[2,2,4,8],[-4,2,2,8],[4,2,2,8],[-2,2,2,2,8],[6,2,8],[2,2,2,2,8],[-4,4,2,2,4]];
+function genMotif(c,start){const cell=pick(CELLS),n=cell.filter(d=>d>0).length;let i=clampI(start),k=0;const its=[];
+  cell.forEach(d=>{if(d<0){its.push({r:1,d:-d});return;}k++;if(k>1)i=clampI(i+pick([1,1,2,-1,-1,-2,1]));if(k===n)i=nearestCT(i,c);its.push({d,i});});
+  const last=its[its.length-1];if(last.d>=8)last.v=1;return its;}
+function motif(){const b=S().bars[0]||[];if(!b.some(x=>!x.r))return null;const it=toItems(b),f=it.find(x=>!x.r).i;return it.map(x=>x.r?x:{...x,k:x.i-f});}
+function rel(its){const f=its.find(x=>!x.r).i;return its.map(x=>x.r?x:{...x,k:x.i-f});}
+function placeMotif(m,c,target){const ks=m.filter(x=>!x.r).map(x=>x.k),last=[...m].reverse().find(x=>!x.r);let best=null,bs=1e9;
+  for(let s=0;s<N;s++){if(s+Math.min(...ks)<0||s+Math.max(...ks)>N-1)continue;const fi=s+last.k,snd=last.bend?clampI(fi+1):fi;
+    const sc=Math.abs(s-target)+(isCT(snd,c)?0:6);if(sc<bs){bs=sc;best=s;}}
+  if(best===null)best=clampI(target);return m.map(x=>x.r?{...x}:{...x,i:clampI(best+x.k)});}
+function varyEnd(its,c){const ns=its.filter(x=>!x.r);if(ns.length<2)return its;const last=ns[ns.length-1],prev=ns[ns.length-2],dir=last.i>=prev.i?-1:1;
+  let j=last.i+dir;while(j>=0&&j<N&&!isCT(j,c))j+=dir;if(j<0||j>=N||j===last.i)j=nearestCT(last.i+2*dir,c,dir);last.i=j;last.bend=0;return its;}
+function run(start,cell,dir,c,endCT){let i=clampI(start);const its=cell.map((d,k)=>{if(k)i=clampI(i+dir*(Math.random()<.8?1:2));return {d,i};});if(endCT){const l=its[its.length-1];l.i=nearestCT(l.i,c,dir);}return its;}
+function genBar(b){
+  const c=C16[b],lo=Math.round(.25*(N-1)),mid=Math.round(.5*(N-1)),hi=Math.round(.8*(N-1)),top=N-1;
+  const pv=lastIdx(b-1),prev=pv==null?Math.round(.35*(N-1)):pv;
+  if(b===0)return genMotif(c,Math.round(.3*(N-1)));
+  const m=motif()||rel(genMotif(C16[0],Math.round(.3*(N-1))));
+  const b0=(S().bars[0]||[]).find(x=>!x.r),ms=b0?idxOf(b0):lo;
+  switch(b){
+    case 1:return Math.random()<.5?[{r:1,d:12},{d:4,i:clampI(ms-1)}]:[{r:1,d:8},{d:2,i:clampI(ms-3)},{d:2,i:clampI(ms-2)},{d:4,i:clampI(ms-1)}];
+    case 2:return placeMotif(m,c,ms);
+    case 3:return [{d:12,i:nearestCT(prev,c),v:1},{r:1,d:4}];
+    case 4:return placeMotif(m,c,ms+2);
+    case 5:return varyEnd(placeMotif(m,c,ms+2),c);
+    case 6:return placeMotif(m,c,ms+4);
+    case 7:{const i=nearestCT(prev,c);return [{d:8,i,v:1},{r:1,d:2},{d:2,i:clampI(i+1)},{d:2,i:clampI(i+2)},{d:2,i:clampI(i+3)}];}
+    case 8:return run(Math.max(prev-1,mid-2),[2,2,2,2,2,2,4],1,c,true);
+    case 9:{const its=run(prev,[2,2,2,2],1,c,false);let f=clampI(its[3].i+1);
+      for(let d=0;d<N;d++){const j=clampI(f+d);if(j+1<N&&isCT(j+1,c)){f=j;break;}}
+      its.push({d:8,i:f,bend:1,v:1});return its;}
+    case 10:{const last=isCT(top,c)?{d:8,i:top-1,bend:1,v:1}:{d:8,i:nearestCT(top,c,-1),v:1};return [{d:4,i:clampI(top-3)},{d:4,i:clampI(top-2)},last];}
+    case 11:return [{d:2,i:top},{d:2,i:clampI(top-1)},{d:2,i:top},{d:2,i:clampI(top-2)},{d:8,i:nearestDeg(top-3,6),v:1}];
+    case 12:return placeMotif(m,c,hi);
+    case 13:return run(prev-1,[2,2,2,2,2,2,2,2],-1,c,true);
+    case 14:return run(prev-1,[4,4,8],-1,c,true);
+    case 15:return [{d:16,i:nearestDeg(Math.max(lo,prev-1),0),v:1}];}
+  return [];}
+function suggest(b){S().bars[b]=genBar(b).map(toNote);touch();}
+
+/* ===================== Checks: does it work as a solo? ===================== */
+function analyze(){const s=S(),bars=s.bars,notes=b=>(bars[b]||[]).filter(x=>!x.r),sig=b=>(bars[b]||[]).map(x=>(x.r?-1:1)*x.d).join(",");
+  const cont=b=>{const ix=notes(b).map(idxOf);return ix.slice(1).map((v,k)=>v-ix[k]).join(",");};
+  const lastN=b=>notes(b).slice(-1)[0];
+  const filled=bars.filter(b=>b&&b.some(x=>!x.r)).length;
+  const m0=sig(0),c0=cont(0),hasM=notes(0).length>1;
+  const back=hasM&&[...Array(14)].some((_,k)=>{const b=k+2;return notes(b).length>1&&(sig(b)===m0||cont(b)===c0);});
+  const rest1=[0,1,2,3].reduce((a,b)=>a+(16-notes(b).reduce((x,n)=>x+n.d,0)),0)/64;
+  let hiM=-1,hiB=-1;bars.forEach((bar,b)=>notes(b).forEach(n=>{if(sm(n)>hiM){hiM=sm(n);hiB=b;}}));
+  const land=bars.map((_,b)=>lastN(b)).map((n,b)=>n?ctSet(C16[b]).has(degOf(sm(n))):null).filter(x=>x!==null);
+  const landPct=land.length?land.filter(Boolean).length/land.length:0;
+  const t12=lastN(11),end=lastN(15);
+  const busy=[8,9,10,11].reduce((a,b)=>a+notes(b).length,0)>[0,1,2,3].reduce((a,b)=>a+notes(b).length,0);
+  const all=bars.flatMap((_,b)=>notes(b)),bend=all.some(n=>n.b),vib=all.some(n=>n.v);
+  const list=[
+    {ok:filled===16,t:`All 16 bars written (${filled} of 16)`,tip:"Empty bars play as silence. Bar 2 is allowed to be nearly empty."},
+    {ok:back,t:"Your motif comes back",tip:"Reuse bar 1's rhythm or its up-and-down shape in at least one later bar."},
+    {ok:rest1>=.25,t:`Space in the first phrase (${Math.round(rest1*100)}% silence)`,tip:"Aim for at least a quarter of bars 1–4 as rests. Space makes the first idea land."},
+    {ok:hiB>=8&&hiB<=12,t:"The highest note comes in the build",tip:hiB<0?"No notes yet.":`Your highest note is in bar ${hiB+1}. Save the top of the shape for bars 9–13.`},
+    {ok:landPct>=.7,t:`Phrases land on chord tones (${Math.round(landPct*100)}% of bars)`,tip:"End most bars on a green note: it sounds settled against the chord."},
+    {ok:!!t12&&degOf(sm(t12))!==0,t:"Tension before the end (bar 12 doesn't settle)",tip:"End bar 12 on the 7 or the 2 so the ear wants to hear the root."},
+    {ok:!!end&&degOf(sm(end))===0&&end.d>=8,t:"Ends on the root, held",tip:"Finish bar 16 on the root for at least two beats."},
+    {ok:busy,t:"Busier in the build than at the start",tip:"Use more notes in bars 9–12 than in bars 1–4."},
+    {ok:bend&&vib,t:"At least one bend and one vibrato",tip:"Expression is what makes a melody sound like a voice."}];
+  const tens=bars.map((bar,b)=>{const ns=notes(b);if(!ns.length)return 0;const dens=Math.min(1,ns.length/8),h=ns.reduce((a,n)=>a+idxOf(n),0)/ns.length/Math.max(1,N-1);
+    const l=lastN(b),nonct=ctSet(C16[b]).has(degOf(sm(l)))?0:1;return Math.min(1,.35*dens+.45*h+.12*nonct+(ns.some(n=>n.b)?.1:0));});
+  return {list,score:list.filter(x=>x.ok).length,tens,filled};}
+
+/* ===================== Audio ===================== */
+let ctx=null,MASTER=null,NOISE=null;const cache={};
+function audio(){if(!ctx)ctx=new (window.AudioContext||window.webkitAudioContext)({latencyHint:"interactive"});ctx.resume().catch(()=>{});return ctx;}
+function out(){if(!MASTER||MASTER.context!==ctx){const g=ctx.createGain(),lim=ctx.createDynamicsCompressor();g.gain.value=1.6;
+  lim.threshold.value=-8;lim.knee.value=4;lim.ratio.value=16;lim.attack.value=.002;lim.release.value=.12;g.connect(lim).connect(ctx.destination);MASTER=g;}return MASTER;}
+function pluckBuf(m,bright){const k=m+"@"+ctx.sampleRate+(bright?"b":"");if(cache[k])return cache[k];
+  const sr=ctx.sampleRate,len=Math.floor(sr*2.6),buf=ctx.createBuffer(1,len,sr),d=buf.getChannelData(0);
+  const N0=Math.max(2,Math.round(sr/(440*Math.pow(2,(m-69)/12)))),dl=new Float32Array(N0);let p=0;const mix=bright?.8:.55;
+  for(let i=0;i<N0;i++){const r=Math.random()*2-1;dl[i]=mix*r+(1-mix)*p;p=dl[i];}
+  let x=0;const fb=bright?.9985:.9975;for(let i=0;i<len;i++){const v=dl[x],nx=dl[(x+1)%N0];dl[x]=fb*.5*(v+nx);d[i]=v;x=(x+1)%N0;}
+  return cache[k]=buf;}
+let nodes=[];
+function keep(n){nodes.push(n);if(nodes.length>600)nodes=nodes.slice(-400);return n;}
+/* lead voice: bends ramp the pitch up, slides come in from two frets below, vibrato wobbles the pitch */
+function lead(n,t,dur,vol){const m=OPEN[n.s]+n.f,s=keep(ctx.createBufferSource()),g=ctx.createGain(),lp=ctx.createBiquadFilter();
+  s.buffer=pluckBuf(m,true);lp.type="lowpass";lp.frequency.value=3600;
+  const base=1,up=Math.pow(2,(n.b||0)/12);
+  if(n.sl){s.playbackRate.setValueAtTime(Math.pow(2,-2/12),t);s.playbackRate.linearRampToValueAtTime(base,t+.07);}
+  else s.playbackRate.setValueAtTime(base,t);
+  if(n.b){const b0=t+(n.sl?.08:.03),bt=b0+Math.min(.16,dur*.33);s.playbackRate.setValueAtTime(base,b0);s.playbackRate.linearRampToValueAtTime(up,bt);}
+  if(n.v&&dur>.25){try{const o=keep(ctx.createOscillator()),og=ctx.createGain();o.frequency.value=5.6;og.gain.setValueAtTime(0,t);og.gain.linearRampToValueAtTime(28,t+Math.min(.35,dur*.5));
+    o.connect(og).connect(s.detune);o.start(t);o.stop(t+dur+.3);}catch(e){}}
+  const v=(vol||.75)*(n.h?.6:1);g.gain.setValueAtTime(v,t);g.gain.setTargetAtTime(0,t+Math.max(.08,dur-.02),.05);
+  s.connect(lp).connect(g).connect(out());s.start(t);s.stop(t+Math.min(2.6,dur+.5));}
+function pl(m,t,dur,vol,lpf){const s=keep(ctx.createBufferSource()),g=ctx.createGain();s.buffer=pluckBuf(m);g.gain.setValueAtTime(vol,t);g.gain.setTargetAtTime(0,t+dur,.06);
+  if(lpf){const f=ctx.createBiquadFilter();f.type="lowpass";f.frequency.value=lpf;s.connect(f).connect(g);}else s.connect(g);g.connect(out());s.start(t);s.stop(t+Math.min(2.6,dur+.5));}
+function noise(){if(NOISE&&NOISE.sampleRate===ctx.sampleRate)return NOISE;const b=ctx.createBuffer(1,ctx.sampleRate*.5,ctx.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;return NOISE=b;}
+function kick(t){const o=keep(ctx.createOscillator()),g=ctx.createGain();o.frequency.setValueAtTime(140,t);o.frequency.exponentialRampToValueAtTime(45,t+.12);
+  g.gain.setValueAtTime(.9,t);g.gain.exponentialRampToValueAtTime(.001,t+.3);o.connect(g).connect(out());o.start(t);o.stop(t+.32);}
+function hit(t,f,type,vol,len){const s=keep(ctx.createBufferSource()),fl=ctx.createBiquadFilter(),g=ctx.createGain();s.buffer=noise();fl.type=type;fl.frequency.value=f;
+  g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+len);s.connect(fl).connect(g).connect(out());s.start(t);s.stop(t+len+.02);}
+const snare=t=>{hit(t,1800,"bandpass",.55,.16);const o=keep(ctx.createOscillator()),g=ctx.createGain();o.frequency.value=190;g.gain.setValueAtTime(.25,t);g.gain.exponentialRampToValueAtTime(.001,t+.1);o.connect(g).connect(out());o.start(t);o.stop(t+.12);};
+const hat=(t,acc)=>hit(t,8000,"highpass",acc?.16:.09,.04);
+function chordTones(c,key){const r=key+MAJ[c],third=key+MAJ[(c+2)%7],fifth=key+MAJ[(c+4)%7];const up=x=>{let m=x%12+48;while(m<52)m+=12;return m;};
+  return {bass:(r%12)+36+((r%12)<4?12:0),tones:[up(r),up(third),up(fifth)].sort((a,b)=>a-b)};}
+
+/* ===================== Playback ===================== */
+let play=null;
+function stop(){if(play){clearInterval(play.timer);cancelAnimationFrame(play.raf);play=null;}nodes.forEach(n=>{try{n.stop();}catch(e){}});nodes=[];
+  document.querySelectorAll(".bar.play").forEach(e=>e.classList.remove("play"));renderTransport();}
+function start(a,b){stop();audio();load();const s=S(),spb=60/s.tempo,t0=ctx.currentTime+.12+4*spb;
+  for(let k=0;k<4;k++)hat(ctx.currentTime+.12+k*spb,k===0); // count-in: four hi-hat clicks
+  play={a,b,t0,spb,len:(b-a+1)*4,it:-1,timer:0,raf:0,last:ctx.currentTime};
+  const sched=()=>{if(!play)return;const now=ctx.currentTime,next=play.it+1,ts=play.t0+next*play.len*play.spb;
+    if(now>ts-1.2){play.it=next;scheduleLoop(ts);}
+    /* minutes count only while the band is playing */
+    const dt=now-play.last;play.last=now;if(now>play.t0&&dt>0&&dt<1){const k=dkey(new Date());st.days[k]=Math.round(((st.days[k]||0)+dt)*10)/10;}};
+  play.timer=setInterval(sched,50);sched();
+  const draw=()=>{if(!play)return;const pos=(ctx.currentTime-play.t0)/play.spb;let bar=-1;if(pos>=0)bar=play.a+Math.floor((pos%play.len)/4);
+    document.querySelectorAll(".bar").forEach(e=>e.classList.toggle("play",+e.dataset.bar===bar));play.raf=requestAnimationFrame(draw);};
+  draw();renderTransport();}
+function scheduleLoop(ts){const s=S(),spb=play.spb;
+  for(let b=play.a;b<=play.b;b++){const bt=ts+(b-play.a)*4*spb,c=C16[b],ch=chordTones(c,s.key);
+    if(ui.band!==false){for(let q=0;q<4;q++){const t=bt+q*spb;if(q%2===0)kick(t);else snare(t);hat(t,q===0);hat(t+spb/2,false);}
+      pl(ch.bass,bt,spb*1.8,.55,700);pl(ch.bass,bt+2*spb,spb*1.8,.5,700);
+      [0,2].forEach(q=>ch.tones.forEach((m,j)=>pl(m,bt+q*spb+j*.014,spb*1.7,.16,2400)));}
+    if(ui.lead!==false){let pos=0;(s.bars[b]||[]).forEach(n=>{const t=bt+pos/4*spb,dur=n.d/4*spb;if(!n.r)lead(n,t,dur);pos+=n.d;});}}}
+function preview(n){audio();load();lead(n,ctx.currentTime+.02,.5,.7);}
+
+/* ===================== Rendering ===================== */
+const app=document.getElementById("app"),esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fretSpan=()=>{const fs=P.map(p=>p.f);return [Math.min(...fs),Math.max(...fs)];};
+function metaLine(s){const sp=shapeNotes(s.key,s.shape).map(p=>p.f);return `${keyName(s.key)} major · ${CAGED[s.shape].n} shape (frets ${Math.min(...sp)}–${Math.max(...sp)}) · ${PROGS[s.prog].n}: ${PROGS[s.prog].d.map(c=>chordName(c,s.key)).join(" ")}`;}
+function render(){if(view==="build"&&S()){load();renderBuild();}else{view="home";renderHome();}renderTransport();}
+
+function renderHome(){const br=brief(),sp=shapeNotes(br.key,br.shape).map(p=>p.f);
+  const sol=live().sort((a,b)=>b.upd-a.upd),wk=weekMin();
+  app.innerHTML=`
+  <section class="card"><div class="row between"><h2>Today's solo</h2><span class="muted small">${wk} min this week</span></div>
+    <div class="brief"><div><b>${keyName(br.key)} major</b><span>scale</span></div><div><b>${CAGED[br.shape].n} shape</b><span>frets ${Math.min(...sp)}–${Math.max(...sp)}</span></div>
+      <div><b>${PROGS[br.prog].d.map(c=>chordName(c,br.key)).join(" ")}</b><span>${PROGS[br.prog].n} progression</span></div><div><b>${br.tempo} bpm</b><span>band tempo</span></div></div>
+    <p class="muted small">16 bars in four phrases. I'll guide you bar by bar, and suggest ideas built from your own first bar whenever you're stuck.</p>
+    <div class="row"><button class="pri" data-new="1">Start building ▸</button><button data-redraw="1">Draw another ↻</button></div>
+    <details><summary class="small muted" style="cursor:pointer">Choose it myself</summary>
+      <div class="row" style="margin-top:8px">
+        <select id="selKey">${KEYS.map(k=>`<option value="${k.pc}"${k.pc===br.key?" selected":""}>${k.n} major</option>`).join("")}</select>
+        <select id="selShape">${CAGED.map((c,i)=>`<option value="${i}"${i===br.shape?" selected":""}>${c.n} shape</option>`).join("")}</select>
+        <select id="selProg">${Object.entries(PROGS).map(([k,p])=>`<option value="${k}"${k===br.prog?" selected":""}>${p.n}: ${p.d.map(c=>ROM[c]).join(" ")}</option>`).join("")}</select>
+        <button data-setbrief="1">Use these</button></div></details>
+  </section>
+  ${primer()}
+  <section class="card"><div class="row between"><h2>Your solos</h2><span class="muted small">${sol.length} saved</span></div>
+    ${sol.length?`<div class="lib">${sol.map(s=>`<div class="solo"><div style="min-width:0"><b>${esc(s.name)}</b><span>${keyName(s.key)} major · ${CAGED[s.shape].n} shape · ${PROGS[s.prog].n} · ${new Date(s.upd).toLocaleDateString(undefined,{day:"numeric",month:"short"})}</span></div>
+      <div class="row" style="flex:none"><span class="badge${s.done?" fin":""}">${s.done?"finished":filledOf(s)+"/16"}</span><button data-open="${s.id}">Open</button></div></div>`).join("")}</div>`
+    :`<p class="muted">Nothing yet. Your first solo will appear here, and it's saved as you go.</p>`}
+  </section>
+  ${syncCard()}`;}
+
+function primer(open){return `<section class="card"><details class="primer"${open?" open":""}><summary>What is a solo?</summary>
+  <p style="margin-top:8px">A solo is a short story told with a melody over the band's chords. The ones that feel like solos share a few things:</p>
+  <ol><li><b>One idea, the motif.</b> A few notes with a clear rhythm, stated simply at the start.</li>
+  <li><b>Repetition with change.</b> The motif comes back, a little different each time, so the listener can follow it.</li>
+  <li><b>Tension and release.</b> Tension comes from going higher, playing more notes, bending, and holding notes that clash a little with the chord. Release comes from coming down, slowing down, and landing on a note of the chord.</li>
+  <li><b>A shape.</b> Quiet beginning, a climb, a peak, and a clear ending, usually on the root.</li>
+  <li><b>Space.</b> Rests are part of the melody. A singer has to breathe; a solo that breathes sounds like singing.</li></ol>
+  ${arcSVG(null)}
+  <p class="small muted">In the builder: <b style="color:#059669">green dots</b> are notes of the chord playing now (safe places to land), the <b>dark dot</b> is the root, white dots are the other scale notes (passing notes and tension).</p></details></section>`;}
+
+function arcSVG(mine){const W=320,H=74,x=b=>8+b*(W-16)/15,y=v=>H-10-v*(H-22);
+  const path=a=>a.map((v,b)=>`${b?"L":"M"}${x(b).toFixed(1)},${y(v).toFixed(1)}`).join("");
+  return `<svg class="curve" viewBox="0 0 ${W} ${H}" role="img" aria-label="Tension across the 16 bars">
+   ${[1,2,3].map(k=>`<line x1="${x(k*4-.5)}" x2="${x(k*4-.5)}" y1="6" y2="${H-8}" stroke="#e5e7eb"/>`).join("")}
+   ${PH.map((p,k)=>`<text x="${x(k*4+1.5)}" y="${H-1}" font-size="9" text-anchor="middle" fill="#94a3b8">${p.n}</text>`).join("")}
+   <path d="${path(IDEAL)}" fill="none" stroke="#fdba74" stroke-width="2" stroke-dasharray="4 3"/>
+   ${mine?`<path d="${path(mine)}" fill="none" stroke="#c2410c" stroke-width="2.4"/>${mine.map((v,b)=>`<circle cx="${x(b)}" cy="${y(v)}" r="2.6" fill="#c2410c"/>`).join("")}`:""}
+   <text x="${W-6}" y="12" font-size="9" text-anchor="end" fill="#94a3b8">${mine?"dashed: typical · solid: yours":"tension"}</text></svg>`;}
+
+function renderBuild(){const s=S(),ph=Math.floor(sel/4),c=C16[sel],cts=[...ctSet(c)],bar=s.bars[sel]||[],u=used(bar),A=analyze();
+  const rootPc=s.key,chs=[c,(c+2)%7,(c+4)%7].map(d=>nn(s.key+MAJ[d],s.key));
+  app.innerHTML=`
+  <section class="card"><div class="row between"><button class="linkb" data-home="1">← All solos</button><span class="badge${s.done?" fin":""}">${s.done?"finished":A.filled+"/16 bars"}</span></div>
+    <input type="text" id="nameIn" value="${esc(s.name)}" aria-label="Solo name" style="font:700 18px var(--body)">
+    <p class="muted small">${metaLine(s)}</p>
+    <div class="arc">${PH.map((p,k)=>{const f=[0,1,2,3].filter(j=>(s.bars[k*4+j]||[]).some(x=>!x.r)).length;
+      return `<button class="ph${k===ph?" here":""}" data-ph="${k}"><b>${k+1}. ${p.n}</b><span>${p.sub}</span><i><s style="width:${f*25}%"></s></i></button>`;}).join("")}</div>
+    ${arcSVG(A.tens)}
+  </section>
+  <section class="card">
+    <div class="row between"><h2>Phrase ${ph+1} · ${PH[ph].n}</h2><span class="muted small">bars ${ph*4+1}–${ph*4+4}</span></div>
+    <p class="muted small">${PH[ph].txt}</p>
+    <div class="row between" style="align-items:flex-end"><div><div class="muted small">Bar ${sel+1} · ${ROM[c]} chord</div><div class="chord">${chordName(c,s.key)}</div></div>
+      <div class="chips">${chs.map((n,j)=>`<span class="chip ${cts[j]===0?"rt":"ct"}">${n} <small>(${DEGN[cts[j]]})</small></span>`).join("")}</div></div>
+    <div class="tip"><b>Bar ${sel+1}:</b> ${TIPS[sel]}</div>
+    <div class="row"><button data-suggest="1">✨ Suggest bar ${sel+1}</button>${sel>0&&!motif()?`<span class="small muted">Tip: write bar 1 first; suggestions are built from it.</span>`:""}</div>
+  </section>
+  <section class="card">
+    <div class="row between"><h3>${keyName(s.key)} major · ${CAGED[s.shape].n} shape</h3><span class="small muted">tap a dot to add it to bar ${sel+1}</span></div>
+    ${fretboard(c)}
+    <div class="tools">
+      <div class="durs">${DURS.map(x=>`<button data-dur="${x.d}" class="${ui.dur===x.d?"on":""}">${x.s}<small>${x.w}</small></button>`).join("")}</div>
+      <div class="techs">${[["b","Bend ↗"],["sl","Slide in"],["h","Legato"],["v","Vibrato ~"]].map(([k,l])=>`<button data-tech="${k}" class="${ui.tech[k]?"on":""}">${l}</button>`).join("")}</div>
+      <div class="row"><span class="small muted">Bar ${sel+1}: ${u/4} of 4 beats</span><span class="fill"><s style="width:${u/16*100}%"></s></span></div>
+      <div class="row"><button data-rest="1">Rest ${DURS.find(x=>x.d===ui.dur).s}</button><button data-undo="1">↶ Undo</button><button data-clear="1">Clear bar</button>
+        <button data-prevbar="1" ${sel?"":"disabled"}>◂ Bar</button><button data-nextbar="1" ${sel<15?"":"disabled"}>Bar ▸</button></div>
+      <p class="small muted">Bend, slide, legato and vibrato apply to the next note you tap. Durations are in beats.</p>
+    </div>
+  </section>
+  <section class="card"><div class="row between"><h3>Your solo</h3><button class="linkb" data-copy="1">Copy as text tab</button></div>
+    <div class="tabrows">${PH.map((p,k)=>`<div class="tabph"><h3>${k+1}. ${p.n}</h3><div class="bars">${[0,1,2,3].map(j=>barBox(k*4+j)).join("")}</div></div>`).join("")}</div>
+    <p class="small muted">Legend: <b>7b</b> bend · <b>/7</b> slide in · <b>h7</b> legato · <b>7~</b> vibrato. The line under each note shows how long it rings.</p>
+  </section>
+  <section class="card"><div class="row between"><h2>Check & save</h2><span class="muted small">${A.score} of ${A.list.length}</span></div>
+    <ul class="checks">${A.list.map(x=>`<li class="${x.ok?"ok":""}"><b>${x.ok?"✓":"!"}</b><div>${x.t}${x.ok?"":`<small>${x.tip}</small>`}</div></li>`).join("")}</ul>
+    <p class="small muted">These are guides, not rules. If it sounds good to you, it is good.</p>
+    <div class="row">${s.done?`<button data-reopen="1">Mark as still in progress</button>`:`<button class="good" data-finish="1">Finish & save ✓</button>`}
+      <button data-example="1">Show me a whole example</button><button class="linkb" data-dup="1">Duplicate</button><button class="linkb" data-delete="1">Delete</button></div>
+  </section>`;}
+
+function fretboard(c){const [lo,hi]=fretSpan(),f0=lo-1,cols=hi-f0,W=360,L=26,R=10,T=14,G=26,cw=(W-L-R)/cols,H=T+G*5+30,cts=ctSet(c),s=S();
+  const sy=st0=>T+(st0-1)*G,fx=f=>L+(f-f0-.5)*cw;
+  let svg=`<svg class="fb" viewBox="0 0 ${W} ${H}" role="group" aria-label="Fretboard">`;
+  for(let k=0;k<=cols;k++){const x=L+k*cw;svg+=`<line x1="${x}" x2="${x}" y1="${T}" y2="${T+5*G}" stroke="${k===0&&f0===0?"#172033":"#cbd5e1"}" stroke-width="${k===0&&f0===0?4:1.5}"/>`;}
+  for(let k=1;k<=6;k++)svg+=`<line x1="${L}" x2="${W-R}" y1="${sy(k)}" y2="${sy(k)}" stroke="#94a3b8" stroke-width="${.8+k*.22}"/><text x="8" y="${sy(k)+4}" font-size="11" fill="#94a3b8">${"eBGDAE"[k-1]}</text>`;
+  for(let f=f0+1;f<=hi;f++){svg+=`<text x="${fx(f)}" y="${T+5*G+20}" font-size="11" text-anchor="middle" fill="#64748b">${f}</text>`;if([3,5,7,9,15,17,19,21].includes(f))svg+=`<circle cx="${fx(f)}" cy="${T+5*G+27}" r="2" fill="#cbd5e1"/>`;if(f===12||f===24)svg+=`<circle cx="${fx(f)-5}" cy="${T+5*G+27}" r="2" fill="#cbd5e1"/><circle cx="${fx(f)+5}" cy="${T+5*G+27}" r="2" fill="#cbd5e1"/>`;}
+  P.forEach((p,i)=>{const rt=p.deg===0,ct=cts.has(p.deg),fill=rt?"#172033":ct?"#059669":"#fff",tc=rt||ct?"#fff":"#334155",st0=rt?"#172033":ct?"#059669":"#94a3b8";
+    svg+=`<g class="dot" data-i="${i}"><circle cx="${fx(p.f)}" cy="${sy(p.s)}" r="12" fill="${fill}" stroke="${st0}" stroke-width="1.5"/><text x="${fx(p.f)}" y="${sy(p.s)+4}" font-size="10.5" font-weight="700" text-anchor="middle" fill="${tc}" pointer-events="none">${nn(p.m,s.key)}</text></g>`;});
+  return svg+"</svg>";}
+
+function barBox(b){const s=S(),bar=s.bars[b]||[],W=160,T=8,G=9,H=T+G*5+8,x=p=>6+p/16*(W-12);let pos=0,g="";
+  for(let k=1;k<=6;k++)g+=`<line x1="2" x2="${W-2}" y1="${T+(k-1)*G}" y2="${T+(k-1)*G}" stroke="#e2e8f0"/>`;
+  [4,8,12].forEach(p=>g+=`<line x1="${x(p)}" x2="${x(p)}" y1="${T}" y2="${T+5*G}" stroke="#f1f5f9"/>`);
+  bar.forEach(n=>{if(!n.r){const y=T+(n.s-1)*G,lab=(n.sl?"/":"")+(n.h?"h":"")+n.f+(n.b?"b":"")+(n.v?"~":"");
+      g+=`<rect x="${x(pos)}" y="${y+3}" width="${Math.max(2,x(pos+n.d)-x(pos)-2)}" height="2" rx="1" fill="#fdba74"/><rect x="${x(pos)-1}" y="${y-5.5}" width="${lab.length*5.6+2}" height="10" fill="#fff"/><text x="${x(pos)}" y="${y+3}" font-size="9.5" font-weight="700" font-family="ui-monospace,Menlo,monospace" fill="#172033">${lab}</text>`;}
+    pos+=n.d;});
+  return `<div class="bar${b===sel?" sel":""}" data-bar="${b}"><div class="bh">${chordName(C16[b],s.key)}<span>${b+1}</span></div><svg viewBox="0 0 ${W} ${H}">${g}</svg></div>`;}
+
+function renderTransport(){const el=document.getElementById("transport");if(view!=="build"||!S()){el.hidden=true;return;}el.hidden=false;const s=S(),ph=Math.floor(sel/4);
+  el.innerHTML=`<div class="tin">${play?`<button class="pri" data-stop="1">■ Stop</button>`:`<button class="pri" data-playph="1">▶ Phrase ${ph+1}</button><button data-playall="1">▶ All 16</button>`}
+    <span class="tempo"><button data-tempo="-4">−</button>${s.tempo}<button data-tempo="4">+</button></span>
+    <button data-lead="1" class="${ui.lead===false?"":"on"}" title="Your solo">🎸</button><button data-band="1" class="${ui.band===false?"":"on"}" title="Band">🥁</button></div>`;}
+
+function filledOf(s){return (s.bars||[]).filter(b=>b&&b.some(x=>!x.r)).length;}
+function weekMin(){let t=0;for(let i=0;i<7;i++){const d=new Date();d.setDate(d.getDate()-i);const k=dkey(d);t+=(st.days[k]||0)+Object.values(st.odays).reduce((a,o)=>a+((o&&o[k])||0),0);}return Math.floor(t/60);}
+let toastT=0;function toast(t){let el=document.querySelector(".toast");if(!el){el=document.createElement("div");el.className="toast";document.body.appendChild(el);}el.textContent=t;clearTimeout(toastT);toastT=setTimeout(()=>el.remove(),2200);}
+function textTab(){const s=S(),out=[`${s.name}`,`${metaLine(s)} · ${s.tempo} bpm`,""];
+  for(let k=0;k<4;k++){const rows={};[1,2,3,4,5,6].forEach(r=>rows[r]="eBGDAE"[r-1]+"|");let chord="  ";
+    for(let j=0;j<4;j++){const b=k*4+j,cells={};[1,2,3,4,5,6].forEach(r=>cells[r]=Array(17).fill("-"));let pos=0;
+      (s.bars[b]||[]).forEach(n=>{if(!n.r&&pos<16){const lab=(n.sl?"/":"")+(n.h?"h":"")+n.f+(n.b?"b":"")+(n.v?"~":"");[...lab].forEach((ch,q)=>{if(pos+q<17)cells[n.s][pos+q]=ch;});}pos+=n.d;});
+      [1,2,3,4,5,6].forEach(r=>{rows[r]+=cells[r].join("")+"|";});chord+=chordName(C16[b],s.key).padEnd(18," ");}
+    out.push(`${k+1}. ${PH[k].n} (bars ${k*4+1}-${k*4+4})`,chord,...[1,2,3,4,5,6].map(r=>rows[r]),"");}
+  out.push("b bend · / slide in · h legato · ~ vibrato · one dash = a 16th note");return out.join("\n");}
+/* ===================== Actions ===================== */
+function newSolo(br){stop();const id="s"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),n=live().length+1;
+  st.solos[id]={id,name:`Solo ${n} · ${keyName(br.key)} ${CAGED[br.shape].n} shape`,key:br.key,shape:br.shape,prog:br.prog,tempo:br.tempo,bars:[...Array(16)].map(()=>[]),done:0,created:Date.now(),upd:Date.now()};
+  st.cur=id;view="build";sel=0;touch();render();window.scrollTo(0,0);}
+function addItem(item){const s=S();let bar=s.bars[sel],left=16-used(bar);
+  if(left<=0){if(sel<15){sel++;bar=s.bars[sel];left=16;}else{toast("The solo is full: undo or clear a bar first");return false;}}
+  if(item.d>left){item.d=left;toast("Shortened to fit the bar");}
+  bar.push(item);if(used(bar)>=16&&sel<15)sel++;touch();return true;}
+document.addEventListener("click",e=>{const t=e.target.closest("[data-i],[data-new],[data-redraw],[data-setbrief],[data-open],[data-home],[data-ph],[data-bar],[data-suggest],[data-dur],[data-tech],[data-rest],[data-undo],[data-clear],[data-prevbar],[data-nextbar],[data-copy],[data-finish],[data-reopen],[data-example],[data-dup],[data-delete],[data-stop],[data-playph],[data-playall],[data-tempo],[data-lead],[data-band],[data-syncnow],[data-syncoff],[data-syncon]");if(!t)return;
+  const d=t.dataset,s=S();
+  if(d.new){newSolo(brief());return;}
+  if(d.redraw){brief(true);render();return;}
+  if(d.setbrief){Object.assign(st.brief,{key:+document.getElementById("selKey").value,shape:+document.getElementById("selShape").value,prog:document.getElementById("selProg").value});save();render();return;}
+  if(d.open){stop();st.cur=d.open;view="build";const sb=st.solos[d.open];sel=Math.max(0,Math.min(15,(sb.bars||[]).findIndex(b=>used(b)<16)));if(sel<0)sel=0;save(true);render();window.scrollTo(0,0);return;}
+  if(d.home){stop();st.cur=null;view="home";save(true);render();window.scrollTo(0,0);return;}
+  if(d.syncnow){cloudSync();return;}
+  if(d.syncoff){try{localStorage.removeItem(SYNC_KEY);}catch(x){}setSync("off");render();return;}
+  if(d.syncon){const v=(document.getElementById("syncIn").value||"").trim();if(v.length<8){setSync("err","use a sync code of at least 8 characters");return;}try{localStorage.setItem(SYNC_KEY,v);}catch(x){}cloudSync().then(render);return;}
+  if(!s)return;
+  if(d.i!==undefined){const p=P[+d.i],n={s:p.s,f:p.f,d:ui.dur};if(ui.tech.b)n.b=bendSize(+d.i);if(ui.tech.sl)n.sl=1;if(ui.tech.h)n.h=1;if(ui.tech.v)n.v=1;
+    preview(n);if(addItem(n)){ui.tech={};}render();return;}
+  if(d.ph!==undefined){sel=+d.ph*4;render();return;}
+  if(d.bar!==undefined){sel=+d.bar;render();return;}
+  if(d.suggest){const b=sel;suggest(b);render();if(!play){start(b,b);const tok=play;setTimeout(()=>{if(play===tok)stop();},(60/s.tempo)*8*1000+400);}return;}
+  if(d.dur){ui.dur=+d.dur;render();return;}
+  if(d.tech){ui.tech[d.tech]=!ui.tech[d.tech];render();return;}
+  if(d.rest){addItem({r:1,d:ui.dur});render();return;}
+  if(d.undo){if(!s.bars[sel].length&&sel>0)sel--;s.bars[sel].pop();touch();render();return;}
+  if(d.clear){s.bars[sel]=[];touch();render();return;}
+  if(d.prevbar){sel=Math.max(0,sel-1);render();return;}
+  if(d.nextbar){sel=Math.min(15,sel+1);render();return;}
+  if(d.copy){const txt=textTab();(navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>toast("Tab copied")).catch(()=>{window.prompt("Copy the tab:",txt);});return;}
+  if(d.finish){const A=analyze();if(A.filled<8&&!confirm(`Only ${A.filled} of 16 bars are written. Finish anyway?`))return;s.done=Date.now();touch();toast("Saved to your solos ✓");render();return;}
+  if(d.reopen){s.done=0;touch();render();return;}
+  if(d.example){if(filledOf(s)&&!confirm("Replace every bar except bar 1 with an example built from your bar 1? (Bar 1 is generated too if it's empty.)"))return;
+    for(let b=0;b<16;b++){if(b===0&&s.bars[0].some(x=>!x.r))continue;s.bars[b]=genBar(b).map(toNote);}touch();render();start(0,15);return;}
+  if(d.dup){const id="s"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);st.solos[id]={...JSON.parse(JSON.stringify(s)),id,name:s.name+" (copy)",done:0,created:Date.now(),upd:Date.now()};st.cur=id;touch();render();toast("Duplicated");return;}
+  if(d.delete){if(!confirm(`Delete “${s.name}”?`))return;stop();st.del[s.id]=Date.now();delete st.solos[s.id];st.cur=null;view="home";save();render();return;}
+  if(d.stop){stop();return;}
+  if(d.playph){const a=Math.floor(sel/4)*4;start(a,a+3);return;}
+  if(d.playall){start(0,15);return;}
+  if(d.tempo){s.tempo=Math.max(40,Math.min(160,s.tempo+ +d.tempo));touch();const r=play?[play.a,play.b]:null;renderTransport();if(r)start(r[0],r[1]);return;}
+  if(d.lead){ui.lead=ui.lead===false;renderTransport();return;}
+  if(d.band){ui.band=ui.band===false;renderTransport();return;}
+});
+document.addEventListener("change",e=>{if(e.target.id==="nameIn"&&S()){S().name=e.target.value.trim()||S().name;touch();}});
+setInterval(()=>{if(play)save(true);},10000);
+document.addEventListener("visibilitychange",()=>{if(document.hidden){save();}else cloudSync().then(ch=>{if(ch&&!play)render();});});
+
+/* ===================== Device sync: same Total Recall code, its own encrypted slot ===================== */
+const SYNC_KEY="totalRecallSyncCode_v1",SLOT="#solos";
+const SY={busy:false,again:false,timer:0,state:"off",msg:"",last:null};
+const syncCode=()=>{try{return localStorage.getItem(SYNC_KEY)||"";}catch(e){return "";}};
+const syncUrl=()=>{let u=null;try{u=localStorage.getItem("totalRecallTickTickUrl");}catch(e){}u=u||"https://total-recall-ticktick.pranjuchakrapani90.workers.dev";return u+(u.indexOf("?")>=0?"&":"?")+"mode=sync";};
+const b64=a=>{let s="";new Uint8Array(a).forEach(x=>s+=String.fromCharCode(x));return btoa(s);};
+const unb64=s=>{const r=atob(s),u=new Uint8Array(r.length);for(let i=0;i<r.length;i++)u[i]=r.charCodeAt(i);return u;};
+async function keyOf(code){const h=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(code+SLOT));return crypto.subtle.importKey("raw",h,{name:"AES-GCM"},false,["encrypt","decrypt"]);}
+async function enc(o,code){const iv=crypto.getRandomValues(new Uint8Array(12)),c=await crypto.subtle.encrypt({name:"AES-GCM",iv},await keyOf(code),new TextEncoder().encode(JSON.stringify(o)));return JSON.stringify({v:1,iv:b64(iv),data:b64(c)});}
+async function dec(blob,code){const x=JSON.parse(blob||"{}"),p=await crypto.subtle.decrypt({name:"AES-GCM",iv:unb64(x.iv)},await keyOf(code),unb64(x.data));return JSON.parse(new TextDecoder().decode(p));}
+function payload(){const solos={};Object.values(st.solos).forEach(s=>{if(s)solos[s.id]=s;});return {v:1,solos,del:st.del,days:{...st.odays,[st.dev]:st.days}};}
+function merge(R){let ch=false;
+  Object.entries(R.del||{}).forEach(([id,t])=>{if(!(st.del[id]>=t)){st.del[id]=t;ch=true;}});
+  Object.values(R.solos||{}).forEach(r=>{if(!r||!r.id)return;const l=st.solos[r.id];if(!l||(r.upd||0)>(l.upd||0)){st.solos[r.id]=r;ch=true;}});
+  Object.keys(st.solos).forEach(id=>{const s=st.solos[id];if(s&&st.del[id]>=s.upd){delete st.solos[id];if(st.cur===id){st.cur=null;view="home";}ch=true;}});
+  Object.entries(R.days||{}).forEach(([dev,days])=>{const tgt=dev===st.dev?st.days:(st.odays[dev]=st.odays[dev]||{});Object.entries(days||{}).forEach(([k,v])=>{if(v>(tgt[k]||0)){tgt[k]=v;ch=true;}});});
+  return ch;}
+function setSync(state,msg){SY.state=state;SY.msg=msg||"";if(state==="ok")SY.last=new Date();
+  const l=document.getElementById("syncLine");if(l)l.textContent=!syncCode()?"☁ Sync is off on this phone":state==="busy"?"☁ Syncing…":state==="err"?"☁ Sync problem: "+SY.msg:state==="ok"?`☁ Synced with your other phones at ${SY.last.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"})}`:"";
+  const t=document.getElementById("syncState");if(t)t.innerHTML=syncText();}
+function syncText(){if(!syncCode())return "Sync is off. Solos stay on this device.";if(SY.state==="err")return `Couldn't sync: ${esc(SY.msg)}. It will retry automatically.`;if(SY.state==="busy")return "Syncing…";
+  return SY.last?`Synced at ${SY.last.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"})}. Solos and minutes appear on your other phones.`:"Sync is on.";}
+function scheduleSync(){if(!syncCode())return;clearTimeout(SY.timer);SY.timer=setTimeout(cloudSync,1500);}
+async function cloudSync(){const code=syncCode();if(!code){setSync("off");return false;}if(SY.busy){SY.again=true;return false;}
+  SY.busy=true;setSync("busy");let ch=false;
+  try{const url=syncUrl(),headers={"Content-Type":"application/json","X-Total-Recall-Sync":code+SLOT};
+    const r=await fetch(url,{method:"POST",headers,body:JSON.stringify({state:{app:"solos"}}),cache:"no-store"});if(!r.ok)throw new Error("the sync bridge answered HTTP "+r.status);
+    const data=await r.json();if(data.error)throw new Error(data.error);
+    let R=null;if(data.blob){R=await dec(data.blob,code);ch=merge(R);}
+    if(ch)save(true);
+    if(!R||GSync.canon(payload())!==GSync.canon(R)){const w=await fetch(url,{method:"PUT",headers,body:await enc(payload(),code),cache:"no-store"});if(!w.ok)throw new Error("upload failed with HTTP "+w.status);}
+    setSync("ok");
+  }catch(e){setSync("err",String(e&&e.message||e));}
+  finally{SY.busy=false;if(SY.again){SY.again=false;scheduleSync();}}
+  return ch;}
+function syncCard(){const on=!!syncCode();return `<section class="card"><div class="row between"><h3>Device sync</h3><span class="muted small">same code as Total Recall</span></div>
+  <p id="syncState" class="small">${syncText()}</p>${on?`<p class="muted small">Code check: <b class="gsfp">····</b>, which must be the same on every phone.</p>
+  <div class="row"><button data-syncnow="1">Sync now</button><button class="linkb" data-syncoff="1">Turn sync off on this device</button></div>`
+  :`<div class="row"><input type="password" id="syncIn" placeholder="Your Total Recall sync code" autocomplete="off" style="flex:1;min-width:0;font:500 14px var(--body);border:1px solid var(--line);border-radius:8px;padding:8px"><button class="pri" data-syncon="1">Turn on sync</button></div>`}</section>`;}
+
+render();setSync(syncCode()?"busy":"off");cloudSync().then(ch=>{if(ch&&!play)render();});
+</script>
+</body></html>
