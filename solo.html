@@ -51,6 +51,7 @@ details.primer summary{cursor:pointer;font-weight:650}
 .durs button{flex-direction:column;gap:0;padding:6px 2px;font-size:15px;justify-content:center}
 .durs button small{font:500 10px var(--body);opacity:.75}
 .techs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
+.row.small button{padding:6px 9px;font-size:12px}
 .techs button{justify-content:center;padding:8px 4px;font-size:13px}
 .fill{height:8px;border-radius:5px;background:#f1f5f9;overflow:hidden;flex:1;min-width:60px}.fill s{display:block;height:100%;background:var(--acc);text-decoration:none}
 /* tab */
@@ -127,14 +128,42 @@ const TIPS=[
  "Change the motif's ending: go the other way, or end on a different green note.",
  "Same rhythm as your motif, higher still. You're starting to climb.",
  "Breathe: one long note, then two or three notes leading up into the build.",
- "Build: more notes. Eighth notes moving up through the shape.",
- "Keep climbing. Try a bend up into a green note.",
- "The peak: reach the highest notes of the shape. Bend and hold. This is the loudest moment of the solo.",
+ "Build: more notes moving up the shape. A sequence works well here: groups of three notes, each group starting one step higher, like your book patterns (Lesson 017).",
+ "Keep climbing. Try a bend up into a green note, or a bend and release (Lesson 012).",
+ "The peak: reach the highest notes of the shape. Bend and hold over more than a beat (Lesson 018). This is the loudest moment of the solo.",
  "Most tension, over the V chord: end on a note that wants to move on, like the 7 (just below the root) or the 2.",
  "Release: your motif one last time, up high, then start stepping down.",
  "Come down the shape, step by step, in eighths or quarters.",
  "Slow down: fewer, longer notes, heading for home.",
  "Land on the root (dark dot) on beat 1 and hold it with vibrato. The end."];
+/* phrase forms for bars 1–8, from the soloing course: the story arc (default), recurring-melody forms
+   AAAB / ABAB / AABA (Lesson 003) and call & response (Lesson 009). Phrases 3–4 (build, resolve) are the same in every form. */
+const FORMS={
+  story:{n:"Story arc",tag:"A · rest · A · hold",ops:["A","rest","A","hold","A+2","Av+2","A+4","breath"],why:"One motif, space after it, then it comes back higher each time."},
+  aaab:{n:"AAAB",tag:"repeat, repeat, repeat, turn",ops:["A","A","A","B","A+2","A+2","A+2","B+2"],why:"Lesson 003: the same idea three times (an ostinato) and a different fourth bar that turns it around."},
+  abab:{n:"ABAB",tag:"alternate two ideas",ops:["A","B","A","B","A+2","B+2","A+2","B+2"],why:"Lesson 003: two short ideas trading bar by bar keep it moving and easy to remember."},
+  aaba:{n:"AABA",tag:"A, A, contrast, A",ops:["A","A","B","A","A+2","A+2","B+2","A+2"],why:"Lesson 003: state it twice, contrast once, bring it home."},
+  call:{n:"Call & response",tag:"question, answer",ops:["C","R","C","R","C+2","R+2","C+4","breath"],why:"Lesson 009: a call that ends unfinished, answered by a response that lands on a chord tone."}};
+const formOf=s=>FORMS[(s&&s.form)||"story"]||FORMS.story;
+const OPTIP={
+  A0:"Your motif: 3 to 5 notes, short and singable. End it on a green note (a note of this chord).",
+  C0:"The call: ask a question. 3 to 5 notes that end on a white note, like the 4 or the 2, so it sounds unfinished.",
+  A:"Play your motif again, same rhythm. Move it if needed so it ends on one of this chord's green notes.",
+  Aup:"Your motif again, moved higher (up a string or two).",
+  Av:"Change the motif's ending: go the other way, or end on a different green note.",
+  B0:"Contrast, the B idea: a different rhythm moving the other way. Keep it short; it sets up the return of A.",
+  B:"Your B idea again.",
+  C:"The call again: same rhythm, ending unfinished on a white note.",
+  R:"The response: answer with a similar rhythm, but land on a green note. The question gets its answer.",
+  rest:"Leave space. Rest for most of this bar so the motif can sink in. A short pickup into the next bar is fine.",
+  hold:"Hold one green note and add vibrato. That's the end of your first sentence.",
+  breath:"Breathe: one long note, then two or three notes leading up into the build."};
+function tipOf(b){const s=S();if(b>=8)return TIPS[b];const ops=formOf(s).ops,op=ops[b],base=op.split("+")[0],up=op.includes("+");
+  if(b===0)return base==="C"?OPTIP.C0:OPTIP.A0;
+  if(base==="A")return up?OPTIP.Aup:OPTIP.A;
+  if(base==="Av")return OPTIP.Av;
+  if(base==="B")return b===ops.findIndex(o=>o[0]==="B")?OPTIP.B0:OPTIP.B;
+  return OPTIP[base]||TIPS[b];}
 const IDEAL=[.25,.1,.3,.25,.35,.35,.45,.4,.6,.75,.95,.9,.6,.45,.3,.15];
 const DURS=[{d:16,s:"4",w:"whole"},{d:12,s:"3",w:"dot ½"},{d:8,s:"2",w:"half"},{d:6,s:"1½",w:"dot ¼"},{d:4,s:"1",w:"quarter"},{d:2,s:"½",w:"eighth"},{d:1,s:"¼",w:"16th"}];
 
@@ -157,12 +186,14 @@ function brief(force){const today=dkey(new Date());if(!force&&st.brief&&st.brief
   const all=[];KEYS.forEach(k=>[0,1,2,3,4].forEach(p=>all.push({key:k.pc,shape:p,n:used[k.pc+"/"+p]||0})));
   const min=Math.min(...all.map(x=>x.n)),pool=all.filter(x=>x.n===min&&!(st.brief&&x.key===st.brief.key&&x.shape===st.brief.shape));
   const pick=a=>a[Math.floor(Math.random()*a.length)],c=pick(pool.length?pool:all);
-  st.brief={day:today,key:c.key,shape:c.shape,prog:pick(Object.keys(PROGS)),tempo:pick([66,70,72,76,80])};save();return st.brief;}
+  const fu={};live().forEach(s=>{const f=s.form||"story";fu[f]=(fu[f]||0)+1;});const fmin=Math.min(...Object.keys(FORMS).map(f=>fu[f]||0));
+  st.brief={day:today,key:c.key,shape:c.shape,prog:pick(Object.keys(PROGS)),form:pick(Object.keys(FORMS).filter(f=>(fu[f]||0)===fmin)),tempo:pick([66,70,72,76,80])};save();return st.brief;}
 
 /* ===================== Notes ===================== */
 /* a bar is a list of items: notes {s,f,d,b,v,h,sl} or rests {r:1,d}; d is in 16ths, a bar holds 16 */
 const used=bar=>bar.reduce((a,x)=>a+x.d,0);
-const sm=n=>OPEN[n.s]+n.f+(n.b||0);
+/* sounding pitch where the note settles: a held bend sounds the bent pitch; bend-and-release and pre-bend-release end on the fretted note */
+const sm=n=>OPEN[n.s]+n.f+(n.b&&!n.bt?n.b:0);
 const degOf=m=>MAJ.indexOf(((m-S().key)%12+12)%12);
 const idxOf=n=>{let i=P.findIndex(p=>p.s===n.s&&p.f===n.f);if(i<0){const m=OPEN[n.s]+n.f;i=P.reduce((b,p,j)=>Math.abs(p.m-m)<Math.abs(P[b].m-m)?j:b,0);}return i;};
 const clampI=i=>Math.max(0,Math.min(N-1,i));
@@ -171,40 +202,59 @@ const isCT=(i,c)=>ctSet(c).has(P[clampI(i)].deg);
 const sIdx=it=>it.bend?clampI(it.i+1):it.i;
 function nearestCT(i,c,dir){i=clampI(i);for(let d=0;d<N;d++){const a=dir<0?[i-d,i+d]:[i+d,i-d];for(const j of a)if(j>=0&&j<N&&isCT(j,c))return j;}return i;}
 function nearestDeg(i,deg){i=clampI(i);for(let d=0;d<N;d++)for(const j of [i-d,i+d])if(j>=0&&j<N&&P[j].deg===deg)return j;return i;}
-function toNote(it){if(it.r)return {r:1,d:it.d};const i=clampI(it.i),p=P[i];const n={s:p.s,f:p.f,d:it.d};if(it.bend)n.b=bendSize(i);if(it.v)n.v=1;if(it.h)n.h=1;if(it.sl)n.sl=1;return n;}
-function toItems(bar){return bar.map(n=>n.r?{r:1,d:n.d}:{d:n.d,i:idxOf(n),bend:n.b?1:0,v:n.v,h:n.h,sl:n.sl});}
-function lastIdx(b){if(b<0)return null;const bar=S().bars[b]||[];const n=[...bar].reverse().find(x=>!x.r);return n?(n.b?clampI(idxOf(n)+1):idxOf(n)):null;}
+function toNote(it){if(it.r)return {r:1,d:it.d};const i=clampI(it.i),p=P[i];const n={s:p.s,f:p.f,d:it.d};if(it.bend){n.b=bendSize(i);if(it.bt)n.bt=it.bt;}if(it.v)n.v=1;if(it.h)n.h=1;if(it.sl)n.sl=1;if(it.ap)n.ap=1;return n;}
+function toItems(bar){return bar.map(n=>n.r?{r:1,d:n.d}:{d:n.d,i:idxOf(n),bend:n.b?1:0,bt:n.bt,v:n.v,h:n.h,sl:n.sl,ap:n.ap});}
+function lastIdx(b){if(b<0)return null;const bar=S().bars[b]||[];const n=[...bar].reverse().find(x=>!x.r);return n?(n.b&&!n.bt?clampI(idxOf(n)+1):idxOf(n)):null;}
+/* Lesson 008: a 3-note triad of the bar's chord on three neighbouring strings inside the shape, top note nearest the target */
+function triadFor(c,target){const want=ctSet(c),out=[];
+  for(let top=1;top<=4;top++){const strs=[top,top+1,top+2],opts=strs.map(x=>P.filter(p=>p.s===x&&want.has(p.deg)));
+    opts[0].forEach(a=>opts[1].forEach(b=>opts[2].forEach(d=>{if(new Set([a.deg,b.deg,d.deg]).size===3&&Math.max(a.f,b.f,d.f)-Math.min(a.f,b.f,d.f)<=3)out.push([a,b,d]);})));}
+  if(!out.length)return null;const tm=P[clampI(target)].m;out.sort((x,y)=>Math.abs(x[0].m-tm)-Math.abs(y[0].m-tm));return out[0];}
 
 /* ===================== Suggestions: built from YOUR motif (bar 1) ===================== */
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 const CELLS=[[4,4,8],[2,2,4,8],[-4,2,2,8],[4,2,2,8],[-2,2,2,2,8],[6,2,8],[2,2,2,2,8],[-4,4,2,2,4]];
 function genMotif(c,start){const cell=pick(CELLS),n=cell.filter(d=>d>0).length;let i=clampI(start),k=0;const its=[];
   cell.forEach(d=>{if(d<0){its.push({r:1,d:-d});return;}k++;if(k>1)i=clampI(i+pick([1,1,2,-1,-1,-2,1]));if(k===n)i=nearestCT(i,c);its.push({d,i});});
-  const last=its[its.length-1];if(last.d>=8)last.v=1;return its;}
+  const last=its[its.length-1];if(last.d>=8)last.v=1;
+  if(S()&&formOf(S())!==FORMS.story&&last.d>=8){last.d-=4;its.push({r:1,d:4});}
+  return its;}
 function motif(){const b=S().bars[0]||[];if(!b.some(x=>!x.r))return null;const it=toItems(b),f=it.find(x=>!x.r).i;return it.map(x=>x.r?x:{...x,k:x.i-f});}
 function rel(its){const f=its.find(x=>!x.r).i;return its.map(x=>x.r?x:{...x,k:x.i-f});}
 function placeMotif(m,c,target){const ks=m.filter(x=>!x.r).map(x=>x.k),last=[...m].reverse().find(x=>!x.r);let best=null,bs=1e9;
   for(let s=0;s<N;s++){if(s+Math.min(...ks)<0||s+Math.max(...ks)>N-1)continue;const fi=s+last.k,snd=last.bend?clampI(fi+1):fi;
-    const sc=Math.abs(s-target)+(isCT(snd,c)?0:6);if(sc<bs){bs=sc;best=s;}}
+    const sc=Math.abs(s-target)+(isCT(snd,c)?0:6)+(!m[0].r&&!isCT(s+m[0].k,c)?3:0);if(sc<bs){bs=sc;best=s;}}
   if(best===null)best=clampI(target);return m.map(x=>x.r?{...x}:{...x,i:clampI(best+x.k)});}
 function varyEnd(its,c){const ns=its.filter(x=>!x.r);if(ns.length<2)return its;const last=ns[ns.length-1],prev=ns[ns.length-2],dir=last.i>=prev.i?-1:1;
   let j=last.i+dir;while(j>=0&&j<N&&!isCT(j,c))j+=dir;if(j<0||j>=N||j===last.i)j=nearestCT(last.i+2*dir,c,dir);last.i=j;last.bend=0;return its;}
 function run(start,cell,dir,c,endCT){let i=clampI(start);const its=cell.map((d,k)=>{if(k)i=clampI(i+dir*(Math.random()<.8?1:2));return {d,i};});if(endCT){const l=its[its.length-1];l.i=nearestCT(l.i,c,dir);}return its;}
+/* the B idea: your own first B bar if you've written it, otherwise a contrasting motif (different rhythm, opposite direction) */
+function motifB(form){const s=S(),fb=form.ops.findIndex(o=>o[0]==="B");if(fb>0&&(s.bars[fb]||[]).some(x=>!x.r)){const it=toItems(s.bars[fb]);return rel(it);}
+  const a=motif(),sig=a?a.map(x=>(x.r?-1:1)*x.d).join(","):"";let m=null;
+  for(let t=0;t<8;t++){m=genMotif(C16[Math.max(0,fb)],Math.round(.45*(N-1)));if(m.map(x=>(x.r?-1:1)*x.d).join(",")!==sig)break;}
+  const ns=m.filter(x=>!x.r);if(a){const an=a.filter(x=>!x.r),up=an.length>1&&an[an.length-1].k>0;if(ns.length>1&&(ns[ns.length-1].i>ns[0].i)===up){const f=ns[0].i;ns.forEach(x=>{x.i=clampI(2*f-x.i);});}}
+  return rel(m);}
+/* a call ends unfinished: same placement as the motif but scored to end OFF the chord */
+function placeCall(m,c,target){const ks=m.filter(x=>!x.r).map(x=>x.k),last=[...m].reverse().find(x=>!x.r);let best=null,bs=1e9;
+  for(let s=0;s<N;s++){if(s+Math.min(...ks)<0||s+Math.max(...ks)>N-1)continue;const fi=s+last.k;const sc=Math.abs(s-target)+(isCT(fi,c)?6:0)+(!m[0].r&&!isCT(s+m[0].k,c)?3:0);if(sc<bs){bs=sc;best=s;}}
+  if(best===null)best=clampI(target);return m.map(x=>x.r?{...x}:{...x,i:clampI(best+x.k),bend:0});}
 function genBar(b){
   const c=C16[b],lo=Math.round(.25*(N-1)),mid=Math.round(.5*(N-1)),hi=Math.round(.8*(N-1)),top=N-1;
-  const pv=lastIdx(b-1),prev=pv==null?Math.round(.35*(N-1)):pv;
-  if(b===0)return genMotif(c,Math.round(.3*(N-1)));
+  const pv=lastIdx(b-1),prev=pv==null?Math.round(.35*(N-1)):pv,form=formOf(S());
+  if(b===0){const m=genMotif(c,Math.round(.3*(N-1)));if(form.ops[0]==="C"){const l=[...m].reverse().find(x=>!x.r);if(isCT(l.i,c)){l.i=clampI(l.i+(isCT(l.i+1,c)?-1:1));l.v=0;}}return m;}
   const m=motif()||rel(genMotif(C16[0],Math.round(.3*(N-1))));
   const b0=(S().bars[0]||[]).find(x=>!x.r),ms=b0?idxOf(b0):lo;
+  if(b<8){const op=form.ops[b],up=+(op.split("+")[1]||0),base=op.split("+")[0];
+    if(base==="A")return placeMotif(m,c,ms+up);
+    if(base==="Av")return varyEnd(placeMotif(m,c,ms+up),c);
+    if(base==="B")return placeMotif(motifB(form),c,Math.round(.45*(N-1))+up);
+    if(base==="C")return placeCall(m,c,ms+up);
+    if(base==="R"){const r=placeMotif(m,c,ms+up);return varyEnd(r,c);}
+    if(base==="rest")return Math.random()<.5?[{r:1,d:12},{d:4,i:clampI(ms-1)}]:[{r:1,d:8},{d:2,i:clampI(ms-3)},{d:2,i:clampI(ms-2)},{d:4,i:clampI(ms-1)}];
+    if(base==="hold")return [{d:12,i:nearestCT(prev,c),v:1},{r:1,d:4}];
+    if(base==="breath"){const i=nearestCT(prev,c);return [{d:8,i,v:1},{r:1,d:2},{d:2,i:clampI(i+1)},{d:2,i:clampI(i+2)},{d:2,i:clampI(i+3)}];}}
   switch(b){
-    case 1:return Math.random()<.5?[{r:1,d:12},{d:4,i:clampI(ms-1)}]:[{r:1,d:8},{d:2,i:clampI(ms-3)},{d:2,i:clampI(ms-2)},{d:4,i:clampI(ms-1)}];
-    case 2:return placeMotif(m,c,ms);
-    case 3:return [{d:12,i:nearestCT(prev,c),v:1},{r:1,d:4}];
-    case 4:return placeMotif(m,c,ms+2);
-    case 5:return varyEnd(placeMotif(m,c,ms+2),c);
-    case 6:return placeMotif(m,c,ms+4);
-    case 7:{const i=nearestCT(prev,c);return [{d:8,i,v:1},{r:1,d:2},{d:2,i:clampI(i+1)},{d:2,i:clampI(i+2)},{d:2,i:clampI(i+3)}];}
-    case 8:return run(Math.max(prev-1,mid-2),[2,2,2,2,2,2,4],1,c,true);
+    case 8:{const i=clampI(Math.max(prev-1,mid-2));const g=[0,1,2,1,2,3].map(k=>({d:2,i:clampI(i+k)}));g.push({d:4,i:nearestCT(i+4,c,1)});return g;}
     case 9:{const its=run(prev,[2,2,2,2],1,c,false);let f=clampI(its[3].i+1);
       for(let d=0;d<N;d++){const j=clampI(f+d);if(j+1<N&&isCT(j+1,c)){f=j;break;}}
       its.push({d:8,i:f,bend:1,v:1});return its;}
@@ -231,12 +281,17 @@ function analyze(){const s=S(),bars=s.bars,notes=b=>(bars[b]||[]).filter(x=>!x.r
   const t12=lastN(11),end=lastN(15);
   const busy=[8,9,10,11].reduce((a,b)=>a+notes(b).length,0)>[0,1,2,3].reduce((a,b)=>a+notes(b).length,0);
   const all=bars.flatMap((_,b)=>notes(b)),bend=all.some(n=>n.b),vib=all.some(n=>n.v);
+  const arr=bars.map((bar,b)=>bar&&bar[0]&&!bar[0].r?ctSet(C16[b]).has(degOf(sm(bar[0]))):null).filter(x=>x!==null),arrPct=arr.length?arr.filter(Boolean).length/arr.length:0;
+  const F=formOf(s),calls=F.ops.map((o,b)=>o[0]==="C"?b:-1).filter(b=>b>=0),resps=F.ops.map((o,b)=>o[0]==="R"?b:-1).filter(b=>b>=0);
+  const isct=b=>{const n=lastN(b);return n?ctSet(C16[b]).has(degOf(sm(n))):null;};
   const list=[
     {ok:filled===16,t:`All 16 bars written (${filled} of 16)`,tip:"Empty bars play as silence. Bar 2 is allowed to be nearly empty."},
     {ok:back,t:"Your motif comes back",tip:"Reuse bar 1's rhythm or its up-and-down shape in at least one later bar."},
-    {ok:rest1>=.25,t:`Space in the first phrase (${Math.round(rest1*100)}% silence)`,tip:"Aim for at least a quarter of bars 1–4 as rests. Space makes the first idea land."},
+    {ok:rest1>=(F===FORMS.story?.25:.15),t:`Space in the first phrase (${Math.round(rest1*100)}% silence)`,tip:F===FORMS.story?"Aim for at least a quarter of bars 1–4 as rests. Space makes the first idea land.":"End your motif with a short rest so each repeat can breathe."},
     {ok:hiB>=8&&hiB<=12,t:"The highest note comes in the build",tip:hiB<0?"No notes yet.":`Your highest note is in bar ${hiB+1}. Save the top of the shape for bars 9–13.`},
     {ok:landPct>=.7,t:`Phrases land on chord tones (${Math.round(landPct*100)}% of bars)`,tip:"End most bars on a green note: it sounds settled against the chord."},
+    {ok:arr.length>=4&&arrPct>=.6,t:`Chord changes tracked (${Math.round(arrPct*100)}% of bars start on a chord tone)`,tip:"Lesson 010: when a bar starts with a note on beat 1, make it a note of the new chord. Aim the last note of the bar before at it."},
+    ...(calls.length?[{ok:calls.every(b=>isct(b)===false)&&resps.every(b=>isct(b)===true),t:"Calls sound unfinished, responses resolve",tip:"Lesson 009: end each call bar on a white note and each response bar on a green one."}]:[]),
     {ok:!!t12&&degOf(sm(t12))!==0,t:"Tension before the end (bar 12 doesn't settle)",tip:"End bar 12 on the 7 or the 2 so the ear wants to hear the root."},
     {ok:!!end&&degOf(sm(end))===0&&end.d>=8,t:"Ends on the root, held",tip:"Finish bar 16 on the root for at least two beats."},
     {ok:busy,t:"Busier in the build than at the start",tip:"Use more notes in bars 9–12 than in bars 1–4."},
@@ -264,11 +319,16 @@ function lead(n,t,dur,vol){const m=OPEN[n.s]+n.f,s=keep(ctx.createBufferSource()
   const base=1,up=Math.pow(2,(n.b||0)/12);
   if(n.sl){s.playbackRate.setValueAtTime(Math.pow(2,-2/12),t);s.playbackRate.linearRampToValueAtTime(base,t+.07);}
   else s.playbackRate.setValueAtTime(base,t);
-  if(n.b){const b0=t+(n.sl?.08:.03),bt=b0+Math.min(.16,dur*.33);s.playbackRate.setValueAtTime(base,b0);s.playbackRate.linearRampToValueAtTime(up,bt);}
+  if(n.b&&n.bt==="p"){s.playbackRate.setValueAtTime(up,t);s.playbackRate.setValueAtTime(up,t+dur*.45);s.playbackRate.linearRampToValueAtTime(base,t+dur*.45+Math.min(.18,dur*.3));}
+  else if(n.b){const b0=t+(n.sl?.08:.03),bt=b0+Math.min(.16,dur*.33);s.playbackRate.setValueAtTime(base,b0);s.playbackRate.linearRampToValueAtTime(up,bt);
+    if(n.bt==="r"){s.playbackRate.setValueAtTime(up,t+dur*.6);s.playbackRate.linearRampToValueAtTime(base,t+dur*.6+Math.min(.18,dur*.3));}}
   if(n.v&&dur>.25){try{const o=keep(ctx.createOscillator()),og=ctx.createGain();o.frequency.value=5.6;og.gain.setValueAtTime(0,t);og.gain.linearRampToValueAtTime(28,t+Math.min(.35,dur*.5));
     o.connect(og).connect(s.detune);o.start(t);o.stop(t+dur+.3);}catch(e){}}
   const v=(vol||.75)*(n.h?.6:1);g.gain.setValueAtTime(v,t);g.gain.setTargetAtTime(0,t+Math.max(.08,dur-.02),.05);
   s.connect(lp).connect(g).connect(out());s.start(t);s.stop(t+Math.min(2.6,dur+.5));}
+/* a full note event: approach note first (Lesson 006), then the note, plus triad notes strummed with it (Lesson 008) */
+function leadEv(n,t,dur){if(n.ap){const g=Math.min(.09,dur/4);lead({s:n.s,f:Math.max(0,n.f-1),h:1},t,g,.55);t+=g;dur-=g;}
+  lead(n,t,dur);(n.tr||[]).forEach((q,j)=>lead({s:q.s,f:q.f},t+(j+1)*.012,dur,.42));}
 function pl(m,t,dur,vol,lpf){const s=keep(ctx.createBufferSource()),g=ctx.createGain();s.buffer=pluckBuf(m);g.gain.setValueAtTime(vol,t);g.gain.setTargetAtTime(0,t+dur,.06);
   if(lpf){const f=ctx.createBiquadFilter();f.type="lowpass";f.frequency.value=lpf;s.connect(f).connect(g);}else s.connect(g);g.connect(out());s.start(t);s.stop(t+Math.min(2.6,dur+.5));}
 function noise(){if(NOISE&&NOISE.sampleRate===ctx.sampleRate)return NOISE;const b=ctx.createBuffer(1,ctx.sampleRate*.5,ctx.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;return NOISE=b;}
@@ -301,8 +361,9 @@ function scheduleLoop(ts){const s=S(),spb=play.spb;
     if(ui.band!==false){for(let q=0;q<4;q++){const t=bt+q*spb;if(q%2===0)kick(t);else snare(t);hat(t,q===0);hat(t+spb/2,false);}
       pl(ch.bass,bt,spb*1.8,.55,700);pl(ch.bass,bt+2*spb,spb*1.8,.5,700);
       [0,2].forEach(q=>ch.tones.forEach((m,j)=>pl(m,bt+q*spb+j*.014,spb*1.7,.16,2400)));}
-    if(ui.lead!==false){let pos=0;(s.bars[b]||[]).forEach(n=>{const t=bt+pos/4*spb,dur=n.d/4*spb;if(!n.r)lead(n,t,dur);pos+=n.d;});}}}
-function preview(n){audio();load();lead(n,ctx.currentTime+.02,.5,.7);}
+    if(ui.lead!==false){let pos=0;(s.bars[b]||[]).forEach(n=>{const t=bt+pos/4*spb,dur=n.d/4*spb;if(!n.r)leadEv(n,t,dur);pos+=n.d;});}}}
+function preview(n){audio();load();leadEv(n,ctx.currentTime+.02,.6);}
+function previewBar(b){if(play)return;start(b,b);const tok=play;setTimeout(()=>{if(play===tok)stop();},(60/S().tempo)*8*1000+400);}
 
 /* ===================== Rendering ===================== */
 const app=document.getElementById("app"),esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -316,6 +377,7 @@ function renderHome(){const br=brief(),sp=shapeNotes(br.key,br.shape).map(p=>p.f
   <section class="card"><div class="row between"><h2>Today's solo</h2><span class="muted small">${wk} min this week</span></div>
     <div class="brief"><div><b>${keyName(br.key)} major</b><span>scale</span></div><div><b>${CAGED[br.shape].n} shape</b><span>frets ${Math.min(...sp)}–${Math.max(...sp)}</span></div>
       <div><b>${PROGS[br.prog].d.map(c=>chordName(c,br.key)).join(" ")}</b><span>${PROGS[br.prog].n} progression</span></div><div><b>${br.tempo} bpm</b><span>band tempo</span></div></div>
+    <p class="small"><b>Form: ${FORMS[br.form||"story"].n}</b> <span class="muted">(${FORMS[br.form||"story"].tag}). ${FORMS[br.form||"story"].why}</span></p>
     <p class="muted small">16 bars in four phrases. I'll guide you bar by bar, and suggest ideas built from your own first bar whenever you're stuck.</p>
     <div class="row"><button class="pri" data-new="1">Start building ▸</button><button data-redraw="1">Draw another ↻</button></div>
     <details><summary class="small muted" style="cursor:pointer">Choose it myself</summary>
@@ -323,6 +385,7 @@ function renderHome(){const br=brief(),sp=shapeNotes(br.key,br.shape).map(p=>p.f
         <select id="selKey">${KEYS.map(k=>`<option value="${k.pc}"${k.pc===br.key?" selected":""}>${k.n} major</option>`).join("")}</select>
         <select id="selShape">${CAGED.map((c,i)=>`<option value="${i}"${i===br.shape?" selected":""}>${c.n} shape</option>`).join("")}</select>
         <select id="selProg">${Object.entries(PROGS).map(([k,p])=>`<option value="${k}"${k===br.prog?" selected":""}>${p.n}: ${p.d.map(c=>ROM[c]).join(" ")}</option>`).join("")}</select>
+        <select id="selForm">${Object.entries(FORMS).map(([k,f])=>`<option value="${k}"${k===(br.form||"story")?" selected":""}>${f.n}</option>`).join("")}</select>
         <button data-setbrief="1">Use these</button></div></details>
   </section>
   ${primer()}
@@ -341,6 +404,16 @@ function primer(open){return `<section class="card"><details class="primer"${ope
   <li><b>A shape.</b> Quiet beginning, a climb, a peak, and a clear ending, usually on the root.</li>
   <li><b>Space.</b> Rests are part of the melody. A singer has to breathe; a solo that breathes sounds like singing.</li></ol>
   ${arcSVG(null)}
+  <p style="margin-top:8px"><b>Ideas from the Guitar Soloing course (Creative Guitar Studio) built into this page:</b></p>
+  <ol><li><b>Composing first (L002):</b> write phrases over the chords, then improvise with them as a map.</li>
+  <li><b>Recurring melody (L003):</b> the AAAB, ABAB and AABA forms.</li>
+  <li><b>Phrasing a plain line (L004, L018):</b> the Rephrase buttons (start off the beat, add a breath, dotted feel, fewer and longer notes).</li>
+  <li><b>Approach notes (L006):</b> a quick note one fret below the target.</li>
+  <li><b>Triad punches (L008):</b> the chord's three notes struck at a chord change.</li>
+  <li><b>Call and response (L009):</b> a form where an unfinished call is answered by a response that lands.</li>
+  <li><b>Tracking chord arrivals (L010):</b> the next-chord hint, the Arrive button and a check.</li>
+  <li><b>Bends (L012, L018):</b> bend and hold, bend and release, pre-bend.</li>
+  <li><b>Sequences (L017):</b> groups of three in the build.</li></ol>
   <p class="small muted">In the builder: <b style="color:#059669">green dots</b> are notes of the chord playing now (safe places to land), the <b>dark dot</b> is the root, white dots are the other scale notes (passing notes and tension).</p></details></section>`;}
 
 function arcSVG(mine){const W=320,H=74,x=b=>8+b*(W-16)/15,y=v=>H-10-v*(H-22);
@@ -357,7 +430,7 @@ function renderBuild(){const s=S(),ph=Math.floor(sel/4),c=C16[sel],cts=[...ctSet
   app.innerHTML=`
   <section class="card"><div class="row between"><button class="linkb" data-home="1">← All solos</button><span class="badge${s.done?" fin":""}">${s.done?"finished":A.filled+"/16 bars"}</span></div>
     <input type="text" id="nameIn" value="${esc(s.name)}" aria-label="Solo name" style="font:700 18px var(--body)">
-    <p class="muted small">${metaLine(s)}</p>
+    <p class="muted small">${metaLine(s)} · form: <b>${formOf(s).n}</b></p>
     <div class="arc">${PH.map((p,k)=>{const f=[0,1,2,3].filter(j=>(s.bars[k*4+j]||[]).some(x=>!x.r)).length;
       return `<button class="ph${k===ph?" here":""}" data-ph="${k}"><b>${k+1}. ${p.n}</b><span>${p.sub}</span><i><s style="width:${f*25}%"></s></i></button>`;}).join("")}</div>
     ${arcSVG(A.tens)}
@@ -367,7 +440,8 @@ function renderBuild(){const s=S(),ph=Math.floor(sel/4),c=C16[sel],cts=[...ctSet
     <p class="muted small">${PH[ph].txt}</p>
     <div class="row between" style="align-items:flex-end"><div><div class="muted small">Bar ${sel+1} · ${ROM[c]} chord</div><div class="chord">${chordName(c,s.key)}</div></div>
       <div class="chips">${chs.map((n,j)=>`<span class="chip ${cts[j]===0?"rt":"ct"}">${n} <small>(${DEGN[cts[j]]})</small></span>`).join("")}</div></div>
-    <div class="tip"><b>Bar ${sel+1}:</b> ${TIPS[sel]}</div>
+    <div class="tip"><b>Bar ${sel+1}:</b> ${tipOf(sel)}</div>
+    ${sel<15?`<p class="small muted">Next bar: <b>${chordName(C16[sel+1],s.key)}</b>. Aim your last note toward ${[0,2,4].map(k=>nn(s.key+MAJ[(C16[sel+1]+k)%7],s.key)).join(", ")} so the change lands (Lesson 010).</p>`:""}
     <div class="row"><button data-suggest="1">✨ Suggest bar ${sel+1}</button>${sel>0&&!motif()?`<span class="small muted">Tip: write bar 1 first; suggestions are built from it.</span>`:""}</div>
   </section>
   <section class="card">
@@ -375,20 +449,21 @@ function renderBuild(){const s=S(),ph=Math.floor(sel/4),c=C16[sel],cts=[...ctSet
     ${fretboard(c)}
     <div class="tools">
       <div class="durs">${DURS.map(x=>`<button data-dur="${x.d}" class="${ui.dur===x.d?"on":""}">${x.s}<small>${x.w}</small></button>`).join("")}</div>
-      <div class="techs">${[["b","Bend ↗"],["sl","Slide in"],["h","Legato"],["v","Vibrato ~"]].map(([k,l])=>`<button data-tech="${k}" class="${ui.tech[k]?"on":""}">${l}</button>`).join("")}</div>
+      <div class="techs">${[["b",["Bend","Bend ↗","Bend ↗↘","Pre-bend ↘"][ui.tech.b||0]],["sl","Slide in"],["h","Legato"],["v","Vibrato ~"],["ap","Approach ‹"]].map(([k,l])=>`<button data-tech="${k}" class="${ui.tech[k]?"on":""}">${l}</button>`).join("")}<button data-triad="1" title="Lesson 008">Triad ♫</button><button data-arrive="1" title="Lesson 010">Arrive ◎</button></div>
+      <div class="row small" style="gap:4px"><span class="muted">Rephrase bar ${sel+1}:</span><button data-reph="off">Off the beat</button><button data-reph="breath">Add a breath</button><button data-reph="dot">Dotted feel</button><button data-reph="long">Fewer, longer</button></div>
       <div class="row"><span class="small muted">Bar ${sel+1}: ${u/4} of 4 beats</span><span class="fill"><s style="width:${u/16*100}%"></s></span></div>
       <div class="row"><button data-rest="1">Rest ${DURS.find(x=>x.d===ui.dur).s}</button><button data-undo="1">↶ Undo</button><button data-clear="1">Clear bar</button>
         <button data-prevbar="1" ${sel?"":"disabled"}>◂ Bar</button><button data-nextbar="1" ${sel<15?"":"disabled"}>Bar ▸</button></div>
-      <p class="small muted">Bend, slide, legato and vibrato apply to the next note you tap. Durations are in beats.</p>
+      <p class="small muted">Techniques apply to the next note you tap. Tap Bend again to switch between bend and hold, bend and release, and pre-bend. Approach adds a quick note one fret below. Triad drops this chord's three notes in one hit. Arrive adds a quick lead-in to the next chord's nearest note. Rephrase keeps your notes and changes their rhythm. Durations are in beats.</p>
     </div>
   </section>
   <section class="card"><div class="row between"><h3>Your solo</h3><button class="linkb" data-copy="1">Copy as text tab</button></div>
     <div class="tabrows">${PH.map((p,k)=>`<div class="tabph"><h3>${k+1}. ${p.n}</h3><div class="bars">${[0,1,2,3].map(j=>barBox(k*4+j)).join("")}</div></div>`).join("")}</div>
-    <p class="small muted">Legend: <b>7b</b> bend · <b>/7</b> slide in · <b>h7</b> legato · <b>7~</b> vibrato. The line under each note shows how long it rings.</p>
+    <p class="small muted">Legend: <b>7b</b> bend · <b>7br</b> bend & release · <b>7pb</b> pre-bend · <b>‹7</b> approach from below · <b>/7</b> slide in · <b>h7</b> legato · <b>7~</b> vibrato · <b style="color:#7c3aed">purple</b> = triad. The line under each note shows how long it rings.</p>
   </section>
   <section class="card"><div class="row between"><h2>Check & save</h2><span class="muted small">${A.score} of ${A.list.length}</span></div>
     <ul class="checks">${A.list.map(x=>`<li class="${x.ok?"ok":""}"><b>${x.ok?"✓":"!"}</b><div>${x.t}${x.ok?"":`<small>${x.tip}</small>`}</div></li>`).join("")}</ul>
-    <p class="small muted">These are guides, not rules. If it sounds good to you, it is good.</p>
+    <p class="small muted">These are guides, not rules. If it sounds good to you, it is good. Once it's finished, mute 🎸 and improvise over the band with your solo as the map (Lesson 002).</p>
     <div class="row">${s.done?`<button data-reopen="1">Mark as still in progress</button>`:`<button class="good" data-finish="1">Finish & save ✓</button>`}
       <button data-example="1">Show me a whole example</button><button class="linkb" data-dup="1">Duplicate</button><button class="linkb" data-delete="1">Delete</button></div>
   </section>`;}
@@ -403,10 +478,12 @@ function fretboard(c){const [lo,hi]=fretSpan(),f0=lo-1,cols=hi-f0,W=360,L=26,R=1
     svg+=`<g class="dot" data-i="${i}"><circle cx="${fx(p.f)}" cy="${sy(p.s)}" r="12" fill="${fill}" stroke="${st0}" stroke-width="1.5"/><text x="${fx(p.f)}" y="${sy(p.s)+4}" font-size="10.5" font-weight="700" text-anchor="middle" fill="${tc}" pointer-events="none">${nn(p.m,s.key)}</text></g>`;});
   return svg+"</svg>";}
 
+const lbl=n=>(n.ap?"‹":"")+(n.sl?"/":"")+(n.h?"h":"")+n.f+(n.b?(n.bt==="r"?"br":n.bt==="p"?"pb":"b"):"")+(n.v?"~":"");
 function barBox(b){const s=S(),bar=s.bars[b]||[],W=160,T=8,G=9,H=T+G*5+8,x=p=>6+p/16*(W-12);let pos=0,g="";
   for(let k=1;k<=6;k++)g+=`<line x1="2" x2="${W-2}" y1="${T+(k-1)*G}" y2="${T+(k-1)*G}" stroke="#e2e8f0"/>`;
   [4,8,12].forEach(p=>g+=`<line x1="${x(p)}" x2="${x(p)}" y1="${T}" y2="${T+5*G}" stroke="#f1f5f9"/>`);
-  bar.forEach(n=>{if(!n.r){const y=T+(n.s-1)*G,lab=(n.sl?"/":"")+(n.h?"h":"")+n.f+(n.b?"b":"")+(n.v?"~":"");
+  bar.forEach(n=>{if(!n.r){const y=T+(n.s-1)*G,lab=lbl(n);
+      (n.tr||[]).forEach(q=>{const yy=T+(q.s-1)*G;g+=`<rect x="${x(pos)-1}" y="${yy-5.5}" width="${String(q.f).length*5.6+2}" height="10" fill="#fff"/><text x="${x(pos)}" y="${yy+3}" font-size="9.5" font-weight="700" font-family="ui-monospace,Menlo,monospace" fill="#7c3aed">${q.f}</text>`;});
       g+=`<rect x="${x(pos)}" y="${y+3}" width="${Math.max(2,x(pos+n.d)-x(pos)-2)}" height="2" rx="1" fill="#fdba74"/><rect x="${x(pos)-1}" y="${y-5.5}" width="${lab.length*5.6+2}" height="10" fill="#fff"/><text x="${x(pos)}" y="${y+3}" font-size="9.5" font-weight="700" font-family="ui-monospace,Menlo,monospace" fill="#172033">${lab}</text>`;}
     pos+=n.d;});
   return `<div class="bar${b===sel?" sel":""}" data-bar="${b}"><div class="bh">${chordName(C16[b],s.key)}<span>${b+1}</span></div><svg viewBox="0 0 ${W} ${H}">${g}</svg></div>`;}
@@ -422,14 +499,22 @@ let toastT=0;function toast(t){let el=document.querySelector(".toast");if(!el){e
 function textTab(){const s=S(),out=[`${s.name}`,`${metaLine(s)} · ${s.tempo} bpm`,""];
   for(let k=0;k<4;k++){const rows={};[1,2,3,4,5,6].forEach(r=>rows[r]="eBGDAE"[r-1]+"|");let chord="  ";
     for(let j=0;j<4;j++){const b=k*4+j,cells={};[1,2,3,4,5,6].forEach(r=>cells[r]=Array(17).fill("-"));let pos=0;
-      (s.bars[b]||[]).forEach(n=>{if(!n.r&&pos<16){const lab=(n.sl?"/":"")+(n.h?"h":"")+n.f+(n.b?"b":"")+(n.v?"~":"");[...lab].forEach((ch,q)=>{if(pos+q<17)cells[n.s][pos+q]=ch;});}pos+=n.d;});
+      (s.bars[b]||[]).forEach(n=>{if(!n.r&&pos<16){const lab=lbl(n);[...lab].forEach((ch,q)=>{if(pos+q<17)cells[n.s][pos+q]=ch;});(n.tr||[]).forEach(t=>{[...String(t.f)].forEach((ch,q)=>{if(pos+q<17)cells[t.s][pos+q]=ch;});});}pos+=n.d;});
       [1,2,3,4,5,6].forEach(r=>{rows[r]+=cells[r].join("")+"|";});chord+=chordName(C16[b],s.key).padEnd(18," ");}
     out.push(`${k+1}. ${PH[k].n} (bars ${k*4+1}-${k*4+4})`,chord,...[1,2,3,4,5,6].map(r=>rows[r]),"");}
-  out.push("b bend · / slide in · h legato · ~ vibrato · one dash = a 16th note");return out.join("\n");}
+  out.push("b bend · br bend & release · pb pre-bend · ‹ approach · / slide in · h legato · ~ vibrato · stacked numbers = triad · one dash = a 16th note");return out.join("\n");}
 /* ===================== Actions ===================== */
 function newSolo(br){stop();const id="s"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),n=live().length+1;
-  st.solos[id]={id,name:`Solo ${n} · ${keyName(br.key)} ${CAGED[br.shape].n} shape`,key:br.key,shape:br.shape,prog:br.prog,tempo:br.tempo,bars:[...Array(16)].map(()=>[]),done:0,created:Date.now(),upd:Date.now()};
+  st.solos[id]={id,name:`Solo ${n} · ${keyName(br.key)} ${CAGED[br.shape].n} shape`,key:br.key,shape:br.shape,prog:br.prog,form:br.form||"story",tempo:br.tempo,bars:[...Array(16)].map(()=>[]),done:0,created:Date.now(),upd:Date.now()};
   st.cur=id;view="build";sel=0;touch();render();window.scrollTo(0,0);}
+/* Lessons 004 and 018: same notes, new rhythm */
+function rephrase(bar,how){const ns=()=>bar.filter(x=>!x.r);
+  if(how==="off"){if(bar[0]&&bar[0].r){toast("This bar already starts off the beat");return;}const lg=ns().reduce((a,x)=>x.d>a.d?x:a);if(lg.d<4&&used(bar)>14){toast("No room to shift: try Fewer, longer first");return;}
+    if(used(bar)>14)lg.d-=2;bar.unshift({r:1,d:2});}
+  else if(how==="breath"){const l=ns()[ns().length-1],i=bar.indexOf(l);if(l.d>=4){const h=Math.floor(l.d/2);l.d-=h;bar.splice(i+1,0,{r:1,d:h});}else{const lg=ns().reduce((a,x)=>x.d>a.d?x:a);if(lg.d<4){toast("Notes are too short to cut: try Fewer, longer");return;}const h=Math.floor(lg.d/2);lg.d-=h;bar.splice(bar.indexOf(lg)+1,0,{r:1,d:h});}}
+  else if(how==="dot"){let ch=false;for(let i=0;i+1<bar.length;i++){const a=bar[i],b=bar[i+1];if(!a.r&&!b.r&&a.d===b.d&&(a.d===2||a.d===4)){a.d=a.d*1.5;b.d=b.d/2;i++;ch=true;}}if(!ch)toast("Needs two equal eighths or quarters in a row");}
+  else if(how==="long"){const N0=ns();if(N0.length<3){toast("Too few notes to thin out");return;}for(let i=bar.length-1;i>0;i--){const x=bar[i],p=bar[i-1];if(!x.r&&!p.r&&x.d<=2&&i%2===1){p.d+=x.d;bar.splice(i,1);}}}
+  while(used(bar)>16){const l=bar[bar.length-1];const over=used(bar)-16;if(l.d>over){l.d-=over;}else bar.pop();}}
 function addItem(item){const s=S();let bar=s.bars[sel],left=16-used(bar);
   if(left<=0){if(sel<15){sel++;bar=s.bars[sel];left=16;}else{toast("The solo is full: undo or clear a bar first");return false;}}
   if(item.d>left){item.d=left;toast("Shortened to fit the bar");}
@@ -438,20 +523,29 @@ document.addEventListener("click",e=>{const t=e.target.closest("[data-i],[data-n
   const d=t.dataset,s=S();
   if(d.new){newSolo(brief());return;}
   if(d.redraw){brief(true);render();return;}
-  if(d.setbrief){Object.assign(st.brief,{key:+document.getElementById("selKey").value,shape:+document.getElementById("selShape").value,prog:document.getElementById("selProg").value});save();render();return;}
+  if(d.setbrief){Object.assign(st.brief,{key:+document.getElementById("selKey").value,shape:+document.getElementById("selShape").value,prog:document.getElementById("selProg").value,form:document.getElementById("selForm").value});save();render();return;}
   if(d.open){stop();st.cur=d.open;view="build";const sb=st.solos[d.open];sel=Math.max(0,Math.min(15,(sb.bars||[]).findIndex(b=>used(b)<16)));if(sel<0)sel=0;save(true);render();window.scrollTo(0,0);return;}
   if(d.home){stop();st.cur=null;view="home";save(true);render();window.scrollTo(0,0);return;}
   if(d.syncnow){cloudSync();return;}
   if(d.syncoff){try{localStorage.removeItem(SYNC_KEY);}catch(x){}setSync("off");render();return;}
   if(d.syncon){const v=(document.getElementById("syncIn").value||"").trim();if(v.length<8){setSync("err","use a sync code of at least 8 characters");return;}try{localStorage.setItem(SYNC_KEY,v);}catch(x){}cloudSync().then(render);return;}
   if(!s)return;
-  if(d.i!==undefined){const p=P[+d.i],n={s:p.s,f:p.f,d:ui.dur};if(ui.tech.b)n.b=bendSize(+d.i);if(ui.tech.sl)n.sl=1;if(ui.tech.h)n.h=1;if(ui.tech.v)n.v=1;
+  if(d.i!==undefined){const p=P[+d.i],n={s:p.s,f:p.f,d:ui.dur};if(ui.tech.b){n.b=bendSize(+d.i);if(ui.tech.b===2)n.bt="r";if(ui.tech.b===3)n.bt="p";}if(ui.tech.ap)n.ap=1;if(ui.tech.sl)n.sl=1;if(ui.tech.h)n.h=1;if(ui.tech.v)n.v=1;
     preview(n);if(addItem(n)){ui.tech={};}render();return;}
   if(d.ph!==undefined){sel=+d.ph*4;render();return;}
   if(d.bar!==undefined){sel=+d.bar;render();return;}
   if(d.suggest){const b=sel;suggest(b);render();if(!play){start(b,b);const tok=play;setTimeout(()=>{if(play===tok)stop();},(60/s.tempo)*8*1000+400);}return;}
   if(d.dur){ui.dur=+d.dur;render();return;}
-  if(d.tech){ui.tech[d.tech]=!ui.tech[d.tech];render();return;}
+  if(d.tech){if(d.tech==="b")ui.tech.b=((ui.tech.b||0)+1)%4;else ui.tech[d.tech]=!ui.tech[d.tech];render();return;}
+  if(d.triad){const li=lastIdx(sel)??lastIdx(sel-1)??Math.round(.5*(N-1)),tr=triadFor(C16[sel],li);if(!tr){toast("No triad of this chord fits in the shape here");return;}
+    const n={s:tr[0].s,f:tr[0].f,d:ui.dur,tr:[{s:tr[1].s,f:tr[1].f},{s:tr[2].s,f:tr[2].f}]};preview(n);addItem(n);render();return;}
+  if(d.arrive){if(sel>=15){toast("The last bar has no next chord");return;}const bar=s.bars[sel],left=16-used(bar);if(left<1){toast(`Bar ${sel+1} is full: the lead-in goes in its last beat`);return;}
+    const nc=C16[sel+1],li=lastIdx(sel)??lastIdx(sel-1)??Math.round(.5*(N-1)),tgt=nearestCT(li,nc),from=clampI(tgt+(li>tgt?1:-1)),k=sel;
+    const from2=clampI(from+(from-tgt));
+    if(left>=4){if(left>4)bar.push({r:1,d:left-4});bar.push(toNote({d:2,i:from2}),toNote({d:2,i:from}));}
+    else bar.push(toNote({d:left,i:from}));
+    if(!s.bars[sel+1].length)s.bars[sel+1].push(toNote({d:4,i:tgt}));touch();sel=Math.min(15,k+1);render();toast(`Lead-in added; bar ${k+2} starts on ${nn(P[tgt].m,s.key)}`);return;}
+  if(d.reph){const bar=s.bars[sel];if(!bar.some(x=>!x.r)){toast("Write some notes in this bar first");return;}rephrase(bar,d.reph);touch();render();previewBar(sel);return;}
   if(d.rest){addItem({r:1,d:ui.dur});render();return;}
   if(d.undo){if(!s.bars[sel].length&&sel>0)sel--;s.bars[sel].pop();touch();render();return;}
   if(d.clear){s.bars[sel]=[];touch();render();return;}
