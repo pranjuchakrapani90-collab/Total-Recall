@@ -90,11 +90,11 @@ a.sec.cg::before{background:#0f766e}.cg .tag{background:#e6f6f4;color:#0f766e}.c
     </a>
     <a class="sec sb" href="solo.html">
       <div class="ico">✍️</div>
-      <h2>Solo Builder</h2>
-      <p>Each visit gives you a key, a CAGED shape and a chord progression. Build a 16-bar solo over a backing band, phrase by phrase: motif, answer, build, resolve. Saved as you go. Includes the Triad Soloing Course.</p>
-      <div class="tags"><span class="tag">your own solos</span><span class="tag">backing band</span><span class="tag">16 bars</span></div>
-      <div class="now"><div><b id="sSolos">0</b><span>solos</span></div><div><b id="sFin">0</b><span>finished</span></div><div><b id="sWeek">0</b><span>min this week</span></div></div>
-      <div class="go"><span id="sNext">Get today's key and shape</span><b>Open ▸</b></div>
+      <h2>Soloing Course</h2>
+      <p>Learn to solo by doing, from first notes in a CAGED shape to full 16-bar solos: 10 modules with what-and-why lessons, practice examples in every key with a backing band, and a workshop to write and save your own solos.</p>
+      <div class="tags"><span class="tag">10 modules</span><span class="tag">backing band</span><span class="tag">your own solos</span></div>
+      <div class="now"><div><b id="sEx">0</b><span>exercises done</span></div><div style="display:none"><b id="sSolos">0</b></div><div><b id="sFin">0</b><span>solos finished</span></div><div><b id="sWeek">0</b><span>min this week</span></div></div>
+      <div class="go"><span id="sNext">Start the course</span><b>Open ▸</b></div>
     </a>
   </div>
 </main>
@@ -126,9 +126,9 @@ else document.getElementById("lNext").textContent=pats.length?"Write your next p
  document.getElementById("fDone").textContent=P.n;
  document.getElementById("fLeft").textContent=P.total-P.n;
  document.getElementById("fNext").textContent=P.n===P.total?"Course complete: review any lesson":P.next?`Next: ${P.next.id} ${P.next.t}`:"Start with lesson 1a";}
-// Solo Builder: saved solos and minutes (not part of the 15 + 15 cycle)
+// Soloing Course: exercises done, saved solos and minutes (not part of the 15 + 15 cycle)
 {const so=get("solo-v1")||{},L=Object.values(so.solos||{}).filter(x=>x&&!((so.del||{})[x.id]>=x.upd));
- document.getElementById("sSolos").textContent=L.length;document.getElementById("sFin").textContent=L.filter(x=>x.done).length;
+ document.getElementById("sSolos").textContent=L.length;document.getElementById("sEx").textContent=Object.keys((so.course&&so.course.done)||{}).length;document.getElementById("sFin").textContent=L.filter(x=>x.done).length;
  let t=0;for(let i=0;i<7;i++){const d=new Date();d.setDate(d.getDate()-i);const k=dkey(d);t+=((so.days||{})[k]||0)+Object.values(so.odays||{}).reduce((a,o)=>a+((o&&o[k])||0),0);}
  document.getElementById("sWeek").textContent=Math.floor(t/60);
  const cur=so.cur&&(so.solos||{})[so.cur];if(cur&&!cur.done)document.getElementById("sNext").textContent=`Continue: ${cur.name}`;}

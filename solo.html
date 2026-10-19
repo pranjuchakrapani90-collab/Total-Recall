@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#c2410c">
-<title>Solo Builder · Guitar Studio</title>
+<title>Soloing Course · Guitar Studio</title>
 <script src="gsync.js"></script>
 <link rel="manifest" href="manifest.webmanifest">
 <style>
@@ -67,6 +67,8 @@ details.primer summary{cursor:pointer;font-weight:650}
 .checks li{display:flex;gap:8px;align-items:flex-start;font-size:14px}.checks li b{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px;background:var(--warn-soft);color:var(--warn)}
 .checks li.ok b{background:var(--good-soft);color:var(--good)}.checks li small{display:block;color:var(--muted)}
 .lib{display:flex;flex-direction:column;gap:8px}
+.tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:6px}
+.tabs button{justify-content:center;padding:10px 6px}
 .solo{display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid var(--line);border-radius:12px;padding:10px 12px}
 .solo b{display:block}.solo span{font-size:12px;color:var(--muted)}
 .badge{font:600 11px var(--body);border-radius:999px;padding:3px 8px;background:var(--warn-soft);color:var(--warn)}.badge.fin{background:var(--good-soft);color:var(--good)}
@@ -80,8 +82,8 @@ details.primer summary{cursor:pointer;font-weight:650}
 <header><div class="hin">
   <a class="backlink" href="studio.html">← Guitar Studio</a>
   <div class="eyebrow">Guitar Studio · section 3</div>
-  <h1>Solo Builder</h1>
-  <p>Each time you open it you get a key, a CAGED shape and a chord progression. You build a 16-bar solo over a backing band, phrase by phrase, and save it when it's done.</p>
+  <h1>Soloing Course</h1>
+  <p>Learn to solo by doing: short lessons on what and why, hundreds of practice examples with a backing band, and a workshop where you write and save your own solos.</p>
   <p id="syncLine" style="margin-top:8px;font-size:12px;opacity:.9"></p>
 </div></header>
 <main class="wrap" id="app"></main>
@@ -178,7 +180,7 @@ function mig(x){if(x&&x.u!==48){(x.bars||[]).forEach(b=>(b||[]).forEach(n=>{n.d*
 Object.values(st.solos).forEach(mig);
 function save(noSync){try{localStorage.setItem(KEY,JSON.stringify(st));}catch(e){}if(!noSync)scheduleSync();}
 const live=()=>Object.values(st.solos).filter(s=>s&&!(st.del[s.id]>=s.upd));
-let view=st.cur&&st.solos[st.cur]?"build":"home",sel=0,ui={dur:12,tech:{},checks:false,skel:true};
+let view=st.cur&&st.solos[st.cur]?"build":"course",sel=0,ui={dur:12,tech:{},checks:false,skel:true};
 const S=()=>st.solos[st.cur];
 let P=[],N=0,C16=[];
 function load(){const s=S();if(!s)return;P=shapeNotes(s.key,s.shape);N=P.length;C16=chords16(s.prog);}
@@ -413,7 +415,10 @@ function previewBar(b){if(play)return;start(b,b);const tok=play;setTimeout(()=>{
 const app=document.getElementById("app"),esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const fretSpan=()=>{const fs=P.map(p=>p.f);return [Math.min(...fs),Math.max(...fs)];};
 function metaLine(s){const sp=shapeNotes(s.key,s.shape).map(p=>p.f);return `${keyName(s.key)} major · ${CAGED[s.shape].n} shape (frets ${Math.min(...sp)}–${Math.max(...sp)}) · ${PROGS[s.prog].n}: ${PROGS[s.prog].d.map(c=>chordName(c,s.key)).join(" ")}`;}
-function render(){if(view==="course"&&window.renderCourse)window.renderCourse();else if(view==="jam")renderJam();else if(view==="build"&&S()){load();renderBuild();}else{view="home";renderHome();}renderTransport();}
+/* the three parts of the section: the course, the workshop (write your own solos) and warm-ups */
+function tabsHTML(){const t=view==="course"?"course":view==="jam"?"warm":"work";
+  return `<nav class="tabs">${[["course","📘 Course"],["work","✍️ Workshop"],["warm","🔥 Warm-up"]].map(([k,l])=>`<button data-tab="${k}" class="${t===k?"on":""}">${l}</button>`).join("")}</nav>`;}
+function render(){if(view==="course"){if(window.renderCourse)window.renderCourse();renderTransport();return;}else if(view==="jam")renderJam();else if(view==="build"&&S()){load();renderBuild();}else{view="home";renderHome();}renderTransport();}
 
 /* warm-ups: limits make it easier to be creative (note limits, one string, rhythm-only, sing first) */
 const WARMUPS=[
@@ -432,7 +437,7 @@ const wu=()=>{const i=((st.wu==null?Math.floor(Date.now()/864e5):st.wu)%WARMUPS.
 const GSPlanMM=s=>{s=Math.ceil(s);return Math.floor(s/60)+":"+String(s%60).padStart(2,"0");};
 function renderJam(){const br=brief(),w=wu();P=shapeNotes(br.key,br.shape);N=P.length;C16=chords16(br.prog);
   const allow=p=>w.strs?w.strs.includes(p.s):w.deg?w.deg.includes(p.deg):true;
-  app.innerHTML=`<section class="card"><div class="row between"><button class="linkb" data-home="1">← Back</button><span class="muted small">warm-up · 2 minutes</span></div>
+  app.innerHTML=`${tabsHTML()}<section class="card"><div class="row between"><span class="muted small">warm-up · 2 minutes</span></div>
     <h2>${w.t}</h2><p>${w.d}</p>
     <div class="brief"><div><b id="jamT">2:00</b><span>left</span></div><div><b id="jamC">${chordName(C16[0],br.key)}</b><span>chord now</span></div><div><b>${keyName(br.key)}</b><span>${CAGED[br.shape].n} shape</span></div><div><b>${br.tempo}</b><span>bpm</span></div></div>
     ${fretboard(C16[0],{allow,key:br.key})}
@@ -440,7 +445,7 @@ function renderJam(){const br=brief(),w=wu();P=shapeNotes(br.key,br.shape);N=P.l
     <div class="row">${play?`<button class="pri" data-stop="1">■ Stop</button>`:`<button class="pri" data-jamgo="1">▶ Start warm-up</button>`}<button data-wunext="1">Another warm-up ↻</button></div></section>`;}
 function renderHome(){const br=brief(),sp=shapeNotes(br.key,br.shape).map(p=>p.f);
   const sol=live().sort((a,b)=>b.upd-a.upd),wk=weekMin();
-  app.innerHTML=`
+  app.innerHTML=`${tabsHTML()}
   <section class="card"><div class="row between"><h2>Today's solo</h2><span class="muted small">${wk} min this week</span></div>
     <div class="brief"><div><b>${keyName(br.key)} major</b><span>scale</span></div><div><b>${CAGED[br.shape].n} shape</b><span>frets ${Math.min(...sp)}–${Math.max(...sp)}</span></div>
       <div><b>${PROGS[br.prog].d.map(c=>chordName(c,br.key)).join(" ")}</b><span>${PROGS[br.prog].n} progression</span></div><div><b>${br.tempo} bpm</b><span>band tempo</span></div></div>
@@ -457,7 +462,7 @@ function renderHome(){const br=brief(),sp=shapeNotes(br.key,br.shape).map(p=>p.f
   </section>
   <section class="card"><div class="row between"><h3>Warm-up first · 2 min</h3><button class="linkb" data-wunext="1">another ↻</button></div>
     <p><b>${wu().t}:</b> ${wu().d}</p><div class="row"><button data-jam="1">▶ Warm up over the band</button></div></section>
-  ${window.courseCard?window.courseCard():""}
+  ${window.SOLO_COURSE?(()=>{const p=window.SOLO_COURSE.progress();return `<section class="card"><div class="row between"><h3>📘 Course progress</h3><span class="muted small">${p.n} of ${p.tot} exercises</span></div><span class="fill"><s style="width:${p.tot?p.n/p.tot*100:0}%"></s></span><div class="row"><button data-tab="course">Back to the course ▸</button></div></section>`;})():""}
   ${primer()}
   <section class="card"><div class="row between"><h2>Your solos</h2><span class="muted small">${sol.length} saved</span></div>
     ${sol.length?`<div class="lib">${sol.map(s=>`<div class="solo"><div style="min-width:0"><b>${esc(s.name)}</b><span>${keyName(s.key)} major · ${CAGED[s.shape].n} shape · ${PROGS[s.prog].n} · ${new Date(s.upd).toLocaleDateString(undefined,{day:"numeric",month:"short"})}</span></div>
@@ -607,6 +612,7 @@ function addItem(item){const s=S();let bar=s.bars[sel],left=BAR-used(bar);
   bar.push(item);if(used(bar)>=BAR&&sel<15)sel++;touch();return true;}
 document.addEventListener("click",e=>{const t=e.target.closest("[data-i],[data-ji],[data-bar],[data-ph],button");if(!t||!Object.keys(t.dataset).length)return;
   const d=t.dataset,s=S();
+  if(d.tab){stop();view=d.tab==="course"?"course":d.tab==="warm"?"jam":"home";render();window.scrollTo(0,0);return;}
   if(d.new){newSolo(brief());return;}
   if(d.jam){stop();view="jam";render();window.scrollTo(0,0);return;}
   if(d.wunext){st.wu=(st.wu==null?Math.floor(Date.now()/864e5):st.wu)+1;save(true);if(view==="jam"&&play)stop();render();return;}
@@ -714,5 +720,6 @@ function syncCard(){const on=!!syncCode();return `<section class="card"><div cla
 render();setSync(syncCode()?"busy":"off");cloudSync().then(ch=>{if(ch&&!play)render();});
 </script>
 <script src="triad-course.js"></script>
+<script src="soloing-course.js"></script>
 <script>render();</script>
 </body></html>

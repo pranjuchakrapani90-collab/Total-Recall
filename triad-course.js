@@ -1,4 +1,4 @@
-/* Solo Builder · Triad Soloing Course
+/* Soloing Course · triad library (helpers + triad lessons used by soloing-course.js)
    A learning-by-doing course: soloing with triads, from what a triad is to full 16-bar solo studies.
    Every exercise is generated, so "New example" gives the same idea in another key / position.
    Uses Solo Builder's globals: OPEN, MAJ, KEYS, PROGS, CAGED, QUAL, ROM, nn, keyName, chordName, shapeNotes,
@@ -265,85 +265,6 @@ const C=[
   why:"Learning sticks when you make something with it. Your solo is saved and checked like any other.",
   ex:[],turn:true}]}];
 
-/* ===================== State, rendering, actions ===================== */
-const allEx=()=>C.flatMap(m=>m.lessons.flatMap(l=>l.ex.map((e,i)=>({id:l.id+"."+(i+1),e,l,m}))));
-const done=()=>{st.course=st.course||{done:{}};st.course.done=st.course.done||{};return st.course.done;};
-let cur={lesson:null},vari={},cache={};
-function exData(id,e){const v=vari[id]||0,k=id+"#"+v;if(!cache[k]){try{cache[k]=e.gen(v);}catch(err){cache[k]={key:0,ch:[0],bars:[[{r:1,d:48}]],info:"example unavailable in this key: try New example"};}}return cache[k];}
-function lessonDone(l){return l.ex.length&&l.ex.every((_,i)=>done()[l.id+"."+(i+1)]);}
-function nextLesson(){for(const m of C)for(const l of m.lessons)if(!lessonDone(l)&&!l.turn)return l;return C[5].lessons[3];}
-const findL=id=>{for(const m of C)for(const l of m.lessons)if(l.id===id)return {l,m};return null;};
-
-function miniFret(ex){const ns=[];ex.bars.forEach(b=>b.forEach(n=>{if(!n.r){ns.push({s:n.s,f:n.f});(n.tr||[]).forEach(t=>ns.push(t));}}));if(!ns.length)return "";
-  const fs=ns.map(n=>n.f),lo=Math.max(0,Math.min(...fs)-1),hi=Math.max(...fs)+1,cols=hi-lo,W0=340,L=22,T=10,G=18,cw=(W0-L-8)/cols,Hh=T+G*5+22;
-  const uniq={};ns.forEach(n=>{uniq[n.s+"/"+n.f]=n;});
-  const role=n=>{const pc=(OPEN[n.s]+n.f)%12,c=ex.ch[0],p=pcsOf(ex.key,c).indexOf(pc);return p;};
-  let g=`<svg viewBox="0 0 ${W0} ${Hh}" style="width:100%;height:auto;display:block">`;
-  for(let k=0;k<=cols;k++){const x=L+k*cw;g+=`<line x1="${x}" x2="${x}" y1="${T}" y2="${T+5*G}" stroke="#cbd5e1"/>`;}
-  for(let s=1;s<=6;s++)g+=`<line x1="${L}" x2="${W0-8}" y1="${T+(s-1)*G}" y2="${T+(s-1)*G}" stroke="#94a3b8" stroke-width="${.7+s*.2}"/><text x="6" y="${T+(s-1)*G+4}" font-size="9" fill="#94a3b8">${"eBGDAE"[s-1]}</text>`;
-  for(let f=lo+1;f<=hi;f++)g+=`<text x="${L+(f-lo-.5)*cw}" y="${T+5*G+15}" font-size="9" text-anchor="middle" fill="#64748b">${f}</text>`;
-  Object.values(uniq).forEach(n=>{const r=role(n),col=r===0?"#172033":r===1?"#059669":r===2?"#2563eb":"#fff",tc=r>=0?"#fff":"#334155";
-    g+=`<circle cx="${L+(n.f-lo-.5)*cw}" cy="${T+(n.s-1)*G}" r="8" fill="${col}" stroke="${r>=0?col:"#94a3b8"}"/><text x="${L+(n.f-lo-.5)*cw}" y="${T+(n.s-1)*G+3}" font-size="8" font-weight="700" text-anchor="middle" fill="${tc}">${nn(OPEN[n.s]+n.f,ex.key)}</text>`;});
-  return g+`</svg><p class="small muted" style="margin:0">Notes used. Colours for the first chord: <b style="color:#172033">root</b> · <b style="color:#059669">3rd</b> · <b style="color:#2563eb">5th</b> · white = other notes.</p>`;}
-function exTab(ex,id){const lab=n=>(n.ac?">":"")+(n.sl?"/":"")+(n.h?"h":"")+n.f+(n.b?(n.bt==="r"?"br":n.bt==="p"?"pb":"b"):"")+(n.v?["","~","≈","-~"][n.v]:"")+(n.st?".":"");
-  return `<div class="bars">${ex.bars.map((bar,b)=>{const Wd=160,T=8,G=9,Hh=T+G*5+8,x=p=>6+p/48*(Wd-12);let pos=0,g="";
-    for(let s=1;s<=6;s++)g+=`<line x1="2" x2="${Wd-2}" y1="${T+(s-1)*G}" y2="${T+(s-1)*G}" stroke="#e2e8f0"/>`;
-    bar.forEach(n=>{if(!n.r){const y=T+(n.s-1)*G,l=lab(n);(n.tr||[]).forEach(q=>{const yy=T+(q.s-1)*G;g+=`<rect x="${x(pos)-1}" y="${yy-5.5}" width="${String(q.f).length*5.6+2}" height="10" fill="#fff"/><text x="${x(pos)}" y="${yy+3}" font-size="9.5" font-weight="700" font-family="ui-monospace,Menlo,monospace" fill="#7c3aed">${q.f}</text>`;});
-      g+=`<rect x="${x(pos)}" y="${y+3}" width="${Math.max(2,x(pos+n.d)-x(pos)-2)}" height="2" rx="1" fill="#fdba74"/><rect x="${x(pos)-1}" y="${y-5.5}" width="${l.length*5.6+2}" height="10" fill="#fff"/><text x="${x(pos)}" y="${y+3}" font-size="9.5" font-weight="700" font-family="ui-monospace,Menlo,monospace" fill="#172033">${l}</text>`;}pos+=n.d;});
-    return `<div class="bar" data-cb="${b}" data-cex="${id}"><div class="bh">${chordName(ex.ch[b],ex.key)}<span>${b+1}</span></div><svg viewBox="0 0 ${Wd} ${Hh}">${g}</svg></div>`;}).join("")}</div>`;}
-
-function renderSyllabus(){const D=done(),tot=allEx().length,n=allEx().filter(x=>D[x.id]).length,nx=nextLesson();
-  return `<section class="card"><div class="row between"><button class="linkb" data-home="1">← Solo Builder</button><span class="muted small">${n} of ${tot} exercises</span></div>
-    <h2>Triad Soloing Course</h2>
-    <p class="muted small">Learn by doing: every lesson says what you're learning and why it helps, then gives you exercises to play with the band. "New example" gives the same exercise in another key or position, so there's always more to practise.</p>
-    <span class="fill"><s style="width:${tot?n/tot*100:0}%"></s></span>
-    <div class="row"><button class="pri" data-clesson="${nx.id}">${n?"Continue":"Start"}: ${nx.id} ${esc(nx.t)} ▸</button></div></section>
-  <section class="card"><h2>Syllabus</h2>
-    ${C.map(m=>`<div style="border-top:1px solid var(--line);padding-top:10px"><h3>Module ${m.n} · ${esc(m.t)}</h3><p class="small muted">${esc(m.goal)}</p>
-      <div class="lib" style="margin-top:6px">${m.lessons.map(l=>{const k=l.ex.filter((_,i)=>D[l.id+"."+(i+1)]).length;
-        return `<div class="solo"><div style="min-width:0"><b>${l.id} ${esc(l.t)}</b><span>${l.turn?"write your own solo":`${l.ex.length} exercise${l.ex.length>1?"s":""}`}</span></div><div class="row" style="flex:none">${l.turn?"":`<span class="badge${k===l.ex.length?" fin":""}">${k}/${l.ex.length}</span>`}<button data-clesson="${l.id}">Open</button></div></div>`;}).join("")}</div></div>`).join("")}
-  </section>`;}
-function renderLesson(id){const f=findL(id);if(!f)return renderSyllabus();const {l,m}=f,D=done();
-  const all=C.flatMap(x=>x.lessons),i=all.indexOf(l),prev=all[i-1],next=all[i+1];
-  return `<section class="card"><div class="row between"><button class="linkb" data-csyl="1">← Syllabus</button><span class="muted small">Module ${m.n} · ${esc(m.t)}</span></div>
-    <h2>${l.id} ${esc(l.t)}</h2>
-    <div class="tip"><b>What you're learning:</b> ${esc(l.what)}</div>
-    <div class="tip" style="background:var(--good-soft)"><b>Why it's useful:</b> ${esc(l.why)}</div>
-    ${l.turn?`<div class="row"><button class="pri" data-cturn="1">Build today's solo ▸</button></div><p class="small muted">Tips: turn on the skeleton, use Triad ♫ at chord changes, Enclose ⟨⟩ into targets and bends into chord tones.</p>`:""}
-  </section>
-  ${l.ex.map((e,j)=>{const xid=l.id+"."+(j+1),ex=exData(xid,e),on=play&&play.cex===xid;
-    return `<section class="card"><div class="row between"><h3>Exercise ${j+1} · ${esc(e.t)}</h3>${D[xid]?`<span class="badge fin">done</span>`:""}</div>
-      <p>${esc(e.how)}</p><p class="small muted">${keyName(ex.key)} major · ${esc(ex.info||"")} · ${ex.bars.length} bars</p>
-      ${exTab(ex,xid)}
-      ${miniFret(ex)}
-      <div class="row">${on?`<button class="pri" data-cstop="1">■ Stop</button>`:`<button class="pri" data-cplay="${xid}">▶ Play with band</button>`}
-        <button data-cnew="${xid}">New example ↻</button>
-        <button data-cdone="${xid}" class="${D[xid]?"good":""}">${D[xid]?"✓ Done":"Mark done"}</button></div>
-    </section>`;}).join("")}
-  <section class="card"><div class="row between">${prev?`<button data-clesson="${prev.id}">◂ ${prev.id}</button>`:"<span></span>"}
-    <span class="tempo row" style="gap:4px"><span class="small muted">tempo</span><button data-ctempo="-4">−</button><b>${ctempo()}</b><button data-ctempo="4">+</button></span>
-    ${next?`<button class="pri" data-clesson="${next.id}">${next.id} ▸</button>`:""}</div>
-    <div class="row small"><button data-clead="1" class="${ui.lead===false?"":"on"}">🎸 example notes ${ui.lead===false?"off":"on"}</button><span class="muted">Turn the example notes off to play the part yourself over the band.</span></div></section>`;}
-const ctempo=()=>{st.course=st.course||{done:{}};return st.course.tempo||66;};
-window.renderCourse=function(){const app=document.getElementById("app");app.innerHTML=cur.lesson?renderLesson(cur.lesson):renderSyllabus();};
-window.courseCard=function(){const D=done(),tot=allEx().length,n=allEx().filter(x=>D[x.id]).length;
-  return `<section class="card"><div class="row between"><h3>📘 Triad Soloing Course</h3><span class="muted small">${n} of ${tot} exercises</span></div>
-    <p class="small">Learn to solo with triads, from what a triad is to full 16-bar solos: ${C.length} modules, ${C.reduce((a,m)=>a+m.lessons.length,0)} lessons, an example in any key for every exercise.</p>
-    <span class="fill"><s style="width:${tot?n/tot*100:0}%"></s></span><div class="row"><button data-course="1">${n?"Continue the course":"See the syllabus"} ▸</button></div></section>`;};
-window.TRIAD_COURSE={C,allEx,voicings,chain,invUp,exData};
-
-document.addEventListener("click",e=>{const t=e.target.closest("button,[data-cb]");if(!t)return;const d=t.dataset;
-  if(d.course){stop();view="course";cur.lesson=null;render();window.scrollTo(0,0);return;}
-  if(view!=="course")return;
-  if(d.home){return;} // Solo Builder's own handler takes you home
-  if(d.csyl){stop();cur.lesson=null;render();window.scrollTo(0,0);return;}
-  if(d.clesson){stop();cur.lesson=d.clesson;render();window.scrollTo(0,0);return;}
-  if(d.cturn){stop();newSolo(brief());return;}
-  if(d.cplay){const x=allEx().find(y=>y.id===d.cplay);if(!x)return;const ex=exData(x.id,x.e);start(0,ex.bars.length-1,{key:ex.key,tempo:ctempo(),ch:ex.ch,bars:ex.bars});play.cex=x.id;render();return;}
-  if(d.cstop){stop();render();return;}
-  if(d.cnew){const was=play&&play.cex===d.cnew;stop();vari[d.cnew]=(vari[d.cnew]||0)+1;render();if(was){const b=document.querySelector(`[data-cplay="${d.cnew}"]`);if(b)b.click();}return;}
-  if(d.cdone){const D=done();if(D[d.cdone])delete D[d.cdone];else D[d.cdone]=Date.now();st.course.t=Date.now();save();render();return;}
-  if(d.ctempo){st.course=st.course||{done:{}};st.course.tempo=Math.max(40,Math.min(160,ctempo()+ +d.ctempo));save();const was=play&&play.cex;stop();render();if(was){const b=document.querySelector(`[data-cplay="${was}"]`);if(b)b.click();}return;}
-  if(d.clead){ui.lead=ui.lead===false;render();return;}
-});
+/* this file is now a library: the Soloing Course (soloing-course.js) uses its helpers and triad lessons */
+window.TRIAD_COURSE={C,voicings,chain,invUp,near,nt,R,blk,dbl,arp,nb,bendFrom,K,P4,prog,pcsOf,inScale,SETS,INV,W,H,DQ,Q,E,T3,S16};
 })();
