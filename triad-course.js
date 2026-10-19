@@ -6,7 +6,7 @@
 "use strict";
 (function(){
 const W=48,H=24,DQ=18,Q=12,E=6,T3=4,S16=3;
-const K=v=>KEYS[((v%KEYS.length)+KEYS.length)%KEYS.length].pc;
+const K=v=>window.__CK!=null?window.__CK:KEYS[((v%KEYS.length)+KEYS.length)%KEYS.length].pc;
 const pcsOf=(key,c)=>[0,2,4].map(k=>(key+MAJ[(c+k)%7])%12);
 const roleOf=(pc,key,c)=>["R","3","5"][pcsOf(key,c).indexOf(pc)];
 const inScale=(pc,key)=>MAJ.includes(((pc-key)%12+12)%12);
@@ -14,7 +14,7 @@ const SETS={1:"strings 1-2-3 (e B G)",2:"strings 2-3-4 (B G D)",3:"strings 3-4-5
 const INV=["root position","1st inversion","2nd inversion"];
 
 /* every voicing of chord c (scale degree) on three neighbouring strings t, t+1, t+2; notes low → high */
-function voicings(key,c,t){const want=pcsOf(key,c),out=[];
+function voicings(key,c,t){if(window.__TMAP&&window.__TMAP[t])t=window.__TMAP[t];if(window.__TRACE)window.__TRACE.sets.add(t);const want=pcsOf(key,c),out=[];
   const opt=[t,t+1,t+2].map(s=>{const a=[];for(let f=1;f<=17;f++){const pc=(OPEN[s]+f)%12;if(want.includes(pc))a.push({s,f,pc});}return a;});
   opt[0].forEach(a=>opt[1].forEach(b=>opt[2].forEach(d=>{if(new Set([a.pc,b.pc,d.pc]).size<3)return;const fs=[a.f,b.f,d.f];if(Math.max(...fs)-Math.min(...fs)>4)return;
     const notes=[d,b,a].map(n=>({s:n.s,f:n.f,role:roleOf(n.pc,key,c)}));out.push({notes,lo:Math.min(...fs),hi:Math.max(...fs),inv:["R","3","5"].indexOf(notes[0].role)});})));
