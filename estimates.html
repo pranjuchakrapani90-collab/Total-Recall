@@ -933,7 +933,7 @@ const lsSet=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
 let PROG={};try{PROG=JSON.parse(lsGet("p2b-prog","{}"))||{}}catch(e){PROG={}}
 function saveProg(){lsSet("p2b-prog",JSON.stringify(PROG))}
 let STD=lsGet("p2b-std","rdss")==="apdcl"?"apdcl":"rdss";
-let cur=lsGet("p2b-cur","h1");if(!K[cur])cur="h1";
+let cur=lsGet("p2b-cur","h1");{const m=location.hash.match(/^#s=(\w+)$/);if(m)cur=m[1];}if(!K[cur])cur="h1";
 let mode="study";
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 
@@ -1099,7 +1099,7 @@ function qtyQuiz(){
    if(good&&!r.opt)ok++;inp.className="qty "+(good?"ok":"bad");const a=$("#a-"+r.id);a.className="ans "+(good?"ok":"bad");a.textContent=(good?"✓ ":"✗ ")+(r.opt?"0 or 1":fq(r.q));$("#w-"+r.id).hidden=false});
   const s=n?ok/n:0;record(s);const e=$("#qsc");e.textContent=`${ok}/${n} right`;e.className="score "+(s>=.9?"good":s>=.6?"mid":"bad");$("#qnotes").hidden=false};
 }
-function record(s){const p=PROG[cur]||{best:0,n:0,upd:0};p.n++;p.best=Math.max(p.best,s);p.upd=Date.now();PROG[cur]=p;saveProg();buildRail();if(typeof scheduleSync==="function")scheduleSync()}
+function record(s){const p=PROG[cur]||{best:0,n:0,upd:0};p.n++;p.best=Math.max(p.best,s);p.upd=Date.now();{const D=new Date(),dk=D.getFullYear()+"-"+String(D.getMonth()+1).padStart(2,"0")+"-"+String(D.getDate()).padStart(2,"0");p.d=p.d||{};p.d[dk]=(p.d[dk]||0)+1;}PROG[cur]=p;saveProg();buildRail();if(typeof scheduleSync==="function")scheduleSync()}
 
 /* ---------- Companions ---------- */
 function renderCards(){
@@ -1310,7 +1310,8 @@ function setSync(state,msg){const el=document.getElementById("syncBadge");if(!el
  el.title=state==="off"?"Set a sync code on the Total Recall home page to share progress across devices.":state==="err"?"Couldn't sync: "+(msg||"")+". It will retry on your next answer.":state==="ok"?"Quiz progress is shared across your devices.":""}
 function mergeRemote(r){let ch=false;Object.entries((r&&r.prog)||{}).forEach(([k,v])=>{if(!K[k])return;const l=PROG[k];
   if(!l){PROG[k]=v;ch=true;return}const nb=Math.max(l.best||0,v.best||0),nn=Math.max(l.n||0,v.n||0),nu=Math.max(l.upd||0,v.upd||0);
-  if(nb!==l.best||nn!==l.n){ch=true}PROG[k]={best:nb,n:nn,upd:nu}});
+  const d={...(l.d||{})};Object.entries(v.d||{}).forEach(([dk,c])=>{if(!(d[dk]>=c)){d[dk]=c;ch=true}});
+  if(nb!==l.best||nn!==l.n){ch=true}PROG[k]={best:nb,n:nn,upd:nu,d}});
  if(ch){try{localStorage.setItem("p2b-prog",JSON.stringify(PROG))}catch(e){}}return ch}
 function scheduleSync(){if(!syncCode())return;clearTimeout(SY.timer);SY.timer=setTimeout(cloudSync,1500)}
 async function cloudSync(){const code=syncCode();if(!code){setSync("off");return}
