@@ -2159,7 +2159,8 @@ function pluckBuf(m){const ck=m+"@"+ctx.sampleRate;if(cache[ck])return cache[ck]
   let x=0;for(let i=0;i<len;i++){const v=dl[x],nx=dl[(x+1)%N];dl[x]=.997*.5*(v+nx);d[i]=v;x=(x+1)%N;}
   return cache[ck]=buf;}
 function note(m,t,dur,gain=.55){const s=ctx.createBufferSource();s.buffer=pluckBuf(m);const g=ctx.createGain();
-  g.gain.setValueAtTime(Math.max(0.0001,gain*(S.vNotes!=null?S.vNotes:0.22)),t);g.gain.setTargetAtTime(0,t+Math.max(dur*.95,.05),.04);s.connect(g).connect(outNode());s.start(t);s.stop(t+dur+.4);}
+  const rel=Math.min(Math.max(dur*.95,.05),1.45); // fade before the 1.8 s sound runs out, so slow long notes never end with a click
+  g.gain.setValueAtTime(Math.max(0.0001,gain*(S.vNotes!=null?S.vNotes:0.22)),t);g.gain.setTargetAtTime(0,t+rel,.04);s.connect(g).connect(outNode());s.start(t);s.stop(t+Math.min(1.8,rel+.3));}
 function click(t,a){ // wood-block style click: two tones plus a tick of noise
   const V=(S.vClick!=null?S.vClick:1)*(a?1:0.75);if(V<=0.001)return;const out=drumBus();
   [[a?1900:1500,0.7],[a?2850:2250,0.25]].forEach(([f,pk])=>{const o=ctx.createOscillator(),g=ctx.createGain();o.type="sine";o.frequency.value=f;
@@ -2366,9 +2367,10 @@ function outNode(){ // master: level -> make-up gain -> limiter -> soft clip, so
     const vol=ctx.createGain(),mk=ctx.createGain(),lim=ctx.createDynamicsCompressor(),sc=ctx.createWaveShaper(),trim=ctx.createGain();
     mk.gain.value=2;
     lim.threshold.value=-6;lim.knee.value=4;lim.ratio.value=20;lim.attack.value=0.001;lim.release.value=0.1;
-    const n=1024,cv=new Float32Array(n);for(let i=0;i<n;i++){const x=i/(n-1)*2-1;cv[i]=Math.tanh(1.5*x)/Math.tanh(1.5);}sc.curve=cv;
-    trim.gain.value=0.95;
-    vol.connect(mk).connect(lim).connect(sc).connect(trim).connect(dest);
+    const n=2048,cv=new Float32Array(n);for(let i=0;i<n;i++){const x=(i/(n-1)*2-1)*4;cv[i]=Math.tanh(1.5*x)/Math.tanh(1.5);}sc.curve=cv;sc.oversample="4x";
+    const pre=ctx.createGain();pre.gain.value=.25; // the curve spans ±4, so peaks above full scale round off smoothly instead of flattening
+    trim.gain.value=0.9;
+    vol.connect(mk).connect(lim).connect(pre).connect(sc).connect(trim).connect(dest);
     MASTER=vol;MASTER._dest=dest;MASTER._drum=null;}
   MASTER.gain.value=S.vMaster!=null?S.vMaster:1;
   return MASTER;

@@ -345,8 +345,13 @@ function analyze(){const s=S(),bars=s.bars,notes=b=>(bars[b]||[]).filter(x=>!x.r
 /* ===================== Audio ===================== */
 let ctx=null,MASTER=null,NOISE=null;const cache={};
 function audio(){if(!ctx)ctx=new (window.AudioContext||window.webkitAudioContext)({latencyHint:"interactive"});ctx.resume().catch(()=>{});return ctx;}
-function out(){if(!MASTER||MASTER.context!==ctx){const g=ctx.createGain(),lim=ctx.createDynamicsCompressor();g.gain.value=1.6;
-  lim.threshold.value=-8;lim.knee.value=4;lim.ratio.value=16;lim.attack.value=.002;lim.release.value=.12;g.connect(lim).connect(ctx.destination);MASTER=g;}return MASTER;}
+/* master: headroom for the band + lead (their peaks reach ~2x full scale), a gentle glue compressor, make-up gain,
+   then a smooth soft-clip so loud moments round off instead of cracking */
+function out(){if(!MASTER||MASTER.context!==ctx){const g=ctx.createGain(),comp=ctx.createDynamicsCompressor(),mk=ctx.createGain();g.gain.value=.42;
+  comp.threshold.value=-12;comp.knee.value=10;comp.ratio.value=5;comp.attack.value=.004;comp.release.value=.2;mk.gain.value=1.8;
+  const sc=ctx.createWaveShaper(),pre=ctx.createGain(),trim=ctx.createGain(),n=2048,cv=new Float32Array(n);
+  for(let i=0;i<n;i++){const x=(i/(n-1)*2-1)*4;cv[i]=Math.tanh(x);}sc.curve=cv;sc.oversample="4x";pre.gain.value=.25;trim.gain.value=.9;
+  g.connect(comp).connect(mk).connect(pre).connect(sc).connect(trim).connect(ctx.destination);MASTER=g;}return MASTER;}
 function pluckBuf(m,bright){const k=m+"@"+ctx.sampleRate+(bright?"b":"");if(cache[k])return cache[k];
   const sr=ctx.sampleRate,len=Math.floor(sr*2.6),buf=ctx.createBuffer(1,len,sr),d=buf.getChannelData(0);
   const N0=Math.max(2,Math.round(sr/(440*Math.pow(2,(m-69)/12)))),dl=new Float32Array(N0);let p=0;const mix=bright?.8:.55;
@@ -367,13 +372,13 @@ function lead(n,t,dur,vol){const m=OPEN[n.s]+n.f,s=keep(ctx.createBufferSource()
   /* vibrato: 1 normal, 2 wide, 3 delayed (starts partway through the note, like Santana) */
   if(n.v&&dur>.25){try{const o=keep(ctx.createOscillator()),og=ctx.createGain(),v0=n.v===3?t+dur*.45:t,dep=n.v===2?55:26;o.frequency.value=n.v===2?5:5.8;og.gain.setValueAtTime(0,t);og.gain.setValueAtTime(0,v0);og.gain.linearRampToValueAtTime(dep,v0+Math.min(.3,dur*.35));
     o.connect(og).connect(s.detune);o.start(t);o.stop(t+dur+.3);}catch(e){}}
-  const v=(vol||.75)*(n.h?.6:1);g.gain.setValueAtTime(v,t);g.gain.setTargetAtTime(0,t+Math.max(.08,dur-.02),.05);
-  s.connect(lp).connect(g).connect(out());s.start(t);s.stop(t+Math.min(2.6,dur+.5));}
+  const v=(vol||.75)*(n.h?.6:1),rel=Math.min(Math.max(.08,dur-.02),2.2);g.gain.setValueAtTime(v,t);g.gain.setTargetAtTime(0,t+rel,.05);
+  s.connect(lp).connect(g).connect(out());s.start(t);s.stop(t+Math.min(2.6,rel+.4));}
 /* a full note event: approach note first (Lesson 006), then the note, plus triad notes strummed with it (Lesson 008) */
 function leadEv(n,t,dur){if(n.st)dur*=.45;const vol=n.ac?1.05:.75;if(n.ap){const g=Math.min(.09,dur/4);lead({s:n.s,f:Math.max(0,n.f-1),h:1},t,g,.55);t+=g;dur-=g;}
   lead(n,t,dur,vol);(n.tr||[]).forEach((q,j)=>lead({s:q.s,f:q.f},t+(j+1)*.012,dur,.42));}
-function pl(m,t,dur,vol,lpf){const s=keep(ctx.createBufferSource()),g=ctx.createGain();s.buffer=pluckBuf(m);g.gain.setValueAtTime(vol,t);g.gain.setTargetAtTime(0,t+dur,.06);
-  if(lpf){const f=ctx.createBiquadFilter();f.type="lowpass";f.frequency.value=lpf;s.connect(f).connect(g);}else s.connect(g);g.connect(out());s.start(t);s.stop(t+Math.min(2.6,dur+.5));}
+function pl(m,t,dur,vol,lpf){const s=keep(ctx.createBufferSource()),g=ctx.createGain(),rel=Math.min(dur,2.15);s.buffer=pluckBuf(m);g.gain.setValueAtTime(vol,t);g.gain.setTargetAtTime(0,t+rel,.06);
+  if(lpf){const f=ctx.createBiquadFilter();f.type="lowpass";f.frequency.value=lpf;s.connect(f).connect(g);}else s.connect(g);g.connect(out());s.start(t);s.stop(t+Math.min(2.6,rel+.45));}
 function noise(){if(NOISE&&NOISE.sampleRate===ctx.sampleRate)return NOISE;const b=ctx.createBuffer(1,ctx.sampleRate*.5,ctx.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;return NOISE=b;}
 function kick(t){const o=keep(ctx.createOscillator()),g=ctx.createGain();o.frequency.setValueAtTime(140,t);o.frequency.exponentialRampToValueAtTime(45,t+.12);
   g.gain.setValueAtTime(.9,t);g.gain.exponentialRampToValueAtTime(.001,t+.3);o.connect(g).connect(out());o.start(t);o.stop(t+.32);}

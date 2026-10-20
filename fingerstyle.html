@@ -308,9 +308,12 @@ function syncCard(){const on=!!syncCode();return `<section class="card"><div cla
 /* ===================== Audio ===================== */
 let ctx=null,MASTER=null;const cache={};
 function audio(){if(!ctx)ctx=new (window.AudioContext||window.webkitAudioContext)({latencyHint:"interactive"});ctx.resume().catch(()=>{});return ctx;}
-function out(){if(!MASTER||MASTER.context!==ctx){const g=ctx.createGain(),mk=ctx.createGain(),lim=ctx.createDynamicsCompressor();
-  mk.gain.value=2.2;lim.threshold.value=-6;lim.knee.value=4;lim.ratio.value=20;lim.attack.value=.001;lim.release.value=.1;
-  g.connect(mk).connect(lim).connect(ctx.destination);MASTER=g;}return MASTER;}
+/* master: headroom, a gentle glue compressor, make-up gain, then a smooth soft-clip so peaks never crack */
+function out(){if(!MASTER||MASTER.context!==ctx){const g=ctx.createGain(),comp=ctx.createDynamicsCompressor(),mk=ctx.createGain();g.gain.value=.6;
+  comp.threshold.value=-12;comp.knee.value=10;comp.ratio.value=5;comp.attack.value=.004;comp.release.value=.2;mk.gain.value=2;
+  const sc=ctx.createWaveShaper(),pre=ctx.createGain(),trim=ctx.createGain(),n=2048,cv=new Float32Array(n);
+  for(let i=0;i<n;i++){const x=(i/(n-1)*2-1)*4;cv[i]=Math.tanh(x);}sc.curve=cv;sc.oversample="4x";pre.gain.value=.25;trim.gain.value=.9;
+  g.connect(comp).connect(mk).connect(pre).connect(sc).connect(trim).connect(ctx.destination);MASTER=g;}return MASTER;}
 function pluckBuf(m){const k=m+"@"+ctx.sampleRate;if(cache[k])return cache[k];
   const sr=ctx.sampleRate,len=Math.floor(sr*2.4),buf=ctx.createBuffer(1,len,sr),d=buf.getChannelData(0);
   const N=Math.max(2,Math.round(sr/(440*Math.pow(2,(m-69)/12)))),dl=new Float32Array(N);let p=0;
@@ -324,9 +327,9 @@ function note(e,t,dur){
     g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.32,t+.005);g.gain.exponentialRampToValueAtTime(.0001,t+2.2);
     o.connect(g);o2.connect(g2).connect(g);g.connect(out());o.start(t);o2.start(t);o.stop(t+2.3);o2.stop(t+2.3);return;}
   const s=ctx.createBufferSource();s.buffer=pluckBuf(e.m);
-  g.gain.setValueAtTime(vol*soft,t);const end=e.tech==="pm"?.18:dur;g.gain.setTargetAtTime(0,t+Math.max(end,.08),e.tech==="pm"?.03:.06);
+  g.gain.setValueAtTime(vol*soft,t);const end=e.tech==="pm"?.18:Math.min(dur,2.0);g.gain.setTargetAtTime(0,t+Math.max(end,.08),e.tech==="pm"?.03:.06); // fade before the 2.4 s sound runs out
   if(e.tech==="pm"){const lp=ctx.createBiquadFilter();lp.type="lowpass";lp.frequency.value=900;s.connect(lp).connect(g);}else s.connect(g);
-  g.connect(out());s.start(t);s.stop(t+Math.min(2.4,end+.6));
+  g.connect(out());s.start(t);s.stop(t+Math.min(2.4,Math.max(end,.08)+.4));
 }
 function click(t,acc){const o=ctx.createOscillator(),g=ctx.createGain();o.frequency.value=acc?1900:1500;
   g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(acc?.5:.32,t+.001);g.gain.exponentialRampToValueAtTime(.0001,t+.05);
