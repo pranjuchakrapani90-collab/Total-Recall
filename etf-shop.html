@@ -2,213 +2,254 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
 <title>ETF Shop · Total Recall &amp; Melodies</title>
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="stylesheet" href="invest.css?v=20261020">
+<link rel="stylesheet" href="invest.css?v=20261020b">
 <link rel="stylesheet" href="tr-theme.css?v=20261020">
 </head><body class="tr-inv">
 <header><div class="hin">
   <a class="backlink" href="./#f-invest">← Investments</a>
   <div class="eyebrow">Investments · AMO orders</div>
   <h1>ETF Shop</h1>
-  <p id="sub">Your ETF Shop sheet, read live.</p>
+  <span class="pill" id="mkt"><i></i><span>NSE</span></span>
 </div></header>
 <main class="wrap">
-  <div class="bar"><span class="st" id="st">Loading…</span><button id="refresh" class="ghost" type="button">↻ Refresh</button></div>
+  <div class="bar"><span class="st" id="st"></span><button id="refresh" class="ghost" type="button">↻ Prices</button></div>
   <div id="err" class="err" hidden></div>
   <div id="out"></div>
-  <details class="card sec" id="setupBox"><summary>Sheet link</summary><div id="setup"></div></details>
 </main>
 <script src="gsync.js?v=20261020"></script>
-<script src="invest.js?v=20261020"></script>
+<script src="invest.js?v=20261020b"></script>
 <script>
 "use strict";
-const I=Invest,{esc,sym,inr,price,pct,signInr,tone,ok,num}=I;
-const KEY="etf";
-// tab ids in "Pranju ETF shop 20/05/2025" (ids only, no link)
-const TABS={orders:5000,ch:1723719462,sold:1966849105,scan:1938641050,cap:702241107,rules:5002};
-const $=id=>document.getElementById(id);
+const I=Invest,{esc,inr,price,pct,signInr,tone,ok,r2,dshort}=I;
+const KEY="etf",$=id=>document.getElementById(id);
+/* the rules of the old sheet's Orders tab (Order Calc), kept as editable settings */
+const DEF={parts:40,reserve:0.2,minFall:-0.10,twoFall:-0.15,avgFall:-0.06,maxLots:4,target:0.075,trail:0.02,buffer:0.005,check:-0.30,dividend:0,universe:[]};
+const today=()=>I.ist().iso;
+let Q=I.quotesCache(),qAt=Math.max(0,...Object.values(Q).map(q=>q.at||0)),missing=[];
 
-/* ---------- reading the tabs ---------- */
-function readOrders(g){
-  const o={settings:[],sec:{}};
-  const s=g.find("Settings",{col:0});
-  if(s)for(let r=s[0]+1;r<g.rows.length&&g.c(r,0);r++)o.settings.push([g.c(r,0),g.c(r,1),g.c(r,2)]);
-  const A=[["sell","1. SELL"],["avg","2. AVERAGE"],["buy","3. NEW BUY"],["check","Check these prices"],["trail","Lots with trailing stop"]]
-    .map(([k,t])=>{const p=g.find(t,{col:0,prefix:true});return p?{k,r:p[0]}:null;}).filter(Boolean).sort((a,b)=>a.r-b.r);
-  A.forEach((a,i)=>{const end=i+1<A.length?A[i+1].r:g.rows.length,hasHead=a.k!=="check";
-    const head=hasHead?(g.rows[a.r+1]||[]).map(x=>String(x||"").trim()):[];
-    const rows=[];let msg="";
-    for(let r=a.r+(hasHead?2:1);r<end;r++){const v=g.c(r,0);if(!v)continue;
-      if(/^(no |none)/i.test(v)){msg=msg||v;continue;}
-      const o2={};head.forEach((h,c)=>{if(h)o2[h]=g.c(r,c);});o2._=(g.rows[r]||[]).map(x=>String(x||"").trim());rows.push(o2);}
-    o.sec[a.k]={rows,msg};});
-  return o;}
-function readHoldings(g){
-  const h={kv:{},lots:[],asOf:""};
-  const p=g.find("Investment Capital");
-  if(p){for(let c=0;c<(g.rows[p[0]]||[]).length;c++){const L=g.c(p[0],c);if(L)h.kv[L]=g.c(p[0]+1,c);}
-    const rc=g.find("Remaining Cash",{from:p[0]});if(rc)h.cashPct=g.c(rc[0]+2,rc[1]);}
-  const k=x=>{const f=Object.keys(h.kv).find(K=>K.toLowerCase().startsWith(x.toLowerCase()));return f?num(h.kv[f]):NaN;};
-  h.capital=k("Investment Capital");h.tranche=k("Investment per transaction");h.target=k("Profit Target");h.avgFall=k("Fall% of averaging");
-  h.invested=k("Currently Invested");h.value=k("Current Value");h.pl=k("Overall Notional P/L");h.plPct=k("% Notional P/L");
-  h.count=k("Total Stocks in holding");h.cash=k("Remaining Cash");
-  let hr=-1;for(let r=0;r<g.rows.length;r++){if(g.c(r,0).startsWith("Buy Date")&&g.c(r,1).startsWith("Stock Code")){hr=r;break;}}
-  if(hr>=0){h.asOf=g.c(hr+1,0);
-    for(let r=hr+1;r<g.rows.length;r++){const code=g.c(r,1);if(!code||!ok(g.n(r,2)))continue;
-      h.lots.push({date:g.c(r,0),code,buy:g.n(r,2),qty:g.n(r,3),inv:g.n(r,4),cmp:g.n(r,5),gain:g.n(r,8),newest:g.c(r,9)!=="",gp:g.n(r,10),tgt:g.n(r,12),chg:g.n(r,13)});}}
-  return h;}
-function readScanner(g){
-  const p=g.find("Index group");if(!p)return [];const sc=g.find("Stock Code",{from:p[0]});if(!sc||sc[0]!==p[0])return [];
-  const c=sc[1],out=[];
-  for(let r=p[0]+1;r<g.rows.length;r++){const code=g.c(r,c);if(!code)continue;
-    out.push({code,cmp:g.n(r,c+1),wh:g.n(r,c+2),dist:g.n(r,c+3),chg:g.n(r,c+4),group:g.c(r,c+5),buy:g.c(r,c+6)});}
-  return out;}
-function readSold(g){
-  const s={months:[],trades:[],best:[]};
-  const gt=g.find("Grand Total");
-  if(gt){const c=gt[1];s.profit=g.n(gt[0],c+1);s.charges=g.n(gt[0],c+3);s.tax=g.n(gt[0],c+4);s.growth=g.n(gt[0],c+6);
-    const hd=g.find("Sell - Year-Month",{col:c});
-    for(let r=(hd?hd[0]+1:0);r<gt[0];r++){const m=g.c(r,c);if(!/^\d{4}-/.test(m)||m.startsWith("1899"))continue;
-      s.months.push({m,p:g.n(r,c+1),net:g.n(r,c+6),overall:g.n(r,c+8),ann:g.n(r,c+10)});}
-    const last=s.months[s.months.length-1];if(last){s.ann=last.ann;s.overall=last.overall;}}
-  let hr=-1;for(let r=0;r<g.rows.length;r++){if(g.c(r,0).startsWith("Buy Date")&&g.c(r,1).startsWith("Stock Code")){hr=r;break;}}
-  if(hr>=0)for(let r=hr+1;r<g.rows.length;r++){const code=g.c(r,1);if(!code||!ok(g.n(r,5)))continue;
-    s.trades.push({buyD:g.c(r,0),code,buy:g.n(r,2),qty:g.n(r,3),sell:g.n(r,5),sellD:g.c(r,6),days:g.n(r,8),p:g.n(r,9),pp:g.n(r,10),net:g.n(r,15)});}
-  const b=g.find("COUNTA of Profit Amount");
-  if(b)for(let r=b[0]+1;r<g.rows.length;r++){const code=g.c(r,b[1]-2);if(!code)break;s.best.push({code,p:g.n(r,b[1]-1),n:g.n(r,b[1])});}
-  return s;}
-function readCap(g){const out={adds:[]};out.balance=num(g.below("Current Balance",{prefix:true}));
-  out.added=num(g.right("Total Amount Added"));out.withdrawn=num(g.right("Total Amount Withdrawn"));
-  const h=g.find("Amount Added");if(h)for(let r=h[0]+1;r<g.rows.length;r++){const d=g.c(r,h[1]-1);if(!d)continue;out.adds.push([d,g.n(r,h[1])]);}
-  return out;}
-function readRules(g){const out={rules:[],after:[]};const a=g.find("After each trade",{col:0});
-  for(let r=0;r<g.rows.length;r++){const n=g.c(r,0),t=g.c(r,1);if(/^\d+$/.test(n)&&t)out.rules.push(t);
-    else if(a&&r>a[0]&&n&&t)out.after.push([n,t]);}
-  return out;}
+/* ---------- the numbers ---------- */
+function model(){
+  const s=I.load(KEY),S={...DEF,...(s.settings||{})},U={};(S.universe||[]).forEach(u=>U[u.code]=u);
+  const lots=Object.entries(s.lots).map(([id,l])=>({id,...l})),open=lots.filter(l=>!ok(l.sellPrice)),sold=lots.filter(l=>ok(l.sellPrice));
+  sold.forEach(l=>{l.p=(l.sellPrice-l.price)*l.qty;l.ch=l.qty*(l.price+l.sellPrice)*0.0012+16;l.tax=(l.p-l.ch)*0.2*1.04;l.net=l.p-l.ch-l.tax;l.g=l.net-l.net*(S.dividend||0);
+    l.pp=l.p/(l.price*l.qty)*100;l.days=I.days(l.date,l.sellDate);});
+  const cap=Object.entries(s.cap).map(([id,c])=>({id,...c})).sort((a,b)=>a.date<b.date?-1:1);
+  const added=cap.filter(c=>c.amount>0).reduce((a,c)=>a+c.amount,0),withdrawn=-cap.filter(c=>c.amount<0).reduce((a,c)=>a+c.amount,0);
+  const growth=sold.reduce((a,l)=>a+l.g,0),capital=added-withdrawn+growth,invested=open.reduce((a,l)=>a+l.price*l.qty,0),cash=capital-invested,tranche=Math.round(capital/S.parts);
+  const qOf=c=>Q[c]&&ok(Q[c].price)?Q[c]:null;
+  /* each open lot: gain and the trailing stop */
+  open.forEach(l=>{const q=qOf(l.code);l.close=q?q.price:NaN;l.chg=q?q.chg:NaN;l.gain=l.close/l.price-1;l.value=l.qty*l.close;
+    l.tgt=r2(l.price*(1+S.target));
+    if(q&&l.gain>=0){l.high=Math.max(l.close,I.highSince(q,l.date));l.armed=l.high>=l.price*(1+S.target);
+      if(l.armed){l.stop=r2(l.high*(1-S.trail));l.signal=l.close<=l.stop?"SELL":"TRAILING";}}});
+  const sells=open.filter(l=>l.signal==="SELL").sort((a,b)=>b.gain-a.gain).map(l=>({l,qty:l.qty,lim:r2(l.close*(1-S.buffer))}));
+  const trailing=open.filter(l=>l.signal==="TRAILING").sort((a,b)=>b.gain-a.gain);
+  /* each ETF held */
+  const by={};open.slice().sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.t||0)-(b.t||0)).forEach(l=>{(by[l.code]=by[l.code]||[]).push(l);});
+  const groupOf=c=>U[c]?U[c].group:"Not in universe",held=Object.entries(by).map(([code,L])=>{const q=qOf(code),last=L[L.length-1];
+    const close=q?q.price:NaN,h52=q?I.high52(q):NaN;
+    return {code,L,last,close,chg:q?q.chg:NaN,fallLast:close/last.price-1,fall52:close/h52-1,group:groupOf(code),mode:U[code]?U[code].mode:"hold",
+      inv:L.reduce((a,l)=>a+l.price*l.qty,0),val:L.reduce((a,l)=>a+l.qty*close,0)};});
+  const groupLots={};held.forEach(h=>groupLots[h.group]=(groupLots[h.group]||0)+h.L.length);
+  const checks=[];
+  held.forEach(h=>{h.status=!ok(h.close)?"":h.mode!=="buy"?"Exit only":!(h.fallLast<=S.avgFall)?"":groupLots[h.group]>=S.maxLots?"Max lots":!(h.chg>0)?"Wait for green":h.fall52<=S.check?"Check price":"AVERAGE";
+    if(h.status==="Check price")checks.push(h);});
+  let avg=null,avgMsg="";
+  const avgC=held.filter(h=>h.status==="AVERAGE").sort((a,b)=>a.fallLast-b.fallLast);
+  if(cash<tranche)avgMsg="Cash is below one tranche";
+  else if(avgC[0]){const h=avgC[0],lim=r2(h.close*(1+S.buffer));avg={h,lim,qty:Math.round(tranche/lim)};}
+  /* new-buy candidates from the universe */
+  const heldGroups=new Set(held.map(h=>h.group));
+  const cands=(S.universe||[]).map(u=>{const q=qOf(u.code);if(!q)return null;const h52=I.high52(q),fall=q.price/h52-1;
+    const st=u.mode!=="buy"?"":heldGroups.has(u.group)?"Group held":!(fall<=S.minFall)?"":!(q.chg>0)?"Wait for green":fall<=S.check?"Check price":"BUY";
+    return {...u,close:q.price,chg:q.chg,fall,h52,status:st};}).filter(Boolean);
+  cands.filter(c=>c.status==="Check price").forEach(c=>checks.push(c));
+  const buyC=cands.filter(c=>c.status==="BUY").sort((a,b)=>a.fall-b.fall),free=Math.max(0,cash-S.reserve*capital);
+  const n=!buyC.length||free<tranche?0:(buyC[0].fall<=S.twoFall&&free>=2*tranche?2:1);
+  const buys=[];buyC.forEach(c=>{if(buys.length<n&&!buys.some(b=>b.c.group===c.group)){const lim=r2(c.close*(1+S.buffer));buys.push({c,lim,qty:Math.round(tranche/lim)});}});
+  const buyMsg=!buyC.length?"no ETF qualifies":free<tranche?"cash would dip into the "+Math.round(S.reserve*100)+"% reserve":"";
+  return {s,S,U,open,sold,cap,added,withdrawn,growth,capital,invested,cash,tranche,free,sells,trailing,held,avg,avgMsg,buys,buyMsg,checks,cands};}
+
+/* ---------- entry forms ---------- */
+const codes=()=>{const s=I.load(KEY);return [...new Set([...((s.settings&&s.settings.universe)||[]).map(u=>u.code),...Object.values(s.lots).map(l=>l.code)])].sort();};
+const sym=x=>String(x||"").trim().toUpperCase().replace(/^NSE:/,"");
+function buyForm(pre){pre=pre||{};
+  I.form({title:pre.id?"Edit lot":pre.code?"Bought "+pre.code:"Add a buy",note:pre.id?"":"Record it once the order fills.",
+    fields:[{k:"code",label:"ETF (NSE symbol)",value:pre.code||"",list:codes()},{k:"date",label:"Buy date",type:"date",value:pre.date||today()},
+      {k:"price",label:"Buy price",type:"number",value:pre.price},{k:"qty",label:"Quantity",type:"number",step:"1",value:pre.qty}],
+    onSubmit:v=>{const c=sym(v.code);if(!c)return "Enter the symbol.";if(!(v.price>0)||!(v.qty>0))return "Price and quantity must be above zero.";
+      I.upsert(KEY,"lots",pre.id,{code:c,date:v.date,price:v.price,qty:Math.round(v.qty)});draw();},
+    onDelete:pre.id?()=>{I.remove(KEY,"lots",pre.id);draw();}:null,delConfirm:"Delete this lot? Use this only for a wrong entry, not a sale.",
+    extra:pre.id?[{label:"Sell this lot",run:()=>{setTimeout(()=>sellForm(I.load(KEY).lots[pre.id]?{id:pre.id,...I.load(KEY).lots[pre.id]}:null),0);}}]:null});}
+function sellForm(l,pre){if(!l)return;pre=pre||{};
+  I.form({title:"Sold "+l.code,note:`${l.qty} units bought ${dshort(l.date)} at ${price(l.price)}. A lot is sold whole (LIFO).`,
+    fields:[{k:"date",label:"Sell date",type:"date",value:l.sellDate||today()},{k:"price",label:"Sell price",type:"number",value:ok(l.sellPrice)?l.sellPrice:pre.price}],
+    onSubmit:v=>{if(!(v.price>0))return "Enter the sell price.";const {id,...rest}=l;delete rest.t;
+      I.upsert(KEY,"lots",l.id,{code:rest.code,date:rest.date,price:rest.price,qty:rest.qty,sellPrice:v.price,sellDate:v.date});draw();}});}
+function soldForm(l){
+  I.form({title:"Sold "+l.code,fields:[{k:"code",label:"ETF",value:l.code},{k:"date",label:"Buy date",type:"date",value:l.date},{k:"price",label:"Buy price",type:"number",value:l.price},
+      {k:"qty",label:"Quantity",type:"number",step:"1",value:l.qty},{k:"sellDate",label:"Sell date",type:"date",value:l.sellDate},{k:"sellPrice",label:"Sell price",type:"number",value:l.sellPrice}],
+    onSubmit:v=>{I.upsert(KEY,"lots",l.id,{code:sym(v.code),date:v.date,price:v.price,qty:Math.round(v.qty),sellPrice:v.sellPrice,sellDate:v.sellDate});draw();},
+    onDelete:()=>{I.remove(KEY,"lots",l.id);draw();},delConfirm:"Delete this sale completely?",
+    extra:[{label:"Undo sale",run:()=>{I.upsert(KEY,"lots",l.id,{code:l.code,date:l.date,price:l.price,qty:l.qty});draw();}}]});}
+function moneyForm(c){c=c||{};
+  I.form({title:c.id?"Edit money entry":"Money in / out",fields:[{k:"kind",label:"Type",type:"select",value:c.amount<0?"out":"in",options:[["in","Added to the shop"],["out","Withdrawn"]]},
+      {k:"date",label:"Date",type:"date",value:c.date||today()},{k:"amount",label:"Amount (₹)",type:"number",value:c.amount?Math.abs(c.amount):""}],
+    onSubmit:v=>{if(!(v.amount>0))return "Enter an amount.";I.upsert(KEY,"cap",c.id,{date:v.date,amount:v.kind==="out"?-v.amount:v.amount});draw();},
+    onDelete:c.id?()=>{I.remove(KEY,"cap",c.id);draw();}:null});}
+function settingsForm(S){const P=x=>r2(x*100);
+  I.form({title:"Rules",note:"Percentages as numbers, e.g. 7.5 for 7.5%.",fields:[
+    {k:"parts",label:"Parts of capital (tranches)",type:"number",step:"1",value:S.parts},
+    {k:"target",label:"Profit that starts the trailing stop %",type:"number",value:P(S.target)},
+    {k:"trail",label:"Trailing stop below highest close %",type:"number",value:P(S.trail)},
+    {k:"avgFall",label:"Average when fallen from last buy %",type:"number",value:P(S.avgFall)},
+    {k:"minFall",label:"New buy: minimum fall from 52W high %",type:"number",value:P(S.minFall)},
+    {k:"twoFall",label:"Buy 2 ETFs when top pick has fallen %",type:"number",value:P(S.twoFall)},
+    {k:"reserve",label:"Cash reserve kept for averaging %",type:"number",value:P(S.reserve)},
+    {k:"maxLots",label:"Maximum lots per index group",type:"number",step:"1",value:S.maxLots},
+    {k:"buffer",label:"Limit price buffer from close %",type:"number",value:P(S.buffer)},
+    {k:"check",label:"Check price when fall from 52W high is deeper than %",type:"number",value:P(S.check)},
+    {k:"dividend",label:"Share of each net profit paid to yourself %",type:"number",value:P(S.dividend||0)}],
+    onSubmit:v=>{const o={};for(const k in v){if(!ok(v[k]))return "Fill in every value.";o[k]=["parts","maxLots"].includes(k)?Math.round(v[k]):v[k]/100;}I.setSettings(KEY,o);draw();}});}
+function uniForm(u){u=u||{};const S={...DEF,...(I.load(KEY).settings||{})};
+  I.form({title:u.code?"Edit "+u.code:"Add an ETF",fields:[{k:"code",label:"NSE symbol",value:u.code||""},{k:"group",label:"Index group",value:u.group||"",list:[...new Set(S.universe.map(x=>x.group))]},
+      {k:"mode",label:"Buying",type:"select",value:u.mode||"buy",options:[["buy","Buy and average"],["hold","Hold only (duplicate index)"]]}],
+    onSubmit:v=>{const c=sym(v.code);if(!c||!v.group)return "Symbol and group are needed.";const L=S.universe.filter(x=>x.code!==u.code&&x.code!==c);L.push({code:c,group:v.group,mode:v.mode});I.setSettings(KEY,{universe:L});draw();},
+    onDelete:u.code?()=>{I.setSettings(KEY,{universe:S.universe.filter(x=>x.code!==u.code)});draw();}:null,delLabel:"Remove"});}
 
 /* ---------- drawing ---------- */
 function ordCard(kind,o){
-  const f=(...ks)=>{for(const k of ks)if(o[k]!=null&&o[k]!=="")return o[k];return "";};
-  const code=f("ETF")||o._[0],qty=f("Qty"),lim=f("Limit price"),close=f("Close");
-  let d="",d2="";
-  if(kind==="sell"){d=`Bought ${f("Buy price")} · gain ${f("Gain %")}`;d2=`high ${f("Highest close")} · stop ${f("Stop level")}`;}
-  else if(kind==="avg"){d=`Close ${close} · ${f("Fall from last buy")} from last buy`;d2=`${f("Lots held")} lots · day ${f("Day change")}`;}
-  else {d=`Close ${close} · ${f("Fall from 52W high")} from 52W high`;d2=`${f("Index group")} · day ${f("Day change")}`;}
-  const amt=num(qty)*num(lim);
-  return `<div class="ord"><span class="s">${esc(sym(code))}<button class="cp" type="button" data-cp="${esc(sym(code))}" title="Copy symbol">⧉</button></span>
-    <span class="q">${esc(qty)} × ${esc(lim)}</span><span class="d">${esc(d)}</span><span class="d2">${ok(amt)?inr(amt):""}</span>
-    <span class="d" style="grid-column:1/-1">${esc(d2)}</span></div>`;}
-function grp(kind,label,chip,sec){
-  if(!sec)return "";const n=sec.rows.length;
-  return `<div class="grp"><b><span class="chip ${chip}">${label}</span>${n?n+(n>1?" orders":" order"):""}</b>
-    ${n?sec.rows.map(o=>ordCard(kind,o)).join(""):`<div class="none">${esc(sec.msg||"Nothing tonight")}</div>`}</div>`;}
-
-function tonight(O,H){
-  const t=I.ist(),S=O.sec,n=k=>(S[k]&&S[k].rows.length)||0,tot=n("sell")+n("avg")+n("buy");
-  let when,big;
-  if(t.weekend){when="Weekend";big=tot?`${tot} AMO order${tot>1?"s":""} for Monday`:"No orders for Monday";}
-  else if(!t.after4){when=`${t.wd} · before the 4 PM close`;big=tot?`Last evening's list: ${tot} order${tot>1?"s":""}`:"Nothing pending from last close";}
-  else {when=`${t.wd} evening · place as AMO limit orders`;big=tot?`${tot} order${tot>1?"s":""} tonight`:"No orders tonight";}
-  const ad=I.date(H.asOf),stale=!t.weekend&&t.after4&&ad&&ad.getTime()!==t.day.getTime();
-  let h=`<section class="card hero"><div class="when">${esc(when)}</div><div class="big">${esc(big)}</div>
-    ${!t.weekend&&!t.after4?`<p class="small muted">Today's list is ready after 4 PM, once closing prices are in. Google Finance can lag up to 20 minutes.</p>`:""}
-    ${stale?`<p class="note">Sheet still shows ${esc(H.asOf)}. Refresh in a few minutes.</p>`:""}
-    ${grp("sell","Sell","sell",S.sell)}${grp("avg","Average","avg",S.avg)}${grp("buy","New buy","buy",S.buy)}`;
-  const ch=S.check;if(ch&&ch.rows.length)h+=`<div class="grp"><b><span class="chip avg">Check price first</span></b>${ch.rows.map(o=>`<div class="none">${esc(o._.filter(Boolean).join(" · "))}</div>`).join("")}</div>`;
-  const tr=S.trail;if(tr&&tr.rows.length)h+=`<div class="grp"><b><span class="chip">Trailing stop on</span>no order tonight</b><div class="rows">${tr.rows.map(o=>
-    `<div class="row"><span><b>${esc(sym(o.ETF||o._[0]))}</b><div class="sub">${esc(o.Qty)} units · bought ${esc(o["Buy price"])} · high ${esc(o["Highest close"])}</div></span>
-     <span class="r"><span class="up">${esc(o["Gain %"])}</span><div class="sub">sell if ≤ ${esc(o["Sell if close falls to"]||o._[6]||"")}</div></span></div>`).join("")}</div></div>`;
-  return h+`</section>`;}
-
-function portfolio(H,C){
-  const cashPct=num(H.cashPct),inv=H.invested/H.capital*100;
-  return `<section class="card"><h2>Portfolio <small>${H.asOf?"prices "+esc(H.asOf):""}</small></h2>
-   <div class="kpis">
-    <div><b>${inr(H.value)}</b><span>Current value</span></div>
-    <div><b class="${tone(H.pl)}">${signInr(H.pl)}</b><span>Notional P/L · <span class="${tone(H.plPct)}">${pct(H.plPct,1)}</span></span></div>
-    <div><b>${inr(H.invested)}</b><span>Invested</span></div>
-    <div><b>${inr(H.capital)}</b><span>Capital</span></div>
-    <div><b>${inr(H.cash)}</b><span>Cash${ok(cashPct)?" · "+pct(cashPct):""}</span></div>
-    <div><b>${inr(H.tranche)}</b><span>Per tranche</span></div>
-   </div>
-   ${ok(inv)?`<div class="meter" title="Capital deployed"><i style="width:${Math.min(100,inv).toFixed(1)}%"></i></div><p class="small muted" style="margin-top:4px">${inv.toFixed(0)}% of capital deployed · ${ok(H.count)?H.count+" lots":""} · target ${pct(H.target*(Math.abs(H.target)<1?100:1))} · average after ${pct(H.avgFall*(Math.abs(H.avgFall)<1?100:1))}</p>`:""}
-   ${C&&ok(C.added)?`<p class="small muted" style="margin-top:6px">Money put in ${inr(C.added)}${C.withdrawn?" · withdrawn "+inr(C.withdrawn):""}${C.adds.length?" ("+C.adds.map(a=>esc(a[0])+": "+inr(a[1])).join(", ")+")":""}</p>`:""}
+  const c=kind==="sell"?o.l.code:kind==="avg"?o.h.code:o.c.code;let d="",d2="";
+  if(kind==="sell"){d=`Bought ${price(o.l.price)} · gain ${pct(o.l.gain*100,1)}`;d2=`high ${price(o.l.high)} · stop ${price(o.l.stop)}`;}
+  else if(kind==="avg"){d=`Close ${price(o.h.close)} · ${pct(o.h.fallLast*100)} from last buy`;d2=`${o.h.L.length} lots · day ${pct(o.h.chg,1)}`;}
+  else {d=`Close ${price(o.c.close)} · ${pct(o.c.fall*100)} from 52W high`;d2=`${o.c.group} · day ${pct(o.c.chg,1)}`;}
+  return `<div class="ord"><span class="s">${esc(c)}</span><span class="q">${o.qty} × ${price(o.lim)}</span><span class="d">${esc(d)}</span><span class="d2">${inr(o.qty*o.lim)}</span>
+    <span class="d" style="grid-column:1/-1">${esc(d2)}</span><button class="fill" type="button" data-fill="${kind}" data-c="${esc(kind==="sell"?o.l.id:c)}" data-q="${o.qty}" data-p="${o.lim}">Mark as filled</button></div>`;}
+function grp(kind,label,chip,list,msg){
+  return `<div class="grp"><b><span class="chip ${chip}">${label}</span>${list.length?list.length+(list.length>1?" orders":" order"):""}</b>
+    ${list.length?list.map(o=>ordCard(kind,o)).join(""):`<div class="none">${esc(msg)}</div>`}</div>`;}
+function tonight(M){
+  const t=I.ist(),tot=M.sells.length+(M.avg?1:0)+M.buys.length;
+  const when=t.weekend?"Weekend · AMO orders for Monday":t.open?"Market open · live prices":t.afterClose?`${t.wd} evening · place as AMO limit orders`:`${t.wd} morning · before the open`;
+  const big=t.open?(tot?`${tot} signal${tot>1?"s":""} right now`:"No signals right now"):(tot?`${tot} order${tot>1?"s":""}${t.weekend?" for Monday":" tonight"}`:"No orders tonight");
+  return `<section class="card hero"><div class="when">${esc(when)}</div><div class="big">${esc(big)}</div>
+    ${t.open?`<p class="small muted">Rules use the closing price. These move with the market and are final after the 3:30 PM close.</p>`:""}
+    ${grp("sell","Sell","sell",M.sells,"No sell")}${grp("avg","Average","avg",M.avg?[M.avg]:[],M.avgMsg||"No averaging")}${grp("buy","New buy","buy",M.buys,"No new buy"+(M.buyMsg?": "+M.buyMsg:""))}
+    ${M.checks.length?`<div class="grp"><b><span class="chip avg">Check price first</span>skipped above</b><div class="none">${M.checks.map(c=>esc(c.code)+" "+pct(c.fall52!=null&&ok(c.fall52)?c.fall52*100:c.fall*100)).join(" · ")} from 52W high looks too deep; confirm in your broker app.</div></div>`:""}
+    ${M.trailing.length?`<div class="grp"><b><span class="chip">Trailing stop on</span>no order</b><div class="rows">${M.trailing.map(l=>
+      `<div class="row"><span><b>${esc(l.code)}</b><div class="sub">${l.qty} units · bought ${price(l.price)} · high ${price(l.high)}</div></span><span class="r"><span class="up">${pct(l.gain*100,1)}</span><div class="sub">sell if ≤ ${price(l.stop)}</div></span></div>`).join("")}</div></div>`:""}
   </section>`;}
-
-function realised(S){
-  if(!S||!S.months.length)return "";
-  const mx=Math.max(...S.months.map(m=>Math.abs(m.p)||0),1),last=S.trades.slice().sort((a,b)=>(I.date(b.sellD)||0)-(I.date(a.sellD)||0)).slice(0,5);
-  return `<section class="card"><h2>Booked profit <small>${S.trades.length} sells</small></h2>
+function portfolio(M){
+  const val=M.open.reduce((a,l)=>a+(ok(l.value)?l.value:l.price*l.qty),0),pl=val-M.invested,dep=M.invested/M.capital*100;
+  return `<section class="card"><h2>Portfolio <small>${M.open.length} lots · ${M.held.length} ETFs</small></h2>
    <div class="kpis">
-    <div><b class="up">${inr(S.profit)}</b><span>Gross profit</span></div>
-    <div><b>${inr(S.growth)}</b><span>After charges &amp; tax</span></div>
-    <div><b>${pct(S.ann)}</b><span>Approx. annualised</span></div>
+    <div><b>${inr(val)}</b><span>Current value</span></div>
+    <div><b class="${tone(pl)}">${signInr(pl)}</b><span>Notional · <span class="${tone(pl)}">${pct(pl/M.invested*100,1)}</span></span></div>
+    <div><b>${inr(M.invested)}</b><span>Invested</span></div>
+    <div><b>${inr(M.capital)}</b><span>Capital</span></div>
+    <div><b>${inr(M.cash)}</b><span>Cash · ${pct(M.cash/M.capital*100)}</span></div>
+    <div><b>${inr(M.tranche)}</b><span>Per tranche</span></div>
    </div>
-   <div class="bars" aria-label="Profit by month">${S.months.map(m=>`<div title="${esc(m.m)}: ${inr(m.p)}"><i class="${m.p<0?"neg":""}" style="height:${(Math.abs(m.p)/mx*80).toFixed(0)}%"></i><span>${esc(m.m.slice(5))}</span></div>`).join("")}</div>
-   <p class="small muted">Charges ${inr(S.charges)} · tax ${inr(S.tax)} · overall ${pct(S.overall)} on max invested</p>
-   ${last.length?`<div class="rows" style="margin-top:8px">${last.map(t=>`<div class="row"><span><b>${esc(sym(t.code))}</b><div class="sub">${esc(t.sellD)} · held ${ok(t.days)?t.days+" d":"—"}</div></span><span class="r"><span class="${tone(t.p)}">${signInr(t.p)}</span><div class="sub">${pct(t.pp*(Math.abs(t.pp)<1?100:1),1)}</div></span></div>`).join("")}</div>`:""}
-   ${S.best.length?`<p class="small muted" style="margin-top:8px">Best earners: ${S.best.slice(0,5).map(b=>esc(sym(b.code))+" "+inr(b.p)).join(" · ")}</p>`:""}
+   <div class="meter"><i style="width:${Math.max(0,Math.min(100,dep)).toFixed(1)}%"></i></div>
+   <p class="small muted" style="margin-top:4px">${ok(dep)?dep.toFixed(0)+"% of capital deployed · ":""}money put in ${inr(M.added)}${M.withdrawn?" · withdrawn "+inr(M.withdrawn):""} · booked growth ${inr(M.growth)}</p>
+   <div class="acts"><button type="button" id="aBuy">+ Buy</button><button type="button" class="ghost" id="aMoney">Money in / out</button></div>
   </section>`;}
-
-function holdings(H){
-  const by={};H.lots.forEach(l=>{(by[l.code]=by[l.code]||[]).push(l);});
-  const tgt=ok(H.target)?(Math.abs(H.target)<1?H.target*100:H.target):NaN;
-  const G=Object.entries(by).map(([code,L])=>{L.sort((a,b)=>(I.date(a.date)||0)-(I.date(b.date)||0));
-    const nw=L.find(l=>l.newest)||L[L.length-1],inv=L.reduce((a,l)=>a+(l.inv||0),0),val=L.reduce((a,l)=>a+(l.qty*l.cmp||0),0);
-    return {code,L,nw,inv,val,pl:val-inv,plp:inv?(val-inv)/inv*100:NaN,chg:nw.cmp?nw.chg:NaN};})
-   .sort((a,b)=>(b.nw.gp||-99)-(a.nw.gp||-99));
-  return `<section class="card"><h2>Holdings <small>${G.length} ETFs · newest lot vs ${ok(tgt)?pct(tgt):"target"}</small></h2>
-   ${G.map(x=>{const g=x.nw.gp,w=ok(g)&&ok(tgt)&&tgt>0?Math.max(0,Math.min(100,g/tgt*100)):0,neg=ok(g)&&g<0;
-     return `<details class="hold"><summary><span><b>${esc(sym(x.code))}</b> <span class="tag">${x.L.length} lot${x.L.length>1?"s":""}</span>
-       <div class="sub muted">newest <span class="${tone(g)}">${pct(g,1)}</span> · sells from ${price(x.nw.tgt)} · day <span class="${tone(x.chg)}">${pct(x.chg,1)}</span></div></span>
-       <span class="r mono"><span class="${tone(x.pl)}">${signInr(x.pl)}</span><div class="sub">${inr(x.inv)}</div></span>
-       <span class="tbar"><i class="${neg?"neg":""}" style="width:${neg?Math.min(100,Math.abs(g)/20*100):w}%"></i></span></summary>
+function holdings(M){
+  const tgt=M.S.target*100;
+  const G=M.held.slice().sort((a,b)=>(b.last.gain||-9)-(a.last.gain||-9));
+  if(!G.length)return "";
+  return `<section class="card"><h2>Holdings <small>newest lot vs ${pct(tgt)} target</small></h2>
+   ${G.map(x=>{const g=x.last.gain*100,neg=g<0,w=ok(g)?(neg?Math.min(100,-g/20*100):Math.min(100,g/tgt*100)):0,pl=x.val-x.inv;
+     return `<details class="hold"><summary><span><b>${esc(x.code)}</b> <span class="tag">${x.L.length} lot${x.L.length>1?"s":""}</span>${x.mode!=="buy"?` <span class="tag">hold only</span>`:""}
+       <div class="sub muted">newest <span class="${tone(g)}">${pct(g,1)}</span> · trail from ${price(x.last.tgt)} · day <span class="${tone(x.chg)}">${pct(x.chg,1)}</span></div></span>
+       <span class="r mono"><span class="${tone(pl)}">${ok(pl)?signInr(pl):"—"}</span><div class="sub">${inr(x.inv)}</div></span>
+       <span class="tbar"><i class="${neg?"neg":""}" style="width:${w}%"></i></span></summary>
        <table class="lots"><tr><th>Bought</th><th>Price</th><th>Qty</th><th>Amount</th><th>Gain</th></tr>
-       ${x.L.map(l=>`<tr><td>${esc(l.date)}</td><td>${price(l.buy)}</td><td>${l.qty}</td><td>${inr(l.inv)}</td><td class="${tone(l.gp)}">${pct(l.gp,1)}</td></tr>`).join("")}
-       <tr><td>Now</td><td>${price(x.nw.cmp)}</td><td></td><td>${inr(x.val)}</td><td class="${tone(x.plp)}">${pct(x.plp,1)}</td></tr></table></details>`;}).join("")}
+       ${x.L.map(l=>`<tr class="tap" data-lot="${esc(l.id)}"><td>${esc(dshort(l.date))}</td><td>${price(l.price)}</td><td>${l.qty}</td><td>${inr(l.price*l.qty)}</td><td class="${tone(l.gain)}">${pct(l.gain*100,1)}</td></tr>`).join("")}
+       <tr><td>Now</td><td>${price(x.close)}</td><td></td><td>${inr(x.val)}</td><td class="${tone(pl)}">${pct(pl/x.inv*100,1)}</td></tr></table>
+       <p class="small muted" style="margin:-4px 0 10px">${esc(x.group)} · ${pct(x.fallLast*100,1)} from last buy · ${pct(x.fall52*100,1)} from 52W high. Tap a lot to edit or sell.</p></details>`;}).join("")}
   </section>`;}
-
 let showAll=false;
-function watch(scan,O){
-  if(!scan.length)return "";
-  const minS=O.settings.find(s=>/minimum fall from 52W/i.test(s[0])),min=minS?num(minS[1]):-10;
-  const L=scan.filter(s=>ok(s.dist)).sort((a,b)=>a.dist-b.dist),show=showAll?L:L.slice(0,12);
-  return `<section class="card"><h2>Watchlist <small>most fallen from 52-week high · buy zone ${pct(min)}</small></h2>
-   <div class="rows">${show.map(s=>{const zone=s.dist<=min,hold=/hold/i.test(s.buy);
-     return `<div class="row"><span><b>${esc(sym(s.code))}</b> ${hold?`<span class="tag">hold only</span>`:zone&&s.chg>0?`<span class="tag ok">in zone · green</span>`:zone?`<span class="tag ok">in zone</span>`:""}
-       <div class="sub">${esc(s.group)}</div></span>
-       <span class="r"><span class="${zone?"dn":""}">${pct(s.dist,1)}</span><div class="sub">${price(s.cmp)} · <span class="${tone(s.chg)}">${pct(s.chg,1)}</span></div></span></div>`;}).join("")}</div>
-   ${L.length>12?`<button class="more" type="button" id="wAll">${showAll?"Show fewer":"Show all "+L.length}</button>`:""}
+function watch(M){
+  const L=M.cands.filter(c=>ok(c.fall)).sort((a,b)=>a.fall-b.fall),show=showAll?L:L.slice(0,12);
+  return `<section class="card"><h2>Watchlist <small>fall from 52W-high close · buy zone ${pct(M.S.minFall*100)}</small></h2>
+   ${L.length?`<div class="rows">${show.map(c=>{const zone=c.fall<=M.S.minFall;
+     return `<div class="row"><span><b>${esc(c.code)}</b> ${c.mode!=="buy"?`<span class="tag">hold only</span>`:c.status==="BUY"?`<span class="tag ok">buy signal</span>`:c.status==="Group held"&&zone?`<span class="tag">group held</span>`:zone?`<span class="tag ok">in zone</span>`:""}
+       <div class="sub">${esc(c.group)}</div></span>
+       <span class="r"><span class="${zone?"dn":""}">${pct(c.fall*100,1)}</span><div class="sub">${price(c.close)} · <span class="${tone(c.chg)}">${pct(c.chg,1)}</span></div></span></div>`;}).join("")}</div>
+   ${L.length>12?`<button class="more" type="button" id="wAll">${showAll?"Show fewer":"Show all "+L.length}</button>`:""}`
+   :`<p class="small muted">Waiting for live prices.</p>`}
   </section>`;}
-
-function rules(R,O){
-  if(!R||!R.rules.length)return "";
-  return `<details class="card sec"><summary>Rules &amp; settings</summary>
-   <ol class="rules">${R.rules.map(r=>`<li>${esc(r)}</li>`).join("")}</ol>
-   ${R.after.length?`<p class="small" style="margin:12px 0 4px"><b>After each trade</b></p><dl class="kv" style="grid-template-columns:auto 1fr">${R.after.map(a=>`<dt>${esc(a[0])}</dt><dd style="font-family:var(--body);text-align:left">${esc(a[1])}</dd>`).join("")}</dl>`:""}
-   ${O.settings.length?`<dl class="kv">${O.settings.map(s=>`<dt>${esc(s[0])}</dt><dd>${esc(s[1])}</dd>`).join("")}</dl>`:""}
+let soldAll=false;
+function booked(M){
+  if(!M.sold.length)return "";
+  const mm={};M.sold.forEach(l=>{const k=l.sellDate.slice(0,7);mm[k]=(mm[k]||0)+l.p;});
+  const months=Object.keys(mm).sort().map(k=>({m:k,p:mm[k]})),mx=Math.max(...months.map(m=>Math.abs(m.p)),1);
+  const S=M.sold.slice().sort((a,b)=>a.sellDate<b.sellDate?1:-1),show=soldAll?S:S.slice(0,6);
+  const gross=M.sold.reduce((a,l)=>a+l.p,0),ch=M.sold.reduce((a,l)=>a+l.ch,0),tax=M.sold.reduce((a,l)=>a+l.tax,0);
+  /* booked return a year, on the money that was in the shop (money-weighted) */
+  const flows=M.cap.map(c=>[c.date,-c.amount]);flows.push([I.ist().iso,M.added-M.withdrawn+M.growth]);const xr=I.xirr(flows);
+  const best={};M.sold.forEach(l=>best[l.code]=(best[l.code]||0)+l.p);const top=Object.entries(best).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  return `<section class="card"><h2>Booked profit <small>${M.sold.length} sells</small></h2>
+   <div class="kpis"><div><b class="up">${inr(gross)}</b><span>Gross profit</span></div><div><b>${inr(M.growth)}</b><span>After charges &amp; tax</span></div><div><b>${pct(xr)}</b><span>Booked return a year</span></div></div>
+   <div class="bars">${months.map(m=>`<div title="${m.m}: ${inr(m.p)}"><i class="${m.p<0?"neg":""}" style="height:${(Math.abs(m.p)/mx*80).toFixed(0)}%"></i><span>${new Date(m.m+"-01T00:00:00").toLocaleDateString("en-IN",{month:"short"})}</span></div>`).join("")}</div>
+   <p class="small muted">Charges ${inr(ch)} · tax ${inr(tax)} (20% + 4% cess on profit after charges)</p>
+   <div class="rows" style="margin-top:8px">${show.map(l=>`<button class="rowbtn" type="button" data-sold="${esc(l.id)}"><span><b>${esc(l.code)}</b><div class="sub">${esc(dshort(l.sellDate))} · held ${l.days} d · ${l.qty} × ${price(l.sellPrice)}</div></span><span class="r"><span class="${tone(l.p)}">${signInr(l.p)}</span><div class="sub">${pct(l.pp,1)}</div></span></button>`).join("")}</div>
+   ${S.length>6?`<button class="more" type="button" id="sAll">${soldAll?"Show fewer":"Show all "+S.length}</button>`:""}
+   ${top.length?`<p class="small muted" style="margin-top:8px">Best earners: ${top.map(([c,p])=>esc(c)+" "+inr(p)).join(" · ")}</p>`:""}
+  </section>`;}
+function setup(M){const S=M.S;
+  return `<details class="card sec"><summary>Money, rules &amp; universe</summary>
+   <p class="small"><b>Money in / out</b></p><div class="rows">${M.cap.map(c=>`<button class="rowbtn" type="button" data-cap="${esc(c.id)}"><span>${esc(dshort(c.date))}</span><span class="r ${c.amount<0?"dn":""}">${signInr(c.amount)}</span></button>`).join("")||`<p class="small muted">None yet.</p>`}</div>
+   <p class="small" style="margin-top:14px"><b>Rules</b> <button class="more" type="button" id="eRules">edit</button></p>
+   <ol class="rules">
+    <li>Check once a day after 4 PM on closing prices; place AMO limit orders.</li>
+    <li>Capital split into ${S.parts} parts: one buy or one averaging = one tranche (${inr(M.tranche)}); profits compound into it.</li>
+    <li>Sell: once a lot's highest close since buying is ${pct(S.target*100)} above cost, trail ${pct(S.trail*100)} below that high; sell the whole lot when the close reaches the stop. LIFO, no daily limit.</li>
+    <li>Average: at most one a day, the ETF most fallen ≥ ${pct(-S.avgFall*100)} below its last buy and closing green; not above ${S.maxLots} lots per index group, not for hold-only ETFs, not with cash below a tranche.</li>
+    <li>New buy: ≥ ${pct(-S.minFall*100)} below the 52-week-high close, closing green, index group not held. Two buys when the top pick is ≥ ${pct(-S.twoFall*100)} down and cash allows. Keep ${pct(S.reserve*100)} of capital as reserve.</li>
+    <li>Limit prices ${pct(S.buffer*100)} from the close. Falls deeper than ${pct(-S.check*100)} are flagged for a price check.</li>
+   </ol>
+   <p class="small" style="margin-top:14px"><b>Universe</b> · ${S.universe.length} ETFs <button class="more" type="button" id="aUni">+ add</button></p>
+   <div class="uni rows">${S.universe.map(u=>`<button class="rowbtn" type="button" data-uni="${esc(u.code)}"><span><b>${esc(u.code)}</b><div class="sub">${esc(u.group)}</div></span><span class="r"><span class="tag ${u.mode==="buy"?"ok":""}">${u.mode==="buy"?"buy":"hold only"}</span></span></button>`).join("")}</div>
+   ${dataBox()}
   </details>`;}
+function dataBox(){return `<p class="small" style="margin-top:14px"><b>Data</b></p>
+   <p class="small muted" id="syncMsg">${I.hasSync()?"Records sync between your phones (encrypted).":"Sync is off: records stay on this phone. Turn on Sync from the home screen."}</p>
+   <div class="acts"><button type="button" class="ghost" id="dImp">Import file</button><button type="button" class="ghost" id="dExp">Download backup</button>${I.hasSync()?`<button type="button" class="ghost" id="dSync">Sync now</button>`:""}</div>`;}
+function empty(){return `<section class="card empty"><b>No records yet</b><p class="small muted">Import your investments file once (it holds everything copied from the old sheets), or start adding buys.</p>
+   <div class="acts"><button type="button" id="dImp">Import file</button><button type="button" class="ghost" id="aBuy">+ Buy</button><button type="button" class="ghost" id="aMoney">Money in</button></div></section>`;}
 
-let data=null;
-function draw(T){
-  const O=readOrders(T.orders),H=readHoldings(T.ch),S=T.sold?readSold(T.sold):null,SC=T.scan?readScanner(T.scan):[],C=T.cap?readCap(T.cap):null,R=T.rules?readRules(T.rules):null;
-  if(!H.lots.length&&!O.settings.length)throw new Error("The sheet loaded but its tabs don't look like the ETF Shop (Orders, Current Holdings). Check the link.");
-  $("out").innerHTML=tonight(O,H)+portfolio(H,C)+holdings(H)+watch(SC,O)+realised(S)+rules(R,O);
-  const w=$("wAll");if(w)w.onclick=()=>{showAll=!showAll;draw(T);};
-  document.querySelectorAll("[data-cp]").forEach(b=>b.onclick=e=>{e.preventDefault();try{navigator.clipboard.writeText(b.dataset.cp);b.textContent="✓";setTimeout(()=>b.textContent="⧉",1200);}catch(_){}});}
+function draw(){
+  const M=model(),has=M.open.length||M.sold.length||M.cap.length;
+  $("out").innerHTML=has?tonight(M)+portfolio(M)+holdings(M)+watch(M)+booked(M)+setup(M):empty();
+  const on=(id,f)=>{const e=$(id);if(e)e.onclick=f;};
+  on("aBuy",()=>buyForm());on("aMoney",()=>moneyForm());on("eRules",()=>settingsForm(M.S));on("aUni",()=>uniForm());
+  on("wAll",()=>{showAll=!showAll;draw();});on("sAll",()=>{soldAll=!soldAll;draw();});
+  on("dImp",()=>I.pickImport((e,done)=>{if(e){showErr(e.message);return;}showErr("");$("st").textContent="Imported "+done.join(" and ").toUpperCase()+" records.";draw();refresh();}));
+  on("dExp",()=>I.exportData());on("dSync",()=>syncNow(true));
+  document.querySelectorAll("[data-fill]").forEach(b=>b.onclick=()=>{const k=b.dataset.fill,p=+b.dataset.p,q=+b.dataset.q;
+    if(k==="sell"){const s=I.load(KEY),l=s.lots[b.dataset.c];if(l)sellForm({id:b.dataset.c,...l},{price:p});}else buyForm({code:b.dataset.c,price:p,qty:q});});
+  document.querySelectorAll("[data-lot]").forEach(r=>r.onclick=()=>{const l=I.load(KEY).lots[r.dataset.lot];if(l)buyForm({id:r.dataset.lot,...l});});
+  document.querySelectorAll("[data-sold]").forEach(r=>r.onclick=()=>{const l=I.load(KEY).lots[r.dataset.sold];if(l)soldForm({id:r.dataset.sold,...l});});
+  document.querySelectorAll("[data-cap]").forEach(r=>r.onclick=()=>{const c=I.load(KEY).cap[r.dataset.cap];if(c)moneyForm({id:r.dataset.cap,...c});});
+  document.querySelectorAll("[data-uni]").forEach(r=>r.onclick=()=>{const u=M.S.universe.find(x=>x.code===r.dataset.uni);if(u)uniForm(u);});
+  status();}
 
+function status(){const t=I.ist();$("mkt").className="pill"+(t.open?" open":"");$("mkt").querySelector("span").textContent=t.open?"NSE open · live":"NSE closed";
+  $("st").textContent=qAt?"Prices "+I.ago(qAt)+(missing.length?" · no price for "+missing.join(", "):""):"";}
 function showErr(m){$("err").hidden=!m;$("err").textContent=m||"";}
+async function syncNow(loud){try{const r=await I.sync(KEY);if(r.ok&&r.changed)draw();if(loud)$("st").textContent=r.ok?"Synced.":r.msg;}catch(e){if(loud)showErr("Sync failed: "+e.message);}}
 async function refresh(){
-  $("refresh").disabled=true;$("st").textContent="Reading your sheet…";showErr("");
-  try{const T=await I.load(KEY,TABS);draw(T);data=T;$("st").textContent="Updated "+I.ago(Date.now());$("setupBox").open=false;}
-  catch(e){const c=I.cached(KEY);
-    if(c){try{draw(c.tabs);}catch(_){}$("st").textContent="Showing data from "+I.ago(c.t);}else $("st").textContent="";
-    showErr(e.message);if(e.nolink||!c)$("setupBox").open=true;}
+  const M=model(),syms=[...new Set([...M.S.universe.map(u=>u.code),...M.open.map(l=>l.code)])];if(!syms.length)return;
+  $("refresh").disabled=true;$("st").textContent="Getting live prices…";
+  try{const r=await I.quotes(syms);Q=r.quotes;missing=r.missing;qAt=Date.now();showErr("");draw();}
+  catch(e){showErr("Live prices: "+e.message+(qAt?" Showing prices from "+I.ago(qAt)+".":""));status();}
   finally{$("refresh").disabled=false;}}
-function setup(){$("setup").innerHTML=I.setupHtml(KEY,"Pranju ETF shop 20/05/2025",["Orders","Current Holdings","Sold","Scanner","Capital Management","Rules"]);I.bindSetup($("setup"),KEY,refresh);}
-
 $("refresh").onclick=refresh;
-setup();
-const c0=I.cached(KEY);if(c0){try{draw(c0.tabs);$("st").textContent="Showing data from "+I.ago(c0.t);}catch(e){}}
-(async()=>{if(!I.links()[KEY]){if(await I.pullLinks())setup();}refresh();})();
+draw();
+(async()=>{await syncNow(false);refresh();})();
+setInterval(()=>{if(document.visibilityState==="visible"&&I.ist().open)refresh();},60000);
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&Date.now()-qAt>60000)refresh();});
 </script>
 </body></html>

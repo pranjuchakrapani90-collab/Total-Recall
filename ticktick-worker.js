@@ -85,6 +85,37 @@ async function handleTravelFile(request,env){
   return new Response(JSON.stringify({error:'Method not allowed'}),{status:405,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
 }
 
+/* Live NSE prices for the Investments pages (ETF Shop, JuniorBees PKP).
+   GET ?mode=quotes&s=ITBEES,GOLDBEES  (up to 40 symbols, NSE codes without "NSE:")
+   Returns per symbol: live price, previous session close, day change %, and daily closes for ~2 years
+   (the page works out the 52-week-high close and the highest close since each buy from them).
+   Source: Yahoo Finance's public chart data for NSE (.NS); no keys or secrets involved. */
+async function yahooChart(sym){
+  const hosts=['https://query1.finance.yahoo.com','https://query2.finance.yahoo.com'];let last='';
+  for(const h of hosts){try{
+    const r=await fetch(h+'/v8/finance/chart/'+encodeURIComponent(sym+'.NS')+'?range=2y&interval=1d&includePrePost=false',
+      {headers:{'User-Agent':'Mozilla/5.0 (compatible; TotalRecall/1.0)','Accept':'application/json'},cf:{cacheTtl:45,cacheEverything:true}});
+    if(!r.ok){last='HTTP '+r.status;continue;}
+    const j=await r.json(),res=j&&j.chart&&j.chart.result&&j.chart.result[0];
+    if(!res){last=(j&&j.chart&&j.chart.error&&j.chart.error.description)||'no data';continue;}
+    return res;}catch(e){last=String(e&&e.message||e);}}
+  throw new Error(last||'no data');
+}
+const istDate=sec=>new Date((sec+19800)*1000).toISOString().slice(0,10);
+async function handleQuotes(request){
+  const url=new URL(request.url),list=String(url.searchParams.get('s')||'').split(',').map(x=>x.trim().toUpperCase().replace(/^NSE:/,'')).filter(x=>/^[A-Z0-9&\-]{1,20}$/.test(x));
+  const syms=[...new Set(list)].slice(0,40),out={};
+  await Promise.all(syms.map(async sym=>{try{
+    const res=await yahooChart(sym),m=res.meta||{},ts=res.timestamp||[],cl=((res.indicators||{}).quote||[{}])[0].close||[];
+    const days=[];for(let i=0;i<ts.length;i++){if(cl[i]!=null)days.push([istDate(ts[i]),Math.round(cl[i]*100)/100]);}
+    const price=m.regularMarketPrice!=null?m.regularMarketPrice:(days.length?days[days.length-1][1]:null);
+    const mt=m.regularMarketTime?istDate(m.regularMarketTime):(days.length?days[days.length-1][0]:'');
+    if(days.length&&days[days.length-1][0]===mt)days[days.length-1][1]=Math.round(price*100)/100; else if(price!=null&&mt)days.push([mt,Math.round(price*100)/100]);
+    const prev=days.length>1?days[days.length-2][1]:null;
+    out[sym]={price,prev,chg:prev?(price/prev-1)*100:null,time:m.regularMarketTime||null,day:mt,closes:days};
+  }catch(e){out[sym]={error:String(e&&e.message||e)};}}));
+  return new Response(JSON.stringify({at:Date.now(),quotes:out}),{headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
+}
 async function handleSync(request,env){
   if(!env.SYNC_KV)return new Response(JSON.stringify({error:'Cloud sync is not configured: SYNC_KV binding is missing on the Worker.'}),{status:503,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
   const code=String(request.headers.get('X-Total-Recall-Sync')||'').trim();
@@ -108,6 +139,7 @@ async function handleSync(request,env){
 export default {async fetch(request,env){const origin=request.headers.get('Origin')||'';if(request.method==='OPTIONS'){const h=corsHeaders(origin);const requested=request.headers.get('Access-Control-Request-Headers');if(requested)h['Access-Control-Allow-Headers']=requested;return new Response(null,{status:204,headers:h});}const url=new URL(request.url);
  if(url.pathname==='/memory-extract'){if(request.method!=='POST')return new Response('Method not allowed',{status:405,headers:corsHeaders(origin)});try{return await memoryExtract(request,env)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.pathname==='/sync'||url.searchParams.get('mode')==='sync'){try{return await handleSync(request,env)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
+ if(url.searchParams.get('mode')==='quotes'||url.pathname==='/quotes'){try{return await handleQuotes(request)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.searchParams.get('mode')==='travel-file'){try{return await handleTravelFile(request,env)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(request.method!=='GET')return new Response('Method not allowed',{status:405,headers:corsHeaders(origin)});
  if(url.pathname!=='/'&&url.pathname!=='/responsibility-tasks'&&url.pathname!=='/completed-tasks'&&url.pathname!=='/task-detail')return new Response('Not found',{status:404,headers:corsHeaders(origin)});
