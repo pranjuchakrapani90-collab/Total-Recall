@@ -345,9 +345,9 @@ function analyze(){const s=S(),bars=s.bars,notes=b=>(bars[b]||[]).filter(x=>!x.r
 
 /* ===================== Audio ===================== */
 let ctx=null,MASTER=null,NOISE=null;const cache={};
-function audio(){if(!ctx)ctx=new (window.AudioContext||window.webkitAudioContext)({latencyHint:"playback"}); // larger audio buffer: no stutter on phonesctx.resume().catch(()=>{});return ctx;}
-/* master: headroom for the band + lead (their peaks reach ~2x full scale), a gentle glue compressor, make-up gain,
-   then a smooth soft-clip so loud moments round off instead of cracking */
+/* "playback": a larger audio buffer, so phones never stutter */
+function audio(){if(!ctx)ctx=new (window.AudioContext||window.webkitAudioContext)({latencyHint:"playback"});ctx.resume().catch(()=>{});return ctx;}
+/* master: a plain level (band + lead peaks reach ~2x full scale) into a limiter curve that is clean up to 0.6 */
 function out(){if(!MASTER||MASTER.context!==ctx){const g=ctx.createGain();g.gain.value=.4; // no compressor: phone browsers add hidden make-up gain to it
   const sc=ctx.createWaveShaper(),pre=ctx.createGain(),trim=ctx.createGain(),n=4096,cv=new Float32Array(n);
   /* clean up to 0.6, then a smooth knee that never passes 1: ordinary notes are untouched, only rare peaks are rounded */
