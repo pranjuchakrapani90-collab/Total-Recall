@@ -88,7 +88,7 @@ details.primer summary{cursor:pointer;font-weight:650}
   <p id="syncLine" style="margin-top:8px;font-size:12px;opacity:.9"></p>
 </div></header>
 <main class="wrap" id="app"></main>
-<p style="text-align:center;font-size:11px;color:#94a3b8;margin:4px 0 90px">Soloing Course · version 20 Oct 2026 (c) · sound fix 2</p>
+<p style="text-align:center;font-size:11px;color:#94a3b8;margin:4px 0 90px">Soloing Course · version 20 Oct 2026 (d) · sound fix 3</p>
 <div class="transport" id="transport" hidden></div>
 <script>
 "use strict";
@@ -345,14 +345,16 @@ function analyze(){const s=S(),bars=s.bars,notes=b=>(bars[b]||[]).filter(x=>!x.r
 
 /* ===================== Audio ===================== */
 let ctx=null,MASTER=null,NOISE=null;const cache={};
-function audio(){if(!ctx)ctx=new (window.AudioContext||window.webkitAudioContext)({latencyHint:"interactive"});ctx.resume().catch(()=>{});return ctx;}
+function audio(){if(!ctx)ctx=new (window.AudioContext||window.webkitAudioContext)({latencyHint:"playback"}); // larger audio buffer: no stutter on phonesctx.resume().catch(()=>{});return ctx;}
 /* master: headroom for the band + lead (their peaks reach ~2x full scale), a gentle glue compressor, make-up gain,
    then a smooth soft-clip so loud moments round off instead of cracking */
-function out(){if(!MASTER||MASTER.context!==ctx){const g=ctx.createGain(),comp=ctx.createDynamicsCompressor(),mk=ctx.createGain();g.gain.value=.42;
-  comp.threshold.value=-12;comp.knee.value=10;comp.ratio.value=5;comp.attack.value=.004;comp.release.value=.2;mk.gain.value=1.8;
-  const sc=ctx.createWaveShaper(),pre=ctx.createGain(),trim=ctx.createGain(),n=2048,cv=new Float32Array(n);
-  for(let i=0;i<n;i++){const x=(i/(n-1)*2-1)*4;cv[i]=Math.tanh(x);}sc.curve=cv;sc.oversample="4x";pre.gain.value=.25;trim.gain.value=.7;
-  g.connect(comp).connect(mk).connect(pre).connect(sc).connect(trim).connect(ctx.destination);MASTER=g;}return MASTER;}
+function out(){if(!MASTER||MASTER.context!==ctx){const g=ctx.createGain();g.gain.value=.4; // no compressor: phone browsers add hidden make-up gain to it
+  const sc=ctx.createWaveShaper(),pre=ctx.createGain(),trim=ctx.createGain(),n=4096,cv=new Float32Array(n);
+  /* clean up to 0.6, then a smooth knee that never passes 1: ordinary notes are untouched, only rare peaks are rounded */
+  for(let i=0;i<n;i++){const x=(i/(n-1)*2-1)*4,a=Math.abs(x);cv[i]=Math.sign(x)*(a<=.6?a:.6+.4*Math.tanh((a-.6)/.4));}sc.curve=cv;pre.gain.value=.25;trim.gain.value=.95;
+  g.connect(pre).connect(sc).connect(trim).connect(ctx.destination);MASTER=g;BUS={};}return MASTER;}
+/* shared filters: one per kind of sound instead of one per note, so the phone does far less work while playing */
+let BUS={};function bus(k,type,f){if(BUS[k]&&BUS[k].context===ctx)return BUS[k];const fl=ctx.createBiquadFilter();fl.type=type;fl.frequency.value=f;fl.connect(out());return BUS[k]=fl;}
 function pluckBuf(m,bright){const k=m+"@"+ctx.sampleRate+(bright?"b":"");if(cache[k])return cache[k];
   const sr=ctx.sampleRate,len=Math.floor(sr*2.6),buf=ctx.createBuffer(1,len,sr),d=buf.getChannelData(0);
   const N0=Math.max(2,Math.round(sr/(440*Math.pow(2,(m-69)/12)))),dl=new Float32Array(N0);let p=0;const mix=bright?.8:.55;
@@ -362,8 +364,8 @@ function pluckBuf(m,bright){const k=m+"@"+ctx.sampleRate+(bright?"b":"");if(cach
 let nodes=[];
 function keep(n){nodes.push(n);if(nodes.length>600)nodes=nodes.slice(-400);return n;}
 /* lead voice: bends ramp the pitch up, slides come in from two frets below, vibrato wobbles the pitch */
-function lead(n,t,dur,vol){const m=OPEN[n.s]+n.f,s=keep(ctx.createBufferSource()),g=ctx.createGain(),lp=ctx.createBiquadFilter();
-  s.buffer=pluckBuf(m,true);lp.type="lowpass";lp.frequency.value=3600;
+function lead(n,t,dur,vol){const m=OPEN[n.s]+n.f,s=keep(ctx.createBufferSource()),g=ctx.createGain();
+  s.buffer=pluckBuf(m,true);
   const base=1,up=Math.pow(2,(n.b||0)/12);
   if(n.sl){s.playbackRate.setValueAtTime(Math.pow(2,-2/12),t);s.playbackRate.linearRampToValueAtTime(base,t+.07);}
   else s.playbackRate.setValueAtTime(base,t);
@@ -374,17 +376,17 @@ function lead(n,t,dur,vol){const m=OPEN[n.s]+n.f,s=keep(ctx.createBufferSource()
   if(n.v&&dur>.25){try{const o=keep(ctx.createOscillator()),og=ctx.createGain(),v0=n.v===3?t+dur*.45:t,dep=n.v===2?55:26;o.frequency.value=n.v===2?5:5.8;og.gain.setValueAtTime(0,t);og.gain.setValueAtTime(0,v0);og.gain.linearRampToValueAtTime(dep,v0+Math.min(.3,dur*.35));
     o.connect(og).connect(s.detune);o.start(t);o.stop(t+dur+.3);}catch(e){}}
   const v=(vol||.75)*(n.h?.6:1),rel=Math.min(Math.max(.08,dur-.02),2.2);g.gain.setValueAtTime(v,t);g.gain.setTargetAtTime(0,t+rel,.05);
-  s.connect(lp).connect(g).connect(out());s.start(t);s.stop(t+Math.min(2.6,rel+.4));}
+  s.connect(g).connect(bus("lead","lowpass",3600));s.start(t);s.stop(t+Math.min(2.6,rel+.4));}
 /* a full note event: approach note first (Lesson 006), then the note, plus triad notes strummed with it (Lesson 008) */
 function leadEv(n,t,dur){if(n.st)dur*=.45;const vol=n.ac?1.05:.75;if(n.ap){const g=Math.min(.09,dur/4);lead({s:n.s,f:Math.max(0,n.f-1),h:1},t,g,.55);t+=g;dur-=g;}
   lead(n,t,dur,vol);(n.tr||[]).forEach((q,j)=>lead({s:q.s,f:q.f},t+(j+1)*.012,dur,.42));}
 function pl(m,t,dur,vol,lpf){const s=keep(ctx.createBufferSource()),g=ctx.createGain(),rel=Math.min(dur,2.15);s.buffer=pluckBuf(m);g.gain.setValueAtTime(vol,t);g.gain.setTargetAtTime(0,t+rel,.06);
-  if(lpf){const f=ctx.createBiquadFilter();f.type="lowpass";f.frequency.value=lpf;s.connect(f).connect(g);}else s.connect(g);g.connect(out());s.start(t);s.stop(t+Math.min(2.6,rel+.45));}
+  s.connect(g).connect(lpf?bus("lp"+lpf,"lowpass",lpf):out());s.start(t);s.stop(t+Math.min(2.6,rel+.45));}
 function noise(){if(NOISE&&NOISE.sampleRate===ctx.sampleRate)return NOISE;const b=ctx.createBuffer(1,ctx.sampleRate*.5,ctx.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;return NOISE=b;}
 function kick(t){const o=keep(ctx.createOscillator()),g=ctx.createGain();o.frequency.setValueAtTime(140,t);o.frequency.exponentialRampToValueAtTime(45,t+.12);
   g.gain.setValueAtTime(.9,t);g.gain.exponentialRampToValueAtTime(.001,t+.3);o.connect(g).connect(out());o.start(t);o.stop(t+.32);}
-function hit(t,f,type,vol,len){const s=keep(ctx.createBufferSource()),fl=ctx.createBiquadFilter(),g=ctx.createGain();s.buffer=noise();fl.type=type;fl.frequency.value=f;
-  g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+len);s.connect(fl).connect(g).connect(out());s.start(t);s.stop(t+len+.02);}
+function hit(t,f,type,vol,len){const s=keep(ctx.createBufferSource()),g=ctx.createGain();s.buffer=noise();
+  g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+len);s.connect(g).connect(bus(type+f,type,f));s.start(t);s.stop(t+len+.02);}
 const snare=t=>{hit(t,1800,"bandpass",.55,.16);const o=keep(ctx.createOscillator()),g=ctx.createGain();o.frequency.value=190;g.gain.setValueAtTime(.25,t);g.gain.exponentialRampToValueAtTime(.001,t+.1);o.connect(g).connect(out());o.start(t);o.stop(t+.12);};
 const hat=(t,acc)=>hit(t,8000,"highpass",acc?.16:.09,.04);
 function chordTones(c,key){const r=key+MAJ[c],third=key+MAJ[(c+2)%7],fifth=key+MAJ[(c+4)%7];const up=x=>{let m=x%12+48;while(m<52)m+=12;return m;};
@@ -732,9 +734,9 @@ function syncCard(){const on=!!syncCode();return `<section class="card"><div cla
 
 render();setSync(syncCode()?"busy":"off");cloudSync().then(ch=>{if(ch&&!play)render();});
 </script>
-<script src="triad-course.js?v=20261020c"></script>
-<script src="soloing-course.js?v=20261020c"></script>
+<script src="triad-course.js?v=20261020d"></script>
+<script src="soloing-course.js?v=20261020d"></script>
 <script>render();</script>
-<script src="plan.js?v=20261020c"></script><script>GSPlan.watch("sc",{live:()=>0,playing:()=>!!play,stop:()=>{stop();render();}});
+<script src="plan.js?v=20261020d"></script><script>GSPlan.watch("sc",{live:()=>0,playing:()=>!!play,stop:()=>{stop();render();}});
 setInterval(()=>{const el=document.getElementById("hToday");if(!el)return;const k=dkey(new Date());el.textContent=Math.floor(GSPlan.today().reduce((a,r)=>a+r.sec,0)/60);},2000);</script>
 </body></html>
