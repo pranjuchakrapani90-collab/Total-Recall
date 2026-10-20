@@ -256,7 +256,7 @@ const curLevel=()=>PR().level;
 const nextLesson=()=>PR().next||EX[EX.length-1];
 const exDone=e=>PR().exDone(e),lDone=L=>PR().lessonDone(L);
 
-/* ===================== Device sync: your Total Recall sync code, encrypted, its own slot for fingerstyle ===================== */
+/* ===================== Device sync: your Pranju OS sync code, encrypted, its own slot for fingerstyle ===================== */
 const SYNC_KEY="totalRecallSyncCode_v1",SYNC_URL=localStorage.getItem("totalRecallTickTickUrl")||"https://total-recall-ticktick.pranjuchakrapani90.workers.dev";
 const SY={busy:false,again:false,timer:0,state:"off",msg:"",last:null};
 const syncCode=()=>{try{return localStorage.getItem(SYNC_KEY)||"";}catch(e){return "";}};
@@ -299,11 +299,11 @@ async function cloudSync(){
   if(ch&&!play)render();
   return ch;
 }
-function syncCard(){const on=!!syncCode();return `<section class="card"><div class="row between"><h3>Device sync</h3><span class="num">same code as Total Recall</span></div>
+function syncCard(){const on=!!syncCode();return `<section class="card"><div class="row between"><h3>Device sync</h3><span class="num">same code as Pranju OS</span></div>
   <p id="syncState">${syncText()}</p>${syncCode()?`<p class="muted" style="font-size:12px">Code check: <b class="gsfp">····</b>, which must be the same on every phone.</p>`:""}
   ${on?`<div class="row"><button type="button" data-syncnow="1">Sync now</button><button type="button" class="linkb" data-syncoff="1">Turn sync off on this device</button></div>`
-  :`<div class="row"><input type="password" id="syncIn" placeholder="Your Total Recall sync code" autocomplete="off" style="flex:1;min-width:0;font:500 14px var(--body);border:1px solid var(--line);border-radius:8px;padding:8px"><button type="button" class="play" data-syncon="1">Turn on sync</button></div>
-    <p>If you set the code in Total Recall or Melodic Lead on this device, sync is already on here.</p>`}</section>`;}
+  :`<div class="row"><input type="password" id="syncIn" placeholder="Your Pranju OS sync code" autocomplete="off" style="flex:1;min-width:0;font:500 14px var(--body);border:1px solid var(--line);border-radius:8px;padding:8px"><button type="button" class="play" data-syncon="1">Turn on sync</button></div>
+    <p>If you set the code in Pranju OS or Melodic Lead on this device, sync is already on here.</p>`}</section>`;}
 
 /* ===================== Audio ===================== */
 let ctx=null,MASTER=null;const cache={};

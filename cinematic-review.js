@@ -1,4 +1,4 @@
-/* Total Recall — Cinematic Review
+/* Pranju OS — Cinematic Review
    One click plays Completed Task Review or Reference Review as a full-screen,
    auto-advancing film: intro → chapter per tag → each item with its live TickTick
    details (description, checklist, attachments, comments) → closing summary.
@@ -156,7 +156,7 @@ function render(){
   $('cineFill').style.width=(S.i/(S.slides.length-1||1)*100)+'%';
   var html='';
   if(s.type==='intro'){
-    html='<div class="kicker">Total Recall · '+h(s.name)+'</div><div class="title big">'+(S.kind==='completed'?'What you got done':'What you filed away')+'</div>'+
+    html='<div class="kicker">Pranju OS · '+h(s.name)+'</div><div class="title big">'+(S.kind==='completed'?'What you got done':'What you filed away')+'</div>'+
       '<div class="sub">'+h(fmtRange(s.range))+' · '+s.total+' item'+(s.total===1?'':'s')+' across '+s.tags.length+' area'+(s.tags.length===1?'':'s')+'</div>'+
       '<div class="pills">'+s.tags.map(function(t){return '<span class="pill">'+h(tagLabel(t))+' · '+s.groups[t].length+'</span>'}).join('')+'</div>';
   }else if(s.type==='chapter'){

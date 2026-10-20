@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
-<title>Guitar Studio · Total Recall &amp; Melodies</title>
+<title>Guitar Studio · Pranju OS</title>
 <script src="gsync.js?v=20261020e"></script>
 <script src="fs-course.js?v=20261020d"></script>
 <script src="studio-data.js?v=20261020e"></script>
@@ -148,7 +148,7 @@ details.more>section+section{margin-top:18px}
 <link rel="stylesheet" href="studio-theme.css?v=20261020">
 </head><body>
 <header><div class="hin">
-  <a class="backlink" href="./">← Total Recall &amp; Melodies</a>
+  <a class="backlink" href="./">← Pranju OS</a>
   <div class="eyebrow">Guitar practice</div>
   <h1>Guitar Studio</h1>
 
@@ -359,7 +359,7 @@ render();draw();
 /* pull every section from the cloud so this phone shows practice from your other phone */
 {const el=$("hubSync"),show=t=>{el.innerHTML=t;};
  async function pull(){
-  if(!GSync.code()){show("☁ Sync is off on this phone. Turn it on in Total Recall's Device Sync, or inside any section.");return;}
+  if(!GSync.code()){show("☁ Sync is off on this phone. Turn it on in Pranju OS's Device Sync, or inside any section.");return;}
   show(`☁ Checking your other phone… · code check <b class="gsfp">····</b>`);
   try{const [ch,ch2]=await Promise.all([GSync.pullAll(),GSData.sync()]);
     let last=0;try{last=Number(sessionStorage.getItem("gs-hub-pulled")||0);}catch(e){}

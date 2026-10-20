@@ -254,7 +254,7 @@ details.more[open] > * + *{margin-top:10px}
 .loading{padding:30px 18px;text-align:center;color:var(--muted);background:var(--paper);border:1px dashed var(--line);border-radius:12px}
 @media (prefers-reduced-motion:reduce){.progress i{transition:none}}
 
-/* ---- Total Recall & Melodies look ---- */
+/* ---- Pranju OS look ---- */
 body{font-family:var(--body)}
 header.top{display:block;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;padding:22px 16px}
 .hin{max-width:980px;margin:0 auto;display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap}
@@ -2664,7 +2664,7 @@ async function toggleTuner(){
 }
 
 
-/* ===================== Device sync (shares Total Recall's sync code and encrypted cloud bridge) ===================== */
+/* ===================== Device sync (shares Pranju OS's sync code and encrypted cloud bridge) ===================== */
 const SYNC_KEY="totalRecallSyncCode_v1",SYNC_URL=localStorage.getItem("totalRecallTickTickUrl")||"https://total-recall-ticktick.pranjuchakrapani90.workers.dev";
 const LOCAL_ONLY=["micId","latency","audioMode"]; // microphone and earphone delay belong to each device
 const SY={busy:false,again:false,timer:0,state:"off",msg:"",last:null};
@@ -2738,9 +2738,9 @@ function syncPanel(){
   return `<div class="listen"><h3>Device sync</h3>
     <p class="tnote" id="syncState">${syncStateHTML()}</p>
     ${on?`<div class="lrow"><button type="button" data-syncnow="1">Sync now</button><button type="button" class="linkb" data-syncoff="1">Turn sync off on this device</button></div>
-      <p class="tnote">Uses your Total Recall sync code. Sessions, scores, practice time and settings sync; the microphone choice and earphone calibration stay per device. Code check: <b class="gsfp">····</b>, which must be the same on every phone.</p>`
-    :`<div class="lrow"><input type="password" id="syncIn" placeholder="Your Total Recall sync code" autocomplete="off" style="flex:1;min-width:0"><button type="button" class="play" data-syncon="1">Turn on sync</button></div>
-      <p class="tnote">Use the same code as Total Recall's Device Sync on every device. If you already set it in Total Recall on this device, this page uses it automatically.</p>`}
+      <p class="tnote">Uses your Pranju OS sync code. Sessions, scores, practice time and settings sync; the microphone choice and earphone calibration stay per device. Code check: <b class="gsfp">····</b>, which must be the same on every phone.</p>`
+    :`<div class="lrow"><input type="password" id="syncIn" placeholder="Your Pranju OS sync code" autocomplete="off" style="flex:1;min-width:0"><button type="button" class="play" data-syncon="1">Turn on sync</button></div>
+      <p class="tnote">Use the same code as Pranju OS's Device Sync on every device. If you already set it in Pranju OS on this device, this page uses it automatically.</p>`}
   </div>`;
 }
 
@@ -2841,7 +2841,7 @@ function restartInNewFormat(old){
   resetTempo();view="setup";render();
   document.getElementById("syncNote").textContent=store.kind==="db"
     ?"Your sessions and settings are saved to your Claude account, so they follow you between phone and computer."
-    :"Progress is saved on this device"+(syncCode()?" and synced to your other devices with your Total Recall sync code.":". Turn on Device sync on the first card to share it with your other devices.");
+    :"Progress is saved on this device"+(syncCode()?" and synced to your other devices with your Pranju OS sync code.":". Turn on Device sync on the first card to share it with your other devices.");
 })();
 </script>
 

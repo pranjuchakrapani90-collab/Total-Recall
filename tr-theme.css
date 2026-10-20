@@ -1,4 +1,4 @@
-/* Total Recall & Melodies · shared look for the whole app (home, Estimate Studio and its tools, Memory Lane).
+/* Pranju OS · shared look for the whole app (home, Estimate Studio and its tools, Memory Lane).
    Same family as Guitar Studio's studio-theme.css: warm paper, charcoal headers with a thin colour rule,
    hairline borders, and the app's own indigo as the accent. Loaded after each page's styles, it re-tones
    surfaces only, so layouts and logic stay as they were. Pages pick their rule colour with body.tr-* classes. */

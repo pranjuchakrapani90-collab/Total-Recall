@@ -690,7 +690,7 @@ document.addEventListener("change",e=>{if(e.target.id==="nameIn"&&S()){S().name=
 setInterval(()=>{if(play)save(true);},10000);
 document.addEventListener("visibilitychange",()=>{if(document.hidden){save();}else cloudSync().then(ch=>{if(ch&&!play)render();});});
 
-/* ===================== Device sync: same Total Recall code, its own encrypted slot ===================== */
+/* ===================== Device sync: same Pranju OS code, its own encrypted slot ===================== */
 const SYNC_KEY="totalRecallSyncCode_v1",SLOT="#solos";
 const SY={busy:false,again:false,timer:0,state:"off",msg:"",last:null};
 const syncCode=()=>{try{return localStorage.getItem(SYNC_KEY)||"";}catch(e){return "";}};
@@ -728,10 +728,10 @@ async function cloudSync(){const code=syncCode();if(!code){setSync("off");return
   }catch(e){setSync("err",String(e&&e.message||e));}
   finally{SY.busy=false;if(SY.again){SY.again=false;scheduleSync();}}
   return ch;}
-function syncCard(){const on=!!syncCode();return `<section class="card"><div class="row between"><h3>Device sync</h3><span class="muted small">same code as Total Recall</span></div>
+function syncCard(){const on=!!syncCode();return `<section class="card"><div class="row between"><h3>Device sync</h3><span class="muted small">same code as Pranju OS</span></div>
   <p id="syncState" class="small">${syncText()}</p>${on?`<p class="muted small">Code check: <b class="gsfp">····</b>, which must be the same on every phone.</p>
   <div class="row"><button data-syncnow="1">Sync now</button><button class="linkb" data-syncoff="1">Turn sync off on this device</button></div>`
-  :`<div class="row"><input type="password" id="syncIn" placeholder="Your Total Recall sync code" autocomplete="off" style="flex:1;min-width:0;font:500 14px var(--body);border:1px solid var(--line);border-radius:8px;padding:8px"><button class="pri" data-syncon="1">Turn on sync</button></div>`}</section>`;}
+  :`<div class="row"><input type="password" id="syncIn" placeholder="Your Pranju OS sync code" autocomplete="off" style="flex:1;min-width:0;font:500 14px var(--body);border:1px solid var(--line);border-radius:8px;padding:8px"><button class="pri" data-syncon="1">Turn on sync</button></div>`}</section>`;}
 
 render();setSync(syncCode()?"busy":"off");cloudSync().then(ch=>{if(ch&&!play)render();});
 </script>

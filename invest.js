@@ -4,7 +4,7 @@
      through "Import" (a JSON file made from the old Google Sheets).
    - Every record has an id and an edit time "t"; phones merge record by record, newest edit wins, deletions win
      over older edits.
-   - Live NSE prices come from the Total Recall worker (?mode=quotes), which reads Yahoo Finance's NSE feed. */
+   - Live NSE prices come from the Pranju OS worker (?mode=quotes), which reads Yahoo Finance's NSE feed. */
 (function(){
 "use strict";
 const get=k=>{try{return JSON.parse(localStorage.getItem(k)||"null");}catch(e){return null;}};
@@ -44,7 +44,7 @@ async function sync(key){
 
 /* ---------- import / export ---------- */
 function importData(obj){
-  if(!obj||obj.kind!=="total-recall-investments")throw new Error("This isn't a Total Recall investments file.");
+  if(!obj||obj.kind!=="total-recall-investments")throw new Error("This isn't a Pranju OS investments file.");
   const done=[];["etf","pkp"].forEach(k=>{if(obj[k]){const m=merge(k,load(k),obj[k]);put(SK[k],m);push(k).catch(()=>{});done.push(k);}});
   return done;}
 function exportData(){const o={kind:"total-recall-investments",exported:new Date().toISOString().slice(0,10),etf:load("etf"),pkp:load("pkp")};

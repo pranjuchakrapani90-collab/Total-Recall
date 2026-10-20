@@ -1,5 +1,5 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
-<title>Pole-to-BoQ Trainer · Total Recall &amp; Melodies</title>
+<title>Pole-to-BoQ Trainer · Pranju OS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
@@ -182,7 +182,7 @@ footer{margin-top:28px;color:var(--muted);font-size:.78rem;max-width:80ch}
 .backlink{color:var(--accent);text-decoration:none;font-size:.88rem;font-weight:500}
 .sbadge{font:500 .75rem var(--f-mono);padding:3px 8px;border-radius:3px;border:1px solid var(--line);color:var(--muted);cursor:default}
 .sbadge.ok{color:var(--ok);border-color:var(--ok)} .sbadge.err{color:var(--danger);border-color:var(--danger)} .sbadge.busy{color:var(--warn);border-color:var(--warn)}
-</style><link rel="stylesheet" href="tr-theme.css?v=20261020"></head><body class="tr-est"><nav class="trbar" aria-label="Where you are"><div><a href="./">Total Recall</a><i>›</i><a href="apdcl-studio.html">Estimate Studio</a><i>›</i><b>Pole-to-BoQ Trainer</b></div></nav>
+</style><link rel="stylesheet" href="tr-theme.css?v=20261020"></head><body class="tr-est"><nav class="trbar" aria-label="Where you are"><div><a href="./">Pranju OS</a><i>›</i><a href="apdcl-studio.html">Estimate Studio</a><i>›</i><b>Pole-to-BoQ Trainer</b></div></nav>
 
 <div class="wrap">
 <div class="toprow"><a class="backlink" href="apdcl-studio.html">← Estimate Studio</a><span id="syncBadge" class="sbadge off" title="">☁ Sync off</span></div>
@@ -1296,7 +1296,7 @@ document.querySelectorAll("nav.tabs button").forEach(b=>b.onclick=()=>{
  if(b.dataset.view==="build")build();
 });
 document.querySelectorAll("#stdseg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.std===STD));
-/* ---------- Device sync (shares Total Recall's sync code and encrypted cloud bridge) ---------- */
+/* ---------- Device sync (shares Pranju OS's sync code and encrypted cloud bridge) ---------- */
 const SYNC_KEY="totalRecallSyncCode_v1";let SYNC_URL="https://total-recall-ticktick.pranjuchakrapani90.workers.dev";
 try{SYNC_URL=localStorage.getItem("totalRecallTickTickUrl")||SYNC_URL}catch(e){}
 const SY={busy:false,again:false,timer:0};
@@ -1307,7 +1307,7 @@ async function encryptState(st,code){const iv=crypto.getRandomValues(new Uint8Ar
 async function decryptState(blob,code){const x=JSON.parse(blob||"{}"),k=await syncKeyOf(code),p=await crypto.subtle.decrypt({name:"AES-GCM",iv:unb64(x.iv)},k,unb64(x.data));return JSON.parse(new TextDecoder().decode(p))}
 const syncCode=()=>{try{return localStorage.getItem(SYNC_KEY)||""}catch(e){return ""}};
 function setSync(state,msg){const el=document.getElementById("syncBadge");if(!el)return;el.textContent=state==="busy"?"☁ Syncing…":state==="ok"?"☁ Synced":state==="err"?"☁ Sync problem":"☁ Sync off";el.className="sbadge "+state;
- el.title=state==="off"?"Set a sync code on the Total Recall home page to share progress across devices.":state==="err"?"Couldn't sync: "+(msg||"")+". It will retry on your next answer.":state==="ok"?"Quiz progress is shared across your devices.":""}
+ el.title=state==="off"?"Set a sync code on the Pranju OS home page to share progress across devices.":state==="err"?"Couldn't sync: "+(msg||"")+". It will retry on your next answer.":state==="ok"?"Quiz progress is shared across your devices.":""}
 function mergeRemote(r){let ch=false;Object.entries((r&&r.prog)||{}).forEach(([k,v])=>{if(!K[k])return;const l=PROG[k];
   if(!l){PROG[k]=v;ch=true;return}const nb=Math.max(l.best||0,v.best||0),nn=Math.max(l.n||0,v.n||0),nu=Math.max(l.upd||0,v.upd||0);
   const d={...(l.d||{})};Object.entries(v.d||{}).forEach(([dk,c])=>{if(!(d[dk]>=c)){d[dk]=c;ch=true}});

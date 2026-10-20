@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
-<title>Line Survey · Total Recall &amp; Melodies</title>
+<title>Line Survey · Pranju OS</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
@@ -384,7 +384,7 @@ async function encryptState(st,code){const iv=crypto.getRandomValues(new Uint8Ar
 async function decryptState(blob,code){const x=JSON.parse(blob||"{}"),k=await syncKeyOf(code),p=await crypto.subtle.decrypt({name:"AES-GCM",iv:unb64(x.iv)},k,unb64(x.data));return JSON.parse(new TextDecoder().decode(p))}
 const syncCode=()=>{try{return localStorage.getItem(SYNC_KEY)||""}catch(e){return ""}};
 function setSync(st,msg){const el=document.getElementById("syncBadge");el.textContent=st==="busy"?"☁ Syncing…":st==="ok"?"☁ Synced":st==="err"?"☁ Sync problem":"☁ Sync off";el.className="sbadge "+st;
- el.title=st==="off"?"Set a sync code on the Total Recall home page to share surveys across devices.":st==="err"?"Couldn't sync: "+(msg||""):""}
+ el.title=st==="off"?"Set a sync code on the Pranju OS home page to share surveys across devices.":st==="err"?"Couldn't sync: "+(msg||""):""}
 function mergeRemote(r){let ch=false;Object.values((r&&r.projects)||{}).forEach(v=>{const l=DB.projects[v.id];if(!l||(v.upd||0)>(l.upd||0)){DB.projects[v.id]=v;ch=true}});if(ch)save(false);return ch}
 function scheduleSync(){if(!syncCode())return;clearTimeout(SY.timer);SY.timer=setTimeout(cloudSync,1500)}
 async function cloudSync(){const code=syncCode();if(!code){setSync("off");return}
@@ -892,7 +892,7 @@ function notesOf(c,b){const S=c.S,n=[];const mk=c.pts.length,gp=c.pts.filter(x=>
 
 async function storeInfo(){const el=$("#storeInfo");let pers=null;try{pers=navigator.storage&&navigator.storage.persisted?await navigator.storage.persisted():null}catch(e){}
  const L=live();el.innerHTML=`<b>Where your surveys are saved:</b> automatically, after every change, in this browser on this device (${L.length} survey${L.length===1?"":"s"}, ${L.reduce((a,p)=>a+p.pts.length,0)} points). Even a half-filled point is kept if the app closes, and reopens where you left it.<br>
- ${syncCode()?"<b>Synced</b> to your other devices with your Total Recall sync code.":"<b>Not synced yet:</b> set a sync code on the Total Recall home page to see these surveys on your other devices."}<br>
+ ${syncCode()?"<b>Synced</b> to your other devices with your Pranju OS sync code.":"<b>Not synced yet:</b> set a sync code on the Pranju OS home page to see these surveys on your other devices."}<br>
  ${pers===true?"This device keeps them protected from automatic clean-up.":pers===false?"The browser may clear them if the phone runs short of space — keep sync on or export a backup now and then.":""} Clearing this site's browser data deletes them; <b>Export all</b> gives you a backup file.`}
 function renderProj(){storeInfo();const L=live();$("#projList").innerHTML=L.map(p=>`<div class="pt" data-id="${p.id}"><span class="no">${p.pts.length}</span><div><b>${esc(p.name)}</b><div class="meta">${p.meta.loc?esc(p.meta.loc)+" · ":""}updated ${new Date(p.upd).toLocaleString("en-IN",{dateStyle:"medium",timeStyle:"short"})}</div></div>
   <div style="display:flex;gap:6px"><button class="btn alt sm" data-a="open">Open</button><button class="btn alt sm" data-a="ren">Rename</button><button class="btn alt sm" data-a="dup">Copy</button><button class="btn bad sm" data-a="del">✕</button></div></div>`).join("");
