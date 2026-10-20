@@ -27,6 +27,19 @@ a.app:active i{transform:scale(.93)}
 a.app span{font:550 12.5px/1.25 system-ui,-apple-system,"Segoe UI",sans-serif;text-align:center;max-width:100%;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere}
 .badge{position:absolute;top:-6px;right:-6px;min-width:22px;height:22px;padding:0 6px;border-radius:11px;background:#e5322d;color:#fff;font:700 12px/22px system-ui,sans-serif;text-align:center;box-shadow:0 0 0 2px var(--tr-bg);z-index:1}
 .dot{position:absolute;top:-3px;right:-3px;width:14px;height:14px;border-radius:50%;background:#16a34a;box-shadow:0 0 0 2px var(--tr-bg);z-index:1}
+
+/* folders */
+a.app.folder i{background:linear-gradient(150deg,#6d6af0 0%,#4f46e5 48%,#3c32c4 100%)}
+.fstack{position:absolute;right:-4px;bottom:-4px;width:20px;height:20px;border-radius:7px;background:#fff;box-shadow:0 1px 3px #1c1b1940;display:grid;place-items:center;z-index:1}
+.fstack::before{content:"";width:10px;height:10px;background:
+  radial-gradient(circle,#4f46e5 1.6px,transparent 1.8px) 0 0/5px 5px}
+.fold{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;padding:16px}
+.fold:target,.fold.open{display:flex}
+.fscrim{position:absolute;inset:0;background:#1c1b1966;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.fsheet{position:relative;width:min(380px,100%);background:#f6f5f1f2;border:1px solid #ffffff80;border-radius:26px;padding:18px 14px 22px;box-shadow:0 20px 50px #1c1b1955;animation:fpop .18s ease-out}
+.fsheet h3{margin:0 0 16px;text-align:center;font:650 17px system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--tr-ink)}
+.fsheet .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px 6px}
+@keyframes fpop{from{transform:scale(.92);opacity:0}to{transform:none;opacity:1}}
 /* a tool opened from the grid */
 #home:not([data-tool]) .toolview{display:none}
 #home[data-tool] .launch{display:none}
@@ -56,7 +69,7 @@ a.app span{font:550 12.5px/1.25 system-ui,-apple-system,"Segoe UI",sans-serif;te
 .counter{letter-spacing:.06em;text-transform:uppercase;font-size:11.5px!important}
 .travelStat,.travelPlayback,.travelFilesForDate{background:var(--tr-soft)}
 .taskReveal,.travelJourney,.travelMap{border-color:var(--tr-line)!important}
-@media(min-width:700px){.container,.trhin{max-width:760px}.launch .grid{grid-template-columns:repeat(6,minmax(0,1fr))}}
+@media(min-width:700px){.container,.trhin{max-width:760px}.launch .grid{grid-template-columns:repeat(5,minmax(0,1fr))}}
 </style>
 </head><body>
 <header class="trh"><div class="trhin">
@@ -65,30 +78,7 @@ a.app span{font:550 12.5px/1.25 system-ui,-apple-system,"Segoe UI",sans-serif;te
 </div></header>
 <main class="container">
 <section id="home">
-<nav class="launch" id="launch" aria-label="Apps">
-  <div class="grid">
-    <a class="app" href="#resp"><i><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 9l2 2 4-4M8 15.5h8"/></svg></i><span>Today's Tasks</span></a>
-    <a class="app" href="#people"><i><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.6-3 2.8-4.6 5.5-4.6s4.9 1.6 5.5 4.6M15.5 4.8a3 3 0 0 1 0 6M17 14.6c2 .5 3.2 2 3.6 4.4"/></svg><b class="badge" id="bPeople" hidden></b></i><span>People</span></a>
-    <a class="app" href="#done"><i><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4M9 15l2 2 4-4"/></svg></i><span>Completed</span></a>
-    <a class="app" href="#ref"><i><svg viewBox="0 0 24 24"><path d="M5 19.5V4.5A1.5 1.5 0 0 1 6.5 3H19v15H6.5A1.5 1.5 0 0 0 5 19.5 1.5 1.5 0 0 0 6.5 21H19v-3M9 7.5h6"/></svg></i><span>Reference</span></a>
-  </div>
-  <hr>
-  <div class="grid">
-    <a class="app" href="studio.html"><i><svg viewBox="0 0 24 24"><path d="M14.5 9.5 20 4M18.2 2.6l3.2 3.2"/><path d="M12.2 9.8c-1.6-1-3.6-.8-4.8.5-.6.7-.7 1.7-1.6 2.1-1.3.5-2.7 1-3 2.7-.5 2.4 3 5.9 5.4 5.4 1.7-.3 2.2-1.7 2.7-3 .4-.9 1.4-1 2.1-1.6 1.3-1.2 1.5-3.2.5-4.8"/><circle cx="9.2" cy="14.8" r="1.5"/></svg><b class="dot" id="bGuitar" hidden></b></i><span>Guitar Studio</span></a>
-    <a class="app" href="guitar.html"><i><svg viewBox="0 0 24 24"><path d="M9 18V5l11-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/></svg></i><span>Melodic Lead</span></a>
-    <a class="app" href="fingerstyle.html"><i><svg viewBox="0 0 24 24"><path d="M5 3v18M9.7 3v18M14.3 3v18M19 3v18"/><path d="M3.5 13.5c3 2 14 2 17 0"/></svg></i><span>Fingerstyle</span></a>
-    <a class="app" href="solo.html"><i><svg viewBox="0 0 24 24"><path d="M3 16c2.5 0 2.5-6 5-6s2.5 8 5 8 2.5-12 5-12c1.5 0 1.8 2 3 3"/></svg></i><span>Soloing</span></a>
-    <a class="app" href="drills.html"><i><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r=".8"/></svg></i><span>Drills</span></a>
-  </div>
-  <hr>
-  <div class="grid">
-    <a class="app" href="apdcl-studio.html"><i><svg viewBox="0 0 24 24"><path d="M13 2 5 13.5h6L10 22l9-12.5h-6z"/></svg></i><span>Estimate Studio</span></a>
-    <a class="app" href="estimates.html"><i><svg viewBox="0 0 24 24"><path d="M12 3v18M5.5 6.5h13M7.5 10.5h9M9 21h6M6.5 6.5v2M17.5 6.5v2"/></svg></i><span>BoQ Trainer</span></a>
-    <a class="app" href="bom-kits.html"><i><svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2.5"/><path d="M9 4V2.8h6V4M8.5 9.5h7M8.5 13h7M8.5 16.5h4.5"/></svg></i><span>BoM Kits</span></a>
-    <a class="app" href="sld-survey.html"><i><svg viewBox="0 0 24 24"><path d="M12 21s-6-5.6-6-10.5a6 6 0 0 1 12 0C18 15.4 12 21 12 21z"/><circle cx="12" cy="10.5" r="2.2"/></svg></i><span>Line Survey</span></a>
-    <a class="app" href="#travel" id="appTravel"><i><svg viewBox="0 0 24 24"><path d="M9 4 3.5 6v14L9 18l6 2 5.5-2V4L15 6z"/><path d="M9 4v14M15 6v14"/></svg></i><span>Travel Trace</span></a>
-  </div>
-</nav>
+<nav class="launch" id="launch" aria-label="Apps"><div class="grid"><a class="app folder" href="#f-tasks"><i><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 9l2 2 4-4M8 15.5h8"/></svg><s class="fstack"></s></i><span>Tasks</span></a><a class="app" href="#people"><i><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.6-3 2.8-4.6 5.5-4.6s4.9 1.6 5.5 4.6M15.5 4.8a3 3 0 0 1 0 6M17 14.6c2 .5 3.2 2 3.6 4.4"/></svg><b class="badge" id="bPeople" hidden></b></i><span>People</span></a><a class="app folder" href="#f-guitar"><i><svg viewBox="0 0 24 24"><path d="M14.5 9.5 20 4M18.2 2.6l3.2 3.2"/><path d="M12.2 9.8c-1.6-1-3.6-.8-4.8.5-.6.7-.7 1.7-1.6 2.1-1.3.5-2.7 1-3 2.7-.5 2.4 3 5.9 5.4 5.4 1.7-.3 2.2-1.7 2.7-3 .4-.9 1.4-1 2.1-1.6 1.3-1.2 1.5-3.2.5-4.8"/><circle cx="9.2" cy="14.8" r="1.5"/></svg><b class="dot" id="bGuitarF" hidden></b><s class="fstack"></s></i><span>Guitar Studio</span></a><a class="app folder" href="#f-est"><i><svg viewBox="0 0 24 24"><path d="M13 2 5 13.5h6L10 22l9-12.5h-6z"/></svg><s class="fstack"></s></i><span>Estimate Studio</span></a><a class="app" href="#travel" id="appTravel"><i><svg viewBox="0 0 24 24"><path d="M9 4 3.5 6v14L9 18l6 2 5.5-2V4L15 6z"/><path d="M9 4v14M15 6v14"/></svg></i><span>Travel Trace</span></a></div></nav><div class="fold" id="f-tasks" role="dialog" aria-label="Tasks"><a class="fscrim" href="#" aria-label="Close"></a><div class="fsheet"><h3>Tasks</h3><div class="grid"><a class="app" href="#resp"><i><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 9l2 2 4-4M8 15.5h8"/></svg></i><span>Today's Tasks</span></a><a class="app" href="#done"><i><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4M9 15l2 2 4-4"/></svg></i><span>Completed</span></a><a class="app" href="#ref"><i><svg viewBox="0 0 24 24"><path d="M5 19.5V4.5A1.5 1.5 0 0 1 6.5 3H19v15H6.5A1.5 1.5 0 0 0 5 19.5 1.5 1.5 0 0 0 6.5 21H19v-3M9 7.5h6"/></svg></i><span>Reference</span></a></div></div></div><div class="fold" id="f-guitar" role="dialog" aria-label="Guitar Studio"><a class="fscrim" href="#" aria-label="Close"></a><div class="fsheet"><h3>Guitar Studio</h3><div class="grid"><a class="app" href="studio.html"><i><svg viewBox="0 0 24 24"><path d="M4 11.5 12 4l8 7.5V20a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1z"/></svg><b class="dot" id="bGuitar" hidden></b></i><span>Overview</span></a><a class="app" href="guitar.html"><i><svg viewBox="0 0 24 24"><path d="M9 18V5l11-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/></svg></i><span>Melodic Lead</span></a><a class="app" href="fingerstyle.html"><i><svg viewBox="0 0 24 24"><path d="M5 3v18M9.7 3v18M14.3 3v18M19 3v18"/><path d="M3.5 13.5c3 2 14 2 17 0"/></svg></i><span>Fingerstyle</span></a><a class="app" href="solo.html"><i><svg viewBox="0 0 24 24"><path d="M3 16c2.5 0 2.5-6 5-6s2.5 8 5 8 2.5-12 5-12c1.5 0 1.8 2 3 3"/></svg></i><span>Soloing</span></a><a class="app" href="drills.html"><i><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r=".8"/></svg></i><span>Drills</span></a></div></div></div><div class="fold" id="f-est" role="dialog" aria-label="Estimate Studio"><a class="fscrim" href="#" aria-label="Close"></a><div class="fsheet"><h3>Estimate Studio</h3><div class="grid"><a class="app" href="apdcl-studio.html"><i><svg viewBox="0 0 24 24"><path d="M4 11.5 12 4l8 7.5V20a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1z"/></svg></i><span>Overview</span></a><a class="app" href="estimates.html"><i><svg viewBox="0 0 24 24"><path d="M12 3v18M5.5 6.5h13M7.5 10.5h9M9 21h6M6.5 6.5v2M17.5 6.5v2"/></svg></i><span>BoQ Trainer</span></a><a class="app" href="bom-kits.html"><i><svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2.5"/><path d="M9 4V2.8h6V4M8.5 9.5h7M8.5 13h7M8.5 16.5h4.5"/></svg></i><span>BoM Kits</span></a><a class="app" href="sld-survey.html"><i><svg viewBox="0 0 24 24"><path d="M12 21s-6-5.6-6-10.5a6 6 0 0 1 12 0C18 15.4 12 21 12 21z"/><circle cx="12" cy="10.5" r="2.2"/></svg></i><span>Line Survey</span></a></div></div></div>
 
 <div class="toolview" id="toolview">
   <a class="tvback" href="#">← Home</a>
@@ -1000,7 +990,7 @@ function badges(){
     var n=P.filter(function(p){var h=hist(p);if(!h.length)return true;var iv=IV[Math.min(h.length-1,7)];return (Date.now()-new Date(h[h.length-1].date).getTime())/864e5>=iv}).length;
     $("bPeople").hidden=!n;$("bPeople").textContent=n>99?"99+":n;}catch(e){}
   try{if(window.GSPlan){var mel=get("mss-sessions")||{},goal=(mel.st&&mel.st.goalMin&&!(mel.st.goalMin===30&&!mel.st.goal3))?mel.st.goalMin:45;
-    var m=GSPlan.today().reduce(function(a,r){return a+r.sec},0)/60;$("bGuitar").hidden=m<goal;$("bGuitar").title="Today's goal met";}}catch(e){}}
+    var m=GSPlan.today().reduce(function(a,r){return a+r.sec},0)/60;$("bGuitar").hidden=m<goal;$("bGuitar").title="Today's goal met";$("bGuitarF").hidden=m<goal;}}catch(e){}}
 function route(){var t=location.hash.slice(1);
   if(t==="travel"){history.replaceState(null,"",location.pathname);$("home").removeAttribute("data-tool");$("startTravelTrace").click();return;}
   if(TOOLS[t]){$("home").setAttribute("data-tool",t);}else $("home").removeAttribute("data-tool");
