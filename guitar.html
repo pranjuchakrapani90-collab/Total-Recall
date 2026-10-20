@@ -2192,16 +2192,17 @@ function flushTime(p,final){ // add the time since the last flush to today's tot
   persistDay(!final);
 }
 function logTime(p){flushTime(p,true);}
-const goalSec=()=>(S.goalMin||30)*60;
+const goalSec=()=>(S.goalMin||45)*60;
 const fsSec=k=>(k>="2026-10-18"?["fs-v1"]:localStorage.getItem("leadpath-v1")?["fs-v1","leadpath-v1"]:["fs-v1","caged-v1","lead-v1"]).reduce((t,key)=>{try{const f=JSON.parse(localStorage.getItem(key)||"null");if(!f)return t;return t+((f.days&&f.days[k])||0)+Object.values(f.odays||{}).reduce((x,d)=>x+(d[k]||0),0);}catch(e){return t;}},0); // fingerstyle trainer minutes
-function todaySec(){const day=dkey(new Date());let s=Object.values(sessions).reduce((a,x)=>a+((x.days&&x.days[day])||0),0)+fsSec(day);
+const scSec=k=>{try{const f=JSON.parse(localStorage.getItem("solo-v1")||"null");if(!f)return 0;return ((f.days&&f.days[k])||0)+Object.values(f.odays||{}).reduce((x,d)=>x+((d&&d[k])||0),0);}catch(e){return 0;}}; // Soloing Course minutes
+function todaySec(){const day=dkey(new Date());let s=Object.values(sessions).reduce((a,x)=>a+((x.days&&x.days[day])||0),0)+fsSec(day)+scSec(day);
   if(play)s+=Math.min(90,(performance.now()-(play.lf||play.t0))/1000);return s;}
 const mmss=s=>{s=Math.floor(s);return Math.floor(s/60)+":"+String(s%60).padStart(2,"0");};
 let goalToastDay=null;
 function paintGoal(){
   const sec=todaySec(),g=goalSec(),met=sec>=g,pct=Math.min(100,sec/g*100);
   const nb=document.getElementById("nbGoal");if(nb){nb.textContent=met?`✓ ${mmss(sec)} played`:`⏱ ${mmss(sec)} / ${mmss(g)}`;nb.classList.toggle("met",met);}
-  const h=document.getElementById("hToday");if(h)h.textContent=`${Math.floor(sec/60)}/${S.goalMin||30}`;
+  const h=document.getElementById("hToday");if(h)h.textContent=`${Math.floor(sec/60)}/${S.goalMin||45}`;
   const hs=document.getElementById("hTodayS");if(hs)hs.classList.toggle("met",met);
   const bar=document.getElementById("goalBar");if(bar)bar.style.width=pct+"%";
   const gt=document.getElementById("goalTxt");if(gt)gt.innerHTML=met?`<b>Goal reached:</b> ${mmss(sec)} played today.`:`<b>${mmss(sec)}</b> played today. <b>${Math.ceil((g-sec)/60)} min</b> to go.`;
@@ -2211,7 +2212,7 @@ function paintGoal(){
 }
 setInterval(()=>{if(play&&performance.now()-(play.lf||play.t0)>15000)flushTime(play,false);paintGoal();},1000);
 function goalHTML(){
-  const g=S.goalMin||30,days=[...Array(7)].map((_,i)=>{const d=new Date();d.setDate(d.getDate()-6+i);return d;});
+  const g=S.goalMin||45,days=[...Array(7)].map((_,i)=>{const d=new Date();d.setDate(d.getDate()-6+i);return d;});
   const secOf=d=>{const k=dkey(d);return Object.values(sessions).reduce((a,x)=>a+((x.days&&x.days[k])||0),0)+fsSec(k);};
   return `<div class="goal"><div class="glhead"><h3>Daily goal</h3>
       <label class="ctl" for="goalMin">Minutes a day <input type="number" id="goalMin" min="5" max="240" step="5" value="${g}" inputmode="numeric"></label></div>
@@ -2823,7 +2824,8 @@ function restartInNewFormat(old){
   let loaded={ds:{},st:null};try{loaded=await store.load();}catch(e){}
   sessions=loaded.ds||{};Object.values(sessions).forEach(normalize);
   if(loaded.st)Object.assign(S,loaded.st);
-  if(S.gapV!==2){S.seqGap="space";S.gapV=2;persistSettings();} // new default: an equal space after each group
+  if(S.gapV!==2){S.seqGap="space";S.gapV=2;persistSettings();}
+  if(!S.goal3){if(!S.goalMin||S.goalMin===30)S.goalMin=45;S.goal3=1;persistSettings();} // 15 + 15 + 15 from 20 Oct 2026 // new default: an equal space after each group
   if(syncCode())await Promise.race([cloudSync(),new Promise(r=>setTimeout(r,6000))]);
   if(!S.ren2){S.ren2=1;const L=S.myPats||[],p=L.length===1&&L[0].name==="Pattern 1"?L[0]:null;
     if(p){p.name="Pattern 19";Object.values(sessions).forEach(x=>{if(x.pid===p.id){x.pname="Pattern 19";x.upd=Date.now();}});}

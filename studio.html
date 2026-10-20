@@ -65,7 +65,7 @@ a.sec.cg::before{background:#0f766e}.cg .tag{background:#e6f6f4;color:#0f766e}.c
     <div class="gtop"><h2>Today</h2><span><b id="tMin">0</b> of <span id="tGoal">30</span> min</span></div>
     <div class="gbar"><i id="tBar"></i></div>
     <div class="gweek" id="week"></div>
-    <div class="gtop" style="margin-top:6px"><h2 id="cycTitle">Current cycle · 15 + 15</h2><span id="planTxt" style="font-size:13px;color:var(--muted)"></span></div>
+    <div class="gtop" style="margin-top:6px"><h2 id="cycTitle">Current cycle · 15 + 15 + 15</h2><span id="planTxt" style="font-size:13px;color:var(--muted)"></span></div>
     <div id="planBar"></div>
     <div class="plrow"><a id="planGo" class="plango" href="guitar.html"></a><button id="planSkip" type="button" class="plskip">Skip for now ↷</button></div>
     <p id="cycNote" style="margin:0;font-size:13px;color:var(--muted)"></p>
@@ -104,8 +104,9 @@ const get=k=>{try{return JSON.parse(localStorage.getItem(k)||"null");}catch(e){r
 const mel=get("mss-sessions")||{},fs=get("fs-v1")||{},lp=get("leadpath-v1"),old=lp?[lp]:[get("caged-v1")||{},get("lead-v1")||{}];
 const pad=n=>String(n).padStart(2,"0"),dkey=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 const sessions=Object.values(mel.ds||{});
-function secOn(k){let s=sessions.reduce((a,x)=>a+((x.days&&x.days[k])||0),0);s+=(fs.days&&fs.days[k])||0;Object.values(fs.odays||{}).forEach(d=>{s+=d[k]||0;});if(k<"2026-10-18")old.forEach(c=>{s+=(c.days&&c.days[k])||0;Object.values(c.odays||{}).forEach(d=>{s+=d[k]||0;});});return s;}
-const goal=(mel.st&&mel.st.goalMin)||30,today=secOn(dkey(new Date()));
+const so=get("solo-v1")||{};
+function secOn(k){let s=sessions.reduce((a,x)=>a+((x.days&&x.days[k])||0),0);s+=(so.days&&so.days[k])||0;Object.values(so.odays||{}).forEach(d=>{s+=(d&&d[k])||0;});s+=(fs.days&&fs.days[k])||0;Object.values(fs.odays||{}).forEach(d=>{s+=d[k]||0;});if(k<"2026-10-18")old.forEach(c=>{s+=(c.days&&c.days[k])||0;Object.values(c.odays||{}).forEach(d=>{s+=d[k]||0;});});return s;}
+const goal=(mel.st&&mel.st.goalMin&&!(mel.st.goalMin===30&&!mel.st.goal3))?mel.st.goalMin:45,today=secOn(dkey(new Date()));
 document.getElementById("tMin").textContent=Math.floor(today/60);
 document.getElementById("tGoal").textContent=goal;
 document.getElementById("tBar").style.width=Math.min(100,today/60/goal*100)+"%";
@@ -126,7 +127,7 @@ else document.getElementById("lNext").textContent=pats.length?"Write your next p
  document.getElementById("fDone").textContent=P.n;
  document.getElementById("fLeft").textContent=P.total-P.n;
  document.getElementById("fNext").textContent=P.n===P.total?"Course complete: review any lesson":P.next?`Next: ${P.next.pid||P.next.id} ${P.next.t}${P.next.vt?" · "+P.next.vt:""}`:"Start with lesson 1a";}
-// Soloing Course: exercises done, saved solos and minutes (not part of the 15 + 15 cycle)
+// Soloing Course: exercises done, saved solos and minutes (the third 15 minutes of the cycle)
 {const so=get("solo-v1")||{},L=Object.values(so.solos||{}).filter(x=>x&&!((so.del||{})[x.id]>=x.upd));
  document.getElementById("sSolos").textContent=L.length;document.getElementById("sEx").textContent=Object.keys((so.course&&so.course.done)||{}).length;document.getElementById("sFin").textContent=L.filter(x=>x.done).length;
  let t=0;for(let i=0;i<7;i++){const d=new Date();d.setDate(d.getDate()-i);const k=dkey(d);t+=((so.days||{})[k]||0)+Object.values(so.odays||{}).reduce((a,o)=>a+((o&&o[k])||0),0);}
@@ -151,7 +152,7 @@ if(document.getElementById("cDone")){const ORDER=["La","f","Lb","c","Lc","a","Ld
   go.href=nx.href;go.textContent=`Next: ${nx.ico} ${nx.n} ▸`;
   const open=rows.filter(r=>r.sec<r.min*60);sk.hidden=open.length<2;
   sk.onclick=()=>{GSPlan.skip(nx.k);draw();};
-  document.getElementById("cycNote").textContent=(c.done?`${c.done} cycle${c.done>1?"s":""} completed. `:"")+"A cycle carries over to the next day until both sections have had their 15 minutes.";}
+  document.getElementById("cycNote").textContent=(c.done?`${c.done} cycle${c.done>1?"s":""} completed. `:"")+"A cycle carries over to the next day until all three sections have had their 15 minutes.";}
  draw();}
 </script>
 <script>

@@ -245,8 +245,9 @@ Object.keys(st.done).forEach(id=>{if(!st.doneT[id])st.doneT[id]=Date.now();});
 const save=quiet=>{try{localStorage.setItem(KEY,JSON.stringify(st));}catch(e){}if(!quiet)scheduleSync();};
 const pad=n=>String(n).padStart(2,"0"),dkey=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 function melodyData(){try{return JSON.parse(localStorage.getItem("mss-sessions")||"null")||{};}catch(e){return {};}}
-const goalMin=()=>{const m=melodyData();return (m.st&&m.st.goalMin)||30;};
-function daySec(k){const m=melodyData();let s=((st.days&&st.days[k])||0)+Object.values(st.odays||{}).reduce((a,d)=>a+(d[k]||0),0);Object.values(m.ds||{}).forEach(x=>{s+=(x.days&&x.days[k])||0;});
+const goalMin=()=>{const m=melodyData(),g=m.st&&m.st.goalMin;return !g||(g===30&&!m.st.goal3)?45:g;};
+const scDay=k=>{try{const f=JSON.parse(localStorage.getItem("solo-v1")||"null");if(!f)return 0;return ((f.days&&f.days[k])||0)+Object.values(f.odays||{}).reduce((x,d)=>x+((d&&d[k])||0),0);}catch(e){return 0;}}; // Soloing Course minutes
+function daySec(k){const m=melodyData();let s=scDay(k)+((st.days&&st.days[k])||0)+Object.values(st.odays||{}).reduce((a,d)=>a+(d[k]||0),0);Object.values(m.ds||{}).forEach(x=>{s+=(x.days&&x.days[k])||0;});
   if(k<"2026-10-18")(localStorage.getItem("leadpath-v1")?["leadpath-v1"]:["caged-v1","lead-v1"]).forEach(key=>{try{const c=JSON.parse(localStorage.getItem(key)||"null");if(c)s+=((c.days&&c.days[k])||0)+Object.values(c.odays||{}).reduce((a,d)=>a+(d[k]||0),0);}catch(e){}});return s;}
 const PR=()=>FSC.progress(st.done);
 const levelDone=li=>PR().levelDone(li);

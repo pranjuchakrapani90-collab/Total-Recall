@@ -1,4 +1,5 @@
-/* Guitar Studio · the 30-minute cycle: 15 min Melodic Lead → 15 min Fingerstyle Solo.
+/* Guitar Studio · the 45-minute cycle: 15 min Melodic Lead → 15 min Fingerstyle Solo → 15 min Soloing Course.
+   (The Soloing Course joined on 20 Oct 2026; days before that count Melodic Lead and Fingerstyle only.)
    (Lead Course is on hold since 18 Oct 2026: to bring it back, uncomment its line in PLAN and set its minutes.)
    A cycle is not a day: it stays open across days until every section has had its minutes,
    so a day with only one section done picks up with the next section tomorrow.
@@ -10,7 +11,9 @@
 const PLAN=[
   {k:"ml",n:"Melodic Lead",ico:"🎸",href:"guitar.html",min:15,col:"#4f46e5"},
   // {k:"lc",n:"Lead Course",ico:"⚡",href:"lead.html",min:10,col:"#0f766e"}, // on hold
-  {k:"fs",n:"Fingerstyle Solo",ico:"🎶",href:"fingerstyle.html",min:15,col:"#7c3aed"}];
+  {k:"fs",n:"Fingerstyle Solo",ico:"🎶",href:"fingerstyle.html",min:15,col:"#7c3aed"},
+  {k:"sc",n:"Soloing Course",ico:"✍️",href:"solo.html",min:15,col:"#c2410c",from:"2026-10-20"}];
+const act=k=>PLAN.filter(p=>!p.from||k>=p.from); // the sections in the plan on day k
 const START="2026-10-18"; // cycles count from the day the 15 + 15 plan started
 const get=k=>{try{return JSON.parse(localStorage.getItem(k)||"null");}catch(e){return null;}};
 const pad=n=>String(n).padStart(2,"0"),dkey=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
@@ -18,6 +21,7 @@ const counter=o=>k=>o?((o.days&&o.days[k])||0)+Object.values(o.odays||{}).reduce
 function secs(sec,k){
   if(sec==="ml"){const m=get("mss-sessions")||{};return Object.values(m.ds||{}).reduce((a,x)=>a+((x&&x.days&&x.days[k])||0),0);}
   if(sec==="fs")return counter(get("fs-v1"))(k);
+  if(sec==="sc")return counter(get("solo-v1"))(k);
   const lp=get("leadpath-v1");if(lp)return counter(lp)(k);
   return counter(get("caged-v1"))(k)+counter(get("lead-v1"))(k);}
 /* today's minutes per section (for the daily 30-minute goal) */
@@ -27,8 +31,8 @@ function cycle(extra){
   const tk=dkey(new Date()),bank={};PLAN.forEach(p=>{bank[p.k]=0;});let n=0,closed=null;
   const [y,m,d]=START.split("-").map(Number),day=new Date(y,m-1,d);
   for(let guard=0;guard<4000;guard++){const k=dkey(day);
-    PLAN.forEach(p=>{bank[p.k]+=secs(p.k,k)+((k===tk&&extra&&extra[p.k])||0);});
-    while(PLAN.every(p=>bank[p.k]>=p.min*60)){n++;closed=k;PLAN.forEach(p=>{bank[p.k]=Math.min(p.min*60,bank[p.k]-p.min*60);});}
+    const A=act(k);A.forEach(p=>{bank[p.k]+=secs(p.k,k)+((k===tk&&extra&&extra[p.k])||0);});
+    while(A.every(p=>bank[p.k]>=p.min*60)){n++;closed=k;A.forEach(p=>{bank[p.k]=Math.min(p.min*60,bank[p.k]-p.min*60);});}
     if(k>=tk)break;day.setDate(day.getDate()+1);}
   /* sections you skip in this cycle move to the end of its order */
   let skip=[];try{skip=JSON.parse(localStorage.getItem("gsp-skip")||"null")||[];}catch(e){}
