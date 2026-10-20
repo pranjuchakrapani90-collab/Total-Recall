@@ -109,5 +109,5 @@ async function fingerprint(){const c=code();if(!c)return "";const h=new Uint8Arr
 let fpV=null;function fillFp(){document.querySelectorAll(".gsfp").forEach(el=>{if(fpV!==null&&el.textContent!==fpV)el.textContent=fpV||"no code";});}
 fingerprint().then(v=>{fpV=v;fillFp();});
 document.addEventListener("DOMContentLoaded",()=>{fillFp();try{new MutationObserver(fillFp).observe(document.body,{childList:true,subtree:true});}catch(e){}});
-window.GSync={dev,addMinutes,canon,mergeMelodies,mergeSession,mergePats,mergeReps,pullAll,fingerprint,code};
+window.GSync={dev,addMinutes,canon,mergeMelodies,mergeSession,mergePats,mergeReps,pullAll,fingerprint,code,fetchSlot,putSlot};
 })();

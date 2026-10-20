@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
+<title>Daily Drills · Guitar Studio</title>
+<script src="gsync.js?v=20261020e"></script>
+<script src="studio-data.js?v=20261020e"></script>
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+:root{--bg:#f6f5f1;--paper:#fff;--ink:#1c1b19;--muted:#6b6a64;--faint:#9a978e;--line:#e6e3db;--acc:#0f766e;--acc-soft:#e7f4f2;--good:#15803d;--good-soft:#ecf7ef;--bad:#b91c1c;--bad-soft:#fdecec;
+  --body:system-ui,-apple-system,"Segoe UI",sans-serif;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color-scheme:light}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 var(--body)}
+header.top{padding:18px 16px 20px}
+.hin{max-width:860px;margin:0 auto;display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap}
+.hin>div{min-width:0}
+.backlink{font-size:13px;text-decoration:none}
+.eyebrow{font:600 11px/1 var(--body);text-transform:uppercase;margin-top:12px}
+h1{font:720 clamp(28px,6vw,38px)/1.05 var(--body);margin:6px 0 0}
+.stats{display:flex;gap:18px}
+.stat{text-align:right}.stat b{display:block;font:700 24px/1 var(--mono)}.stat span{font-size:12px}
+.wrap{max-width:860px;margin:0 auto;padding:16px 16px 60px;display:flex;flex-direction:column;gap:14px}
+.seg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:4px}
+.seg button{border:0;background:none;border-radius:10px;padding:10px 6px;font:650 14px var(--body);color:var(--muted);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:1px}
+.seg button small{font:500 11px var(--body);color:var(--faint)}
+.seg button.on{background:var(--ink);color:#fff}.seg button.on small{color:#cfccc3}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:12px}
+.card h2{font:700 20px/1.2 var(--body);margin:0}
+.card p{margin:0}
+.muted{color:var(--muted)}.small{font-size:13px}
+.why{font-size:14px;color:var(--muted);max-width:68ch}
+.why b{color:var(--ink);font-weight:650}
+button{font:inherit;cursor:pointer}
+.pri{border:0;border-radius:12px;padding:12px 18px;background:var(--acc);color:#fff;font:650 15px var(--body)}
+.sec{border:1px solid var(--line);border-radius:12px;padding:10px 14px;background:var(--paper);color:var(--ink);font:600 14px var(--body)}
+.pri:disabled,.sec:disabled{opacity:.4;cursor:default}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.between{justify-content:space-between}
+
+/* level ladder */
+.ladder{display:flex;flex-direction:column;gap:6px}
+.lv{text-align:left!important;display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:10px;align-items:center;text-align:left;border:1px solid var(--line);border-radius:12px;padding:9px 12px;background:var(--paper);color:var(--ink)}
+.lv i{font-style:normal;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font:700 13px var(--mono);background:#f0eee8;color:var(--muted)}
+.lv b{display:block;font-size:14px}.lv small{display:block;font-size:12px;color:var(--muted)}
+.lv em{font:600 12px var(--mono);font-style:normal;color:var(--muted);white-space:nowrap}
+.lv.pass i{background:var(--good);color:#fff}
+.lv.sel{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc)}
+.lv.sel i{background:var(--acc);color:#fff}
+.lv:disabled{opacity:.45;cursor:default}
+
+/* play area */
+.stage{display:flex;flex-direction:column;gap:12px}
+.timer{height:6px;border-radius:4px;background:#f0eee8;overflow:hidden}
+.timer i{display:block;height:100%;background:var(--acc);width:100%;transition:width .2s linear}
+.score{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;color:var(--muted)}
+.score b{font:700 22px var(--mono);color:var(--ink)}
+.fb{width:100%;height:auto;display:block}
+.ans{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
+.ans.n7{grid-template-columns:repeat(7,minmax(0,1fr))}
+.ans.n4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.ans button{border:1px solid var(--line);background:var(--paper);border-radius:12px;padding:12px 2px;font:700 16px var(--body);color:var(--ink);display:flex;flex-direction:column;align-items:center;gap:0;min-width:0;touch-action:manipulation}
+.ans button small{font:500 10.5px var(--body);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.ans button:active{transform:scale(.97)}
+.ans button.ok{background:var(--good);border-color:var(--good);color:#fff}.ans button.ok small{color:#dcfce7}
+.ans button.no{background:var(--bad-soft);border-color:var(--bad);color:var(--bad)}
+@media(max-width:420px){.ans{grid-template-columns:repeat(4,minmax(0,1fr))}.ans.n7{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.prompt{font:650 18px/1.3 var(--body);text-align:center}
+.prompt small{display:block;font:500 13px var(--body);color:var(--muted)}
+.fbk{min-height:46px;border-radius:12px;padding:10px 12px;font-size:14px;background:#f6f5f1}
+.fbk.ok{background:var(--good-soft)}.fbk.no{background:var(--bad-soft)}
+.fbk b{font-weight:700}
+.dots{display:flex;gap:5px;justify-content:center}
+.dots i{width:10px;height:10px;border-radius:50%;background:#e6e3db}
+.dots i.ok{background:var(--good)}.dots i.no{background:var(--bad)}.dots i.now{box-shadow:0 0 0 2px var(--acc)}
+
+/* results + history */
+.res{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+@media(max-width:520px){.res{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.res div{background:var(--bg);border-radius:12px;padding:10px 12px}
+.res b{display:block;font:700 20px var(--mono)}.res span{font-size:12px;color:var(--muted)}
+.banner{border-radius:12px;padding:12px 14px;font-weight:600}
+.banner.ok{background:var(--good-soft);color:#14532d}.banner.no{background:#fbf7ec;color:#713f12}
+.spark{width:100%;height:auto;display:block}
+.weak{display:flex;flex-wrap:wrap;gap:6px}
+.weak span{font:600 12.5px var(--body);background:var(--bad-soft);color:var(--bad);border-radius:999px;padding:5px 10px}
+details summary{cursor:pointer;font-weight:650}
+details ul{margin:8px 0 0;padding-left:18px}details li{margin:3px 0;font-size:14px}
+</style>
+<link rel="stylesheet" href="studio-theme.css?v=20261020">
+</head><body class="gs-dr">
+<header class="top"><div class="hin">
+  <div><a class="backlink" href="studio.html">← Guitar Studio</a>
+    <div class="eyebrow">Warm-up · 2–5 minutes</div><h1>Daily Drills</h1>
+    <nav class="studio" aria-label="Guitar Studio sections"><a href="guitar.html">Melodic Lead</a><a href="fingerstyle.html">Fingerstyle</a><a href="solo.html">Soloing</a><a href="drills.html" class="on" aria-current="page">Drills</a></nav></div>
+  <div class="stats"><div class="stat"><b id="hRounds">0</b><span>rounds today</span></div><div class="stat"><b id="hMin">0</b><span>drill min today</span></div></div>
+</div></header>
+<main class="wrap">
+  <div class="seg" role="tablist" id="seg">
+    <button type="button" data-k="fb" class="on">Fretboard Notes<small id="sgfb">level 1</small></button>
+    <button type="button" data-k="iv">Intervals<small id="sgiv">level 1</small></button>
+    <button type="button" data-k="sd">Scale Degrees<small id="sgsd">level 1</small></button>
+  </div>
+  <section class="card" id="result" hidden></section>
+  <section class="card" id="intro"></section>
+  <section class="card" id="play" hidden></section>
+  <section class="card" id="hist"></section>
+</main>
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const NAMES=["C","C♯","D","E♭","E","F","F♯","G","A♭","A","B♭","B"],ALT=["","D♭","","D♯","","","G♭","","G♯","","A♯",""];
+const NAT=[0,2,4,5,7,9,11];
+const KEYN=["C","D♭","D","E♭","E","F","F♯","G","A♭","A","B♭","B"],SHN=["C","C♯","D","D♯","E","F","F♯","G","G♯","A","A♯","B"],FLN=["C","D♭","D","E♭","E","F","G♭","G","A♭","A","B♭","B"];
+const inKey=(m,k)=>([5,10,3,8,1].includes(pc(k))?FLN:SHN)[pc(m)];
+const OPEN={1:64,2:59,3:55,4:50,5:45,6:40}; // string 1 = high e
+const rnd=a=>a[Math.floor(Math.random()*a.length)];
+const pc=m=>((m%12)+12)%12;
+
+/* ---------- sound: a plucked string (Karplus-Strong) ---------- */
+let AC=null;const cache={};
+function ac(){if(!AC)AC=new(window.AudioContext||window.webkitAudioContext)();if(AC.state==="suspended")AC.resume();return AC;}
+function buf(m){if(cache[m])return cache[m];const a=ac(),sr=a.sampleRate,f=440*2**((m-69)/12),N=Math.max(2,Math.round(sr/f)),T=Math.max(.9,2.6-f/350),len=Math.floor(sr*Math.min(2.4,T+.3));
+  const b=a.createBuffer(1,len,sr),d=b.getChannelData(0),r=Math.pow(.001,1/(T*f));
+  let last=0;for(let i=0;i<N;i++){const v=Math.random()*2-1;last=last*.5+v*.5;d[i]=last*.6;}
+  for(let i=N;i<len;i++)d[i]=r*.5*(d[i-N]+d[i-N+1<i?i-N+1:i-N]);
+  const fade=Math.floor(sr*.08);for(let i=0;i<fade;i++)d[len-1-i]*=i/fade;
+  return cache[m]=b;}
+function pluck(m,at,g){const a=ac(),s=a.createBufferSource(),v=a.createGain();s.buffer=buf(m);v.gain.value=g==null?.7:g;s.connect(v).connect(a.destination);s.start(at||a.currentTime);return s;}
+function chord(ms,at,g){ms.forEach((m,i)=>pluck(m,at+i*.025,(g||.45)));}
+
+/* ---------- levels ---------- */
+const DR={
+ fb:{name:"Fretboard Notes",unit:"60-second round",
+  why:"<b>Why:</b> every course here names notes in CAGED shapes. When you can name any fret in under a second, shapes stop being dot patterns and become notes you can aim at. <b>How:</b> say the note out loud, play it on your guitar, then tap it. Speed comes from accuracy, so don't guess.",
+  pass:"20 or more right at 90% accuracy",
+  lv:[{t:"Root strings · natural notes",d:"Strings 6 and 5, frets 0–12, no sharps or flats. These are the roots of the E and A shapes.",s:[6,5],nat:1},
+      {t:"Root strings · every note",d:"Strings 6 and 5 with sharps and flats.",s:[6,5]},
+      {t:"Strings 4 and 3",d:"The D and G strings: roots of the C and D shapes.",s:[4,3]},
+      {t:"Strings 2 and 1",d:"The B and high e strings, where most melody lands.",s:[2,1]},
+      {t:"Whole neck · natural notes",d:"All six strings, natural notes only.",s:[1,2,3,4,5,6],nat:1},
+      {t:"Whole neck · every note",d:"Any string, any fret 0–12.",s:[1,2,3,4,5,6]}]},
+ iv:{name:"Intervals",unit:"10 questions",
+  why:"<b>Why:</b> an interval is the distance between two notes, and a melody is a chain of them. Hearing them is what lets you play the line in your head. <b>How:</b> listen, sing the two notes, then answer. After each answer you'll see where that interval sits on the neck.",
+  pass:"9 or more right out of 10",
+  lv:[{t:"Perfect intervals",d:"4th, 5th and octave: the power-chord sounds.",i:[5,7,12]},
+      {t:"Add the thirds",d:"Major and minor 3rd: the sound of major and minor.",i:[3,4,5,7,12]},
+      {t:"Add the seconds",d:"Whole and half steps: the moves scale runs are made of.",i:[1,2,3,4,5,7,12]},
+      {t:"Add the sixths",d:"Major and minor 6th: wide, singing leaps.",i:[1,2,3,4,5,7,8,9,12]},
+      {t:"Every interval",d:"Adds the 7ths and the tritone.",i:[1,2,3,4,5,6,7,8,9,10,11,12]},
+      {t:"Every interval · any direction",d:"Up, down or played together.",i:[1,2,3,4,5,6,7,8,9,10,11,12],mix:1}]},
+ sd:{name:"Scale Degrees",unit:"10 questions",
+  why:"<b>Why:</b> a solo works when you hear each note against the key: the 1 sounds home, the 3 sweet, the 4 and 7 want to move. This is the ear the Soloing Course is training. <b>How:</b> a I–IV–V–I sets the key, then one note plays. Name its degree.",
+  pass:"9 or more right out of 10",
+  lv:[{t:"Home notes",d:"1, 3 and 5: the notes of the I chord.",g:[0,2,4]},
+      {t:"Add the 2",d:"1, 2, 3 and 5.",g:[0,1,2,4]},
+      {t:"Add the 6",d:"The major pentatonic: 1 2 3 5 6.",g:[0,1,2,4,5]},
+      {t:"Add the 4",d:"Six degrees: 1 to 6.",g:[0,1,2,3,4,5]},
+      {t:"All seven",d:"The full major scale, including the leading tone 7.",g:[0,1,2,3,4,5,6]},
+      {t:"All seven · new key each time",d:"The key changes every question, notes across two octaves.",g:[0,1,2,3,4,5,6],mix:1}]}};
+const IV={1:["m2","minor 2nd"],2:["M2","major 2nd"],3:["m3","minor 3rd"],4:["M3","major 3rd"],5:["P4","perfect 4th"],6:["TT","tritone"],7:["P5","perfect 5th"],8:["m6","minor 6th"],9:["M6","major 6th"],10:["m7","minor 7th"],11:["M7","major 7th"],12:["P8","octave"]};
+const SD=[[1,"home: the note everything resolves to"],[2,"a step above home: passing, wants to move"],[3,"the sweet, major-sounding note of the I chord"],[4,"tension that leans down to 3"],[5,"strong and open: the other pillar of the key"],[6,"warm and singing, a pentatonic favourite"],[7,"the leading tone: pulls hard up to 1"]];
+const MAJ=[0,2,4,5,7,9,11];
+
+/* ---------- progress from saved runs ---------- */
+const runs=k=>GSData.runs(k);
+const passed=k=>runs(k).filter(r=>r.pass).reduce((a,r)=>Math.max(a,r.lv||0),0);
+const unlocked=k=>Math.min(DR[k].lv.length,passed(k)+1);
+let tab="fb",sel={fb:null,iv:null,sd:null};
+function curLv(k){if(sel[k]==null)sel[k]=unlocked(k);return sel[k];}
+
+function header(){const t=GSData.dkey(new Date()),R=GSData.runs().filter(r=>r.day===t);
+  $("hRounds").textContent=R.length;$("hMin").textContent=Math.floor(R.reduce((a,r)=>a+(r.sec||0),0)/60);
+  ["fb","iv","sd"].forEach(k=>{const p=passed(k);$("sg"+k).textContent=p>=DR[k].lv.length?"all levels passed":`level ${unlocked(k)} of ${DR[k].lv.length}`;});}
+
+function intro(){const D=DR[tab],u=unlocked(tab),L=curLv(tab),P=passed(tab),R=runs(tab);
+  const best=lv=>{const x=R.filter(r=>r.lv===lv);return x.length?Math.max(...x.map(r=>r.ok)):null;};
+  $("intro").innerHTML=`<div class="row between"><h2>${D.name}</h2><span class="small muted">${D.unit} · pass: ${D.pass}</span></div>
+   <p class="why">${D.why}</p>
+   <div class="ladder">${D.lv.map((l,i)=>{const n=i+1,b=best(n);return `<button type="button" class="lv${n<=P?" pass":""}${n===L?" sel":""}" data-lv="${n}"${n>u?" disabled":""}><i>${n<=P?"✓":n>u?"🔒":n}</i><span><b>${l.t}</b><small>${l.d}</small></span><em>${b!=null?`best ${b}${tab==="fb"?"":"/10"}`:""}</em></button>`;}).join("")}</div>
+   <div class="row"><button class="pri" type="button" id="go">Start level ${L} ▸</button><span class="small muted">${u<D.lv.length?`Pass level ${u} to unlock level ${u+1}.`:"Every level is open. Keep the top one sharp."}</span></div>`;
+  $("intro").querySelectorAll("[data-lv]").forEach(b=>b.onclick=()=>{sel[tab]=Number(b.dataset.lv);intro();});
+  $("go").onclick=()=>start();}
+
+/* ---------- shared round state ---------- */
+let G=null,timerId=null;
+function stopRound(){if(timerId){clearInterval(timerId);timerId=null;}G=null;}
+function start(){ac();stopRound();$("result").hidden=true;$("play").hidden=false;$("intro").hidden=true;
+  const L=curLv(tab),cfg=DR[tab].lv[L-1];G={k:tab,lv:L,cfg,ok:0,n:0,t0:performance.now(),miss:[],times:[],marks:[]};
+  if(tab==="fb")fbStart();else if(tab==="iv")ivNext();else sdStart();
+  $("play").scrollIntoView({behavior:"smooth",block:"start"});}
+function finish(){if(!G)return;const g=G;stopRound();
+  const sec=Math.round((performance.now()-g.t0)/1000),acc=g.n?g.ok/g.n:0;
+  const pass=g.k==="fb"?(g.ok>=20&&acc>=.9):g.ok>=9;
+  const prevBest=Math.max(0,...runs(g.k).filter(r=>r.lv===g.lv).map(r=>r.ok));
+  const wasPassed=passed(g.k);
+  GSData.addRun({kind:g.k,lv:g.lv,ok:g.ok,n:g.n,sec,pass,miss:g.miss.slice(0,40),ms:g.times.length?Math.round(g.times.reduce((a,b)=>a+b,0)/g.times.length):null});
+  const unlockedNow=pass&&g.lv>wasPassed&&g.lv<DR[g.k].lv.length;
+  if(unlockedNow)sel[g.k]=g.lv+1;
+  $("play").hidden=true;$("intro").hidden=false;$("result").hidden=false;
+  const avg=g.times.length?(g.times.reduce((a,b)=>a+b,0)/g.times.length/1000).toFixed(2)+"s":"–";
+  $("result").innerHTML=`<div class="banner ${pass?"ok":"no"}">${pass?(unlockedNow?`Level ${g.lv} passed. Level ${g.lv+1} is open.`:`Passed level ${g.lv}.`):`Not yet: ${DR[g.k].pass} passes level ${g.lv}.`}${g.ok>prevBest&&prevBest>0?" New best!":""}</div>
+   <div class="res"><div><b>${g.ok}</b><span>right</span></div><div><b>${g.n}</b><span>${g.k==="fb"?"answered":"asked"}</span></div><div><b>${Math.round(acc*100)}%</b><span>accuracy</span></div><div><b>${avg}</b><span>avg answer</span></div></div>
+   ${g.miss.length?`<div><p class="small muted" style="margin-bottom:6px">Missed this round</p><div class="weak">${[...new Set(g.miss)].slice(0,12).map(m=>`<span>${missLabel(g.k,m)}</span>`).join("")}</div></div>`:""}
+   <div class="row"><button class="pri" type="button" id="again">Go again ▸</button><button class="sec" type="button" id="close">Done</button></div>`;
+  $("again").onclick=()=>start();$("close").onclick=()=>{$("result").hidden=true;};
+  header();intro();hist();$("result").scrollIntoView({behavior:"smooth",block:"start"});}
+function missLabel(k,m){if(k==="fb"){const [s,f]=m.split("-").map(Number);return `string ${s} fret ${f} · ${NAMES[pc(OPEN[s]+f)]}`;}
+  if(k==="iv")return IV[m]?IV[m][1]:m;return "degree "+m;}
+function quit(){stopRound();$("play").hidden=true;$("intro").hidden=false;}
+
+/* ---------- Fretboard Notes ---------- */
+const FW=560,FL=34,FR=12,FT=16,FG=32,F0=0,F1=12;
+const fx=f=>f===0?FL-14:FL+(f-.5)*((FW-FL-FR)/F1),sy=s=>FT+(s-1)*FG;
+function neck(extra){let g=`<rect x="${FL}" y="${FT-8}" width="${FW-FL-FR}" height="${5*FG+16}" rx="4" fill="#fbfaf7"/>`;
+  for(let f=1;f<=F1;f++){const x=FL+f*((FW-FL-FR)/F1);g+=`<line x1="${x}" x2="${x}" y1="${FT-4}" y2="${FT+5*FG+4}" stroke="#d6d2c7" stroke-width="${f===12?2.5:1.4}"/>`;}
+  g+=`<line x1="${FL}" x2="${FL}" y1="${FT-6}" y2="${FT+5*FG+6}" stroke="#1c1b19" stroke-width="4"/>`;
+  [3,5,7,9].forEach(f=>g+=`<circle cx="${fx(f)}" cy="${FT+2.5*FG}" r="4" fill="#e6e3db"/>`);g+=`<circle cx="${fx(12)}" cy="${FT+1.5*FG}" r="4" fill="#e6e3db"/><circle cx="${fx(12)}" cy="${FT+3.5*FG}" r="4" fill="#e6e3db"/>`;
+  for(let s=1;s<=6;s++)g+=`<line x1="${FL}" x2="${FW-FR}" y1="${sy(s)}" y2="${sy(s)}" stroke="#8f8b80" stroke-width="${.7+s*.25}"/><text x="4" y="${sy(s)+4}" font-size="11" fill="#9a978e" font-family="ui-monospace,monospace">${s}</text>`;
+  for(let f=0;f<=F1;f++)g+=`<text x="${fx(f)}" y="${FT+5*FG+22}" font-size="10.5" text-anchor="middle" fill="#9a978e">${f}</text>`;
+  return `<svg class="fb" viewBox="0 0 ${FW} ${FT+5*FG+28}" role="img" aria-label="Fretboard">${g}${extra||""}</svg>`;}
+function fbPool(cfg){const P=[];cfg.s.forEach(s=>{for(let f=F0;f<=F1;f++){const p=pc(OPEN[s]+f);if(!cfg.nat||NAT.includes(p))P.push({s,f,p});}});return P;}
+function fbStart(){const cfg=G.cfg,ROUND=60;G.pool=fbPool(cfg);G.end=performance.now()+ROUND*1000;
+  const keys=cfg.nat?NAT:[...Array(12).keys()];
+  $("play").innerHTML=`<div class="score"><span>Level ${G.lv} · ${cfg.t}</span><span><b id="sc">0</b> right · <span id="tl">60</span>s</span></div>
+   <div class="timer"><i id="tb"></i></div><div id="nk"></div>
+   <div class="ans ${cfg.nat?"n7":""}" id="ans">${keys.map(p=>`<button type="button" data-p="${p}">${NAMES[p]}${ALT[p]?`<small>${ALT[p]}</small>`:""}</button>`).join("")}</div>
+   <div class="row between"><label class="small muted"><input type="checkbox" id="snd" ${localStorage.getItem("dr-fb-snd")==="0"?"":"checked"}> hear each note</label><button class="sec" type="button" id="quit">Stop</button></div>`;
+  $("snd").onchange=e=>{try{localStorage.setItem("dr-fb-snd",e.target.checked?"1":"0");}catch(x){}};
+  $("quit").onclick=quit;
+  $("ans").onclick=e=>{const b=e.target.closest("[data-p]");if(b&&G&&!G.lock)fbAnswer(Number(b.dataset.p),b);};
+  fbNext();
+  timerId=setInterval(()=>{if(!G)return;const left=Math.max(0,G.end-performance.now());$("tl").textContent=Math.ceil(left/1000);$("tb").style.width=(left/(ROUND*1000)*100)+"%";if(left<=0)finish();},200);}
+function fbNext(){let q;do{q=rnd(G.pool);}while(G.q&&G.pool.length>1&&q.s===G.q.s&&q.f===G.q.f);G.q=q;G.qt=performance.now();G.lock=false;
+  $("nk").innerHTML=neck(`<circle cx="${fx(q.f)}" cy="${sy(q.s)}" r="11" fill="#0f766e"/><text x="${fx(q.f)}" y="${sy(q.s)+4.5}" font-size="13" font-weight="700" text-anchor="middle" fill="#fff">?</text>`);
+  if($("snd")&&$("snd").checked)pluck(OPEN[q.s]+q.f);}
+function fbAnswer(p,b){const q=G.q,ok=p===q.p;G.n++;G.times.push(performance.now()-G.qt);
+  if(ok){G.ok++;b.classList.add("ok");setTimeout(()=>{b.classList.remove("ok");if(G)fbNext();},160);}
+  else{G.miss.push(q.s+"-"+q.f);G.lock=true;b.classList.add("no");const r=$("ans").querySelector(`[data-p="${q.p}"]`);if(r)r.classList.add("ok");
+    $("nk").innerHTML=neck(`<circle cx="${fx(q.f)}" cy="${sy(q.s)}" r="11" fill="#b91c1c"/><text x="${fx(q.f)}" y="${sy(q.s)+4.5}" font-size="10.5" font-weight="700" text-anchor="middle" fill="#fff">${NAMES[q.p]}</text>`);
+    setTimeout(()=>{b.classList.remove("no");if(r)r.classList.remove("ok");if(G)fbNext();},900);}
+  $("sc").textContent=G.ok;}
+
+/* ---------- Intervals ---------- */
+function dotsHTML(){return `<div class="dots">${[...Array(10)].map((_,i)=>`<i class="${G.marks[i]||""}${i===G.n?" now":""}"></i>`).join("")}</div>`;}
+function ivNext(){if(G.n>=10){finish();return;}
+  const cfg=G.cfg,i=rnd(cfg.i),dir=cfg.mix?rnd(["up","down","together"]):"up",root=dir==="down"?45+i+Math.floor(Math.random()*10):45+Math.floor(Math.random()*14);
+  G.q={i,dir,root};G.lock=false;G.qt=null;
+  $("play").innerHTML=`<div class="score"><span>Level ${G.lv} · ${cfg.t}</span><span><b id="sc">${G.ok}</b> / 10</span></div>${dotsHTML()}
+   <p class="prompt">What interval is this?<small>${dir==="up"?"low note, then high":dir==="down"?"high note, then low":"both notes together"}</small></p>
+   <div class="row" style="justify-content:center"><button class="sec" type="button" id="rep">🔊 Hear it again</button></div>
+   <div class="ans ${cfg.i.length<=4?"n4":""}" id="ans">${cfg.i.map(n=>`<button type="button" data-i="${n}">${IV[n][0]}<small>${IV[n][1]}</small></button>`).join("")}</div>
+   <div class="fbk" id="fbk"><span class="muted small">Sing both notes before you answer.</span></div>
+   <div class="row between"><button class="sec" type="button" id="quit">Stop</button><button class="pri" type="button" id="nx" hidden>Next ▸</button></div>`;
+  $("rep").onclick=()=>ivPlay(G.q.i);$("quit").onclick=quit;$("nx").onclick=()=>{G.n++;ivNext();};
+  $("ans").onclick=e=>{const b=e.target.closest("[data-i]");if(b&&G&&!G.lock)ivAnswer(Number(b.dataset.i),b);};
+  ivPlay(i);}
+function ivPlay(i){const a=ac(),t=a.currentTime+.05,q=G.q;
+  if(q.dir==="together"){pluck(q.root,t,.55);pluck(q.root+i,t,.55);}
+  else if(q.dir==="down"){pluck(q.root,t);pluck(q.root-i,t+.75);}
+  else{pluck(q.root,t);pluck(q.root+i,t+.75);}
+  if(G.qt==null)G.qt=performance.now()+800;}
+function neckHint(i){const ss=i-5;
+  const same=`same string: ${i} fret${i>1?"s":""} up`,next=ss>=0?`next string up: ${ss===0?"same fret":ss+" fret"+(ss>1?"s":"")+" higher"}`:`next string up: ${-ss} fret${-ss>1?"s":""} lower`;
+  return `${same} · ${next} (one more fret when you cross from G to B)`;}
+function ivAnswer(n,b){const q=G.q,ok=n===q.i;G.lock=true;if(G.qt)G.times.push(Math.max(0,performance.now()-G.qt));
+  if(ok){G.ok++;G.marks[G.n]="ok";b.classList.add("ok");}else{G.marks[G.n]="no";G.miss.push(q.i);b.classList.add("no");const r=$("ans").querySelector(`[data-i="${q.i}"]`);if(r)r.classList.add("ok");}
+  $("sc").textContent=G.ok;
+  $("fbk").className="fbk "+(ok?"ok":"no");
+  $("fbk").innerHTML=`<b>${ok?"Right":"It was"}: ${IV[q.i][1]}.</b> On the neck: ${neckHint(q.i)}.${ok?"":` <button class="sec" type="button" id="yours" style="padding:4px 10px;margin-left:4px">Hear ${IV[n][0]}</button> <button class="sec" type="button" id="theirs" style="padding:4px 10px">Hear ${IV[q.i][0]}</button>`}`;
+  if(!ok){$("yours").onclick=()=>ivPlay(n);$("theirs").onclick=()=>ivPlay(q.i);}
+  $("nx").hidden=false;$("nx").textContent=G.n>=9?"See results ▸":"Next ▸";
+  if(ok)setTimeout(()=>{if(G&&G.q===q&&G.lock){G.n++;ivNext();}},1100);}
+
+/* ---------- Scale Degrees ---------- */
+function sdKey(){return 48+Math.floor(Math.random()*8);} // tonic between C3 and G3
+function sdStart(){G.key=sdKey();sdNext();}
+function sdNext(){if(G.n>=10){finish();return;}
+  const cfg=G.cfg;if(cfg.mix)G.key=sdKey();
+  const g=rnd(cfg.g),oct=cfg.mix?rnd([0,12]):12;G.q={g,m:G.key+MAJ[g]+oct};G.lock=false;G.qt=null;
+  $("play").innerHTML=`<div class="score"><span>Level ${G.lv} · key of ${KEYN[pc(G.key)]} major</span><span><b id="sc">${G.ok}</b> / 10</span></div>${dotsHTML()}
+   <p class="prompt">Which degree of the key is the last note?<small>I – IV – V – I, then the note</small></p>
+   <div class="row" style="justify-content:center"><button class="sec" type="button" id="rep">🔊 Again</button><button class="sec" type="button" id="note">Note only</button><button class="sec" type="button" id="home">Play 1 (home)</button></div>
+   <div class="ans ${cfg.g.length<=4?"n4":cfg.g.length===7?"n7":""}" id="ans">${cfg.g.map(d=>`<button type="button" data-g="${d}">${d+1}<small>${inKey(G.key+MAJ[d],G.key)}</small></button>`).join("")}</div>
+   <div class="fbk" id="fbk"><span class="muted small">Sing the note, then slide it to home. Count the steps.</span></div>
+   <div class="row between"><button class="sec" type="button" id="quit">Stop</button><button class="pri" type="button" id="nx" hidden>Next ▸</button></div>`;
+  $("rep").onclick=()=>sdPlay(true);$("note").onclick=()=>pluck(G.q.m);$("home").onclick=()=>pluck(G.key+12);$("quit").onclick=quit;$("nx").onclick=()=>{G.n++;sdNext();};
+  $("ans").onclick=e=>{const b=e.target.closest("[data-g]");if(b&&G&&!G.lock)sdAnswer(Number(b.dataset.g),b);};
+  sdPlay(true);}
+function sdPlay(cad){const a=ac(),k=G.key;let t=a.currentTime+.05;
+  if(cad){[[0,4,7],[5,9,12],[7,11,14],[0,4,7]].forEach(c=>{chord([k-12+c[0],...c.map(x=>k+x)],t,.32);t+=.62;});t+=.35;}
+  pluck(G.q.m,t,.75);if(G.qt==null)G.qt=performance.now()+(t-a.currentTime)*1000;}
+function sdAnswer(d,b){const q=G.q,ok=d===q.g;G.lock=true;if(G.qt)G.times.push(Math.max(0,performance.now()-G.qt));
+  if(ok){G.ok++;G.marks[G.n]="ok";b.classList.add("ok");}else{G.marks[G.n]="no";G.miss.push(q.g+1);b.classList.add("no");const r=$("ans").querySelector(`[data-g="${q.g}"]`);if(r)r.classList.add("ok");}
+  $("sc").textContent=G.ok;$("fbk").className="fbk "+(ok?"ok":"no");
+  $("fbk").innerHTML=`<b>${ok?"Right":"It was"}: ${q.g+1} (${inKey(q.m,G.key)})</b> · ${SD[q.g][1]}.${ok?"":` <button class="sec" type="button" id="slide" style="padding:4px 10px;margin-left:4px">Hear it walk home</button>`}`;
+  if(!ok)$("slide").onclick=()=>{const a=ac();let t=a.currentTime+.05;const base=q.m-MAJ[q.g],up=q.g>=4,path=up?[...Array(8-q.g)].map((_,i)=>q.g+i):[...Array(q.g+1)].map((_,i)=>q.g-i);
+    path.forEach(x=>{pluck(base+(x===7?12:MAJ[x]),t,.65);t+=.38;});};
+  $("nx").hidden=false;$("nx").textContent=G.n>=9?"See results ▸":"Next ▸";
+  if(ok)setTimeout(()=>{if(G&&G.q===q&&G.lock){G.n++;sdNext();}},1100);}
+
+/* ---------- history ---------- */
+function hist(){const R=runs(tab),D=DR[tab];
+  if(!R.length){$("hist").innerHTML=`<h2 style="font-size:16px">Your rounds</h2><p class="small muted">Nothing yet. Your scores, trend and weak spots will build up here.</p>`;return;}
+  const last=R.slice(-30),W=600,H=110,P=18,max=tab==="fb"?Math.max(25,...last.map(r=>r.ok)):10;
+  const x=i=>P+i*((W-2*P)/Math.max(1,last.length-1)),y=v=>H-P-v/max*(H-2*P);
+  const line=tab==="fb"?20:9;
+  let s=`<line x1="${P}" x2="${W-P}" y1="${y(line)}" y2="${y(line)}" stroke="#86c99a" stroke-dasharray="4 4"/><text x="${W-P}" y="${y(line)-4}" font-size="10" text-anchor="end" fill="#15803d">pass</text>`;
+  s+=`<polyline fill="none" stroke="#0f766e" stroke-width="2" points="${last.map((r,i)=>`${x(i)},${y(r.ok)}`).join(" ")}"/>`;
+  s+=last.map((r,i)=>`<circle cx="${x(i)}" cy="${y(r.ok)}" r="3.5" fill="${r.pass?"#15803d":"#0f766e"}"><title>Level ${r.lv}: ${r.ok}${tab==="fb"?"":"/10"} · ${r.day}</title></circle>`).join("");
+  /* weak spots over the last 15 rounds */
+  const cnt={};R.slice(-15).forEach(r=>(r.miss||[]).forEach(m=>{cnt[m]=(cnt[m]||0)+1;}));
+  const top=Object.entries(cnt).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  let weak="";
+  if(top.length){if(tab==="fb"){const mx=top[0][1];weak=neck(top.map(([m,c])=>{const [st,f]=m.split("-").map(Number);return `<circle cx="${fx(f)}" cy="${sy(st)}" r="10" fill="#b91c1c" opacity="${.25+.75*c/mx}"/><text x="${fx(f)}" y="${sy(st)+4}" font-size="9.5" font-weight="700" text-anchor="middle" fill="#fff">${NAMES[pc(OPEN[st]+f)]}</text>`;}).join(""));}
+    weak=`<div><p class="small muted" style="margin:0 0 6px">Weak spots, last 15 rounds: give these extra attention on your guitar</p>${weak}<div class="weak" style="margin-top:6px">${top.map(([m,c])=>`<span>${missLabel(tab,m)} ×${c}</span>`).join("")}</div></div>`;}
+  const tot=R.reduce((a,r)=>a+(r.sec||0),0);
+  $("hist").innerHTML=`<div class="row between"><h2 style="font-size:16px">Your rounds</h2><span class="small muted">${R.length} round${R.length>1?"s":""} · ${Math.round(tot/60)} min</span></div>
+   <svg class="spark" viewBox="0 0 ${W} ${H}" role="img" aria-label="Scores of your last rounds">${s}</svg>${weak}
+   <details><summary class="small">How the levels work</summary><ul>${D.lv.map((l,i)=>`<li><b>${i+1}.</b> ${l.t}: ${l.d}</li>`).join("")}<li>Pass a level once (${D.pass}) to open the next. Passed levels stay open; drop back to any of them for review.</li></ul></details>`;}
+
+/* ---------- tabs ---------- */
+$("seg").onclick=e=>{const b=e.target.closest("[data-k]");if(!b||(G&&!confirm("Stop this round?")))return;stopRound();tab=b.dataset.k;
+  $("seg").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b));$("play").hidden=true;$("result").hidden=true;$("intro").hidden=false;intro();hist();};
+header();intro();hist();
+GSData.sync().then(ch=>{if(ch&&!G){header();intro();hist();}});
+</script>
+</body></html>

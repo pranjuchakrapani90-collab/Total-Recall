@@ -1,0 +1,50 @@
+/* Guitar Studio · shared look (hub, Melodic Lead, Fingerstyle Solo, Soloing Course, Daily Drills)
+   Loaded after each page's own styles: it only re-tones the surfaces, so every page keeps its layout and logic.
+   Quiet charcoal headers with a thin section-coloured rule, warm paper, hairline borders, tabular numbers. */
+:root{
+  --bg:#f6f5f1;--paper:#ffffff;--ink:#1c1b19;--muted:#6b6a64;--line:#e6e3db;
+  --good:#15803d;--good-soft:#ecf7ef;
+  --gs-head:#1c1b19;--gs-head-2:#26241f;--gs-head-ink:#f5f4ef;--gs-head-mute:#b4b0a5;
+  --gs-ml:#4f46e5;--gs-fs:#7c3aed;--gs-sc:#c2410c;--gs-dr:#0f766e;
+  --gs-sec:var(--gs-ml);
+  --gs-radius:14px;
+  --gs-shadow:0 1px 2px #1c1b190a,0 4px 14px #1c1b190a;
+}
+body.gs-fs{--gs-sec:var(--gs-fs)}body.gs-sc{--gs-sec:var(--gs-sc)}body.gs-dr{--gs-sec:var(--gs-dr)}
+body{background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
+
+/* headers: one calm charcoal bar on every page, section colour as a hairline underneath */
+header.top,body>header{background:linear-gradient(180deg,var(--gs-head),var(--gs-head-2))!important;color:var(--gs-head-ink)!important;
+  border-bottom:3px solid var(--gs-sec);padding-top:calc(18px + env(safe-area-inset-top,0px))!important}
+header.top h1,body>header h1{letter-spacing:-.02em;font-weight:720!important;color:var(--gs-head-ink)!important}
+header.top .eyebrow,body>header .eyebrow{color:var(--gs-head-mute)!important;letter-spacing:.16em}
+header.top p,body>header p{color:var(--gs-head-mute)!important}
+header.top p b,body>header p b{color:var(--gs-head-ink)}
+header.top .backlink,body>header .backlink{color:var(--gs-head-mute)!important;opacity:1!important}
+header.top .backlink:hover,body>header .backlink:hover{color:var(--gs-head-ink)!important}
+header.top .stat b{color:var(--gs-head-ink)!important}
+header.top .stat span{color:var(--gs-head-mute)!important}
+header.top .stat.met b,#hTodayS.met b{color:#86efac!important}
+
+/* section switcher inside the header */
+.studio{display:flex!important;gap:2px!important;margin-top:12px;padding:3px!important;flex-wrap:nowrap!important;overflow-x:auto;scrollbar-width:none;width:max-content;max-width:100%;background:#ffffff14!important;border:1px solid #ffffff1a;border-radius:12px!important}
+.studio a{color:var(--gs-head-mute)!important;font:600 13.5px/1.2 system-ui,-apple-system,"Segoe UI",sans-serif!important;padding:8px 11px!important;border-radius:9px!important;text-decoration:none;white-space:nowrap}
+@media(max-width:420px){.studio a{padding:7px 8px!important;font-size:12.5px!important}}
+.studio a.on{background:var(--gs-head-ink)!important;color:var(--gs-head)!important}
+.studio a:not(.on):hover{background:#ffffff14!important;color:var(--gs-head-ink)!important}
+.gsp-here{background:#ffffff12!important;border:1px solid #ffffff14}
+.gsp-here s{background:var(--gs-sec)!important}
+
+/* surfaces */
+.card,.ex,.pos{border-radius:var(--gs-radius)!important;box-shadow:var(--gs-shadow)}
+.tip{border-radius:10px}
+.transport{background:#fffffff2!important;backdrop-filter:saturate(1.4) blur(10px);-webkit-backdrop-filter:saturate(1.4) blur(10px);border-top:1px solid var(--line)!important}
+.toast,.gtoast{border-radius:12px!important;box-shadow:0 10px 30px #1c1b1933!important}
+.gsp-nudge{border-color:var(--line)!important;border-radius:16px!important}
+button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--gs-sec)!important;outline-offset:2px}
+::selection{background:color-mix(in srgb,var(--gs-sec) 22%,transparent)}
+.studio::-webkit-scrollbar{display:none}
+.studio+p{margin-top:12px!important}
+.gsp-here i{min-width:24px!important}.gsp-here b.t{font-size:13px!important}
+/* long labels wrap instead of running off the card on a phone */
+.ex button,.card button,.pos button{max-width:100%;white-space:normal;text-align:center}

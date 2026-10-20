@@ -1,173 +1,353 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#4f46e5">
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
 <title>Guitar Studio · Total Recall &amp; Melodies</title>
-<script src="gsync.js"></script>
-<script src="fs-course.js?v=20261020c"></script>
+<script src="gsync.js?v=20261020e"></script>
+<script src="fs-course.js?v=20261020d"></script>
+<script src="studio-data.js?v=20261020e"></script>
 <link rel="manifest" href="manifest.webmanifest">
 <style>
-:root{--bg:#f4f7fb;--paper:#fff;--ink:#172033;--muted:#697386;--line:#e5e7eb;--steel:#4f46e5;--steel-soft:#eef0ff;--brass:#7c3aed;--brass-soft:#f5f3ff;--good:#059669;--good-soft:#ecfdf5;
+:root{--bg:#f6f5f1;--paper:#fff;--ink:#1c1b19;--muted:#6b6a64;--faint:#9a978e;--line:#e6e3db;--good:#15803d;--good-soft:#ecf7ef;
+  --ml:#4f46e5;--fs:#7c3aed;--sc:#c2410c;--dr:#0f766e;
   --body:system-ui,-apple-system,"Segoe UI",sans-serif;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color-scheme:light}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 var(--body)}
-header{background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;padding:22px 16px 26px}
+header{padding:18px 16px 22px}
 .hin{max-width:980px;margin:0 auto}
-.backlink{font-size:13px;color:#fff;opacity:.9;text-decoration:none}
-.eyebrow{font:600 11px/1 var(--body);letter-spacing:.14em;text-transform:uppercase;color:#e0e7ff;margin-top:12px}
-h1{font:750 clamp(28px,6vw,40px)/1.1 var(--body);margin:6px 0 4px}
-header p{margin:0;color:#e0e7ff;max-width:60ch}
-.wrap{max-width:980px;margin:0 auto;padding:20px 16px 48px;display:flex;flex-direction:column;gap:16px}
-.goal{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:16px 18px;display:flex;flex-direction:column;gap:10px}
-.goal h2{font:700 17px var(--body);margin:0}
-.gtop{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
-.gtop b{font:700 20px var(--mono)}
-.gbar{height:10px;border-radius:6px;background:var(--steel-soft);overflow:hidden}
-.gbar i{display:block;height:100%;background:var(--good);width:0}
-.gweek{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
-.gd{display:flex;flex-direction:column;align-items:center;padding:6px 0;border-radius:8px;background:var(--bg);font-size:11px;color:var(--muted)}
-.gd b{font:700 15px var(--mono);color:var(--ink)}
-.plrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.plskip{font:600 14px var(--body);border:0;border-radius:10px;padding:10px 14px;background:var(--bg);color:var(--muted);cursor:pointer}
-.plango{align-self:flex-start;text-decoration:none;font:650 15px var(--body);color:#fff;background:var(--steel);border-radius:10px;padding:10px 16px}.plango.fin{background:var(--good)}
-.gd.part{background:var(--brass-soft)}.gd.met{background:var(--good-soft)}.gd.met b{color:var(--good)}
-.sections{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
-@media(max-width:720px){.sections{grid-template-columns:1fr}}
-a.sec{display:flex;flex-direction:column;gap:12px;background:var(--paper);border:1px solid var(--line);border-radius:18px;padding:20px;color:inherit;text-decoration:none;box-shadow:0 5px 18px #141e3710;transition:transform .15s,box-shadow .15s,border-color .15s;position:relative;overflow:hidden}
-a.sec:hover,a.sec:focus-visible{transform:translateY(-2px);box-shadow:0 10px 26px #141e371c;border-color:var(--steel);outline:none}
-a.sec::before{content:"";position:absolute;left:0;top:0;right:0;height:5px;background:var(--steel)}
-a.sec.fs::before{background:var(--brass)}
-a.sec.ld::before{background:#be123c}.ld .tag{background:#ffe4e6;color:#9f1239}.ld .go b{background:#be123c}
-a.sec.sb::before{background:#c2410c}.sb .tag{background:#fff1e8;color:#9a3412}.sb .go b{background:#c2410c}
-a.sec.cg::before{background:#0f766e}.cg .tag{background:#e6f6f4;color:#0f766e}.cg .go b{background:#0f766e}
-.ico{font-size:34px;line-height:1}
-.sec h2{font:750 24px/1.15 var(--body);margin:0}
-.sec p{margin:0;color:var(--muted)}
-.tags{display:flex;gap:6px;flex-wrap:wrap}
-.tag{font:600 11px/1 var(--body);letter-spacing:.05em;text-transform:uppercase;padding:6px 8px;border-radius:999px;background:var(--steel-soft);color:#3730a3}
-.fs .tag{background:var(--brass-soft);color:#5b21b6}
-.now{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.now div{background:var(--bg);border-radius:10px;padding:8px 10px}
-.now b{display:block;font:700 18px var(--mono)}
-.now span{font-size:11px;color:var(--muted)}
-.go{margin-top:auto;display:flex;justify-content:space-between;align-items:center;gap:10px;border-top:1px solid var(--line);padding-top:12px}
-.go span{font-size:13px;color:var(--muted)}
-.go b{background:var(--steel);color:#fff;border-radius:10px;padding:10px 16px;font-size:15px;white-space:nowrap}
-.fs .go b{background:var(--brass)}
-</style></head><body>
+.backlink{font-size:13px;text-decoration:none}
+.eyebrow{font:600 11px/1 var(--body);text-transform:uppercase;margin-top:14px}
+h1{font:720 clamp(30px,7vw,42px)/1.05 var(--body);margin:6px 0 6px}
+header p{margin:0;max-width:62ch;font-size:14px}
+#hubSync{margin-top:10px;font-size:12px}
+.wrap{max-width:980px;margin:0 auto;padding:18px 16px 56px;display:flex;flex-direction:column;gap:18px}
+.panel{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 1px 2px #1c1b190a,0 4px 14px #1c1b190a}
+.ph{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.ph h2{font:700 13px/1 var(--body);letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0}
+.ph span{font-size:13px;color:var(--muted)}
+button{font:inherit;cursor:pointer}
+
+/* today */
+.today{display:grid;grid-template-columns:auto minmax(0,1fr);gap:20px;align-items:center}
+@media(max-width:560px){.today{grid-template-columns:1fr}.ring{justify-self:center}}
+.ring{position:relative;width:132px;height:132px}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring .c{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring b{font:700 34px/1 var(--mono)}
+.ring span{font-size:12px;color:var(--muted);margin-top:4px}
+.ring.met b{color:var(--good)}
+.nextup{display:flex;flex-direction:column;gap:12px;min-width:0}
+.go{display:flex;align-items:center;gap:12px;text-decoration:none;color:#fff;background:var(--c,var(--ml));border-radius:14px;padding:14px 16px;transition:transform .12s,filter .12s}
+.go:hover{filter:brightness(1.06)}.go:active{transform:scale(.99)}
+.go .gi{font-size:24px;line-height:1}
+.go small{display:block;font:600 11px/1.2 var(--body);letter-spacing:.1em;text-transform:uppercase;opacity:.8}
+.go b{display:block;font:700 18px/1.2 var(--body)}
+.go .ar{margin-left:auto;font-size:22px;opacity:.9}
+.go.fin{background:var(--good)}
+.cyc{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.cyc b{color:var(--ink);font-weight:650}
+.linkb{background:none;border:0;padding:4px 0;color:var(--muted);font-size:13px;text-decoration:underline;text-underline-offset:3px}
+.focus{margin-top:14px;display:flex;gap:10px;align-items:flex-start;background:#fbf7ec;border:1px solid #efe4c6;border-radius:12px;padding:10px 12px;font-size:14px}
+.focus i{font-style:normal;font-size:16px;line-height:1.4}
+.focus small{display:block;color:var(--muted);font-size:12px}
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:14px}
+.wd{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;color:var(--muted)}
+.wd i{width:100%;height:34px;border-radius:8px;background:#f0eee8;position:relative;overflow:hidden}
+.wd i s{position:absolute;left:0;right:0;bottom:0;background:#c9c5ba;text-decoration:none}
+.wd.met i s{background:var(--good)}.wd.part i s{background:#a8a29e}
+.wd b{font:650 12px var(--mono);color:var(--ink)}
+.wd.td small{color:var(--ink);font-weight:650}
+
+/* sections */
+.secs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+@media(max-width:720px){.secs{grid-template-columns:1fr}}
+a.sec{position:relative;display:flex;flex-direction:column;gap:10px;background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:18px 18px 16px;color:inherit;text-decoration:none;
+  box-shadow:0 1px 2px #1c1b190a,0 4px 14px #1c1b190a;transition:border-color .15s,transform .15s}
+a.sec:hover,a.sec:focus-visible{border-color:var(--c);transform:translateY(-1px);outline:none}
+.st{display:flex;align-items:center;gap:10px}
+.st .dot{width:10px;height:10px;border-radius:50%;background:var(--c);flex:none}
+.st h3{font:700 19px/1.2 var(--body);margin:0}
+.st .lbl{margin-left:auto;font:600 11px/1 var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--c);background:color-mix(in srgb,var(--c) 10%,#fff);padding:5px 8px;border-radius:999px;white-space:nowrap}
+a.sec p{margin:0;color:var(--muted);font-size:14px}
+.prog{height:6px;border-radius:4px;background:#f0eee8;overflow:hidden}
+.prog i{display:block;height:100%;background:var(--c);width:0;transition:width .5s}
+.nums{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.nums div{min-width:0}
+.nums b{display:block;font:700 18px/1.2 var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nums span{font-size:11.5px;color:var(--muted)}
+.foot{margin-top:auto;display:flex;justify-content:space-between;align-items:center;gap:10px;border-top:1px solid var(--line);padding-top:10px;font-size:13px;color:var(--muted)}
+.foot span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.foot b{color:var(--c);font-weight:700;white-space:nowrap}
+
+/* insights */
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media(max-width:560px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{background:var(--bg);border-radius:12px;padding:10px 12px}
+.kpi b{display:block;font:700 22px/1.15 var(--mono)}
+.kpi span{font-size:12px;color:var(--muted)}
+.kpi em{font-style:normal;font:600 12px var(--mono)}
+.up{color:var(--good)}.down{color:#b45309}
+.heat{margin-top:16px;overflow-x:auto}
+.heat svg{display:block;min-width:100%}
+.hleg{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:6px}
+.hleg span{display:inline-flex;align-items:center;gap:4px}
+.hleg i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.split{margin-top:16px}
+.split h4{margin:0 0 6px;font:600 13px var(--body);color:var(--muted)}
+.sbar{display:flex;height:12px;border-radius:6px;overflow:hidden;background:#f0eee8}
+.sbar i{display:block;height:100%}
+.sleg{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:8px;font-size:12.5px;color:var(--muted)}
+.sleg span{display:inline-flex;align-items:center;gap:6px}
+.sleg i{width:9px;height:9px;border-radius:50%;display:inline-block}
+.sleg b{color:var(--ink);font:650 12.5px var(--mono)}
+.advice{margin:14px 0 0;padding:10px 12px;border-radius:12px;background:var(--bg);font-size:14px}
+
+/* notes */
+.nform{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media(max-width:560px){.nform{grid-template-columns:1fr}}
+.nform label{display:flex;flex-direction:column;gap:4px;font:600 12px var(--body);color:var(--muted)}
+.nform textarea,.nform select{font:15px/1.4 var(--body);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 10px;resize:vertical;min-height:44px}
+.nrow{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px}
+.nrow select{font:14px var(--body);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px;color:var(--ink)}
+.pri{border:0;border-radius:10px;padding:10px 16px;background:var(--ink);color:#fff;font-weight:650}
+.pri:disabled{opacity:.4;cursor:default}
+.nlist{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-direction:column}
+.nlist li{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;padding:10px 0;border-top:1px solid var(--line);font-size:14px}
+.nlist .dot{width:8px;height:8px;border-radius:50%;margin-top:7px;background:var(--c,#a8a29e)}
+.nlist small{display:block;color:var(--muted);font-size:12px}
+.nlist .x{background:none;border:0;color:var(--faint);font-size:18px;line-height:1;padding:2px 4px}
+.nlist .x.arm{color:#b91c1c;font-size:13px;font-weight:650}
+.tg{font:600 11px var(--body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-right:6px}
+</style>
+<link rel="stylesheet" href="studio-theme.css?v=20261020">
+</head><body>
 <header><div class="hin">
   <a class="backlink" href="./">← Total Recall &amp; Melodies</a>
   <div class="eyebrow">Guitar practice</div>
   <h1>Guitar Studio</h1>
-  <p>One daily goal, 15 minutes of Melodic Lead then 15 of Fingerstyle Solo, and a workshop for writing your own solos.</p>
-  <p id="hubSync" style="margin-top:8px;font-size:12px;opacity:.9"></p>
+  <p id="sub">Three sections in one cycle, a few minutes of drills, and a note to yourself after every sitting.</p>
+  <p id="hubSync"></p>
 </div></header>
 <main class="wrap">
-  <section class="goal" aria-label="Daily goal">
-    <div class="gtop"><h2>Today</h2><span><b id="tMin">0</b> of <span id="tGoal">30</span> min</span></div>
-    <div class="gbar"><i id="tBar"></i></div>
-    <div class="gweek" id="week"></div>
-    <div class="gtop" style="margin-top:6px"><h2 id="cycTitle">Current cycle · 15 + 15 + 15</h2><span id="planTxt" style="font-size:13px;color:var(--muted)"></span></div>
-    <div id="planBar"></div>
-    <div class="plrow"><a id="planGo" class="plango" href="guitar.html"></a><button id="planSkip" type="button" class="plskip">Skip for now ↷</button></div>
-    <p id="cycNote" style="margin:0;font-size:13px;color:var(--muted)"></p>
+
+  <section class="panel" aria-label="Today">
+    <div class="ph"><h2>Today</h2><span id="dateTxt"></span></div>
+    <div class="today">
+      <div class="ring" id="ring"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" fill="none" stroke="#f0eee8" stroke-width="10"/><circle id="ringArc" cx="60" cy="60" r="52" fill="none" stroke="#15803d" stroke-width="10" stroke-linecap="round" stroke-dasharray="0 999"/></svg>
+        <div class="c"><b id="tMin">0</b><span>of <span id="tGoal">45</span> min</span></div></div>
+      <div class="nextup">
+        <a id="planGo" class="go" href="guitar.html"><span class="gi" id="goIco">🎸</span><span><small id="goSm">Next in cycle</small><b id="goN">Melodic Lead</b></span><span class="ar">▸</span></a>
+        <div id="planBar"></div>
+        <div class="cyc"><span id="cycTxt"></span><button id="planSkip" type="button" class="linkb">Skip this one for now</button></div>
+      </div>
+    </div>
+    <div class="focus" id="focus" hidden><i>🎯</i><div><b id="focusTxt"></b><small id="focusWhen"></small></div></div>
+    <div class="week" id="week"></div>
   </section>
-  <div class="sections">
-    <a class="sec" href="guitar.html">
-      <div class="ico">🎸</div>
-      <h2>Melodic Lead</h2>
-      <p>Your own sequence patterns, written from your book onto tab. Each one is played through the five major shapes and the five pentatonic boxes, with the tempo climbing from 20 to 160 bpm.</p>
-      <div class="tags"><span class="tag">your patterns</span><span class="tag">10 shapes each</span><span class="tag">20 → 160 bpm</span></div>
-      <div class="now"><div><b id="lStage">–</b><span>patterns</span></div><div><b id="lTempo">–</b><span>bpm</span></div><div><b id="lDone">–</b><span>this session</span></div></div>
-      <div class="go"><span id="lNext">Open your current session</span><b>Open ▸</b></div>
-    </a>
-    <!-- Lead Course (lead.html) is on hold: card removed until further notice; its page and saved progress are untouched. -->
-    <a class="sec fs" href="fingerstyle.html">
-      <div class="ico">🎶</div>
-      <h2>Fingerstyle Solo</h2>
-      <p>A complete solo fingerstyle course, strings only: from p-i-m-a and Travis picking through bass runs, full arrangements, arranging your own songs, blues, drop D and DADGAD to performance pieces.</p>
-      <div class="tags"><span class="tag" id="fLv">11 levels</span><span class="tag" id="fN">lessons</span><span class="tag">songs · tunings</span></div>
-      <div class="now"><div><b id="fLevel">1</b><span>level</span></div><div><b id="fDone">0</b><span>lessons done</span></div><div><b id="fLeft">35</b><span>to go</span></div></div>
-      <div class="go"><span id="fNext">Start with lesson 1a</span><b>Open ▸</b></div>
-    </a>
-    <a class="sec sb" href="solo.html">
-      <div class="ico">✍️</div>
-      <h2>Soloing Course</h2>
-      <p>Learn to solo by doing, from first notes in a CAGED shape to full 16-bar solos: 10 modules with what-and-why lessons, practice examples in every key with a backing band, and a workshop to write and save your own solos.</p>
-      <div class="tags"><span class="tag">10 modules</span><span class="tag">backing band</span><span class="tag">your own solos</span></div>
-      <div class="now"><div><b id="sEx">0</b><span>exercises done</span></div><div style="display:none"><b id="sSolos">0</b></div><div><b id="sFin">0</b><span>solos finished</span></div><div><b id="sWeek">0</b><span>min this week</span></div></div>
-      <div class="go"><span id="sNext">Start the course</span><b>Open ▸</b></div>
-    </a>
-  </div>
+
+  <section aria-label="Sections">
+    <div class="secs">
+      <a class="sec" href="guitar.html" style="--c:var(--ml)">
+        <div class="st"><span class="dot"></span><h3>Melodic Lead</h3><span class="lbl">15 min</span></div>
+        <p>Your own sequence patterns from the book, played through five major shapes and five pentatonic boxes as the tempo climbs from 20 to 160 bpm.</p>
+        <div class="prog"><i id="lBar"></i></div>
+        <div class="nums"><div><b id="lStage">–</b><span>patterns</span></div><div><b id="lTempo">–</b><span>bpm now</span></div><div><b id="lDone">–</b><span>shapes this session</span></div></div>
+        <div class="foot"><span id="lNext">Open your current session</span><b>Open ▸</b></div>
+      </a>
+      <a class="sec" href="fingerstyle.html" style="--c:var(--fs)">
+        <div class="st"><span class="dot"></span><h3>Fingerstyle Solo</h3><span class="lbl">15 min</span></div>
+        <p>Strings-only solo fingerstyle, on open chords for now: p-i-m-a, Travis picking, bass runs, then full arrangements.</p>
+        <div class="prog"><i id="fBar"></i></div>
+        <div class="nums"><div><b id="fLevel">1</b><span id="fLv">level</span></div><div><b id="fDone">0</b><span>exercises done</span></div><div><b id="fLeft">–</b><span>to go</span></div></div>
+        <div class="foot"><span id="fNext">Start with lesson 1a</span><b>Open ▸</b></div>
+      </a>
+      <a class="sec" href="solo.html" style="--c:var(--sc)">
+        <div class="st"><span class="dot"></span><h3>Soloing Course</h3><span class="lbl">15 min</span></div>
+        <p>Learn to solo by doing, key by key in all five shapes, with a backing band and a workshop for your own 16-bar solos.</p>
+        <div class="nums"><div><b id="sEx">0</b><span>exercises done</span></div><div><b id="sFin">0</b><span>solos finished</span></div><div><b id="sWeek">0</b><span>min this week</span></div></div>
+        <div class="foot"><span id="sNext">Start the course</span><b>Open ▸</b></div>
+      </a>
+      <a class="sec" href="drills.html" style="--c:var(--dr)">
+        <div class="st"><span class="dot"></span><h3>Daily Drills</h3><span class="lbl">2–5 min warm-up</span></div>
+        <p>Short, scored rounds that build what the courses lean on: knowing every note on the neck and hearing intervals and scale degrees.</p>
+        <div class="nums"><div><b id="dFb">–</b><span>fretboard level</span></div><div><b id="dIv">–</b><span>interval level</span></div><div><b id="dSd">–</b><span>degree level</span></div></div>
+        <div class="foot"><span id="dNext">One round of each is a good warm-up</span><b>Open ▸</b></div>
+      </a>
+    </div>
+  </section>
+
+  <section class="panel" aria-label="Your practice">
+    <div class="ph"><h2>Your practice</h2><span id="since"></span></div>
+    <div class="kpis">
+      <div class="kpi"><b id="kStreak">0</b><span>day streak · best <em id="kBest">0</em></span></div>
+      <div class="kpi"><b id="kWeek">0</b><span>min this week <em id="kDelta"></em></span></div>
+      <div class="kpi"><b id="kGoal">0</b><span>goal days, last 30</span></div>
+      <div class="kpi"><b id="kTotal">0h</b><span>practised in all</span></div>
+    </div>
+    <div class="heat" id="heat"></div>
+    <div class="hleg"><span id="heatTxt"></span><span><span>less</span><i style="background:#f0eee8"></i><i style="background:#cfe8d6"></i><i style="background:#86c99a"></i><i style="background:#15803d"></i><span>goal met</span></span></div>
+    <div class="split"><h4>Where the last 30 days went</h4><div class="sbar" id="sbar"></div><div class="sleg" id="sleg"></div></div>
+    <p class="advice" id="advice" hidden></p>
+  </section>
+
+  <section class="panel" aria-label="Practice notes">
+    <div class="ph"><h2>Practice notes</h2><span>One line after each sitting. The last “fix” becomes today's focus.</span></div>
+    <div class="nform">
+      <label>What went well<textarea id="nGood" rows="2" placeholder="e.g. pattern 7 clean at 45 bpm in shape C"></textarea></label>
+      <label>Fix next time<textarea id="nFix" rows="2" placeholder="e.g. pick stroke drifts on string crossings in shape A"></textarea></label>
+    </div>
+    <div class="nrow"><select id="nSec" aria-label="Section"><option value="">General</option><option value="ml">Melodic Lead</option><option value="fs">Fingerstyle Solo</option><option value="sc">Soloing Course</option><option value="dr">Daily Drills</option></select>
+      <button class="pri" id="nSave" type="button" disabled>Save note</button><span id="nMsg" style="font-size:13px;color:var(--muted)"></span></div>
+    <ul class="nlist" id="nList"></ul>
+    <button class="linkb" id="nMore" type="button" hidden></button>
+  </section>
 </main>
+
+<script src="plan.js?v=20261020d"></script>
 <script>
 "use strict";
+const $=id=>document.getElementById(id);
 const get=k=>{try{return JSON.parse(localStorage.getItem(k)||"null");}catch(e){return null;}};
-const mel=get("mss-sessions")||{},fs=get("fs-v1")||{},lp=get("leadpath-v1"),old=lp?[lp]:[get("caged-v1")||{},get("lead-v1")||{}];
 const pad=n=>String(n).padStart(2,"0"),dkey=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-const sessions=Object.values(mel.ds||{});
-const so=get("solo-v1")||{};
-function secOn(k){let s=sessions.reduce((a,x)=>a+((x.days&&x.days[k])||0),0);s+=(so.days&&so.days[k])||0;Object.values(so.odays||{}).forEach(d=>{s+=(d&&d[k])||0;});s+=(fs.days&&fs.days[k])||0;Object.values(fs.odays||{}).forEach(d=>{s+=d[k]||0;});if(k<"2026-10-18")old.forEach(c=>{s+=(c.days&&c.days[k])||0;Object.values(c.odays||{}).forEach(d=>{s+=d[k]||0;});});return s;}
-const goal=(mel.st&&mel.st.goalMin&&!(mel.st.goalMin===30&&!mel.st.goal3))?mel.st.goalMin:45,today=secOn(dkey(new Date()));
-document.getElementById("tMin").textContent=Math.floor(today/60);
-document.getElementById("tGoal").textContent=goal;
-document.getElementById("tBar").style.width=Math.min(100,today/60/goal*100)+"%";
-document.getElementById("week").innerHTML=[...Array(7)].map((_,i)=>{const d=new Date();d.setDate(d.getDate()-6+i);const m=Math.floor(secOn(dkey(d))/60);
-  return `<span class="gd${m>=goal?" met":m>0?" part":""}" title="${m} min"><b>${m}</b><small>${i===6?"Today":d.toLocaleDateString(undefined,{weekday:"short"})}</small></span>`;}).join("");
-// Melodic Lead: the open session
-const pats=(mel.st&&mel.st.myPats)||[],open=sessions.filter(x=>x.kind==="own"&&!x.free&&!x.finished).sort((a,b)=>(b.started>a.started?1:-1))[0];
-document.getElementById("lStage").textContent=pats.length;
-if(open){document.getElementById("lTempo").textContent=open.tempo||"–";
-  document.getElementById("lDone").textContent=`${(open.done||[]).length}/10`;
-  document.getElementById("lNext").textContent=`Continue: ${open.pname||"your pattern"}`;}
-else document.getElementById("lNext").textContent=pats.length?"Write your next pattern":"Write your first pattern";
-// Fingerstyle Solo: levels are finished lesson by lesson
-{const P=FSC.progress(fs.done||{});
- document.getElementById("fLv").textContent=FSC.LEVELS.length+" levels";
- document.getElementById("fN").textContent=P.total+" exercises";
- document.getElementById("fLevel").textContent=P.level+1;
- document.getElementById("fDone").textContent=P.n;
- document.getElementById("fLeft").textContent=P.total-P.n;
- document.getElementById("fNext").textContent=P.n===P.total?"Course complete: review any lesson":P.next?`Next: ${P.next.pid||P.next.id} ${P.next.t}${P.next.vt?" · "+P.next.vt:""}`:"Start with lesson 1a";}
-// Soloing Course: exercises done, saved solos and minutes (the third 15 minutes of the cycle)
-{const so=get("solo-v1")||{},L=Object.values(so.solos||{}).filter(x=>x&&!((so.del||{})[x.id]>=x.upd));
- document.getElementById("sSolos").textContent=L.length;document.getElementById("sEx").textContent=Object.keys((so.course&&so.course.done)||{}).length;document.getElementById("sFin").textContent=L.filter(x=>x.done).length;
- let t=0;for(let i=0;i<7;i++){const d=new Date();d.setDate(d.getDate()-i);const k=dkey(d);t+=((so.days||{})[k]||0)+Object.values(so.odays||{}).reduce((a,o)=>a+((o&&o[k])||0),0);}
- document.getElementById("sWeek").textContent=Math.floor(t/60);
- const cur=so.cur&&(so.solos||{})[so.cur];if(cur&&!cur.done)document.getElementById("sNext").textContent=`Continue: ${cur.name}`;}
-// Lead Course (on hold): stats only if its card is on the page
-if(document.getElementById("cDone")){const ORDER=["La","f","Lb","c","Lc","a","Ld","g","Le","e","Lf","d","Lg","j","Lh","t","Li","b","r","Lj","p","s","Lk","x"];
- const D=lp?(lp.done||{}):Object.assign({},(old[0].done||{}),Object.fromEntries(Object.entries(old[1].done||{}).map(([k,v])=>["L"+k,v])));
- const ids=Object.keys(D).filter(k=>D[k]),cd=ids.length;document.getElementById("cDone").textContent=cd;
- const ss=lp&&lp.sess;if(ss&&ss.items&&ss.items.length){const it=ss.items.filter(x=>!x.ml),ok=it.filter((x,i)=>x.rev?(ss.ok&&ss.ok[ss.items.indexOf(x)]):D[x.id]).length;document.getElementById("cSess").textContent=`${ok}/${it.length}`;}
- let hi=0;ids.forEach(k=>{const lv=k[0]==="L"?k.slice(0,2):k[0],i=ORDER.indexOf(lv);if(i>hi)hi=i;});document.getElementById("cLevel").textContent=hi+1;
- if(cd)document.getElementById("cNext").textContent=`Continue · ${cd} of 1404 reps`;}
-</script>
-<script src="plan.js?v=20261020c"></script>
-<script>
-{GSPlan.style();
- function draw(){const c=GSPlan.cycle(),rows=c.rows,nx=GSPlan.next(rows),go=document.getElementById("planGo"),sk=document.getElementById("planSkip");
-  document.getElementById("cycTitle").textContent=`Cycle ${c.n} · ${GSPlan.LABEL}`;
-  document.getElementById("planBar").innerHTML=GSPlan.barHTML(rows,nx&&nx.k);
+const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const COL={ml:"#4f46e5",fs:"#7c3aed",sc:"#c2410c",lc:"#0e7490",dr:"#0f766e"},NAME={ml:"Melodic Lead",fs:"Fingerstyle Solo",sc:"Soloing Course",lc:"Lead Course",dr:"Daily Drills"};
+
+/* every section's seconds, day by day: {day:{ml,fs,sc,lc,dr}} */
+function dayMap(){
+  const M={},add=(day,k,v)=>{if(!v)return;(M[day]=M[day]||{})[k]=(M[day][k]||0)+v;};
+  const mel=get("mss-sessions")||{};Object.values(mel.ds||{}).forEach(x=>Object.entries((x&&x.days)||{}).forEach(([d,v])=>add(d,"ml",v)));
+  const cnt=(o,k,before)=>{if(!o)return;const f=(m)=>Object.entries(m||{}).forEach(([d,v])=>{if(!before||d<before)add(d,k,v);});f(o.days);Object.values(o.odays||{}).forEach(f);};
+  cnt(get("fs-v1"),"fs");cnt(get("solo-v1"),"sc");
+  const lp=get("leadpath-v1");if(lp)cnt(lp,"lc","2026-10-18");else{cnt(get("caged-v1"),"lc","2026-10-18");cnt(get("lead-v1"),"lc","2026-10-18");}
+  GSData.runs().forEach(r=>add(r.day,"dr",r.sec||0));
+  return M;}
+const secTot=(m,withDr)=>m?Object.entries(m).reduce((a,[k,v])=>a+(k==="dr"&&!withDr?0:v),0):0;
+
+function render(){
+  const mel=get("mss-sessions")||{},fs=get("fs-v1")||{},so=get("solo-v1")||{};
+  const M=dayMap(),now=new Date(),tk=dkey(now);
+  const goal=(mel.st&&mel.st.goalMin&&!(mel.st.goalMin===30&&!mel.st.goal3))?mel.st.goalMin:45;
+  const tsec=secTot(M[tk]),tmin=Math.floor(tsec/60),drm=Math.floor(((M[tk]||{}).dr||0)/60);
+  $("dateTxt").textContent=now.toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long"})+(drm?` · +${drm} min drills`:"");
+  $("tMin").textContent=tmin;$("tGoal").textContent=goal;
+  const f=Math.min(1,tsec/60/goal),C=2*Math.PI*52;$("ringArc").setAttribute("stroke-dasharray",`${(f*C).toFixed(1)} ${C.toFixed(1)}`);
+  $("ring").classList.toggle("met",tmin>=goal);
+
+  /* this week, oldest first */
+  $("week").innerHTML=[...Array(7)].map((_,i)=>{const d=new Date();d.setDate(d.getDate()-6+i);const m=Math.floor(secTot(M[dkey(d)])/60);
+    return `<div class="wd${m>=goal?" met":m>0?" part":""}${i===6?" td":""}" title="${m} min"><i><s style="height:${Math.min(100,m/goal*100)}%"></s></i><b>${m}</b><small>${i===6?"Today":d.toLocaleDateString(undefined,{weekday:"short"})}</small></div>`;}).join("");
+
+  /* focus: the newest "fix next time" */
+  const fx=GSData.notes().find(n=>n.fix);
+  $("focus").hidden=!fx;if(fx){$("focusTxt").textContent=fx.fix;const d=new Date(fx.t);$("focusWhen").textContent=`Your note${fx.sec?" for "+NAME[fx.sec]:""}, ${d.toLocaleDateString(undefined,{day:"numeric",month:"short"})}`;}
+
+  /* Melodic Lead */
+  const sessions=Object.values(mel.ds||{}),pats=(mel.st&&mel.st.myPats)||[],open=sessions.filter(x=>x.kind==="own"&&!x.free&&!x.finished).sort((a,b)=>(b.started>a.started?1:-1))[0];
+  $("lStage").textContent=pats.length;
+  if(open){const dn=(open.done||[]).length;$("lTempo").textContent=open.tempo||"–";$("lDone").textContent=`${dn}/10`;$("lBar").style.width=dn*10+"%";$("lNext").textContent=`Continue: ${open.pname||"your pattern"}`;}
+  else $("lNext").textContent=pats.length?"Write your next pattern":"Write your first pattern";
+
+  /* Fingerstyle Solo */
+  if(window.FSC){const P=FSC.progress(fs.done||{});
+    $("fLv").textContent=`level of ${FSC.LEVELS.length}`;$("fLevel").textContent=P.level+1;$("fDone").textContent=P.n;$("fLeft").textContent=P.total-P.n;
+    $("fBar").style.width=(P.total?P.n/P.total*100:0)+"%";
+    $("fNext").textContent=P.n===P.total?"Course complete: review any lesson":P.next?`Next: ${P.next.pid||P.next.id} ${P.next.t}`:"Start with lesson 1a";}
+
+  /* Soloing Course */
+  {const L=Object.values(so.solos||{}).filter(x=>x&&!((so.del||{})[x.id]>=x.upd));
+   $("sEx").textContent=Object.keys((so.course&&so.course.done)||{}).length;$("sFin").textContent=L.filter(x=>x.done).length;
+   let t=0;for(let i=0;i<7;i++){const d=new Date();d.setDate(d.getDate()-i);t+=((M[dkey(d)]||{}).sc||0);}$("sWeek").textContent=Math.floor(t/60);
+   const cur=so.cur&&(so.solos||{})[so.cur];if(cur&&!cur.done)$("sNext").textContent=`Continue: ${cur.name}`;}
+
+  /* Daily Drills: highest level passed + 1 in each */
+  {const lvl=k=>{const R=GSData.runs(k),p=R.filter(r=>r.pass).reduce((a,r)=>Math.max(a,r.lv||0),0);return R.length?Math.min(p+1,6):1;};
+   $("dFb").textContent=lvl("fb");$("dIv").textContent=lvl("iv");$("dSd").textContent=lvl("sd");
+   const today=GSData.runs().filter(r=>r.day===tk);const kinds=new Set(today.map(r=>r.kind));
+   $("dNext").textContent=today.length?`${today.length} round${today.length>1?"s":""} today · ${3-kinds.size?`${3-kinds.size} drill${3-kinds.size>1?"s":""} untouched`:"all three done"}`:"One round of each is a good warm-up";}
+
+  insights(M,goal);notesList();}
+
+function insights(M,goal){
+  const days=Object.keys(M).filter(k=>secTot(M[k],true)>0).sort();
+  const today=new Date(),tk=dkey(today);
+  /* streak: consecutive practice days ending today (or yesterday if today is still empty) */
+  const has=k=>secTot(M[k],true)>=60;
+  let s=0;const d=new Date();if(!has(tk))d.setDate(d.getDate()-1);while(has(dkey(d))){s++;d.setDate(d.getDate()-1);}
+  let best=0,run=0,prev=null;days.filter(has).forEach(k=>{const dt=new Date(k+"T12:00");if(prev&&Math.round((dt-prev)/864e5)===1)run++;else run=1;best=Math.max(best,run);prev=dt;});
+  $("kStreak").textContent=s;$("kBest").textContent=Math.max(best,s);
+  const sumRange=(from,to)=>{let t=0;for(let i=from;i<to;i++){const x=new Date();x.setDate(x.getDate()-i);t+=secTot(M[dkey(x)],true);}return t;};
+  const w=sumRange(0,7),pw=sumRange(7,14);$("kWeek").textContent=Math.floor(w/60);
+  if(pw>0){const dl=Math.round((w-pw)/pw*100);$("kDelta").className=dl>=0?"up":"down";$("kDelta").textContent=`${dl>=0?"▲":"▼"}${Math.abs(dl)}%`;}
+  let gd=0;for(let i=0;i<30;i++){const x=new Date();x.setDate(x.getDate()-i);if(secTot(M[dkey(x)])/60>=goal)gd++;}$("kGoal").textContent=gd;
+  const tot=days.reduce((a,k)=>a+secTot(M[k],true),0);$("kTotal").textContent=tot>=3600?`${(tot/3600).toFixed(1)}h`:`${Math.floor(tot/60)}m`;
+  $("since").textContent=days.length?`since ${new Date(days[0]+"T12:00").toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"})}`:"";
+
+  /* heatmap: last 20 weeks, Monday-first columns */
+  const W=20,cell=13,gap=3,top=14,left=22;
+  const end=new Date();end.setHours(12);const start=new Date(end);start.setDate(start.getDate()-((end.getDay()+6)%7)-(W-1)*7);
+  let svg="",mon=-1,practised=0;
+  for(let c=0;c<W;c++)for(let r=0;r<7;r++){const x=new Date(start);x.setDate(start.getDate()+c*7+r);if(x>end)continue;
+    const k=dkey(x),m=secTot(M[k])/60,all=secTot(M[k],true)/60;if(all>=1)practised++;
+    const col=m>=goal?"#15803d":all>=goal/2?"#86c99a":all>=1?"#cfe8d6":"#f0eee8";
+    if(r===0&&x.getMonth()!==mon&&x.getDate()<=7){mon=x.getMonth();svg+=`<text x="${left+c*(cell+gap)}" y="10" font-size="10" fill="#9a978e">${x.toLocaleDateString(undefined,{month:"short"})}</text>`;}
+    svg+=`<rect x="${left+c*(cell+gap)}" y="${top+r*(cell+gap)}" width="${cell}" height="${cell}" rx="3" fill="${col}"${k===tk?' stroke="#1c1b19" stroke-width="1.5"':""}><title>${x.toLocaleDateString(undefined,{day:"numeric",month:"short"})}: ${Math.floor(all)} min</title></rect>`;}
+  ["M","","W","","F","",""].forEach((t,r)=>{if(t)svg+=`<text x="4" y="${top+r*(cell+gap)+10}" font-size="10" fill="#9a978e">${t}</text>`;});
+  const vw=left+W*(cell+gap),vh=top+7*(cell+gap);
+  $("heat").innerHTML=`<svg viewBox="0 0 ${vw} ${vh}" width="${vw*1.25}" role="img" aria-label="Practice minutes over the last ${W} weeks">${svg}</svg>`;
+  $("heatTxt").textContent=`${practised} practice days in the last ${W} weeks`;
+
+  /* split of the last 30 days */
+  const S={ml:0,fs:0,sc:0,lc:0,dr:0};for(let i=0;i<30;i++){const x=new Date();x.setDate(x.getDate()-i);Object.entries(M[dkey(x)]||{}).forEach(([k,v])=>{S[k]=(S[k]||0)+v;});}
+  const T=Object.values(S).reduce((a,b)=>a+b,0);
+  const keys=Object.keys(S).filter(k=>S[k]>0);
+  $("sbar").innerHTML=T?keys.map(k=>`<i style="width:${S[k]/T*100}%;background:${COL[k]}" title="${NAME[k]}"></i>`).join(""):"";
+  $("sleg").innerHTML=T?keys.map(k=>`<span><i style="background:${COL[k]}"></i>${NAME[k]} <b>${Math.round(S[k]/60)}m</b></span>`).join(""):"<span>Nothing logged in the last 30 days yet.</span>";
+
+  /* one piece of honest advice from the numbers */
+  let a="";
+  const core=["ml","fs","sc"].map(k=>({k,v:S[k]||0}));const lo=core.slice().sort((x,y)=>x.v-y.v)[0],hi=core.slice().sort((x,y)=>y.v-x.v)[0];
+  if(T<60)a="";
+  else if(hi.v>0&&lo.v<hi.v*.5)a=`${NAME[lo.k]} has had ${Math.round(lo.v/60)} min in 30 days against ${Math.round(hi.v/60)} for ${NAME[hi.k]}. Start your next sitting there so the cycle stays balanced.`;
+  else if(!S.dr)a="No drills in the last 30 days. Two minutes of Fretboard Notes before a section makes the CAGED shapes easier to name.";
+  else if(gd<10)a=`Goal met on ${gd} of the last 30 days. Shorter, daily sittings beat long occasional ones: aim for one full section every day.`;
+  else a=`Goal met on ${gd} of the last 30 days. Keep the streak going and let the tempo climb.`;
+  $("advice").hidden=!a;$("advice").textContent=a;}
+
+/* practice notes */
+let showAll=false,armed=null;
+function notesList(){const L=GSData.notes(),V=showAll?L:L.slice(0,4);
+  $("nList").innerHTML=V.map(n=>{const d=new Date(n.t);return `<li style="--c:${COL[n.sec]||"#a8a29e"}"><span class="dot"></span><div><small>${d.toLocaleDateString(undefined,{weekday:"short",day:"numeric",month:"short"})}${n.sec?" · "+NAME[n.sec]:""}</small>${n.good?`<div><span class="tg">Good</span>${esc(n.good)}</div>`:""}${n.fix?`<div><span class="tg">Fix</span>${esc(n.fix)}</div>`:""}</div><button class="x${armed===n.id?" arm":""}" type="button" data-del="${n.id}" aria-label="Delete note">${armed===n.id?"Delete?":"×"}</button></li>`;}).join("");
+  $("nMore").hidden=L.length<=4;$("nMore").textContent=showAll?"Show fewer":`Show all ${L.length} notes`;}
+$("nMore").onclick=()=>{showAll=!showAll;notesList();};
+$("nList").onclick=e=>{const b=e.target.closest("[data-del]");if(!b)return;const id=b.dataset.del;
+  if(armed===id){armed=null;GSData.delNote(id);render();}else{armed=id;notesList();setTimeout(()=>{if(armed===id){armed=null;notesList();}},3000);}};
+const nOk=()=>{$("nSave").disabled=!($("nGood").value.trim()||$("nFix").value.trim());};
+$("nGood").oninput=$("nFix").oninput=nOk;
+$("nSave").onclick=()=>{GSData.addNote({sec:$("nSec").value,good:$("nGood").value,fix:$("nFix").value});$("nGood").value=$("nFix").value="";nOk();$("nMsg").textContent="Saved.";setTimeout(()=>{$("nMsg").textContent="";},2000);render();};
+/* preselect the section you most likely just played */
+{const M=dayMap()[dkey(new Date())]||{};const k=Object.keys(M).sort((a,b)=>M[b]-M[a])[0];if(k&&NAME[k]&&k!=="lc")$("nSec").value=k;}
+
+/* the cycle */
+GSPlan.style();
+function draw(){const c=GSPlan.cycle(),rows=c.rows,nx=GSPlan.next(rows),go=$("planGo"),sk=$("planSkip");
+  $("planBar").innerHTML=GSPlan.barHTML(rows,nx&&nx.k);
   const left=rows.reduce((a,r)=>a+Math.max(0,r.min*60-r.sec),0);
-  document.getElementById("planTxt").textContent=`${Math.ceil(left/60)} min to finish`;
-  go.href=nx.href;go.textContent=`Next: ${nx.ico} ${nx.n} ▸`;
+  $("cycTxt").innerHTML=`Cycle <b>${c.n}</b> · ${Math.ceil(left/60)} min to close${c.done?` · ${c.done} closed so far`:""}`;
+  if(nx){go.href=nx.href;go.style.setProperty("--c",nx.col);go.classList.remove("fin");$("goIco").textContent=nx.ico;$("goSm").textContent=`Next in cycle ${c.n} · ${Math.ceil(Math.max(0,nx.min*60-nx.sec)/60)} min left`;$("goN").textContent=nx.n;}
   const open=rows.filter(r=>r.sec<r.min*60);sk.hidden=open.length<2;
-  sk.onclick=()=>{GSPlan.skip(nx.k);draw();};
-  document.getElementById("cycNote").textContent=(c.done?`${c.done} cycle${c.done>1?"s":""} completed. `:"")+"A cycle carries over to the next day until all three sections have had their 15 minutes.";}
- draw();}
-</script>
-<script>
-/* the hub pulls all three sections from the cloud (read-only) so this phone shows practice done on your other phones */
-{const el=document.getElementById("hubSync");
- const show=t=>{el.innerHTML=t;};
+  sk.onclick=()=>{GSPlan.skip(nx.k);draw();};}
+render();draw();
+
+/* pull every section from the cloud so this phone shows practice from your other phone */
+{const el=$("hubSync"),show=t=>{el.innerHTML=t;};
  async function pull(){
   if(!GSync.code()){show("☁ Sync is off on this phone. Turn it on in Total Recall's Device Sync, or inside any section.");return;}
-  show(`☁ Checking your other phones… · code check <b class="gsfp">····</b>`);
-  try{const ch=await GSync.pullAll();
+  show(`☁ Checking your other phone… · code check <b class="gsfp">····</b>`);
+  try{const [ch,ch2]=await Promise.all([GSync.pullAll(),GSData.sync()]);
     let last=0;try{last=Number(sessionStorage.getItem("gs-hub-pulled")||0);}catch(e){}
-    if(ch&&Date.now()-last>10000){try{sessionStorage.setItem("gs-hub-pulled",String(Date.now()));}catch(e){}location.reload();return;}
-    show(`☁ Up to date with your other phones at ${new Date().toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"})} · code check <b class="gsfp">····</b> (must match on every phone)`);
-  }catch(e){show(`☁ Sync problem: ${String(e&&e.message||e).replace(/</g,"&lt;")} · code check <b class="gsfp">····</b>`);}}
+    if((ch||ch2)&&Date.now()-last>10000){try{sessionStorage.setItem("gs-hub-pulled",String(Date.now()));}catch(e){}render();draw();}
+    show(`☁ In sync at ${new Date().toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"})} · code check <b class="gsfp">····</b>`);
+  }catch(e){show(`☁ Sync problem: ${esc(e&&e.message||e)} · code check <b class="gsfp">····</b>`);}}
  pull();
- document.addEventListener("visibilitychange",()=>{if(!document.hidden)pull();});}
+ document.addEventListener("visibilitychange",()=>{if(!document.hidden){pull();render();draw();}});}
 </script>
 </body></html>
