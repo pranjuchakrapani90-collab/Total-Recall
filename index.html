@@ -28,6 +28,31 @@ a.app span{font:550 12.5px/1.25 system-ui,-apple-system,"Segoe UI",sans-serif;te
 .badge{position:absolute;top:-6px;right:-6px;min-width:22px;height:22px;padding:0 6px;border-radius:11px;background:#e5322d;color:#fff;font:700 12px/22px system-ui,sans-serif;text-align:center;box-shadow:0 0 0 2px var(--tr-bg);z-index:1}
 .dot{position:absolute;top:-3px;right:-3px;width:14px;height:14px;border-radius:50%;background:#16a34a;box-shadow:0 0 0 2px var(--tr-bg);z-index:1}
 
+
+/* Travel Trace, simplified */
+.tvpanel{display:flex;flex-direction:column;gap:12px}
+.tvtop{display:flex;align-items:center;gap:10px}.tvtop h2{flex:1;margin:0;font:700 19px system-ui,sans-serif}
+.tvctl{display:flex;gap:8px}
+.tvctl select{flex:1;font:600 16px ui-monospace,SFMono-Regular,Menlo,monospace;padding:11px 12px;background:var(--tr-soft)}
+.tvadd{flex:none;display:inline-flex;align-items:center;justify-content:center;padding:0 16px;border-radius:10px;background:var(--tr-acc);color:#fff;font:650 14px system-ui,sans-serif;cursor:pointer;position:relative;overflow:hidden}
+.tvadd input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.tvstatus{margin:-4px 0 0;font-size:12.5px;color:var(--tr-muted)}.tvstatus span:empty{display:none}
+.tvkey summary{cursor:pointer;font-size:12.5px;color:var(--tr-muted)}.tvkey input{margin-top:6px}
+.tvstats{grid-template-columns:repeat(4,minmax(0,1fr))!important;margin:0!important;gap:6px!important}
+.tvstats .travelStat{border:0!important;padding:8px 10px!important;border-radius:10px}
+.tvstats .travelStat b{font:700 15px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace!important;white-space:nowrap}
+.tvpanel .travelMap{height:60vh!important;min-height:340px!important;margin:0}
+.tvpanel .travelPlayback{margin:0;display:flex;flex-direction:column;gap:8px}
+.tvpanel .travelPlaybackRow button{min-width:0!important}
+.tvpanel #travelPlaybackSeek{width:100%}
+.tvpanel .travelPlaybackTime{min-width:0;font-size:13px}
+.tvnotes{display:flex;flex-direction:column;gap:8px;padding:12px 14px;border:1px solid var(--tr-line);border-radius:14px;background:var(--tr-paper)}
+.tvnotes textarea{min-height:0}
+.tvpanel .travelPlaybackRow{flex-wrap:wrap;gap:6px}
+.tvpanel #travelCameraFollow,.tvpanel #travelCameraOverview{font-size:12.5px;padding:8px 10px}
+.tvnotes:has(#travelNoteSave:disabled) textarea,.tvnotes:has(#travelNoteSave:disabled) .row{display:none}
+.tvnotes #travelNoteList:empty{display:none}
+
 /* folders */
 a.app.folder i{background:linear-gradient(150deg,#6d6af0 0%,#4f46e5 48%,#3c32c4 100%)}
 .fstack{position:absolute;right:-4px;bottom:-4px;width:20px;height:20px;border-radius:7px;background:#fff;box-shadow:0 1px 3px #1c1b1940;display:grid;place-items:center;z-index:1}
@@ -110,14 +135,29 @@ a.app.folder i{background:linear-gradient(150deg,#6d6af0 0%,#4f46e5 48%,#3c32c4 
 </section>
 <section id="session" class="hidden"><div class="panel"><div class="row" style="justify-content:space-between"><button id="homeBtn" class="secondary small">← Dashboard</button><span id="progress" class="muted"></span></div><div id="flash" class="flash" style="margin-top:15px"><div class="flashInner"><div class="flashFace flashFront"><span id="source" class="source hidden"></span><div id="counter" class="counter"></div><div id="card" class="name"></div><div id="hint" class="hint"></div></div><div class="flashFace flashBack"><div id="taskReveal" class="taskReveal hidden"></div><div class="flashBackHint">Click to flip back</div></div></div></div><button id="deleteBtn" class="danger small hidden" style="margin-top:10px">Delete this name</button><div class="row" style="justify-content:space-between;margin-top:18px"><button id="back" class="secondary">← Back</button><button id="next">Next →</button></div></div></section>
 <section id="completedSession" class="hidden"><div class="panel"><div class="row" style="justify-content:space-between"><button id="completedHomeBtn" class="secondary small">← Dashboard</button><span id="completedProgress" class="muted"></span></div><div id="completedFlash" class="flash" style="margin-top:15px"><div class="flashInner"><div class="flashFace flashFront"><div id="completedCounter" class="counter"></div><div id="completedCard" class="name"></div><div id="completedHint" class="hint"></div></div><div class="flashFace flashBack"><div id="completedTaskReveal" class="taskReveal hidden"></div><div class="flashBackHint">Click to flip back</div></div></div></div><button id="completedDeleteBtn" class="danger small" style="margin-top:10px">Delete this task</button><div class="row" style="justify-content:space-between;margin-top:18px"><button id="completedBack" class="secondary">← Back</button><button id="completedNext">Next →</button></div></div></section>
-<section id="travelSession" class="hidden"><div class="panel"><div class="row" style="justify-content:space-between"><button id="travelHomeBtn" class="secondary small">← Dashboard</button><span id="travelStatus" class="muted">No travel traces saved yet.</span></div><h2 style="margin-top:18px">🗺️ Travel Trace</h2><p class="muted">Upload GPX tracks from GPS Logger or Google Maps Timeline. Each upload is saved using the first GPS date embedded in the file — not the date you upload it. A single GPX file is kept as one trace and does not spill over into the next calendar day. Multiple GPX files can belong to the same day.</p><div class="travelControls"><div class="travelControl"><label for="travelMapsKey">Google Maps API key</label><input id="travelMapsKey" type="password" placeholder="Paste your browser-restricted Maps API key"></div><div class="travelControl"><label for="travelFile">Add GPX file</label><input id="travelFile" type="file" accept=".gpx,application/gpx+xml,.xml,text/xml"></div><div class="travelControl"><label for="travelDate">Travel date</label><select id="travelDate" disabled><option>No saved dates</option></select></div><div class="travelControl"><label>Device sync</label><div class="travelSyncBox"><button id="travelSyncBtn" class="secondary small">☁ Sync devices</button><span id="travelSyncStatus" class="muted">Uses the same Total Recall sync code as People Recall.</span></div></div></div><div id="travelFilesForDate" class="travelFilesForDate"></div><div class="row" style="margin-top:10px"><button id="travelLoadMap">Load Google Map</button><button id="travelFit" class="secondary" disabled>Fit path</button><button id="travelIdentify" class="secondary" disabled>Identify places</button><button id="travelClear" class="secondary" disabled>Clear view</button></div><div id="travelKeyHint" class="travelNote">GPX timestamps are the source of the travel date. The original GPX file is kept locally in browser storage and, when device sync is enabled, encrypted with your Total Recall sync code before being stored in the cloud sync bridge.</div><div class="travelStats"><div class="travelStat"><b id="travelPointCount">0</b><span>GPS points</span></div><div class="travelStat"><b id="travelDistance">0 km</b><span>Recorded distance</span></div><div class="travelStat"><b id="travelDuration">—</b><span>Recorded span</span></div><div class="travelStat"><b id="travelSegments">0</b><span>Path segments</span></div></div><div id="travelMap" class="travelMap"></div><div id="travelGapNote" class="travelGapNote hidden"></div><div class="travelNoteEditor" style="margin:14px 0;padding:14px;border:1px solid #d9ddf5;border-radius:14px;background:#f8f9ff"><b>📍 Travel memories</b><p class="muted" style="margin:6px 0 10px">Tap a place on the map to pin a memory for this travel date. Your notes stay attached to this date and sync with Total Recall.</p><div id="travelNoteLocation" class="muted">Tap the map to choose a location.</div><textarea id="travelNoteText" rows="3" style="width:100%;margin-top:8px" placeholder="What do you remember about this place?"></textarea><div class="row" style="margin-top:8px"><button id="travelNoteSave" type="button" disabled>Save memory</button><button id="travelNoteCancel" type="button" class="secondary">Cancel</button></div><div id="travelNoteList" style="margin-top:12px"></div></div><div class="travelLegend"><span><i class="legendLine"></i>Recorded trace</span><span><i class="legendGap"></i>Uncertain gap</span><span><i class="legendStop"></i>Stop &gt;5 min</span></div><div class="travelPlayback">
-<div class="travelPlaybackRow">
-<button id="travelPlay" disabled>▶ Play</button><button id="travelReset" class="secondary" disabled>↺ Reset</button>
-<span id="travelPlaybackTime" class="travelPlaybackTime">Playback ready</span>
-<select id="travelPlaybackSpeed" title="Playback speed"><option value="1">1×</option><option value="5">5×</option><option value="20" selected>20×</option><option value="60">60×</option><option value="120">120×</option></select>
+<section id="travelSession" class="hidden"><div class="panel tvpanel">
+<div class="tvtop"><button id="travelHomeBtn" class="secondary small">← Home</button><h2>Travel Trace</h2><button id="travelSyncBtn" class="secondary small" title="Sync devices">☁</button></div>
+<div class="tvctl">
+  <select id="travelDate" disabled aria-label="Travel date"><option>No saved dates</option></select>
+  <label class="tvadd">＋ GPX<input id="travelFile" type="file" accept=".gpx,application/gpx+xml,.xml,text/xml"></label>
+</div>
+<p class="tvstatus"><span id="travelStatus">No travel traces saved yet.</span> <span id="travelSyncStatus"></span></p>
+<details class="tvkey" id="travelKeyBox"><summary>Map key</summary><input id="travelMapsKey" type="password" placeholder="Google Maps API key"></details>
+<div class="travelStats tvstats"><div class="travelStat"><b id="travelDistance">0 km</b><span>distance</span></div><div class="travelStat"><b id="travelDuration">—</b><span>span</span></div><div class="travelStat"><b id="travelPointCount">0</b><span>points</span></div><div class="travelStat"><b id="travelSegments">0</b><span>segments</span></div></div>
+<div id="travelMap" class="travelMap"></div>
+<div class="travelPlayback">
+<div class="travelPlaybackRow"><button id="travelPlay" disabled>▶ Play</button><button id="travelReset" class="secondary" disabled>↺</button><select id="travelPlaybackSpeed" title="Playback speed"><option value="1">1×</option><option value="5">5×</option><option value="20" selected>20×</option><option value="60">60×</option><option value="120">120×</option></select><button id="travelCameraFollow" class="secondary" type="button">🎥 Follow camera: On</button><button id="travelCameraOverview" class="secondary" type="button">🌐 Overview</button></div>
 <input id="travelPlaybackSeek" type="range" min="0" max="0" value="0" disabled>
-</div><div class="travelCameraControls"><button id="travelCameraFollow" class="secondary" type="button">🎥 Follow camera: On</button><button id="travelCameraOverview" class="secondary" type="button">🌐 Overview</button><span id="travelCameraStatus" class="travelCameraStatus">Movie view follows your direction of travel.</span></div><div id="travelPlaybackHint" class="travelPlaybackHint">Play the selected date to watch the recorded GPS position move inside the map.</div>
-</div><div class="travelNote">Accuracy rule: the displayed line uses only recorded GPS points. Large gaps are kept separate rather than inventing a route between them.</div><div class="travelJourney" id="travelJourney"><div class="travelJourneyHead"><h3>🧭 Journey</h3><div class="muted">Relive the selected date chronologically — across all GPX files saved for that date.</div></div><div id="travelJourneyList" class="travelJourneyList"><div class="journeyEmpty">Select a saved travel date.</div></div></div></div></section><section id="done" class="hidden"><div class="panel" style="text-align:center"><h2>🎉 Session complete</h2><p id="doneText" class="muted"></p><button id="doneHome">Dashboard</button></div></section>
+<span id="travelPlaybackTime" class="travelPlaybackTime">Playback ready</span>
+</div>
+<div class="travelNoteEditor tvnotes"><b>📍 Memories</b>
+<div id="travelNoteLocation" class="muted">Tap the map to pin one.</div>
+<textarea id="travelNoteText" rows="2" placeholder="What do you remember about this place?"></textarea>
+<div class="row"><button id="travelNoteSave" type="button" disabled>Save</button><button id="travelNoteCancel" type="button" class="secondary">Cancel</button></div>
+<div id="travelNoteList"></div></div>
+<div class="travelJourney" id="travelJourney"><div class="travelJourneyHead"><h3>🧭 Journey</h3></div><div id="travelJourneyList" class="travelJourneyList"><div class="journeyEmpty">Select a saved travel date.</div></div></div>
+<div hidden><div id="travelFilesForDate"></div><div id="travelKeyHint"></div><div id="travelGapNote" class="hidden"></div><span id="travelCameraStatus"></span><div id="travelPlaybackHint"></div><button id="travelLoadMap"></button><button id="travelFit"></button><button id="travelIdentify"></button><button id="travelClear"></button></div>
+</div></section><section id="done" class="hidden"><div class="panel" style="text-align:center"><h2>🎉 Session complete</h2><p id="doneText" class="muted"></p><button id="doneHome">Dashboard</button></div></section>
 </main><div id="bootError" class="error hidden"></div>
 <script>
 (function(){'use strict';
@@ -999,6 +1039,14 @@ window.addEventListener("hashchange",route);route();badges();
 /* the session screens' "← Dashboard" buttons bring the home back: refresh badges then */
 try{new MutationObserver(badges).observe($("remaining"),{childList:true,characterData:true,subtree:true})}catch(e){}
 document.addEventListener("visibilitychange",function(){if(!document.hidden)badges()});
+})();
+</script>
+<script>
+/* Travel Trace: show the map key box only while no key is saved; a newly entered key loads the map straight away */
+(function(){var $=function(id){return document.getElementById(id)};
+function keyBox(){var k="";try{k=localStorage.getItem("totalRecallGoogleMapsKey_v1")||""}catch(e){}$("travelKeyBox").hidden=!!k;$("travelKeyBox").open=!k;}
+$("startTravelTrace").addEventListener("click",keyBox);
+$("travelMapsKey").addEventListener("change",function(){if(this.value.trim()){$("travelLoadMap").click();setTimeout(keyBox,1500);}});
 })();
 </script>
 
