@@ -91,9 +91,6 @@ details.more[open]>summary{margin-bottom:14px}
     <div class="gbar"><i id="tBar"></i></div>
     <a id="goNext" class="gonext" href="estimates.html"><span class="gi">🔌</span><span><small id="goSm">Next in the trainer</small><b id="goN">Start with the building blocks</b></span><span class="ar">▸</span></a>
     <div class="gweek" id="levels"></div>
-    <div class="months" id="months"></div>
-    <div class="mleg"><span>none</span><i style="background:#f0eee8"></i><i style="background:#ddeeeb"></i><i style="background:#a9d6cf"></i><i style="background:#5fb3a6"></i><i style="background:#0f766e"></i><span>more</span></div>
-    <button type="button" class="linkb" id="moreMonths" hidden>Show earlier months</button>
   </section>
   <nav class="apps" aria-label="Sections">
     <a class="app" href="estimates.html"><i><svg viewBox="0 0 24 24"><path d="M12 3v18M5.5 6.5h13M7.5 10.5h9M9 21h6M6.5 6.5v2M17.5 6.5v2"/></svg></i><span>BoQ Trainer</span></a>
@@ -124,29 +121,7 @@ const nx=lvl<0?null:LV[lvl][2].find(s=>!mastered(s[0]));
 if(lvl<0){$("goSm").textContent="All 44 mastered";$("goN").textContent="Review any structure";$("goNext").classList.add("fin");}
 else if(nx){$("goNext").href="estimates.html#s="+nx[0];$("goSm").textContent=`Next in the trainer · ${LV[lvl][1]}`;$("goN").textContent=(prog[nx[0]]?"Retry: ":"")+nx[1];}
 
-/* activity per day: trainer checks (logged per day from 20 Oct 2026; before that, each structure's last try) + surveys edited that day */
-const ACT={},add=(k,v)=>{ACT[k]=(ACT[k]||0)+v;};
-Object.values(prog).forEach(p=>{if(!p)return;if(p.d&&Object.keys(p.d).length)Object.entries(p.d).forEach(([k,v])=>add(k,v));else if(p.upd)add(dkey(new Date(p.upd)),1);});
 const sv=get("sld-survey-v1")||{},sp=Object.values(sv.projects||{}).filter(p=>!p.del).sort((a,b)=>b.upd-a.upd);
-sp.forEach(p=>{if(p.upd)add(dkey(new Date(p.upd)),2);});
-
-/* month calendars: this month and the two before it, never earlier than October 2026 unless asked */
-const FIRST=new Date(2026,9,1);let extra=0;
-function months(){
-  const now=new Date(),cur=new Date(now.getFullYear(),now.getMonth(),1),list=[];
-  let i=0;for(;i<3;i++){const m=new Date(cur.getFullYear(),cur.getMonth()-i,1);if(i>0&&m<FIRST)break;list.push(m);}
-  const firstData=Object.keys(ACT).sort()[0]||dkey(cur),fd=new Date(+firstData.slice(0,4),+firstData.slice(5,7)-1,1);
-  for(let j=0;j<extra;j++,i++){const m=new Date(cur.getFullYear(),cur.getMonth()-i,1);if(m<fd)break;list.push(m);}
-  const lastKey=dkey(list[list.length-1]),older=Object.keys(ACT).some(k=>k<lastKey),tk=dkey(now);
-  $("months").innerHTML=list.map(m=>{const y=m.getFullYear(),mo=m.getMonth(),days=new Date(y,mo+1,0).getDate(),lead=(m.getDay()+6)%7;
-    let act=0,cells="";for(let q=0;q<lead;q++)cells+=`<span class="dc pad"></span>`;
-    for(let d=1;d<=days;d++){const k=dkey(new Date(y,mo,d)),n=ACT[k]||0;if(n)act++;
-      const lv=k>tk?"fut":n>=10?"l4":n>=6?"l3":n>=3?"l2":n>0?"l1":"l0";
-      cells+=`<span class="dc ${lv}${k===tk?" td":""}" title="${d} ${m.toLocaleDateString(undefined,{month:"short"})}: ${n} check${n===1?"":"s"}">${d}</span>`;}
-    return `<div class="mon"><div class="mh"><b>${m.toLocaleDateString(undefined,{month:"long",year:"numeric"})}</b><span>${act} active day${act===1?"":"s"}</span></div><div class="dow">${["M","T","W","T","F","S","S"].map(x=>`<i>${x}</i>`).join("")}</div><div class="dg">${cells}</div></div>`;}).join("");
-  $("moreMonths").hidden=!older;}
-$("moreMonths").onclick=()=>{extra+=3;months();};
-months();
 
 // BoM Kits and Line Survey
 const bk=get("bomkits")||{},units=bk.units||{},mode=bk.mode||{};
