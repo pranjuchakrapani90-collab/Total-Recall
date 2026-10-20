@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
+<title>JuniorBees PKP · Total Recall &amp; Melodies</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="invest.css?v=20261020">
+<link rel="stylesheet" href="tr-theme.css?v=20261020">
+</head><body class="tr-inv">
+<header><div class="hin">
+  <a class="backlink" href="./#f-invest">← Investments</a>
+  <div class="eyebrow">Investments · SIP + buy in dips</div>
+  <h1>JuniorBees PKP</h1>
+  <p id="sub">Your JuniorBees sheet, read live.</p>
+</div></header>
+<main class="wrap">
+  <div class="bar"><span class="st" id="st">Loading…</span><button id="refresh" class="ghost" type="button">↻ Refresh</button></div>
+  <div id="err" class="err" hidden></div>
+  <div id="out"></div>
+  <details class="card sec" id="setupBox"><summary>Sheet link</summary><div id="setup"></div></details>
+</main>
+<script src="gsync.js?v=20261020"></script>
+<script src="invest.js?v=20261020"></script>
+<script>
+"use strict";
+const I=Invest,{esc,inr,price,pct,signInr,tone,ok,num}=I;
+const KEY="pkp";
+const TABS={pkp:989272078}; // the PKP tab of "Pranju JuniorBees" (tab id only, no link)
+const $=id=>document.getElementById(id);
+
+function read(g){
+  const b=t=>num(g.below(t)),r=t=>num(g.right(t));
+  const P={cmp:r("CMP"),sip:r("SIP Amount"),sipQty:r("SIP Suggested Buy Qty"),
+    units:b("Total Units Holding"),base:b("Base Investment amount"),avg:b("Average Price"),value:b("Current Market Value"),
+    pl:b("Notional Profit"),plp:b("Notional Profit%"),booked:b("Total Booked Profit"),abs:b("Absolute profit%"),xirr:b("XIRR%"),
+    dipBase:b("Buy in dips base amount"),
+    nextBid:b("Next BID#"),nextInv:b("Next BID Investment"),nextPrice:b("Next Purchase Price"),nextQty:b("Purchase qty"),
+    minBook:b("Min Threshold Amount for Profit Booking"),eligible:b("Sell Eligible Units"),tgtPrice:b("Target Sell Price"),tgtUnits:b("Target Sell Units"),
+    bids:[],ledger:[],months:[]};
+  const f=g.find("1st BID"),rn=g.find("BID Number"),ra=g.find("BID Invest Amt"),rp=g.find("BID prices");
+  if(f)for(let c=f[1];g.c(f[0],c);c++)P.bids.push({n:rn?g.n(rn[0],c):P.bids.length+1,pct:g.n(f[0]+1,c),amt:ra?g.n(ra[0],c):NaN,price:rp?g.n(rp[0],c):NaN});
+  let hr=-1;for(let i=0;i<g.rows.length;i++){if(g.c(i,0).startsWith("Buy / Sell Date")&&g.c(i,1).startsWith("Buy Price")){hr=i;break;}}
+  if(hr>=0)for(let i=hr+2;i<g.rows.length;i++){const d=g.c(i,0);if(!d)continue;
+    const bp=g.n(i,1),us=g.n(i,8);
+    if(ok(bp))P.ledger.push({t:"buy",d,price:bp,units:g.n(i,2),bid:g.n(i,3),amt:g.n(i,4),hold:g.n(i,5),avg:g.n(i,7),lot:g.n(i,12)});
+    else if(ok(us))P.ledger.push({t:"sell",d,price:g.n(i,9),units:us,amt:g.n(i,10),hold:g.n(i,5),avg:g.n(i,7)});}
+  let m=null,p=g.find("Buy / Sell Date - Year-Month");while(p){m=p;p=g.find("Buy / Sell Date - Year-Month",{from:p[0]+1});}
+  if(m)for(let i=m[0]+1;i<g.rows.length;i++){const k=g.c(i,m[1]);if(!k||/grand total/i.test(k))break;if(/^\d{4}-/.test(k))P.months.push({m:k,p:g.n(i,m[1]+1)});}
+  return P;}
+
+function month(P){
+  const t=I.ist(),thisM=L=>{const d=I.date(L.d);return d&&d.getMonth()===t.day.getMonth()&&d.getFullYear()===t.day.getFullYear();};
+  const buys=P.ledger.filter(l=>l.t==="buy"&&thisM(l)),sells=P.ledger.filter(l=>l.t==="sell"&&thisM(l));
+  const mName=t.day.toLocaleDateString("en-IN",{month:"long"});
+  const gap=P.nextPrice/P.cmp*100-100,hit=ok(gap)&&gap>=0;
+  const up=P.tgtPrice/P.cmp*100-100,canSell=ok(P.eligible)&&P.eligible>0;
+  const sipAmt=P.sipQty*P.cmp;
+  return `<section class="card hero"><div class="when">${esc(mName)} · CMP ${price(P.cmp)}</div>
+   <div class="big">${canSell?`Book profit: sell ${P.eligible} unit${P.eligible>1?"s":""}`:hit?`BID ${P.nextBid} is live: buy ${P.nextQty}`:buys.length?"SIP done this month":"Monthly SIP due"}</div>
+   <div class="grp"><b><span class="chip buy">SIP</span>${inr(P.sip)} a month</b>
+     ${buys.length?buys.map(l=>`<div class="ord"><span class="s">Bought ${esc(I.short(I.date(l.d)))}</span><span class="q">${l.units} × ${price(l.price)}</span><span class="d">${l.bid>0?"during BID "+l.bid:"regular buy"}</span><span class="d2">${inr(l.amt)}</span></div>`).join("")
+       :`<div class="ord"><span class="s">Buy JUNIORBEES</span><span class="q">${ok(P.sipQty)?P.sipQty:"—"} × ${price(P.cmp)}</span><span class="d">suggested quantity at today's price</span><span class="d2">${ok(sipAmt)?"≈ "+inr(sipAmt):""}</span></div>`}
+   </div>
+   <div class="grp"><b><span class="chip avg">Buy in dips</span>next is BID ${ok(P.nextBid)?P.nextBid:"—"}</b>
+     <div class="ord"><span class="s">${hit?"Buy now":"Wait for"} ${price(P.nextPrice)}</span><span class="q">${ok(P.nextQty)?P.nextQty:"—"} units</span>
+       <span class="d">${hit?"price is at or below the BID level":`needs a further ${pct(-gap)} fall`}</span><span class="d2">${inr(P.nextInv)}</span></div>
+   </div>
+   <div class="grp"><b><span class="chip sell">Profit booking</span></b>
+     <div class="ord"><span class="s">${canSell?"Sell "+P.eligible+" units":"Not yet"}</span><span class="q">${ok(P.tgtUnits)?P.tgtUnits:"—"} @ ${price(P.tgtPrice)}</span>
+       <span class="d">${canSell?"eligible units from the sheet":`target is ${pct(up,1)} above CMP`}</span><span class="d2">min ${inr(P.minBook)}</span></div>
+     ${sells.length?`<div class="none">Sold this month: ${sells.map(s=>`${s.units} on ${esc(I.short(I.date(s.d)))} @ ${price(s.price)}`).join(", ")}</div>`:""}
+   </div></section>`;}
+
+function stats(P){
+  const vsAvg=P.cmp/P.avg*100-100;
+  return `<section class="card"><h2>Holding <small>${ok(P.units)?P.units+" units":""}</small></h2>
+   <div class="kpis">
+    <div><b>${inr(P.value)}</b><span>Market value</span></div>
+    <div><b class="${tone(P.pl)}">${signInr(P.pl)}</b><span>Notional · <span class="${tone(P.plp)}">${pct(P.plp,1)}</span></span></div>
+    <div><b>${inr(P.base)}</b><span>Invested</span></div>
+    <div><b>${price(P.avg)}</b><span>Average price · CMP <span class="${tone(vsAvg)}">${pct(vsAvg,1)}</span></span></div>
+    <div><b class="up">${inr(P.booked)}</b><span>Profit booked</span></div>
+    <div><b>${pct(P.xirr)}</b><span>XIRR · absolute ${pct(P.abs)}</span></div>
+   </div></section>`;}
+
+function ladder(P){
+  if(!P.bids.length)return "";
+  let cmpPut=false,h="";
+  P.bids.forEach(b=>{
+    if(!cmpPut&&ok(P.cmp)&&P.cmp>b.price){h+=`<div class="rung cmp"><span>CMP</span><span class="mono">${price(P.cmp)}</span></div>`;cmpPut=true;}
+    const cls=b.n<P.nextBid?"done":b.n===P.nextBid?"next":"";
+    h+=`<div class="rung ${cls}"><b>${pct(b.pct)}</b><span>BID ${b.n} · ${inr(b.amt)}${cls==="done"?" · passed":cls==="next"?" · next":""}</span><span class="p">${price(b.price)}</span></div>`;});
+  if(!cmpPut)h+=`<div class="rung cmp"><span>CMP</span><span class="mono">${price(P.cmp)}</span></div>`;
+  return `<section class="card"><h2>Buy-in-dips ladder <small>from average ${price(P.avg)}</small></h2><div class="ladder">${h}</div>
+   <p class="small muted" style="margin-top:8px">Each level invests more as the price falls further below your average. Base amount ${inr(P.dipBase)}.</p></section>`;}
+
+function booked(P){
+  if(!P.months.length)return "";
+  const mx=Math.max(...P.months.map(m=>Math.abs(m.p)||0),1);
+  return `<section class="card"><h2>Profit booked by month <small>${inr(P.booked)} in all</small></h2>
+   <div class="bars">${P.months.map(m=>`<div title="${esc(m.m)}: ${inr(m.p)}"><i style="height:${(Math.abs(m.p)/mx*80).toFixed(0)}%"></i><span>${esc(m.m.slice(2).replace("-"," "))}</span></div>`).join("")}</div></section>`;}
+
+let all=false;
+function ledger(P){
+  const L=P.ledger.slice().reverse(),show=all?L:L.slice(0,12);
+  return `<section class="card"><h2>Transactions <small>${P.ledger.filter(l=>l.t==="buy").length} buys · ${P.ledger.filter(l=>l.t==="sell").length} sells</small></h2>
+   <div class="rows">${show.map(l=>`<div class="row"><span><b>${esc(l.d)}</b> <span class="tag ${l.t==="sell"?"ok":""}">${l.t==="sell"?"sell":l.bid>0?"buy · BID "+l.bid:"buy"}</span>
+     <div class="sub">${l.units} × ${price(l.price)} · holding ${ok(l.hold)?l.hold:"—"} · avg ${price(l.avg)}</div></span>
+     <span class="r">${l.t==="sell"?`<span class="up">${signInr(l.amt)}</span><div class="sub">profit</div>`:`${inr(l.amt)}<div class="sub ${tone(l.lot)}">${ok(l.lot)?"lot "+signInr(l.lot):""}</div>`}</span></div>`).join("")}</div>
+   ${L.length>12?`<button class="more" id="lAll" type="button">${all?"Show fewer":"Show all "+L.length}</button>`:""}</section>`;}
+
+function draw(T){
+  const P=read(T.pkp);
+  if(!ok(P.cmp)&&!P.ledger.length)throw new Error("The sheet loaded but the PKP tab wasn't found. Check the link.");
+  $("out").innerHTML=month(P)+stats(P)+ladder(P)+booked(P)+ledger(P);
+  const b=$("lAll");if(b)b.onclick=()=>{all=!all;draw(T);};}
+
+function showErr(m){$("err").hidden=!m;$("err").textContent=m||"";}
+async function refresh(){
+  $("refresh").disabled=true;$("st").textContent="Reading your sheet…";showErr("");
+  try{const T=await I.load(KEY,TABS);draw(T);$("st").textContent="Updated "+I.ago(Date.now());$("setupBox").open=false;}
+  catch(e){const c=I.cached(KEY);
+    if(c){try{draw(c.tabs);}catch(_){}$("st").textContent="Showing data from "+I.ago(c.t);}else $("st").textContent="";
+    showErr(e.message);if(e.nolink||!c)$("setupBox").open=true;}
+  finally{$("refresh").disabled=false;}}
+function setup(){$("setup").innerHTML=I.setupHtml(KEY,"Pranju JuniorBees",["PKP"]);I.bindSetup($("setup"),KEY,refresh);}
+
+$("refresh").onclick=refresh;
+setup();
+const c0=I.cached(KEY);if(c0){try{draw(c0.tabs);$("st").textContent="Showing data from "+I.ago(c0.t);}catch(e){}}
+(async()=>{if(!I.links()[KEY]){if(await I.pullLinks())setup();}refresh();})();
+</script>
+</body></html>

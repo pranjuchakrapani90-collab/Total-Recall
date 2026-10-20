@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
+<title>ETF Shop · Total Recall &amp; Melodies</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="invest.css?v=20261020">
+<link rel="stylesheet" href="tr-theme.css?v=20261020">
+</head><body class="tr-inv">
+<header><div class="hin">
+  <a class="backlink" href="./#f-invest">← Investments</a>
+  <div class="eyebrow">Investments · AMO orders</div>
+  <h1>ETF Shop</h1>
+  <p id="sub">Your ETF Shop sheet, read live.</p>
+</div></header>
+<main class="wrap">
+  <div class="bar"><span class="st" id="st">Loading…</span><button id="refresh" class="ghost" type="button">↻ Refresh</button></div>
+  <div id="err" class="err" hidden></div>
+  <div id="out"></div>
+  <details class="card sec" id="setupBox"><summary>Sheet link</summary><div id="setup"></div></details>
+</main>
+<script src="gsync.js?v=20261020"></script>
+<script src="invest.js?v=20261020"></script>
+<script>
+"use strict";
+const I=Invest,{esc,sym,inr,price,pct,signInr,tone,ok,num}=I;
+const KEY="etf";
+// tab ids in "Pranju ETF shop 20/05/2025" (ids only, no link)
+const TABS={orders:5000,ch:1723719462,sold:1966849105,scan:1938641050,cap:702241107,rules:5002};
+const $=id=>document.getElementById(id);
+
+/* ---------- reading the tabs ---------- */
+function readOrders(g){
+  const o={settings:[],sec:{}};
+  const s=g.find("Settings",{col:0});
+  if(s)for(let r=s[0]+1;r<g.rows.length&&g.c(r,0);r++)o.settings.push([g.c(r,0),g.c(r,1),g.c(r,2)]);
+  const A=[["sell","1. SELL"],["avg","2. AVERAGE"],["buy","3. NEW BUY"],["check","Check these prices"],["trail","Lots with trailing stop"]]
+    .map(([k,t])=>{const p=g.find(t,{col:0,prefix:true});return p?{k,r:p[0]}:null;}).filter(Boolean).sort((a,b)=>a.r-b.r);
+  A.forEach((a,i)=>{const end=i+1<A.length?A[i+1].r:g.rows.length,hasHead=a.k!=="check";
+    const head=hasHead?(g.rows[a.r+1]||[]).map(x=>String(x||"").trim()):[];
+    const rows=[];let msg="";
+    for(let r=a.r+(hasHead?2:1);r<end;r++){const v=g.c(r,0);if(!v)continue;
+      if(/^(no |none)/i.test(v)){msg=msg||v;continue;}
+      const o2={};head.forEach((h,c)=>{if(h)o2[h]=g.c(r,c);});o2._=(g.rows[r]||[]).map(x=>String(x||"").trim());rows.push(o2);}
+    o.sec[a.k]={rows,msg};});
+  return o;}
+function readHoldings(g){
+  const h={kv:{},lots:[],asOf:""};
+  const p=g.find("Investment Capital");
+  if(p){for(let c=0;c<(g.rows[p[0]]||[]).length;c++){const L=g.c(p[0],c);if(L)h.kv[L]=g.c(p[0]+1,c);}
+    const rc=g.find("Remaining Cash",{from:p[0]});if(rc)h.cashPct=g.c(rc[0]+2,rc[1]);}
+  const k=x=>{const f=Object.keys(h.kv).find(K=>K.toLowerCase().startsWith(x.toLowerCase()));return f?num(h.kv[f]):NaN;};
+  h.capital=k("Investment Capital");h.tranche=k("Investment per transaction");h.target=k("Profit Target");h.avgFall=k("Fall% of averaging");
+  h.invested=k("Currently Invested");h.value=k("Current Value");h.pl=k("Overall Notional P/L");h.plPct=k("% Notional P/L");
+  h.count=k("Total Stocks in holding");h.cash=k("Remaining Cash");
+  let hr=-1;for(let r=0;r<g.rows.length;r++){if(g.c(r,0).startsWith("Buy Date")&&g.c(r,1).startsWith("Stock Code")){hr=r;break;}}
+  if(hr>=0){h.asOf=g.c(hr+1,0);
+    for(let r=hr+1;r<g.rows.length;r++){const code=g.c(r,1);if(!code||!ok(g.n(r,2)))continue;
+      h.lots.push({date:g.c(r,0),code,buy:g.n(r,2),qty:g.n(r,3),inv:g.n(r,4),cmp:g.n(r,5),gain:g.n(r,8),newest:g.c(r,9)!=="",gp:g.n(r,10),tgt:g.n(r,12),chg:g.n(r,13)});}}
+  return h;}
+function readScanner(g){
+  const p=g.find("Index group");if(!p)return [];const sc=g.find("Stock Code",{from:p[0]});if(!sc||sc[0]!==p[0])return [];
+  const c=sc[1],out=[];
+  for(let r=p[0]+1;r<g.rows.length;r++){const code=g.c(r,c);if(!code)continue;
+    out.push({code,cmp:g.n(r,c+1),wh:g.n(r,c+2),dist:g.n(r,c+3),chg:g.n(r,c+4),group:g.c(r,c+5),buy:g.c(r,c+6)});}
+  return out;}
+function readSold(g){
+  const s={months:[],trades:[],best:[]};
+  const gt=g.find("Grand Total");
+  if(gt){const c=gt[1];s.profit=g.n(gt[0],c+1);s.charges=g.n(gt[0],c+3);s.tax=g.n(gt[0],c+4);s.growth=g.n(gt[0],c+6);
+    const hd=g.find("Sell - Year-Month",{col:c});
+    for(let r=(hd?hd[0]+1:0);r<gt[0];r++){const m=g.c(r,c);if(!/^\d{4}-/.test(m)||m.startsWith("1899"))continue;
+      s.months.push({m,p:g.n(r,c+1),net:g.n(r,c+6),overall:g.n(r,c+8),ann:g.n(r,c+10)});}
+    const last=s.months[s.months.length-1];if(last){s.ann=last.ann;s.overall=last.overall;}}
+  let hr=-1;for(let r=0;r<g.rows.length;r++){if(g.c(r,0).startsWith("Buy Date")&&g.c(r,1).startsWith("Stock Code")){hr=r;break;}}
+  if(hr>=0)for(let r=hr+1;r<g.rows.length;r++){const code=g.c(r,1);if(!code||!ok(g.n(r,5)))continue;
+    s.trades.push({buyD:g.c(r,0),code,buy:g.n(r,2),qty:g.n(r,3),sell:g.n(r,5),sellD:g.c(r,6),days:g.n(r,8),p:g.n(r,9),pp:g.n(r,10),net:g.n(r,15)});}
+  const b=g.find("COUNTA of Profit Amount");
+  if(b)for(let r=b[0]+1;r<g.rows.length;r++){const code=g.c(r,b[1]-2);if(!code)break;s.best.push({code,p:g.n(r,b[1]-1),n:g.n(r,b[1])});}
+  return s;}
+function readCap(g){const out={adds:[]};out.balance=num(g.below("Current Balance",{prefix:true}));
+  out.added=num(g.right("Total Amount Added"));out.withdrawn=num(g.right("Total Amount Withdrawn"));
+  const h=g.find("Amount Added");if(h)for(let r=h[0]+1;r<g.rows.length;r++){const d=g.c(r,h[1]-1);if(!d)continue;out.adds.push([d,g.n(r,h[1])]);}
+  return out;}
+function readRules(g){const out={rules:[],after:[]};const a=g.find("After each trade",{col:0});
+  for(let r=0;r<g.rows.length;r++){const n=g.c(r,0),t=g.c(r,1);if(/^\d+$/.test(n)&&t)out.rules.push(t);
+    else if(a&&r>a[0]&&n&&t)out.after.push([n,t]);}
+  return out;}
+
+/* ---------- drawing ---------- */
+function ordCard(kind,o){
+  const f=(...ks)=>{for(const k of ks)if(o[k]!=null&&o[k]!=="")return o[k];return "";};
+  const code=f("ETF")||o._[0],qty=f("Qty"),lim=f("Limit price"),close=f("Close");
+  let d="",d2="";
+  if(kind==="sell"){d=`Bought ${f("Buy price")} · gain ${f("Gain %")}`;d2=`high ${f("Highest close")} · stop ${f("Stop level")}`;}
+  else if(kind==="avg"){d=`Close ${close} · ${f("Fall from last buy")} from last buy`;d2=`${f("Lots held")} lots · day ${f("Day change")}`;}
+  else {d=`Close ${close} · ${f("Fall from 52W high")} from 52W high`;d2=`${f("Index group")} · day ${f("Day change")}`;}
+  const amt=num(qty)*num(lim);
+  return `<div class="ord"><span class="s">${esc(sym(code))}<button class="cp" type="button" data-cp="${esc(sym(code))}" title="Copy symbol">⧉</button></span>
+    <span class="q">${esc(qty)} × ${esc(lim)}</span><span class="d">${esc(d)}</span><span class="d2">${ok(amt)?inr(amt):""}</span>
+    <span class="d" style="grid-column:1/-1">${esc(d2)}</span></div>`;}
+function grp(kind,label,chip,sec){
+  if(!sec)return "";const n=sec.rows.length;
+  return `<div class="grp"><b><span class="chip ${chip}">${label}</span>${n?n+(n>1?" orders":" order"):""}</b>
+    ${n?sec.rows.map(o=>ordCard(kind,o)).join(""):`<div class="none">${esc(sec.msg||"Nothing tonight")}</div>`}</div>`;}
+
+function tonight(O,H){
+  const t=I.ist(),S=O.sec,n=k=>(S[k]&&S[k].rows.length)||0,tot=n("sell")+n("avg")+n("buy");
+  let when,big;
+  if(t.weekend){when="Weekend";big=tot?`${tot} AMO order${tot>1?"s":""} for Monday`:"No orders for Monday";}
+  else if(!t.after4){when=`${t.wd} · before the 4 PM close`;big=tot?`Last evening's list: ${tot} order${tot>1?"s":""}`:"Nothing pending from last close";}
+  else {when=`${t.wd} evening · place as AMO limit orders`;big=tot?`${tot} order${tot>1?"s":""} tonight`:"No orders tonight";}
+  const ad=I.date(H.asOf),stale=!t.weekend&&t.after4&&ad&&ad.getTime()!==t.day.getTime();
+  let h=`<section class="card hero"><div class="when">${esc(when)}</div><div class="big">${esc(big)}</div>
+    ${!t.weekend&&!t.after4?`<p class="small muted">Today's list is ready after 4 PM, once closing prices are in. Google Finance can lag up to 20 minutes.</p>`:""}
+    ${stale?`<p class="note">Sheet still shows ${esc(H.asOf)}. Refresh in a few minutes.</p>`:""}
+    ${grp("sell","Sell","sell",S.sell)}${grp("avg","Average","avg",S.avg)}${grp("buy","New buy","buy",S.buy)}`;
+  const ch=S.check;if(ch&&ch.rows.length)h+=`<div class="grp"><b><span class="chip avg">Check price first</span></b>${ch.rows.map(o=>`<div class="none">${esc(o._.filter(Boolean).join(" · "))}</div>`).join("")}</div>`;
+  const tr=S.trail;if(tr&&tr.rows.length)h+=`<div class="grp"><b><span class="chip">Trailing stop on</span>no order tonight</b><div class="rows">${tr.rows.map(o=>
+    `<div class="row"><span><b>${esc(sym(o.ETF||o._[0]))}</b><div class="sub">${esc(o.Qty)} units · bought ${esc(o["Buy price"])} · high ${esc(o["Highest close"])}</div></span>
+     <span class="r"><span class="up">${esc(o["Gain %"])}</span><div class="sub">sell if ≤ ${esc(o["Sell if close falls to"]||o._[6]||"")}</div></span></div>`).join("")}</div></div>`;
+  return h+`</section>`;}
+
+function portfolio(H,C){
+  const cashPct=num(H.cashPct),inv=H.invested/H.capital*100;
+  return `<section class="card"><h2>Portfolio <small>${H.asOf?"prices "+esc(H.asOf):""}</small></h2>
+   <div class="kpis">
+    <div><b>${inr(H.value)}</b><span>Current value</span></div>
+    <div><b class="${tone(H.pl)}">${signInr(H.pl)}</b><span>Notional P/L · <span class="${tone(H.plPct)}">${pct(H.plPct,1)}</span></span></div>
+    <div><b>${inr(H.invested)}</b><span>Invested</span></div>
+    <div><b>${inr(H.capital)}</b><span>Capital</span></div>
+    <div><b>${inr(H.cash)}</b><span>Cash${ok(cashPct)?" · "+pct(cashPct):""}</span></div>
+    <div><b>${inr(H.tranche)}</b><span>Per tranche</span></div>
+   </div>
+   ${ok(inv)?`<div class="meter" title="Capital deployed"><i style="width:${Math.min(100,inv).toFixed(1)}%"></i></div><p class="small muted" style="margin-top:4px">${inv.toFixed(0)}% of capital deployed · ${ok(H.count)?H.count+" lots":""} · target ${pct(H.target*(Math.abs(H.target)<1?100:1))} · average after ${pct(H.avgFall*(Math.abs(H.avgFall)<1?100:1))}</p>`:""}
+   ${C&&ok(C.added)?`<p class="small muted" style="margin-top:6px">Money put in ${inr(C.added)}${C.withdrawn?" · withdrawn "+inr(C.withdrawn):""}${C.adds.length?" ("+C.adds.map(a=>esc(a[0])+": "+inr(a[1])).join(", ")+")":""}</p>`:""}
+  </section>`;}
+
+function realised(S){
+  if(!S||!S.months.length)return "";
+  const mx=Math.max(...S.months.map(m=>Math.abs(m.p)||0),1),last=S.trades.slice().sort((a,b)=>(I.date(b.sellD)||0)-(I.date(a.sellD)||0)).slice(0,5);
+  return `<section class="card"><h2>Booked profit <small>${S.trades.length} sells</small></h2>
+   <div class="kpis">
+    <div><b class="up">${inr(S.profit)}</b><span>Gross profit</span></div>
+    <div><b>${inr(S.growth)}</b><span>After charges &amp; tax</span></div>
+    <div><b>${pct(S.ann)}</b><span>Approx. annualised</span></div>
+   </div>
+   <div class="bars" aria-label="Profit by month">${S.months.map(m=>`<div title="${esc(m.m)}: ${inr(m.p)}"><i class="${m.p<0?"neg":""}" style="height:${(Math.abs(m.p)/mx*80).toFixed(0)}%"></i><span>${esc(m.m.slice(5))}</span></div>`).join("")}</div>
+   <p class="small muted">Charges ${inr(S.charges)} · tax ${inr(S.tax)} · overall ${pct(S.overall)} on max invested</p>
+   ${last.length?`<div class="rows" style="margin-top:8px">${last.map(t=>`<div class="row"><span><b>${esc(sym(t.code))}</b><div class="sub">${esc(t.sellD)} · held ${ok(t.days)?t.days+" d":"—"}</div></span><span class="r"><span class="${tone(t.p)}">${signInr(t.p)}</span><div class="sub">${pct(t.pp*(Math.abs(t.pp)<1?100:1),1)}</div></span></div>`).join("")}</div>`:""}
+   ${S.best.length?`<p class="small muted" style="margin-top:8px">Best earners: ${S.best.slice(0,5).map(b=>esc(sym(b.code))+" "+inr(b.p)).join(" · ")}</p>`:""}
+  </section>`;}
+
+function holdings(H){
+  const by={};H.lots.forEach(l=>{(by[l.code]=by[l.code]||[]).push(l);});
+  const tgt=ok(H.target)?(Math.abs(H.target)<1?H.target*100:H.target):NaN;
+  const G=Object.entries(by).map(([code,L])=>{L.sort((a,b)=>(I.date(a.date)||0)-(I.date(b.date)||0));
+    const nw=L.find(l=>l.newest)||L[L.length-1],inv=L.reduce((a,l)=>a+(l.inv||0),0),val=L.reduce((a,l)=>a+(l.qty*l.cmp||0),0);
+    return {code,L,nw,inv,val,pl:val-inv,plp:inv?(val-inv)/inv*100:NaN,chg:nw.cmp?nw.chg:NaN};})
+   .sort((a,b)=>(b.nw.gp||-99)-(a.nw.gp||-99));
+  return `<section class="card"><h2>Holdings <small>${G.length} ETFs · newest lot vs ${ok(tgt)?pct(tgt):"target"}</small></h2>
+   ${G.map(x=>{const g=x.nw.gp,w=ok(g)&&ok(tgt)&&tgt>0?Math.max(0,Math.min(100,g/tgt*100)):0,neg=ok(g)&&g<0;
+     return `<details class="hold"><summary><span><b>${esc(sym(x.code))}</b> <span class="tag">${x.L.length} lot${x.L.length>1?"s":""}</span>
+       <div class="sub muted">newest <span class="${tone(g)}">${pct(g,1)}</span> · sells from ${price(x.nw.tgt)} · day <span class="${tone(x.chg)}">${pct(x.chg,1)}</span></div></span>
+       <span class="r mono"><span class="${tone(x.pl)}">${signInr(x.pl)}</span><div class="sub">${inr(x.inv)}</div></span>
+       <span class="tbar"><i class="${neg?"neg":""}" style="width:${neg?Math.min(100,Math.abs(g)/20*100):w}%"></i></span></summary>
+       <table class="lots"><tr><th>Bought</th><th>Price</th><th>Qty</th><th>Amount</th><th>Gain</th></tr>
+       ${x.L.map(l=>`<tr><td>${esc(l.date)}</td><td>${price(l.buy)}</td><td>${l.qty}</td><td>${inr(l.inv)}</td><td class="${tone(l.gp)}">${pct(l.gp,1)}</td></tr>`).join("")}
+       <tr><td>Now</td><td>${price(x.nw.cmp)}</td><td></td><td>${inr(x.val)}</td><td class="${tone(x.plp)}">${pct(x.plp,1)}</td></tr></table></details>`;}).join("")}
+  </section>`;}
+
+let showAll=false;
+function watch(scan,O){
+  if(!scan.length)return "";
+  const minS=O.settings.find(s=>/minimum fall from 52W/i.test(s[0])),min=minS?num(minS[1]):-10;
+  const L=scan.filter(s=>ok(s.dist)).sort((a,b)=>a.dist-b.dist),show=showAll?L:L.slice(0,12);
+  return `<section class="card"><h2>Watchlist <small>most fallen from 52-week high · buy zone ${pct(min)}</small></h2>
+   <div class="rows">${show.map(s=>{const zone=s.dist<=min,hold=/hold/i.test(s.buy);
+     return `<div class="row"><span><b>${esc(sym(s.code))}</b> ${hold?`<span class="tag">hold only</span>`:zone&&s.chg>0?`<span class="tag ok">in zone · green</span>`:zone?`<span class="tag ok">in zone</span>`:""}
+       <div class="sub">${esc(s.group)}</div></span>
+       <span class="r"><span class="${zone?"dn":""}">${pct(s.dist,1)}</span><div class="sub">${price(s.cmp)} · <span class="${tone(s.chg)}">${pct(s.chg,1)}</span></div></span></div>`;}).join("")}</div>
+   ${L.length>12?`<button class="more" type="button" id="wAll">${showAll?"Show fewer":"Show all "+L.length}</button>`:""}
+  </section>`;}
+
+function rules(R,O){
+  if(!R||!R.rules.length)return "";
+  return `<details class="card sec"><summary>Rules &amp; settings</summary>
+   <ol class="rules">${R.rules.map(r=>`<li>${esc(r)}</li>`).join("")}</ol>
+   ${R.after.length?`<p class="small" style="margin:12px 0 4px"><b>After each trade</b></p><dl class="kv" style="grid-template-columns:auto 1fr">${R.after.map(a=>`<dt>${esc(a[0])}</dt><dd style="font-family:var(--body);text-align:left">${esc(a[1])}</dd>`).join("")}</dl>`:""}
+   ${O.settings.length?`<dl class="kv">${O.settings.map(s=>`<dt>${esc(s[0])}</dt><dd>${esc(s[1])}</dd>`).join("")}</dl>`:""}
+  </details>`;}
+
+let data=null;
+function draw(T){
+  const O=readOrders(T.orders),H=readHoldings(T.ch),S=T.sold?readSold(T.sold):null,SC=T.scan?readScanner(T.scan):[],C=T.cap?readCap(T.cap):null,R=T.rules?readRules(T.rules):null;
+  if(!H.lots.length&&!O.settings.length)throw new Error("The sheet loaded but its tabs don't look like the ETF Shop (Orders, Current Holdings). Check the link.");
+  $("out").innerHTML=tonight(O,H)+portfolio(H,C)+holdings(H)+watch(SC,O)+realised(S)+rules(R,O);
+  const w=$("wAll");if(w)w.onclick=()=>{showAll=!showAll;draw(T);};
+  document.querySelectorAll("[data-cp]").forEach(b=>b.onclick=e=>{e.preventDefault();try{navigator.clipboard.writeText(b.dataset.cp);b.textContent="✓";setTimeout(()=>b.textContent="⧉",1200);}catch(_){}});}
+
+function showErr(m){$("err").hidden=!m;$("err").textContent=m||"";}
+async function refresh(){
+  $("refresh").disabled=true;$("st").textContent="Reading your sheet…";showErr("");
+  try{const T=await I.load(KEY,TABS);draw(T);data=T;$("st").textContent="Updated "+I.ago(Date.now());$("setupBox").open=false;}
+  catch(e){const c=I.cached(KEY);
+    if(c){try{draw(c.tabs);}catch(_){}$("st").textContent="Showing data from "+I.ago(c.t);}else $("st").textContent="";
+    showErr(e.message);if(e.nolink||!c)$("setupBox").open=true;}
+  finally{$("refresh").disabled=false;}}
+function setup(){$("setup").innerHTML=I.setupHtml(KEY,"Pranju ETF shop 20/05/2025",["Orders","Current Holdings","Sold","Scanner","Capital Management","Rules"]);I.bindSetup($("setup"),KEY,refresh);}
+
+$("refresh").onclick=refresh;
+setup();
+const c0=I.cached(KEY);if(c0){try{draw(c0.tabs);$("st").textContent="Showing data from "+I.ago(c0.t);}catch(e){}}
+(async()=>{if(!I.links()[KEY]){if(await I.pullLinks())setup();}refresh();})();
+</script>
+</body></html>
