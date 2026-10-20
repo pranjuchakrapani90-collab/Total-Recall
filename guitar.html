@@ -2369,7 +2369,7 @@ function outNode(){ // master: level -> make-up gain -> limiter -> soft clip, so
     lim.threshold.value=-6;lim.knee.value=4;lim.ratio.value=20;lim.attack.value=0.001;lim.release.value=0.1;
     const n=2048,cv=new Float32Array(n);for(let i=0;i<n;i++){const x=(i/(n-1)*2-1)*4;cv[i]=Math.tanh(1.5*x)/Math.tanh(1.5);}sc.curve=cv;sc.oversample="4x";
     const pre=ctx.createGain();pre.gain.value=.25; // the curve spans ±4, so peaks above full scale round off smoothly instead of flattening
-    trim.gain.value=0.9;
+    trim.gain.value=0.8;
     vol.connect(mk).connect(lim).connect(pre).connect(sc).connect(trim).connect(dest);
     MASTER=vol;MASTER._dest=dest;MASTER._drum=null;}
   MASTER.gain.value=S.vMaster!=null?S.vMaster:1;
@@ -2844,5 +2844,5 @@ function restartInNewFormat(old){
 })();
 </script>
 
-<script src="plan.js"></script><script>GSPlan.watch("ml",{live:()=>play?(performance.now()-(play.lf||play.t0))/1000:0,playing:()=>!!play,stop:()=>stop()});</script>
+<script src="plan.js?v=20261020c"></script><script>GSPlan.watch("ml",{live:()=>play?(performance.now()-(play.lf||play.t0))/1000:0,playing:()=>!!play,stop:()=>stop()});</script>
 </body></html>

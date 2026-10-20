@@ -88,6 +88,7 @@ details.primer summary{cursor:pointer;font-weight:650}
   <p id="syncLine" style="margin-top:8px;font-size:12px;opacity:.9"></p>
 </div></header>
 <main class="wrap" id="app"></main>
+<p style="text-align:center;font-size:11px;color:#94a3b8;margin:4px 0 90px">Soloing Course · version 20 Oct 2026 (c) · sound fix 2</p>
 <div class="transport" id="transport" hidden></div>
 <script>
 "use strict";
@@ -350,7 +351,7 @@ function audio(){if(!ctx)ctx=new (window.AudioContext||window.webkitAudioContext
 function out(){if(!MASTER||MASTER.context!==ctx){const g=ctx.createGain(),comp=ctx.createDynamicsCompressor(),mk=ctx.createGain();g.gain.value=.42;
   comp.threshold.value=-12;comp.knee.value=10;comp.ratio.value=5;comp.attack.value=.004;comp.release.value=.2;mk.gain.value=1.8;
   const sc=ctx.createWaveShaper(),pre=ctx.createGain(),trim=ctx.createGain(),n=2048,cv=new Float32Array(n);
-  for(let i=0;i<n;i++){const x=(i/(n-1)*2-1)*4;cv[i]=Math.tanh(x);}sc.curve=cv;sc.oversample="4x";pre.gain.value=.25;trim.gain.value=.9;
+  for(let i=0;i<n;i++){const x=(i/(n-1)*2-1)*4;cv[i]=Math.tanh(x);}sc.curve=cv;sc.oversample="4x";pre.gain.value=.25;trim.gain.value=.7;
   g.connect(comp).connect(mk).connect(pre).connect(sc).connect(trim).connect(ctx.destination);MASTER=g;}return MASTER;}
 function pluckBuf(m,bright){const k=m+"@"+ctx.sampleRate+(bright?"b":"");if(cache[k])return cache[k];
   const sr=ctx.sampleRate,len=Math.floor(sr*2.6),buf=ctx.createBuffer(1,len,sr),d=buf.getChannelData(0);
@@ -393,16 +394,21 @@ function chordTones(c,key){const r=key+MAJ[c],third=key+MAJ[(c+2)%7],fifth=key+M
 let play=null;
 function stop(){if(play){clearInterval(play.timer);cancelAnimationFrame(play.raf);play=null;save();}nodes.forEach(n=>{try{n.stop();}catch(e){}});nodes=[];
   document.querySelectorAll(".bar.play").forEach(e=>e.classList.remove("play"));renderTransport();}
-function start(a,b,src){stop();audio();if(!src){load();const s=S();src={key:s.key,tempo:s.tempo,ch:C16,bars:s.bars};}const spb=60/src.tempo,t0=ctx.currentTime+.12+4*spb;
+/* climb: the first time round starts 20 bpm under the goal (never below 40) and each time round is 4 bpm faster, up to the goal */
+const loopTempo=(src,i)=>src.climb?Math.min(src.tempo,Math.max(40,src.tempo-20)+4*i):src.tempo;
+function start(a,b,src){stop();audio();if(!src){load();const s=S();src={key:s.key,tempo:s.tempo,ch:C16,bars:s.bars};}const spb=60/loopTempo(src,0),t0=ctx.currentTime+.12+4*spb;
   for(let k=0;k<4;k++)hat(ctx.currentTime+.12+k*spb,k===0); // count-in: four hi-hat clicks
-  play={a,b,t0,spb,src,len:(b-a+1)*4,it:-1,timer:0,raf:0,last:ctx.currentTime};
-  const sched=()=>{if(!play)return;const now=ctx.currentTime,next=play.it+1,ts=play.t0+next*play.len*play.spb;
-    if(now>ts-1.2){play.it=next;scheduleLoop(ts);}
+  play={a,b,t0,spb,src,len:(b-a+1)*4,it:-1,timer:0,raf:0,last:ctx.currentTime,nextTs:t0,loops:[]};
+  const sched=()=>{if(!play)return;const now=ctx.currentTime;
+    if(now>play.nextTs-1.2){play.it++;const bpm=loopTempo(play.src,play.it);play.spb=60/bpm;const ts=play.nextTs;play.loops.push({ts,spb:play.spb,bpm});if(play.loops.length>4)play.loops.shift();
+      scheduleLoop(ts);play.nextTs=ts+play.len*play.spb;}
     /* minutes count only while the band is playing */
     const dt=now-play.last;play.last=now;if(now>play.t0&&dt>0&&dt<1){const k=dkey(new Date());st.days[k]=Math.round(((st.days[k]||0)+dt)*10)/10;
       if(now-(play.sv||0)>3){play.sv=now;save(true);}}}; // keep the minutes on the phone every few seconds, for the cycle timer
   play.timer=setInterval(sched,50);sched();
-  const draw=()=>{if(!play)return;const pos=(ctx.currentTime-play.t0)/play.spb;let bar=-1;if(pos>=0)bar=play.a+Math.floor((pos%play.len)/4);
+  const draw=()=>{if(!play)return;const now=ctx.currentTime,L=[...play.loops].reverse().find(x=>x.ts<=now);let bar=-1;
+    if(L){const pos=(now-L.ts)/L.spb;if(pos>=0&&pos<play.len)bar=play.a+Math.floor(pos/4);}
+    const tn=document.getElementById("ctNow");if(tn){const tx=L?`Now ♩${L.bpm}`:play.loops[0]?`Count-in · ♩${play.loops[0].bpm}`:"";if(tn.textContent!==tx)tn.textContent=tx;}
     document.querySelectorAll(".bar").forEach(e=>e.classList.toggle("play",e.dataset.cb!=null?(e.dataset.cex===play.cex&&+e.dataset.cb===bar):+e.dataset.bar===bar));
     if(view==="jam"){const el=document.getElementById("jamT"),left=Math.max(0,120-Math.max(0,ctx.currentTime-play.t0));if(el)el.textContent=GSPlanMM(left);
       const ce=document.getElementById("jamC");if(ce&&bar>=0)ce.textContent=chordName(play.src.ch[bar],play.src.key);
@@ -726,9 +732,9 @@ function syncCard(){const on=!!syncCode();return `<section class="card"><div cla
 
 render();setSync(syncCode()?"busy":"off");cloudSync().then(ch=>{if(ch&&!play)render();});
 </script>
-<script src="triad-course.js"></script>
-<script src="soloing-course.js"></script>
+<script src="triad-course.js?v=20261020c"></script>
+<script src="soloing-course.js?v=20261020c"></script>
 <script>render();</script>
-<script src="plan.js"></script><script>GSPlan.watch("sc",{live:()=>0,playing:()=>!!play,stop:()=>{stop();render();}});
+<script src="plan.js?v=20261020c"></script><script>GSPlan.watch("sc",{live:()=>0,playing:()=>!!play,stop:()=>{stop();render();}});
 setInterval(()=>{const el=document.getElementById("hToday");if(!el)return;const k=dkey(new Date());el.textContent=Math.floor(GSPlan.today().reduce((a,r)=>a+r.sec,0)/60);},2000);</script>
 </body></html>

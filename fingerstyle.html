@@ -2,7 +2,7 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Fingerstyle Solo · Guitar Studio</title>
 <script src="gsync.js"></script>
-<script src="fs-course.js"></script>
+<script src="fs-course.js?v=20261020c"></script>
 <link rel="manifest" href="manifest.webmanifest">
 <style>
 :root{
@@ -312,7 +312,7 @@ function audio(){if(!ctx)ctx=new (window.AudioContext||window.webkitAudioContext
 function out(){if(!MASTER||MASTER.context!==ctx){const g=ctx.createGain(),comp=ctx.createDynamicsCompressor(),mk=ctx.createGain();g.gain.value=.6;
   comp.threshold.value=-12;comp.knee.value=10;comp.ratio.value=5;comp.attack.value=.004;comp.release.value=.2;mk.gain.value=2;
   const sc=ctx.createWaveShaper(),pre=ctx.createGain(),trim=ctx.createGain(),n=2048,cv=new Float32Array(n);
-  for(let i=0;i<n;i++){const x=(i/(n-1)*2-1)*4;cv[i]=Math.tanh(x);}sc.curve=cv;sc.oversample="4x";pre.gain.value=.25;trim.gain.value=.9;
+  for(let i=0;i<n;i++){const x=(i/(n-1)*2-1)*4;cv[i]=Math.tanh(x);}sc.curve=cv;sc.oversample="4x";pre.gain.value=.25;trim.gain.value=.75;
   g.connect(comp).connect(mk).connect(pre).connect(sc).connect(trim).connect(ctx.destination);MASTER=g;}return MASTER;}
 function pluckBuf(m){const k=m+"@"+ctx.sampleRate;if(cache[k])return cache[k];
   const sr=ctx.sampleRate,len=Math.floor(sr*2.4),buf=ctx.createBuffer(1,len,sr),d=buf.getChannelData(0);
@@ -534,5 +534,5 @@ if(q&&byId(q))view={k:"lesson",id:q};
 render();
 cloudSync();
 </script>
-<script src="plan.js"></script><script>GSPlan.watch("fs",{live:()=>play?(performance.now()-play.lf)/1000:0,playing:()=>!!play,stop:()=>stop()});</script>
+<script src="plan.js?v=20261020c"></script><script>GSPlan.watch("fs",{live:()=>play?(performance.now()-play.lf)/1000:0,playing:()=>!!play,stop:()=>stop()});</script>
 </body></html>

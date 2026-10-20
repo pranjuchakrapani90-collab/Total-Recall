@@ -44,21 +44,18 @@ const C=[
       {t:"Only the roots",how:"Find every root in the shape and play just those, two beats each.",gen:v=>{const c=cx(v),rs=c.P.filter(p=>p.deg===0);return ex(c,I(2),bars([...rs,...rs.slice().reverse()].map(p=>nt(p,H,{v:1}))));}},
       {t:"Thirds up and down",how:"Skip one note each time: 1-3, 2-4, 3-5… up the shape, then back down the same way, in eighth notes.",gen:v=>{const c=cx(v),u=[];for(let i=0;i+2<c.N;i++)u.push(c.P[i],c.P[i+2]);const d=[];for(let i=c.N-1;i-2>=0;i--)d.push(c.P[i],c.P[i-2]);return ex(c,I(8),bars([...u,...d].map(p=>nt(p,E))));}},
       {t:"Chord tones only",how:"Only the 1, 3 and 5 of the key (the notes of the I chord) up and down the shape. These are the safest landing notes in any solo.",gen:v=>{const c=cx(v),t=c.P.filter(p=>[0,2,4].includes(p.deg));return ex(c,I(4),bars([...t,...t.slice(0,-1).reverse()].map((p,i)=>nt(p,Q,p.deg===0?{ac:1}:null))));}}]},
- {id:"1.2",t:"The shapes in all 12 keys",what:"The same five shapes moved to every key. For each key: its roots, then the shape up and down, one shape at a time up the neck.",
-  why:"A shape is only useful if you can find it in any key. Once each shape sits under your hand in all 12 keys, every later lesson works anywhere on the neck.",allKeys:1,
-  ex:[{t:"Roots, then up and down",how:"Play the roots of the shape (two beats each), then every note up and back down in eighth notes. Say the key's name on each root.",gen:v=>{const c=cx(v),rs=c.P.filter(p=>p.deg===0);return ex(c,I(8),[...bars(rs.map(p=>nt(p,H,{ac:1}))),...bars([...c.P,...c.P.slice(0,-1).reverse()].map(p=>nt(p,E)))]);}}]},
- {id:"1.3",t:"Play in time",what:"Playing exactly with the band: starting together, staying together, stopping together.",
+ {id:"1.2",t:"Play in time",what:"Playing exactly with the band: starting together, staying together, stopping together.",
   why:"Time is the first thing a listener hears. Simple notes in perfect time sound better than fancy notes out of time.",
   ex:[{t:"One note, four beats",how:"The root on every beat for two bars, then rest two bars. Start exactly with the band after the count-in.",gen:v=>{const c=cx(v),r=dI(c,0,lo(c));return ex(c,I(4),[Array(4).fill(0).map(()=>N_(c,r,Q)),Array(4).fill(0).map(()=>N_(c,r,Q,{v:1})),[],[]]);}},
       {t:"Eighths up and down",how:"Four notes up and four down in eighth notes, every bar the same.",gen:v=>{const c=cx(v),i=lo(c);return ex(c,I(4),Array(4).fill(0).map(()=>line(c,i,[0,1,1,1,-1,-1,-1,0],[E])));}},
       {t:"Stop together",how:"One bar of notes, one bar of silence. The silence has to be exact too.",gen:v=>{const c=cx(v),i=mid(c);return ex(c,I(4),[line(c,i,[0,1,1,-2],[Q]),[],line(c,i,[0,-1,-1,2],[Q]),[]]);}}]},
- {id:"1.4",t:"Three-note melodies",what:"Melodies made from only three neighbouring notes of the shape.",
+ {id:"1.3",t:"Three-note melodies",what:"Melodies made from only three neighbouring notes of the shape.",
   why:"Limits free you up. With three notes you can only make music with rhythm and order, and that's exactly what you need to learn first.",
   ex:[{t:"Up and hold",how:"Three notes up: quarter, quarter, then a long note. Repeat with small changes.",gen:v=>{const c=cx(v),i=lo(c);return ex(c,I(4),[line(c,i,[0,1,1],[Q,Q,H]),line(c,i,[2,-1,-1],[Q,Q,H]),line(c,i,[0,1,1],[Q,Q,H]),line(c,i,[1,1,-2],[Q,Q,H])]);}},
       {t:"Quick-quick-slow",how:"Two eighths and a long note.",gen:v=>{const c=cx(v),i=lo(c)+1;return ex(c,I(4),[line(c,i,[0,1,1],[E,E,DQ+Q]),line(c,i,[0,1,1],[E,E,DQ+Q]),line(c,i,[2,-1,-1],[E,E,DQ+Q]),line(c,i,[1,-1,0],[Q,Q,H],[0,0,{v:1}])]);}},
       {t:"Dotted rhythm",how:"Long-short pairs (dotted quarter + eighth). It gives a lilt.",gen:v=>{const c=cx(v),i=mid(c)-1;return ex(c,I(4),[line(c,i,[0,1,1,-1],[DQ,E,DQ,E]),line(c,i,[0,2,-1],[DQ,E,H]),line(c,i,[2,-1,-1,1],[DQ,E,DQ,E]),line(c,i,[1,-1],[DQ,E+H],[0,{v:1}])]);}},
       {t:"Your three, your rhythm",how:"Play the example, then mute 🎸 and make up your own rhythms with the same three notes.",gen:v=>{const c=cx(v),i=mid(c);return ex(c,I(4),[line(c,i,[0,1,-1,1,1],[E,E,Q,E,E+Q]),line(c,i,[2,-2],[H,H]),line(c,i,[0,0,1,1],[E,E,Q,H]),line(c,i,[2,-1,-1],[Q,E,E+H],[0,0,{v:1}])]);}}]},
- {id:"1.5",t:"Ending on the root",what:"Short phrases that come to rest on the root.",
+ {id:"1.4",t:"Ending on the root",what:"Short phrases that come to rest on the root.",
   why:"The root sounds like home. Ending a phrase there tells the listener 'that sentence is finished'.",
   ex:[{t:"Step down to the root",how:"Four notes stepping down, landing long on the root.",gen:v=>{const c=cx(v),r=dI(c,0,mid(c));return ex(c,I(4),[line(c,r+3,[0,-1,-1,-1],[Q,Q,Q,Q]),line(c,r,[0],[W],[{v:1}]),line(c,r+3,[0,-1,-1,-1],[E,E,Q,H],[0,0,0,{v:1}]),[]]);}},
       {t:"Step up to the root",how:"From below up into the root.",gen:v=>{const c=cx(v),r=dI(c,0,mid(c));return ex(c,I(4),[line(c,r-3,[0,1,1,1],[Q,Q,Q,Q]),line(c,r,[0],[W],[{v:1}]),line(c,r-2,[0,1,1],[E,E,DQ+Q],[0,0,{v:1}]),[]]);}},
@@ -238,36 +235,39 @@ const C=[
  {id:"10.5",t:"Your solos",what:"Everything you've written, saved and synced. Open one to play it with the band, change it, or improvise over it with your part muted.",
   why:"Going back to old solos shows your progress, and playing them is great practice.",ex:[],turn:"lib"}]}];
 
-/* ===================== exhaustive expansion =====================
-   Every exercise is laid out in full instead of hidden behind "New example":
-   · scale exercises: one per CAGED shape (C, A, G, E, D), grouped shape by shape;
-   · triad exercises on one string set: one per string set (e B G · B G D · G D A · D A E);
-   · lesson 1.2: every shape in all 12 keys.
-   Each lesson has a home key; lessons walk the circle of fifths so the course visits all 12 keys,
-   and "New example ↻" plays the same exercise in the next key. */
-const CIRCLE=[0,7,2,9,4,11,6,1,8,3,10,5];
+/* ===================== exhaustive expansion, key by key =====================
+   Every lesson is laid out in full and worked key by key: pick a key (C first, then C♯/D♭, D … B), play every
+   exercise of the lesson in that key in all five CAGED shapes (triad work: all four string sets), then the next
+   key opens by itself. When all 12 keys are done the lesson is complete and the next lesson opens. */
+const KORD=[0,1,2,3,4,5,6,7,8,9,10,11];
 const SHORD=[0,1,2,3,4];
+const KLAB=k=>({1:"C♯/D♭",6:"F♯/G♭"})[k]||keyName(k);
 function trace(g){window.__TRACE={sets:new Set(),cx:0};try{g(0);}catch(e){}const t=window.__TRACE;window.__TRACE=null;return t;}
-function inst(base,o){return Object.assign({},base,o,{gen:v=>{window.__CK=o.key!=null?o.key:CIRCLE[((o.lk+v)%12+12)%12];window.__CSH=o.sh!=null?o.sh:null;window.__TMAP=o.set?{[o.S]:o.set}:null;
+function inst(base,o){return Object.assign({},base,o,{gen:v=>{window.__CK=o.key;window.__CSH=o.sh!=null?o.sh:null;window.__TMAP=o.set?{[o.S]:o.set}:null;
   try{const r=base.gen(v);if(o.set&&r.info)r.info=r.info.split(T.SETS[o.S]).join(T.SETS[o.set]);return r;}finally{window.__CK=window.__CSH=window.__TMAP=null;}}});}
-let lk=0;
-C.forEach(m=>m.lessons.forEach(l=>{if(l.turn||!l.ex.length)return;const raw=l.ex,out=[],home=lk%12;lk++;
-  if(l.allKeys){CIRCLE.forEach(k=>SHORD.forEach(sh=>raw.forEach((e,d)=>out.push(inst(e,{id:`${l.id}.k${k}.${CAGED[sh].n}`,g:keyName(k)+" major",sub:CAGED[sh].n+" shape",key:k,sh,fixed:1})))));l.ex=out;return;}
-  l.home=CIRCLE[home];
-  const tr=raw.map(e=>trace(e.gen));
-  if(tr.some(t=>t.cx)){SHORD.forEach(sh=>raw.forEach((e,d)=>{if(tr[d].cx)out.push(inst(e,{id:`${l.id}.${d+1}.${CAGED[sh].n}`,g:CAGED[sh].n+" shape",lk:home,sh}));}));
-    raw.forEach((e,d)=>{if(!tr[d].cx)out.push(inst(e,{id:`${l.id}.${d+1}`,g:"More",lk:home}));});}
-  else{const S1=raw.map((e,d)=>tr[d].sets.size===1?[...tr[d].sets][0]:0);
-    if(S1.some(x=>x)){[1,2,3,4].forEach(set=>raw.forEach((e,d)=>{if(S1[d])out.push(inst(e,{id:`${l.id}.${d+1}.s${set}`,g:T.SETS[set].replace(/^strings /,"strings "),lk:home,set,S:S1[d]}));}));
-      raw.forEach((e,d)=>{if(!S1[d])out.push(inst(e,{id:`${l.id}.${d+1}`,g:"Across string sets",lk:home}));});}
-    else raw.forEach((e,d)=>out.push(inst(e,{id:`${l.id}.${d+1}`,g:"Exercises",lk:home})));}
+C.forEach(m=>m.lessons.forEach(l=>{if(l.turn||!l.ex.length)return;const raw=l.ex,out=[];
+  const tr=raw.map(e=>trace(e.gen)),cxs=tr.some(t=>t.cx),S1=raw.map((e,d)=>!tr[d].cx&&tr[d].sets.size===1?[...tr[d].sets][0]:0);
+  l.per=cxs?"shape":S1.some(x=>x)?"set":"";l.drills=raw.length;
+  KORD.forEach(k=>{const P=`${l.id}.k${k}`;
+    if(cxs){SHORD.forEach(sh=>raw.forEach((e,d)=>{if(tr[d].cx)out.push(inst(e,{id:`${P}.${d+1}.${CAGED[sh].n}`,kg:k,g:CAGED[sh].n+" shape",key:k,sh}));}));
+      raw.forEach((e,d)=>{if(!tr[d].cx)out.push(inst(e,{id:`${P}.${d+1}`,kg:k,g:"More",key:k}));});}
+    else if(S1.some(x=>x)){[1,2,3,4].forEach(set=>raw.forEach((e,d)=>{if(S1[d])out.push(inst(e,{id:`${P}.${d+1}.s${set}`,kg:k,g:T.SETS[set],key:k,set,S:S1[d]}));}));
+      raw.forEach((e,d)=>{if(!S1[d])out.push(inst(e,{id:`${P}.${d+1}`,kg:k,g:"Across string sets",key:k}));});}
+    else raw.forEach((e,d)=>out.push(inst(e,{id:`${P}.${d+1}`,kg:k,g:"Exercises",key:k})));});
   l.ex=out;}));
-/* progress from before the expansion: an old "lesson.n" tick becomes that exercise in the shape / string set it was played in */
-function migrate(D){if(st.course.mig>=2)return;const old={"1.2":"1.3","1.3":"1.4","1.4":"1.5"};
-  Object.keys(D).forEach(id=>{const m=id.match(/^(\d+)\.(\d+)\.(\d+)$/);if(!m)return;let L=m[1]+"."+m[2];if(m[1]==="1"&&old[L])L=old[L];
-    const f=findL(L);if(!f)return;const cand=[`${L}.${m[3]}.C`,`${L}.${m[3]}.s1`,`${L}.${m[3]}`].find(x=>f.l.ex.some(e=>e.id===x))
-      ||f.l.ex.map(e=>e.id).find(x=>x.startsWith(`${L}.${m[3]}.`));
-    const t=D[id];delete D[id];if(cand&&!D[cand])D[cand]=t;});st.course.mig=2;}
+/* earlier progress keeps its place:
+   · ticks from the very first version (lesson.n, played in C, C shape) → key C;
+   · ticks from 20 Oct (lesson.n.shape, each lesson in its own home key; module 1 numbered 1.1, 1.2 all-keys, 1.3–1.5) → that key. */
+function migrate(D){const v=st.course.mig||0;if(v>=3)return;const NL=C.flatMap(m=>m.lessons).filter(l=>!l.turn&&l.ex.length).map(l=>l.id);
+  const toOld={"1.2":"1.3","1.3":"1.4","1.4":"1.5"},toNew={"1.3":"1.2","1.4":"1.3","1.5":"1.4"},CIRC=[0,7,2,9,4,11,6,1,8,3,10,5];
+  const oldOrder=[NL[0],"1.2*",...NL.slice(1).map(x=>toOld[x]||x)],home=o=>CIRC[oldOrder.indexOf(o)%12];
+  const has=id=>allEx().some(x=>x.id===id),put=(id,t)=>{if(id&&has(id)&&!D[id])D[id]=t;};
+  Object.keys(D).forEach(id=>{const t=D[id];let m;
+    if(v<2&&(m=id.match(/^(\d+\.\d+)\.(\d+)$/))){delete D[id];const L=m[1];[`${L}.k0.${m[2]}.C`,`${L}.k0.${m[2]}.s1`,`${L}.k0.${m[2]}`].some(x=>{if(has(x)){put(x,t);return true;}return false;});return;}
+    if(v===2){delete D[id];if(/^1\.2\.k\d+\./.test(id))return; // the old all-keys lesson is folded into every lesson
+      m=id.match(/^(\d+\.\d+)\.(\d+)(?:\.([A-Za-z0-9]+))?$/);if(!m)return;const L=toNew[m[1]]||m[1],k=home(m[1]);if(k==null||isNaN(k))return;
+      put(`${L}.k${k}.${m[2]}${m[3]?"."+m[3]:""}`,t);}});
+  st.course.mig=3;}
 
 /* ===================== state, rendering, actions ===================== */
 const allEx=()=>C.flatMap(m=>m.lessons.flatMap(l=>l.ex.map(e=>({id:e.id,e,l,m}))));
@@ -300,7 +300,7 @@ const ctempo=()=>{st.course=st.course||{done:{}};return st.course.tempo||66;};
 function renderSyllabus(){const D=done(),A=allEx(),tot=A.length,n=A.filter(x=>D[x.id]).length,nx=nextLesson(),nL=C.reduce((a,m)=>a+m.lessons.length,0);
   return `${tabsHTML()}<section class="card"><div class="row between"><h2>Soloing Course</h2><span class="muted small">${n} of ${tot} exercises</span></div>
     <p class="small">Learn to solo by doing it, from your first notes in a CAGED shape to complete 16-bar solos of your own. ${C.length} modules, ${nL} lessons, ${tot} exercises.</p>
-    <p class="small muted">Each lesson tells you what you're learning and why it helps, then lays out every exercise in full: each one in all five CAGED shapes (triad work on all four string sets), shape by shape. Play them in order, mark each done, and the lesson is complete. Lessons move through all 12 keys; "New example ↻" plays any exercise in the next key.</p>
+    <p class="small muted">Each lesson tells you what you're learning and why it helps, then lays out every exercise in full, key by key: in C first, every exercise in all five CAGED shapes (triad work on all four string sets); then C♯/D♭, D and so on through all 12 keys. The next key and the next lesson open by themselves. Each exercise starts slower and climbs to your goal tempo.</p>
     <span class="fill"><s style="width:${tot?n/tot*100:0}%"></s></span>
     <div class="row"><button class="pri" data-clesson="${nx.id}">${n?"Continue":"Start"}: ${nx.id} ${esc(nx.t)} ▸</button></div></section>
   <section class="card"><h2>Syllabus</h2>
@@ -309,12 +309,19 @@ function renderSyllabus(){const D=done(),A=allEx(),tot=A.length,n=A.filter(x=>D[
       <div class="lib" style="margin-top:8px">${m.lessons.map(l=>{const kk=l.ex.filter(e=>D[e.id]).length;
         return `<div class="solo"><div style="min-width:0"><b>${l.id} ${esc(l.t)}</b><span>${l.turn?"hands-on":`${l.ex.length} exercise${l.ex.length>1?"s":""}`}</span></div><div class="row" style="flex:none">${l.turn?"":`<span class="badge${kk===l.ex.length?" fin":""}">${kk}/${l.ex.length}</span>`}<button data-clesson="${l.id}">Open</button></div></div>`;}).join("")}</div></details>`;}).join("")}
   </section>`;}
-const groups=l=>[...new Set(l.ex.map(e=>e.g))];
-function curGrp(l){const gs=groups(l);if(cur.grp&&cur.grpL===l.id&&gs.includes(cur.grp))return cur.grp;const D=done();cur.grpL=l.id;cur.grp=gs.find(g=>l.ex.some(e=>e.g===g&&!D[e.id]))||gs[0];return cur.grp;}
-function grpBar(l,G,D){const gs=groups(l);if(gs.length<2)return "";
-  return `<section class="card"><p class="small muted" style="margin:0 0 6px">${l.allKeys?"Pick a key: each has its five shapes.":"Work through the shapes in order."}${l.home!=null?` Home key: ${keyName(l.home)} major.`:""}</p><div class="row" style="flex-wrap:wrap;gap:6px">${gs.map(g=>{const xs=l.ex.filter(e=>e.g===g),k=xs.filter(e=>D[e.id]).length;
-    return `<button data-cgrp="${esc(g)}" class="${g===G?"pri":k===xs.length?"good":""}">${esc(g.replace(/ major$/,""))} <span class="small">${k}/${xs.length}</span></button>`;}).join("")}</div></section>`;}
-function renderLesson(id){const f=findL(id);if(!f)return renderSyllabus();const {l,m}=f,D=done(),all=C.flatMap(x=>x.lessons),i=all.indexOf(l),prev=all[i-1],next=all[i+1],G=curGrp(l);
+const keyDone=(l,k)=>{const D=done();return l.ex.every(e=>e.kg!==k||D[e.id]);};
+function curKey(l){if(cur.keyL===l.id&&cur.key!=null)return cur.key;cur.keyL=l.id;cur.key=KORD.find(k=>!keyDone(l,k));if(cur.key==null)cur.key=KORD[0];cur.grp=null;return cur.key;}
+const groups=(l,k)=>[...new Set(l.ex.filter(e=>e.kg===k).map(e=>e.g))];
+function curGrp(l,k){const gs=groups(l,k);if(cur.grp&&cur.grpL===l.id+"@"+k&&gs.includes(cur.grp))return cur.grp;const D=done();cur.grpL=l.id+"@"+k;cur.grp=gs.find(g=>l.ex.some(e=>e.kg===k&&e.g===g&&!D[e.id]))||gs[0];return cur.grp;}
+function keyBar(l,K,D){if(!l.ex.length)return "";
+  return `<section class="card"><div class="row between"><b>Key</b><span class="small muted">${KORD.filter(k=>keyDone(l,k)).length} of 12 keys done</span></div>
+    <p class="small muted" style="margin:4px 0 6px">Play everything in one key, ${l.per==="shape"?"through all five shapes":l.per==="set"?"on all four string sets":"start to finish"}. The next key opens when this one is done.</p>
+    <div class="row" style="flex-wrap:wrap;gap:6px">${KORD.map(k=>{const xs=l.ex.filter(e=>e.kg===k),n=xs.filter(e=>D[e.id]).length;
+      return `<button data-ckey="${k}" class="${k===K?"pri":n===xs.length?"good":""}">${n===xs.length?"✓ ":""}${KLAB(k)}${n&&n<xs.length?` <span class="small">${n}/${xs.length}</span>`:""}</button>`;}).join("")}</div></section>`;}
+function grpBar(l,K,G,D){const gs=groups(l,K);if(gs.length<2)return "";
+  return `<section class="card"><p class="small muted" style="margin:0 0 6px">${KLAB(K)} major: work through the ${l.per==="set"?"string sets":"shapes"} in order.</p><div class="row" style="flex-wrap:wrap;gap:6px">${gs.map(g=>{const xs=l.ex.filter(e=>e.kg===K&&e.g===g),k=xs.filter(e=>D[e.id]).length;
+    return `<button data-cgrp="${esc(g)}" class="${g===G?"pri":k===xs.length?"good":""}">${esc(g.replace(/^strings /,""))} <span class="small">${k}/${xs.length}</span></button>`;}).join("")}</div></section>`;}
+function renderLesson(id){const f=findL(id);if(!f)return renderSyllabus();const {l,m}=f,D=done(),all=C.flatMap(x=>x.lessons),i=all.indexOf(l),prev=all[i-1],next=all[i+1],K=l.ex.length?curKey(l):0,G=l.ex.length?curGrp(l,K):null;
   const turnBtn={jam:"Start a warm-up ▸",new:"Write today's solo ▸","form:call":"Write a call & response solo ▸","form:aaab":"Write an AAAB solo ▸",lib:"Open your solos ▸"}[l.turn];
   return `${tabsHTML()}<section class="card"><div class="row between"><button class="linkb" data-csyl="1">← Syllabus</button><span class="muted small">Module ${m.n} · ${esc(m.t)}</span></div>
     <h2>${l.id} ${esc(l.t)}</h2>
@@ -322,20 +329,21 @@ function renderLesson(id){const f=findL(id);if(!f)return renderSyllabus();const 
     <div class="tip" style="background:var(--good-soft)"><b>Why it's useful:</b> ${esc(l.why)}</div>
     ${l.turn?`<div class="row"><button class="pri" data-cturn="${l.turn}">${turnBtn}</button></div>`:""}
   </section>
-  ${grpBar(l,G,D)}
-  ${l.ex.map((e,j)=>({e,j})).filter(x=>x.e.g===G).map(({e,j})=>{const xid=e.id,ex=exData(xid,e),on=play&&play.cex===xid;
+  ${keyBar(l,K,D)}${grpBar(l,K,G,D)}
+  ${l.ex.filter(e=>e.kg===K).map((e,j)=>({e,j})).filter(x=>x.e.g===G).map(({e,j})=>{const xid=e.id,ex=exData(xid,e),on=play&&play.cex===xid;
     return `<section class="card"><div class="row between"><h3>${j+1}. ${esc(e.t)}${e.sub?` · ${esc(e.sub)}`:` · ${esc(e.g)}`}</h3>${D[xid]?`<span class="badge fin">done</span>`:""}</div>
       <p>${esc(e.how)}</p><p class="small muted">${keyName(ex.key)} major · ${esc(ex.info||"")} · ${ex.bars.length} bars</p>
       ${exTab(ex,xid)}${miniFret(ex)}
       <div class="row">${on?`<button class="pri" data-cstop="1">■ Stop</button>`:`<button class="pri" data-cplay="${xid}">▶ Play with band</button>`}
-        ${e.fixed?"":`<button data-cnew="${xid}">Next key ↻</button>`}<button data-cdone="${xid}" class="${D[xid]?"good":""}">${D[xid]?"✓ Done":"Mark done"}</button></div></section>`;}).join("")}
-  ${(()=>{const gs=groups(l),gi=gs.indexOf(G),ng=gs[gi+1],gd=l.ex.filter(e=>e.g===G).every(e=>D[e.id]);
-    return `<section class="card"><div class="row between">${ng?`<button class="${gd?"pri":""}" data-cgrp="${esc(ng)}">${esc(ng)} ▸</button>`:"<span></span>"}
+        <button data-cdone="${xid}" class="${D[xid]?"good":""}">${D[xid]?"✓ Done":"Mark done"}</button></div></section>`;}).join("")}
+  ${!l.ex.length?"":(()=>{const gs=groups(l,K),gi=gs.indexOf(G),ng=gs[gi+1],gd=l.ex.filter(e=>e.kg===K&&e.g===G).every(e=>D[e.id]),nk=KORD.find(k=>k>K&&!keyDone(l,k));
+    return `<section class="card"><div class="row between">${ng?`<button class="${gd?"pri":""}" data-cgrp="${esc(ng)}">${esc(ng)} ▸</button>`:nk!=null?`<button class="${keyDone(l,K)?"pri":""}" data-ckey="${nk}">Next key: ${KLAB(nk)} ▸</button>`:"<span></span>"}
       ${lessonDone(l)?`<span class="badge fin">lesson complete</span>`:`<button data-cldone="${l.id}">✓ Mark lesson complete</button>`}</div>
-      <p class="small muted" style="margin:0">${l.ex.filter(e=>D[e.id]).length} of ${l.ex.length} exercises done in this lesson.</p></section>`;})()}
+      <p class="small muted" style="margin:0">${l.ex.filter(e=>e.kg===K&&D[e.id]).length} of ${l.ex.filter(e=>e.kg===K).length} done in ${KLAB(K)} · ${l.ex.filter(e=>D[e.id]).length} of ${l.ex.length} in the whole lesson (12 keys).</p></section>`;})()}
   <section class="card"><div class="row between">${prev?`<button data-clesson="${prev.id}">◂ ${prev.id}</button>`:"<span></span>"}
-    <span class="row" style="gap:4px"><span class="small muted">tempo</span><button data-ctempo="-4">−</button><b>${ctempo()}</b><button data-ctempo="4">+</button></span>
+    <span class="row" style="gap:4px"><span class="small muted">goal tempo</span><button data-ctempo="-4">−</button><b>${ctempo()}</b><button data-ctempo="4">+</button></span>
     ${next?`<button class="pri" data-clesson="${next.id}">${next.id} ▸</button>`:""}</div>
+    <div class="row small"><button data-cclimb="1" class="${st.course&&st.course.climb===false?"":"on"}">📈 climb ${st.course&&st.course.climb===false?"off":"on"}</button><span class="muted">${st.course&&st.course.climb===false?"Plays at the goal tempo straight away.":`Starts at ${Math.max(40,ctempo()-20)} bpm and rises 4 bpm every time round until it reaches ${ctempo()}.`} <b id="ctNow"></b></span></div>
     <div class="row small"><button data-clead="1" class="${ui.lead===false?"":"on"}">🎸 example notes ${ui.lead===false?"off":"on"}</button><span class="muted">Turn the example off to play the part yourself over the band.</span></div>
     <p class="small muted" style="margin:0">Tab legend: b bend · br bend & release · pb pre-bend · /7 slide in · h7 legato · ~ vibrato (≈ wide, -~ delayed) · >7 accent · 7. short · purple = triad notes.</p></section>`;}
 window.renderCourse=function(){document.getElementById("app").innerHTML=cur.lesson?renderLesson(cur.lesson):renderSyllabus();};
@@ -344,18 +352,28 @@ window.SOLO_COURSE={C,allEx,exData,progress:()=>{const D=done(),A=allEx();return
 document.addEventListener("click",e=>{const t=e.target.closest("button");if(!t)return;const d=t.dataset;
   if(view!=="course")return;
   if(d.csyl){stop();cur.lesson=null;render();window.scrollTo(0,0);return;}
-  if(d.clesson){stop();cur.lesson=d.clesson;cur.grp=null;render();window.scrollTo(0,0);return;}
+  if(d.clesson){stop();cur.lesson=d.clesson;cur.grp=null;cur.key=null;cur.keyL=null;render();window.scrollTo(0,0);return;}
   if(d.cturn){stop();const k=d.cturn;if(k==="jam"){view="jam";render();window.scrollTo(0,0);return;}
     if(k==="lib"){view="home";render();window.scrollTo(0,0);return;}
     const br=Object.assign({},brief());if(k.startsWith("form:"))br.form=k.slice(5);newSolo(br);return;}
-  if(d.cplay){const x=allEx().find(y=>y.id===d.cplay);if(!x)return;const ex=exData(x.id,x.e);start(0,ex.bars.length-1,{key:ex.key,tempo:ctempo(),ch:ex.ch,bars:ex.bars});play.cex=x.id;render();return;}
+  if(d.cplay){const x=allEx().find(y=>y.id===d.cplay);if(!x)return;const ex=exData(x.id,x.e);start(0,ex.bars.length-1,{key:ex.key,tempo:ctempo(),ch:ex.ch,bars:ex.bars,climb:!(st.course&&st.course.climb===false)});play.cex=x.id;render();return;}
   if(d.cstop){stop();render();return;}
   if(d.cnew){const was=play&&play.cex===d.cnew;stop();vari[d.cnew]=(vari[d.cnew]||0)+1;render();if(was){const b=document.querySelector(`[data-cplay="${d.cnew}"]`);if(b)b.click();}return;}
+  if(d.ckey!=null&&d.ckey!==""){stop();cur.key=+d.ckey;cur.keyL=cur.lesson;cur.grp=null;render();window.scrollTo(0,0);return;}
+  if(d.cclimb){st.course=st.course||{done:{}};st.course.climb=st.course.climb===false;save();const was=play&&play.cex;stop();render();if(was){const b=document.querySelector(`[data-cplay="${was}"]`);if(b)b.click();}return;}
   if(d.cgrp){stop();cur.grp=d.cgrp;render();window.scrollTo(0,0);return;}
   if(d.cldone){const f=findL(d.cldone);if(!f)return;stop();const D=done(),now=Date.now();f.l.ex.forEach(e=>{if(!D[e.id])D[e.id]=now;});st.course.t=now;save();
-    const all=C.flatMap(x=>x.lessons),nx=all[all.indexOf(f.l)+1];if(nx){cur.lesson=nx.id;cur.grp=null;}render();window.scrollTo(0,0);return;}
+    const all=C.flatMap(x=>x.lessons),nx=all[all.indexOf(f.l)+1];if(nx){cur.lesson=nx.id;cur.grp=null;cur.key=null;cur.keyL=null;}render();window.scrollTo(0,0);return;}
   if(d.cdone){const D=done(),was=D[d.cdone];if(was)delete D[d.cdone];else D[d.cdone]=Date.now();st.course.t=Date.now();save();
-    const f=cur.lesson&&findL(cur.lesson);if(!was&&f){const G=curGrp(f.l),gs=groups(f.l);if(f.l.ex.filter(e=>e.g===G).every(e=>D[e.id])){const ng=gs.slice(gs.indexOf(G)+1).find(g=>f.l.ex.some(e=>e.g===g&&!D[e.id]));if(ng){cur.grp=ng;render();window.scrollTo(0,0);return;}}}
+    const f=cur.lesson&&findL(cur.lesson);
+    if(!was&&f){const l=f.l,K=curKey(l),G=curGrp(l,K),gs=groups(l,K);
+      if(l.ex.filter(e=>e.kg===K&&e.g===G).every(e=>D[e.id])){stop();
+        const ng=gs.slice(gs.indexOf(G)+1).concat(gs.slice(0,gs.indexOf(G))).find(g=>l.ex.some(e=>e.kg===K&&e.g===g&&!D[e.id]));
+        if(ng){cur.grp=ng;render();window.scrollTo(0,0);return;}
+        const nk=KORD.slice(KORD.indexOf(K)+1).concat(KORD.slice(0,KORD.indexOf(K))).find(k=>!keyDone(l,k)); // this key is finished: open the next one
+        if(nk!=null){cur.key=nk;cur.keyL=l.id;cur.grp=null;toast(`${KLAB(K)} done ✓ Now ${KLAB(nk)} major`);render();window.scrollTo(0,0);return;}
+        const all=C.flatMap(x=>x.lessons),nx=all[all.indexOf(l)+1]; // all 12 keys done: the next lesson
+        if(nx){cur.lesson=nx.id;cur.grp=null;cur.key=null;cur.keyL=null;toast(`${l.id} complete in all 12 keys ✓`);render();window.scrollTo(0,0);return;}}}
     render();return;}
   if(d.ctempo){st.course=st.course||{done:{}};st.course.tempo=Math.max(40,Math.min(160,ctempo()+ +d.ctempo));save();const was=play&&play.cex;stop();render();if(was){const b=document.querySelector(`[data-cplay="${was}"]`);if(b)b.click();}return;}
   if(d.clead){ui.lead=ui.lead===false;render();return;}

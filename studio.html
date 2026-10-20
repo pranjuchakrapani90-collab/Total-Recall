@@ -2,7 +2,7 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#4f46e5">
 <title>Guitar Studio · Total Recall &amp; Melodies</title>
 <script src="gsync.js"></script>
-<script src="fs-course.js"></script>
+<script src="fs-course.js?v=20261020c"></script>
 <link rel="manifest" href="manifest.webmanifest">
 <style>
 :root{--bg:#f4f7fb;--paper:#fff;--ink:#172033;--muted:#697386;--line:#e5e7eb;--steel:#4f46e5;--steel-soft:#eef0ff;--brass:#7c3aed;--brass-soft:#f5f3ff;--good:#059669;--good-soft:#ecfdf5;
@@ -141,7 +141,7 @@ if(document.getElementById("cDone")){const ORDER=["La","f","Lb","c","Lc","a","Ld
  let hi=0;ids.forEach(k=>{const lv=k[0]==="L"?k.slice(0,2):k[0],i=ORDER.indexOf(lv);if(i>hi)hi=i;});document.getElementById("cLevel").textContent=hi+1;
  if(cd)document.getElementById("cNext").textContent=`Continue · ${cd} of 1404 reps`;}
 </script>
-<script src="plan.js"></script>
+<script src="plan.js?v=20261020c"></script>
 <script>
 {GSPlan.style();
  function draw(){const c=GSPlan.cycle(),rows=c.rows,nx=GSPlan.next(rows),go=document.getElementById("planGo"),sk=document.getElementById("planSkip");
