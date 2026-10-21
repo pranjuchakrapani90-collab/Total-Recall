@@ -334,7 +334,7 @@ function renderLesson(id){const f=findL(id);if(!f)return renderSyllabus();const 
     return `<section class="card"><div class="row between"><h3>${j+1}. ${esc(e.t)}${e.sub?` · ${esc(e.sub)}`:` · ${esc(e.g)}`}</h3>${D[xid]?`<span class="badge fin">done</span>`:""}</div>
       <p>${esc(e.how)}</p><p class="small muted">${keyName(ex.key)} major · ${esc(ex.info||"")} · ${ex.bars.length} bars</p>
       ${exTab(ex,xid)}${miniFret(ex)}
-      <div class="row">${on?`<button class="pri" data-cstop="1">■ Stop</button>`:`<button class="pri" data-cplay="${xid}">▶ Play with band</button>`}
+      <div class="row exrow">${on?`<button class="pri" data-cstop="1">■ Stop</button>`:`<button class="pri" data-cplay="${xid}">▶ Play with band</button>`}${tchip(on)}
         <button data-cdone="${xid}" class="${D[xid]?"good":""}">${D[xid]?"✓ Done":"Mark done"}</button></div></section>`;}).join("")}
   ${!l.ex.length?"":(()=>{const gs=groups(l,K),gi=gs.indexOf(G),ng=gs[gi+1],gd=l.ex.filter(e=>e.kg===K&&e.g===G).every(e=>D[e.id]),nk=KORD.find(k=>k>K&&!keyDone(l,k));
     return `<section class="card"><div class="row between">${ng?`<button class="${gd?"pri":""}" data-cgrp="${esc(ng)}">${esc(ng)} ▸</button>`:nk!=null?`<button class="${keyDone(l,K)?"pri":""}" data-ckey="${nk}">Next key: ${KLAB(nk)} ▸</button>`:"<span></span>"}
@@ -346,6 +346,9 @@ function renderLesson(id){const f=findL(id);if(!f)return renderSyllabus();const 
     <div class="row small"><button data-cclimb="1" class="${st.course&&st.course.climb===false?"":"on"}">📈 climb ${st.course&&st.course.climb===false?"off":"on"}</button><span class="muted">${st.course&&st.course.climb===false?"Plays at the goal tempo straight away.":`Starts at ${Math.max(40,ctempo()-20)} bpm and rises 4 bpm every time round until it reaches ${ctempo()}.`} <b id="ctNow"></b></span></div>
     <div class="row small"><button data-clead="1" class="${ui.lead===false?"":"on"}">🎸 example notes ${ui.lead===false?"off":"on"}</button><span class="muted">Turn the example off to play the part yourself over the band.</span></div>
     <p class="small muted" style="margin:0">Tab legend: b bend · br bend & release · pb pre-bend · /7 slide in · h7 legato · ~ vibrato (≈ wide, -~ delayed) · >7 accent · 7. short · purple = triad notes.</p></section>`;}
+/* tempo chip beside Play with band: the climb (start → goal) before playing, the live tempo while playing; tap to switch the climb on or off */
+function tchip(on){const g=ctempo(),cl=!(st.course&&st.course.climb===false),lo=Math.max(40,g-20);
+  return `<button class="tchip${cl?" on":""}" data-cclimb="1" title="${cl?`Climb on: starts at ${lo} bpm, +4 bpm each time round, up to ${g}. Tap to play at ${g} straight away.`:`Climb off: plays at ${g} bpm. Tap to climb from ${lo}.`}">${on?`♩<b class="ctnow">${cl?lo:g}</b>${cl?`<small>→${g}</small>`:""}`:cl?`↗${lo}<small>→${g}</small>`:`♩${g}`}</button>`;}
 window.renderCourse=function(){document.getElementById("app").innerHTML=cur.lesson?renderLesson(cur.lesson):renderSyllabus();};
 window.SOLO_COURSE={C,allEx,exData,progress:()=>{const D=done(),A=allEx();return {n:A.filter(x=>D[x.id]).length,tot:A.length};}};
 
