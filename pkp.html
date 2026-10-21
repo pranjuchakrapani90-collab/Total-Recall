@@ -23,7 +23,7 @@
 const I=Invest,{esc,inr,price,pct,signInr,tone,ok,r2,dshort}=I;
 const KEY="pkp",$=id=>document.getElementById(id);
 /* the old PKP tab's settings: SIP amount, dip base amount, BID levels below the average price, profit-booking threshold */
-const DEF={symbol:"JUNIORBEES",sip:5000,dipBase:5000,bids:[-0.05,-0.10,-0.15,-0.20,-0.25,-0.30,-0.35,-0.40,-0.45,-0.55,-0.60],bookPct:0.01};
+const DEF={symbol:"JUNIORBEES",sip:5000,dipBase:5000,bids:[-0.05,-0.10,-0.15,-0.20,-0.25,-0.30,-0.35,-0.40,-0.45,-0.55,-0.60],bookPct:0.01,sipDay:1};
 const today=()=>I.ist().iso;
 let Q=I.quotesCache(),qAt=0;
 
@@ -53,24 +53,24 @@ function model(){
     else if(g.units!==sug.units){msg=`GTT is for ${g.units} units; the target needs ${sug.units}.`;}
     else{st="ok";todo=false;msg=`GTT matches the target · set ${dshort(g.date)}.`;}
     gtt={g,sug,st,todo,msg};}
-  const sipDay=S.sipDay||inferSipDay(T);
+  const sipDay=S.sipDay||1;
   return {s,S,q,T,sipDay,sipNext:nextSip(T,sipDay),units,base,avg,cmp,value,pl,plp:base?pl/base*100:NaN,booked,abs:base?booked/base*100:NaN,xr,min,bids,level,next,nb,nextQty,eligible,tgtPrice,tgtUnits,
     gtt,sipQty:Math.ceil(S.sip/cmp),appr:first&&ok(cmp)?(cmp/first.price-1)*100:NaN};}
 
 /* ---------- next SIP date ---------- */
 const iso=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
-const toTrading=d=>{while(d.getDay()===0||d.getDay()===6)d.setDate(d.getDate()+1);return d;};
-const prevTrading=d=>{d=new Date(d);do d.setDate(d.getDate()-1);while(d.getDay()===0||d.getDay()===6);return d;};
-/* the day you usually SIP: most common day among the last 6 SIP buys (1st if none) */
-function inferSipDay(T){const c={};T.filter(x=>x.type==="buy"&&x.sip).slice(-6).forEach(x=>{const d=+x.date.slice(8,10);c[d]=(c[d]||0)+1;});
-  const k=Object.keys(c).sort((a,b)=>c[b]-c[a]||a-b)[0];return k?+k:1;}
+/* NSE equity trading holidays (weekdays). Add each new year's list when NSE publishes it. */
+const NSE_HOLIDAYS=new Set(["2026-01-15","2026-01-26","2026-03-03","2026-03-26","2026-03-31","2026-04-03","2026-04-14","2026-05-01","2026-05-28","2026-06-26","2026-09-14","2026-10-02","2026-10-20","2026-11-10","2026-11-24","2026-12-25"]);
+const closed=d=>d.getDay()===0||d.getDay()===6||NSE_HOLIDAYS.has(iso(d));
+const toTrading=d=>{while(closed(d))d.setDate(d.getDate()+1);return d;};
+const prevTrading=d=>{d=new Date(d);do d.setDate(d.getDate()-1);while(closed(d));return d;};
 function onDay(y,m,day){const last=new Date(y,m+1,0).getDate();return toTrading(new Date(y,m,Math.min(day,last)));}
 function nextSip(T,day){const t=I.ist().iso,y=+t.slice(0,4),m=+t.slice(5,7)-1,ym=t.slice(0,7);
   const done=T.some(x=>x.type==="buy"&&x.sip&&x.date.slice(0,7)===ym);
   let d=done?onDay(y,m+1,day):onDay(y,m,day),late=false;
   if(!done&&iso(d)<t){late=true;d=toTrading(new Date(t+"T00:00:00"));}
-  const amo=prevTrading(d);
-  return {date:iso(d),done,late,due:iso(onDay(y,m,day)),amo:iso(amo),days:Math.round((new Date(iso(d)+"T00:00:00")-new Date(t+"T00:00:00"))/864e5)};}
+  const amo=prevTrading(d),ti=t,amoToday=iso(amo)===ti||(late||iso(d)===ti);
+  return {amoToday,date:iso(d),done,late,due:iso(onDay(y,m,day)),amo:iso(amo),days:Math.round((new Date(iso(d)+"T00:00:00")-new Date(t+"T00:00:00"))/864e5)};}
 const wd=s=>new Date(s+"T00:00:00").toLocaleDateString("en-IN",{weekday:"short"})+" "+dshort(s);
 
 /* ---------- forms ---------- */
@@ -104,7 +104,7 @@ function gttForm(){const M=model(),x=M.gtt;if(!x)return;const g=x.g,s=x.sug;
     extra:g?[{label:"It triggered",run:()=>{setTimeout(()=>sellForm({price:g.lim,units:g.units,reason:"system",fromGtt:true}),0);}}]:null});}
 function settingsForm(S){
   I.form({title:"PKP settings",fields:[{k:"symbol",label:"ETF (NSE symbol)",value:S.symbol},{k:"sip",label:"Monthly SIP amount (₹)",type:"number",value:S.sip},
-      {k:"sipDay",label:"SIP day of the month (1–31)",type:"number",step:"1",value:S.sipDay||inferSipDay(model().T),hint:"Weekends move to the next Monday."},
+      {k:"sipDay",label:"SIP day of the month (1–31)",type:"number",step:"1",value:S.sipDay||1,hint:"Weekends and NSE holidays move to the next trading day."},
       {k:"dipBase",label:"Buy-in-dips base amount (₹, × BID number)",type:"number",value:S.dipBase},
       {k:"bids",label:"BID levels below average, % (comma separated)",value:S.bids.map(b=>Math.round(b*1000)/10).join(", ")},
       {k:"bookPct",label:"Book profit above % of base investment",type:"number",value:S.bookPct*100}],
@@ -124,7 +124,7 @@ function month(M){
    <div class="big">${canSell?`Book profit: sell ${M.eligible} unit${M.eligible>1?"s":""}`:hit?`BID ${M.next} is live: buy ${M.nextQty}`:N.done?"SIP done · next "+esc(wd(N.date)):N.late?"SIP overdue · due "+esc(dshort(N.due)):N.days===0?"SIP due today":"Next SIP "+esc(wd(N.date))}</div>
    <div class="grp"><b><span class="chip buy">SIP</span>${inr(M.S.sip)} a month · on the ${ord(M.sipDay)}</b>
      ${buys.map(l=>`<div class="ord"><span class="s">Bought ${esc(dshort(l.date))}</span><span class="q">${l.units} × ${price(l.price)}</span><span class="d">${l.sip?"SIP":"BID "+l.bid+" buy"}</span><span class="d2">${inr(l.amount)}</span></div>`).join("")}
-     <div class="ord"><span class="s">${N.done?"Next SIP":"SIP"} · ${esc(wd(N.date))}</span><span class="q">${ok(M.sipQty)?M.sipQty:"—"} × ${price(M.cmp)}</span><span class="d">${N.late?"overdue since "+esc(dshort(N.due))+" · ":N.days>0?"in "+N.days+" day"+(N.days>1?"s":"")+" · ":""}${N.days>0?"AMO on "+esc(wd(N.amo))+" evening":"place an AMO tonight"} · at today's price</span><span class="d2">${ok(M.sipQty)?"≈ "+inr(M.sipQty*M.cmp):""}</span>
+     <div class="ord"><span class="s">${N.done?"Next SIP":"SIP"} · ${esc(wd(N.date))}</span><span class="q">${ok(M.sipQty)?M.sipQty:"—"} × ${price(M.cmp)}</span><span class="d">${N.late?"overdue since "+esc(dshort(N.due))+" · ":N.days>0?"in "+N.days+" day"+(N.days>1?"s":"")+" · ":""}${N.days>0&&!N.amoToday?"AMO on "+esc(wd(N.amo))+" evening · limit = that day's close; ≈ at today's price":"place the AMO tonight · limit = today's close"}</span><span class="d2">${ok(M.sipQty)?"≈ "+inr(M.sipQty*M.cmp):""}</span>
          ${N.done?"":`<button class="fill" type="button" id="fSip">Record SIP buy</button>`}</div>
    </div>
    <div class="grp"><b><span class="chip avg">Buy in dips</span>next is BID ${M.next}</b>
@@ -174,7 +174,7 @@ function ledger(M){
    ${L.length>12?`<button class="more" id="lAll" type="button">${all?"Show fewer":"Show all "+L.length}</button>`:""}
    <div class="acts"><button type="button" id="aBuy">+ Buy</button><button type="button" class="ghost" id="aSell">+ Sale</button></div></section>`;}
 function setup(M){return `<details class="card sec"><summary>Settings &amp; data</summary>
-   <dl class="kv"><dt>ETF</dt><dd>${esc(M.S.symbol)}</dd><dt>SIP</dt><dd>${inr(M.S.sip)} on the ${ord(M.sipDay)}${M.S.sipDay?"":" (from your buys)"}</dd><dt>Dip base</dt><dd>${inr(M.S.dipBase)} × BID</dd><dt>BID levels</dt><dd>${M.S.bids.map(b=>Math.round(b*100)+"%").join(" ")}</dd><dt>Book profit above</dt><dd>${pct(M.S.bookPct*100)} of base</dd></dl>
+   <dl class="kv"><dt>ETF</dt><dd>${esc(M.S.symbol)}</dd><dt>SIP</dt><dd>${inr(M.S.sip)} on the ${ord(M.sipDay)}</dd><dt>Dip base</dt><dd>${inr(M.S.dipBase)} × BID</dd><dt>BID levels</dt><dd>${M.S.bids.map(b=>Math.round(b*100)+"%").join(" ")}</dd><dt>Book profit above</dt><dd>${pct(M.S.bookPct*100)} of base</dd></dl>
    <div class="acts"><button type="button" class="ghost" id="eSet">Edit settings</button></div>
    <p class="small muted" style="margin-top:12px">${I.hasSync()?"Records sync between your phones (encrypted).":"Sync is off: records stay on this phone. Turn on Sync from the home screen."}</p>
    <div class="acts"><button type="button" class="ghost" id="dImp">Import file</button><button type="button" class="ghost" id="dExp">Download backup</button>${I.hasSync()?`<button type="button" class="ghost" id="dSync">Sync now</button>`:""}</div></details>`;}
