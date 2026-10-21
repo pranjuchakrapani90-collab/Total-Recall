@@ -132,3 +132,19 @@ table.lots tr.tap:active td{background:var(--soft)}
 .empty{text-align:center;padding:22px 12px}
 .empty b{display:block;font-size:17px;margin-bottom:6px}
 .uni{display:flex;flex-direction:column;max-height:360px;overflow:auto;margin-top:8px}
+
+/* discretionary buy / sell, at the start of the page */
+.quick{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.quick button{padding:13px 14px;font-size:16px;border-radius:12px}
+.quick .sellbtn{background:var(--ink);color:#fff}
+.quick p{grid-column:1/-1;text-align:center;font-size:12px}
+
+/* GTT stop-loss rows */
+.gtt{border:1px solid var(--line);border-left:4px solid var(--warn);border-radius:12px;padding:2px 12px 10px;margin-bottom:6px}
+.gtt.ok{border-left-color:var(--up)}.gtt.bad{border-left-color:var(--dn)}
+.gtt .row{border-top:0}
+.gmsg{font-size:13px;color:var(--warn);font-weight:550}
+.gtt.ok .gmsg{color:var(--up)}.gtt.bad .gmsg{color:var(--dn)}
+.gb{display:flex;gap:8px;flex-wrap:wrap}
+.gb .fill{grid-column:auto}
+.ord .gtt{grid-column:1/-1;margin:8px 0 0}

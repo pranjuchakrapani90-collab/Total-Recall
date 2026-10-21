@@ -2,7 +2,7 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
 <title>ETF Shop · Pranju OS</title>
 <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="icon" href="icon-192.png" sizes="192x192"><link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="stylesheet" href="invest.css?v=20261020b">
+<link rel="stylesheet" href="invest.css?v=20261021">
 <link rel="stylesheet" href="tr-theme.css?v=20261020">
 </head><body class="tr-inv">
 <header><div class="hin">
@@ -17,7 +17,7 @@
   <div id="out"></div>
 </main>
 <script src="gsync.js?v=20261020"></script>
-<script src="invest.js?v=20261020b"></script>
+<script src="invest.js?v=20261021"></script>
 <script>
 "use strict";
 const I=Invest,{esc,inr,price,pct,signInr,tone,ok,r2,dshort}=I;
@@ -44,6 +44,16 @@ function model(){
       if(l.armed){l.stop=r2(l.high*(1-S.trail));l.signal=l.close<=l.stop?"SELL":"TRAILING";}}});
   const sells=open.filter(l=>l.signal==="SELL").sort((a,b)=>b.gain-a.gain).map(l=>({l,qty:l.qty,lim:r2(l.close*(1-S.buffer))}));
   const trailing=open.filter(l=>l.signal==="TRAILING").sort((a,b)=>b.gain-a.gain);
+  /* GTT stop-loss: what the broker GTT should be (trigger = trailing stop) against what was placed */
+  const gtts=open.filter(l=>(l.armed&&!(l.signal==="SELL"&&!l.gtt))||l.gtt).map(l=>{const g=l.gtt||null,sug=l.armed?{trig:l.stop,lim:r2(l.stop*(1-S.buffer)),qty:l.qty}:null;let st="warn",todo=true,msg;
+    if(l.signal==="SELL"&&g){st="bad";msg=`Price ${price(l.close)} is at or below the stop. If your GTT triggered, record the sale.`;}
+    else if(!g){msg=`No GTT yet. Place: trigger ${price(sug.trig)} · limit ${price(sug.lim)} · ${sug.qty} units.`;}
+    else if(!sug){todo=false;msg=`GTT ${price(g.trig)} is your own stop. The app's trailing stop starts once the high reaches ${price(l.tgt)}.`;}
+    else if(g.trig>sug.trig+0.005){st="bad";msg=`GTT ${price(g.trig)} is tighter than the stop ${price(sug.trig)}: a small dip can sell this winner early. Lower it to ${price(sug.trig)}, limit ${price(sug.lim)}.`;}
+    else if(g.trig<sug.trig-0.005){msg=`Raise GTT from ${price(g.trig)} to ${price(sug.trig)}, limit ${price(sug.lim)} (new high ${price(l.high)}).`;}
+    else if(g.qty!==l.qty){msg=`GTT is for ${g.qty} units; the lot has ${l.qty}.`;}
+    else {st="ok";todo=false;msg=`GTT matches the stop · set ${dshort(g.date)}.`;}
+    return {l,g,sug,st,msg,todo};}).sort((a,b)=>(b.todo-a.todo)||(b.l.gain-a.l.gain));
   /* each ETF held */
   const by={};open.slice().sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.t||0)-(b.t||0)).forEach(l=>{(by[l.code]=by[l.code]||[]).push(l);});
   const groupOf=c=>U[c]?U[c].group:"Not in universe",held=Object.entries(by).map(([code,L])=>{const q=qOf(code),last=L[L.length-1];
@@ -68,30 +78,70 @@ function model(){
   const n=!buyC.length||free<tranche?0:(buyC[0].fall<=S.twoFall&&free>=2*tranche?2:1);
   const buys=[];buyC.forEach(c=>{if(buys.length<n&&!buys.some(b=>b.c.group===c.group)){const lim=r2(c.close*(1+S.buffer));buys.push({c,lim,qty:Math.round(tranche/lim)});}});
   const buyMsg=!buyC.length?"no ETF qualifies":free<tranche?"cash would dip into the "+Math.round(S.reserve*100)+"% reserve":"";
-  return {s,S,U,open,sold,cap,added,withdrawn,growth,capital,invested,cash,tranche,free,sells,trailing,held,avg,avgMsg,buys,buyMsg,checks,cands};}
+  return {s,S,U,open,sold,cap,added,withdrawn,growth,capital,invested,cash,tranche,free,sells,trailing,gtts,held,avg,avgMsg,buys,buyMsg,checks,cands};}
 
 /* ---------- entry forms ---------- */
 const codes=()=>{const s=I.load(KEY);return [...new Set([...((s.settings&&s.settings.universe)||[]).map(u=>u.code),...Object.values(s.lots).map(l=>l.code)])].sort();};
 const sym=x=>String(x||"").trim().toUpperCase().replace(/^NSE:/,"");
+/* the stored record of a lot, without its edit time, so edits keep fields like the GTT */
+const lotRec=id=>{const r=I.load(KEY).lots[id];if(!r)return null;const {t,...x}=r;return x;};
+const later=f=>setTimeout(f,0);
+const REASONS=[["system","Rule exit (tonight's order or GTT)"],["cash","Discretionary · needed the cash"],["view","Discretionary · changed my view"],["other","Discretionary · other"]];
+const isDisc=l=>!!l.reason&&l.reason!=="system";
 function buyForm(pre){pre=pre||{};
-  I.form({title:pre.id?"Edit lot":pre.code?"Bought "+pre.code:"Add a buy",note:pre.id?"":"Record it once the order fills.",
+  I.form({title:pre.id?"Edit lot":pre.code?"Bought "+pre.code:"Add a buy",note:pre.id?"":pre.disc?"A buy at your discretion, outside tonight's orders. Record it once the order fills.":"Record it once the order fills.",
     fields:[{k:"code",label:"ETF (NSE symbol)",value:pre.code||"",list:codes()},{k:"date",label:"Buy date",type:"date",value:pre.date||today()},
-      {k:"price",label:"Buy price",type:"number",value:pre.price},{k:"qty",label:"Quantity",type:"number",step:"1",value:pre.qty}],
+      {k:"price",label:"Buy price",type:"number",value:pre.price},{k:"qty",label:"Quantity",type:"number",step:"1",value:pre.qty},
+      {k:"why",label:"Why",type:"select",value:pre.dbuy||pre.disc?"disc":"system",options:[["system","Tonight's order (rule)"],["disc","Discretionary"]]}],
     onSubmit:v=>{const c=sym(v.code);if(!c)return "Enter the symbol.";if(!(v.price>0)||!(v.qty>0))return "Price and quantity must be above zero.";
-      I.upsert(KEY,"lots",pre.id,{code:c,date:v.date,price:v.price,qty:Math.round(v.qty)});draw();},
+      const r={...(pre.id?lotRec(pre.id)||{}:{}),code:c,date:v.date,price:v.price,qty:Math.round(v.qty)};if(v.why==="disc")r.dbuy=true;else delete r.dbuy;
+      I.upsert(KEY,"lots",pre.id,r);draw();},
     onDelete:pre.id?()=>{I.remove(KEY,"lots",pre.id);draw();}:null,delConfirm:"Delete this lot? Use this only for a wrong entry, not a sale.",
-    extra:pre.id?[{label:"Sell this lot",run:()=>{setTimeout(()=>sellForm(I.load(KEY).lots[pre.id]?{id:pre.id,...I.load(KEY).lots[pre.id]}:null),0);}}]:null});}
-function sellForm(l,pre){if(!l)return;pre=pre||{};
-  I.form({title:"Sold "+l.code,note:`${l.qty} units bought ${dshort(l.date)} at ${price(l.price)}. A lot is sold whole (LIFO).`,
-    fields:[{k:"date",label:"Sell date",type:"date",value:l.sellDate||today()},{k:"price",label:"Sell price",type:"number",value:ok(l.sellPrice)?l.sellPrice:pre.price}],
-    onSubmit:v=>{if(!(v.price>0))return "Enter the sell price.";const {id,...rest}=l;delete rest.t;
-      I.upsert(KEY,"lots",l.id,{code:rest.code,date:rest.date,price:rest.price,qty:rest.qty,sellPrice:v.price,sellDate:v.date});draw();}});}
+    extra:pre.id?[{label:"Sell",run:()=>{later(()=>sellForm(pre.code,pre.id,{reason:"view"}));}},{label:"GTT",run:()=>{later(()=>gttForm(pre.id));}}]:null});}
+/* step 1 of a discretionary sell: which ETF */
+function pickSell(){const M=model();
+  const H=M.held.slice().sort((a,b)=>a.code<b.code?-1:1);if(!H.length){alert("Nothing to sell.");return;}
+  I.form({title:"Sell",note:"A sale at your discretion, outside tonight's orders. Pick the ETF, then the lot.",ok:"Next",
+    fields:[{k:"code",label:"ETF",type:"select",value:H[0].code,options:H.map(h=>[h.code,`${h.code} · ${h.L.length} lot${h.L.length>1?"s":""}${ok(h.last.gain)?" · newest "+pct(h.last.gain*100,1):""}`])}],
+    onSubmit:v=>{later(()=>sellForm(v.code,null,{reason:"view"}));}});}
+/* record a sale: any lot of the ETF (newest first, LIFO default), whole or part */
+function sellForm(code,lotId,pre){pre=pre||{};const M=model(),S=M.S;
+  const L=M.open.filter(l=>l.code===code).sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:(b.t||0)-(a.t||0));if(!L.length)return;
+  const first=L.find(l=>l.id===lotId)||L[0];
+  I.form({title:"Sell "+code,note:`Newest lot sells first (LIFO) unless you pick another. ${ok(first.close)?"Price now "+price(first.close)+".":""}`,ok:"Record sale",
+    fields:[{k:"lot",label:"Lot",type:"select",value:first.id,options:L.map((l,i)=>[l.id,`${i?"":"newest · "}${dshort(l.date)} · ${l.qty} @ ${price(l.price)}${ok(l.gain)?" · "+pct(l.gain*100,1):""}`])},
+      {k:"units",label:"Units",type:"number",step:"1",req:false,value:pre.units||"",hint:"Blank sells the whole lot. Fewer units splits the lot and keeps the rest."},
+      {k:"price",label:"Sell price",type:"number",value:ok(pre.price)?pre.price:ok(first.close)?first.close:""},
+      {k:"date",label:"Sell date",type:"date",value:pre.date||today()},
+      {k:"reason",label:"Reason",type:"select",value:pre.reason||"view",options:REASONS}],
+    onSubmit:v=>{const l=L.find(x=>x.id===v.lot);if(!l)return "Pick a lot.";
+      const u=ok(v.units)?Math.round(v.units):l.qty;if(!(u>0)||u>l.qty)return `This lot has ${l.qty} units.`;if(!(v.price>0))return "Enter the sell price.";
+      if(v.reason!=="system"&&l.signal!=="SELL"){const g=v.price/l.price-1;
+        const msg=g<0?`At ${price(v.price)} this lot is ${pct(g*100,1)}: you'd book a loss. The system never sells below cost.`
+          :!l.armed?`At ${price(v.price)} this lot is ${pct(g*100,1)}, below the ${pct(S.target*100)} the system waits for before trailing.`
+          :`Its trailing stop is still running (sell if ≤ ${price(l.stop)}). The system would keep holding.`;
+        if(!confirm(msg+"\n\nSell anyway?"))return "Not sold. The lot is unchanged.";}
+      const base=lotRec(l.id),sold={...base,qty:u,sellPrice:v.price,sellDate:v.date,reason:v.reason};delete sold.gtt;
+      if(u===l.qty)I.upsert(KEY,"lots",l.id,sold);
+      else{I.upsert(KEY,"lots",l.id,{...base,qty:l.qty-u});sold.split=l.id;I.upsert(KEY,"lots",null,sold);}
+      draw();}});}
 function soldForm(l){
   I.form({title:"Sold "+l.code,fields:[{k:"code",label:"ETF",value:l.code},{k:"date",label:"Buy date",type:"date",value:l.date},{k:"price",label:"Buy price",type:"number",value:l.price},
-      {k:"qty",label:"Quantity",type:"number",step:"1",value:l.qty},{k:"sellDate",label:"Sell date",type:"date",value:l.sellDate},{k:"sellPrice",label:"Sell price",type:"number",value:l.sellPrice}],
-    onSubmit:v=>{I.upsert(KEY,"lots",l.id,{code:sym(v.code),date:v.date,price:v.price,qty:Math.round(v.qty),sellPrice:v.sellPrice,sellDate:v.sellDate});draw();},
+      {k:"qty",label:"Quantity",type:"number",step:"1",value:l.qty},{k:"sellDate",label:"Sell date",type:"date",value:l.sellDate},{k:"sellPrice",label:"Sell price",type:"number",value:l.sellPrice},
+      {k:"reason",label:"Reason",type:"select",value:l.reason||"system",options:REASONS}],
+    onSubmit:v=>{I.upsert(KEY,"lots",l.id,{...lotRec(l.id),code:sym(v.code),date:v.date,price:v.price,qty:Math.round(v.qty),sellPrice:v.sellPrice,sellDate:v.sellDate,reason:v.reason});draw();},
     onDelete:()=>{I.remove(KEY,"lots",l.id);draw();},delConfirm:"Delete this sale completely?",
-    extra:[{label:"Undo sale",run:()=>{I.upsert(KEY,"lots",l.id,{code:l.code,date:l.date,price:l.price,qty:l.qty});draw();}}]});}
+    extra:[{label:"Undo sale",run:()=>{const r=lotRec(l.id);delete r.sellPrice;delete r.sellDate;delete r.reason;delete r.split;I.upsert(KEY,"lots",l.id,r);draw();}}]});}
+/* the GTT stop-loss placed in the broker app for a lot */
+function gttForm(id){const M=model(),l=M.open.find(x=>x.id===id);if(!l)return;const g=l.gtt,sug=l.armed?{trig:l.stop,lim:r2(l.stop*(1-M.S.buffer)),qty:l.qty}:null;
+  I.form({title:"GTT · "+l.code,note:sug?`App's stop now: trigger ${price(sug.trig)} · limit ${price(sug.lim)} · ${sug.qty} units. Raise it whenever the app shows a higher stop; never lower it.`
+      :`This lot hasn't reached its ${price(l.tgt)} trail start yet, so the app has no stop for it. A GTT here is your own stop.`,
+    fields:[{k:"trig",label:"Trigger price",type:"number",value:g?g.trig:sug?sug.trig:""},{k:"lim",label:"Limit price",type:"number",value:g?g.lim:sug?sug.lim:""},
+      {k:"qty",label:"Units",type:"number",step:"1",value:g?g.qty:l.qty},{k:"date",label:"Set on",type:"date",value:today()}],
+    onSubmit:v=>{if(!(v.trig>0)||!(v.lim>0)||!(v.qty>0))return "Fill in trigger, limit and units.";if(v.lim>v.trig)return "For a stop-loss sell, keep the limit at or below the trigger.";if(v.qty>l.qty)return `The lot has ${l.qty} units.`;
+      I.upsert(KEY,"lots",id,{...lotRec(id),gtt:{trig:v.trig,lim:v.lim,qty:Math.round(v.qty),date:v.date}});draw();},
+    onDelete:g?()=>{const r=lotRec(id);delete r.gtt;I.upsert(KEY,"lots",id,r);draw();}:null,delLabel:"Remove",delConfirm:"Remove this GTT from the app? Cancel it in your broker app too.",
+    extra:g?[{label:"It triggered",run:()=>{later(()=>sellForm(l.code,id,{price:g.lim,units:g.qty<l.qty?g.qty:"",reason:"system"}));}}]:null});}
 function moneyForm(c){c=c||{};
   I.form({title:c.id?"Edit money entry":"Money in / out",fields:[{k:"kind",label:"Type",type:"select",value:c.amount<0?"out":"in",options:[["in","Added to the shop"],["out","Withdrawn"]]},
       {k:"date",label:"Date",type:"date",value:c.date||today()},{k:"amount",label:"Amount (₹)",type:"number",value:c.amount?Math.abs(c.amount):""}],
@@ -129,16 +179,18 @@ function grp(kind,label,chip,list,msg){
   return `<div class="grp"><b><span class="chip ${chip}">${label}</span>${list.length?list.length+(list.length>1?" orders":" order"):""}</b>
     ${list.length?list.map(o=>ordCard(kind,o)).join(""):`<div class="none">${esc(msg)}</div>`}</div>`;}
 function tonight(M){
-  const t=I.ist(),tot=M.sells.length+(M.avg?1:0)+M.buys.length;
+  const t=I.ist(),tot=M.sells.length+(M.avg?1:0)+M.buys.length,gt=M.gtts.filter(x=>x.todo).length;
   const when=t.weekend?"Weekend · AMO orders for Monday":t.open?"Market open · live prices":t.afterClose?`${t.wd} evening · place as AMO limit orders`:`${t.wd} morning · before the open`;
   const big=t.open?(tot?`${tot} signal${tot>1?"s":""} right now`:"No signals right now"):(tot?`${tot} order${tot>1?"s":""}${t.weekend?" for Monday":" tonight"}`:"No orders tonight");
-  return `<section class="card hero"><div class="when">${esc(when)}</div><div class="big">${esc(big)}</div>
+  return `<section class="card hero"><div class="when">${esc(when)}</div><div class="big">${esc(big)}</div>${gt?`<p class="small" style="color:var(--warn);font-weight:600">${gt} GTT stop-loss${gt>1?"es":""} to place or fix</p>`:""}
     ${t.open?`<p class="small muted">Rules use the closing price. These move with the market and are final after the 3:30 PM close.</p>`:""}
     ${grp("sell","Sell","sell",M.sells,"No sell")}${grp("avg","Average","avg",M.avg?[M.avg]:[],M.avgMsg||"No averaging")}${grp("buy","New buy","buy",M.buys,"No new buy"+(M.buyMsg?": "+M.buyMsg:""))}
     ${M.checks.length?`<div class="grp"><b><span class="chip avg">Check price first</span>skipped above</b><div class="none">${M.checks.map(c=>esc(c.code)+" "+pct(c.fall52!=null&&ok(c.fall52)?c.fall52*100:c.fall*100)).join(" · ")} from 52W high looks too deep; confirm in your broker app.</div></div>`:""}
-    ${M.trailing.length?`<div class="grp"><b><span class="chip">Trailing stop on</span>no order</b><div class="rows">${M.trailing.map(l=>
-      `<div class="row"><span><b>${esc(l.code)}</b><div class="sub">${l.qty} units · bought ${price(l.price)} · high ${price(l.high)}</div></span><span class="r"><span class="up">${pct(l.gain*100,1)}</span><div class="sub">sell if ≤ ${price(l.stop)}</div></span></div>`).join("")}</div></div>`:""}
+    ${M.gtts.length?`<div class="grp"><b><span class="chip">GTT stop-loss</span>trigger = trailing stop</b>${M.gtts.map(x=>{const l=x.l;
+      return `<div class="gtt ${x.st}"><div class="row"><span><b>${esc(l.code)}</b><div class="sub">${l.qty} units · bought ${price(l.price)}${ok(l.high)?" · high "+price(l.high):""}</div></span><span class="r"><span class="${tone(l.gain)}">${pct(l.gain*100,1)}</span><div class="sub">${x.sug?"stop "+price(x.sug.trig):"trail from "+price(l.tgt)}</div></span></div>
+        <div class="gmsg">${esc(x.msg)}</div><div class="gb"><button class="fill" type="button" data-gtt="${esc(l.id)}">${x.g?(x.todo?"Update GTT":"Edit GTT"):"GTT placed"}</button>${x.g?`<button class="fill" type="button" data-gfill="${esc(l.id)}">It triggered</button>`:""}</div></div>`;}).join("")}</div>`:""}
   </section>`;}
+function quick(){return `<section class="quick"><button type="button" id="qBuy">+ Buy</button><button type="button" class="sellbtn" id="qSell">− Sell</button><p class="small muted">At your discretion, outside tonight's orders</p></section>`;}
 function portfolio(M){
   const val=M.open.reduce((a,l)=>a+(ok(l.value)?l.value:l.price*l.qty),0),pl=val-M.invested,dep=M.invested/M.capital*100;
   return `<section class="card"><h2>Portfolio <small>${M.open.length} lots · ${M.held.length} ETFs</small></h2>
@@ -152,7 +204,7 @@ function portfolio(M){
    </div>
    <div class="meter"><i style="width:${Math.max(0,Math.min(100,dep)).toFixed(1)}%"></i></div>
    <p class="small muted" style="margin-top:4px">${ok(dep)?dep.toFixed(0)+"% of capital deployed · ":""}money put in ${inr(M.added)}${M.withdrawn?" · withdrawn "+inr(M.withdrawn):""} · booked growth ${inr(M.growth)}</p>
-   <div class="acts"><button type="button" id="aBuy">+ Buy</button><button type="button" class="ghost" id="aMoney">Money in / out</button></div>
+   <div class="acts"><button type="button" class="ghost" id="aMoney">Money in / out</button></div>
   </section>`;}
 function holdings(M){
   const tgt=M.S.target*100;
@@ -160,14 +212,14 @@ function holdings(M){
   if(!G.length)return "";
   return `<section class="card"><h2>Holdings <small>newest lot vs ${pct(tgt)} target</small></h2>
    ${G.map(x=>{const g=x.last.gain*100,neg=g<0,w=ok(g)?(neg?Math.min(100,-g/20*100):Math.min(100,g/tgt*100)):0,pl=x.val-x.inv;
-     return `<details class="hold"><summary><span><b>${esc(x.code)}</b> <span class="tag">${x.L.length} lot${x.L.length>1?"s":""}</span>${x.mode!=="buy"?` <span class="tag">hold only</span>`:""}
+     return `<details class="hold"><summary><span><b>${esc(x.code)}</b> <span class="tag">${x.L.length} lot${x.L.length>1?"s":""}</span>${x.mode!=="buy"?` <span class="tag">hold only</span>`:""}${x.L.filter(l=>l.gtt).map(l=>` <span class="tag ok">GTT ${price(l.gtt.trig)}</span>`).join("")}
        <div class="sub muted">newest <span class="${tone(g)}">${pct(g,1)}</span> · trail from ${price(x.last.tgt)} · day <span class="${tone(x.chg)}">${pct(x.chg,1)}</span></div></span>
        <span class="r mono"><span class="${tone(pl)}">${ok(pl)?signInr(pl):"—"}</span><div class="sub">${inr(x.inv)}</div></span>
        <span class="tbar"><i class="${neg?"neg":""}" style="width:${w}%"></i></span></summary>
        <table class="lots"><tr><th>Bought</th><th>Price</th><th>Qty</th><th>Amount</th><th>Gain</th></tr>
        ${x.L.map(l=>`<tr class="tap" data-lot="${esc(l.id)}"><td>${esc(dshort(l.date))}</td><td>${price(l.price)}</td><td>${l.qty}</td><td>${inr(l.price*l.qty)}</td><td class="${tone(l.gain)}">${pct(l.gain*100,1)}</td></tr>`).join("")}
        <tr><td>Now</td><td>${price(x.close)}</td><td></td><td>${inr(x.val)}</td><td class="${tone(pl)}">${pct(pl/x.inv*100,1)}</td></tr></table>
-       <p class="small muted" style="margin:-4px 0 10px">${esc(x.group)} · ${pct(x.fallLast*100,1)} from last buy · ${pct(x.fall52*100,1)} from 52W high. Tap a lot to edit or sell.</p></details>`;}).join("")}
+       <p class="small muted" style="margin:-4px 0 10px">${esc(x.group)} · ${pct(x.fallLast*100,1)} from last buy · ${pct(x.fall52*100,1)} from 52W high. Tap a lot to edit, sell or set its GTT.</p></details>`;}).join("")}
   </section>`;}
 let showAll=false;
 function watch(M){
@@ -189,13 +241,14 @@ function booked(M){
   const gross=M.sold.reduce((a,l)=>a+l.p,0),ch=M.sold.reduce((a,l)=>a+l.ch,0),tax=M.sold.reduce((a,l)=>a+l.tax,0);
   /* booked return a year, on the money that was in the shop (money-weighted) */
   const flows=M.cap.map(c=>[c.date,-c.amount]);flows.push([I.ist().iso,M.added-M.withdrawn+M.growth]);const xr=I.xirr(flows);
-  const best={};M.sold.forEach(l=>best[l.code]=(best[l.code]||0)+l.p);const top=Object.entries(best).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const best={};M.sold.forEach(l=>best[l.code]=(best[l.code]||0)+l.p);const disc=M.sold.filter(isDisc),top=Object.entries(best).sort((a,b)=>b[1]-a[1]).slice(0,5);
   return `<section class="card"><h2>Booked profit <small>${M.sold.length} sells</small></h2>
    <div class="kpis"><div><b class="up">${inr(gross)}</b><span>Gross profit</span></div><div><b>${inr(M.growth)}</b><span>After charges &amp; tax</span></div><div><b>${pct(xr)}</b><span>Booked return a year</span></div></div>
    <div class="bars">${months.map(m=>`<div title="${m.m}: ${inr(m.p)}"><i class="${m.p<0?"neg":""}" style="height:${(Math.abs(m.p)/mx*80).toFixed(0)}%"></i><span>${new Date(m.m+"-01T00:00:00").toLocaleDateString("en-IN",{month:"short"})}</span></div>`).join("")}</div>
    <p class="small muted">Charges ${inr(ch)} · tax ${inr(tax)} (20% + 4% cess on profit after charges)</p>
-   <div class="rows" style="margin-top:8px">${show.map(l=>`<button class="rowbtn" type="button" data-sold="${esc(l.id)}"><span><b>${esc(l.code)}</b><div class="sub">${esc(dshort(l.sellDate))} · held ${l.days} d · ${l.qty} × ${price(l.sellPrice)}</div></span><span class="r"><span class="${tone(l.p)}">${signInr(l.p)}</span><div class="sub">${pct(l.pp,1)}</div></span></button>`).join("")}</div>
+   <div class="rows" style="margin-top:8px">${show.map(l=>`<button class="rowbtn" type="button" data-sold="${esc(l.id)}"><span><b>${esc(l.code)}</b>${isDisc(l)?` <span class="tag">discretionary</span>`:""}<div class="sub">${esc(dshort(l.sellDate))} · held ${l.days} d · ${l.qty} × ${price(l.sellPrice)}</div></span><span class="r"><span class="${tone(l.p)}">${signInr(l.p)}</span><div class="sub">${pct(l.pp,1)}</div></span></button>`).join("")}</div>
    ${S.length>6?`<button class="more" type="button" id="sAll">${soldAll?"Show fewer":"Show all "+S.length}</button>`:""}
+   ${disc.length?`<p class="small muted" style="margin-top:8px">Discretionary sells: ${disc.length} · net ${signInr(disc.reduce((a,l)=>a+l.net,0))} · rule sells: ${M.sold.length-disc.length} · net ${signInr(M.sold.filter(l=>!isDisc(l)).reduce((a,l)=>a+l.net,0))}</p>`:""}
    ${top.length?`<p class="small muted" style="margin-top:8px">Best earners: ${top.map(([c,p])=>esc(c)+" "+inr(p)).join(" · ")}</p>`:""}
   </section>`;}
 function setup(M){const S=M.S;
@@ -208,6 +261,8 @@ function setup(M){const S=M.S;
     <li>Sell: once a lot's highest close since buying is ${pct(S.target*100)} above cost, trail ${pct(S.trail*100)} below that high; sell the whole lot when the close reaches the stop. LIFO, no daily limit.</li>
     <li>Average: at most one a day, the ETF most fallen ≥ ${pct(-S.avgFall*100)} below its last buy and closing green; not above ${S.maxLots} lots per index group, not for hold-only ETFs, not with cash below a tranche.</li>
     <li>New buy: ≥ ${pct(-S.minFall*100)} below the 52-week-high close, closing green, index group not held. Two buys when the top pick is ≥ ${pct(-S.twoFall*100)} down and cash allows. Keep ${pct(S.reserve*100)} of capital as reserve.</li>
+    <li>GTT: while a lot's stop is on, keep a GTT sell in the broker app at trigger = the stop, limit ${pct(S.buffer*100)} below, for the lot's units. Raise it when the stop rises; never lower it.</li>
+    <li>Discretionary buys and sells are allowed but tagged, so booked profit shows how they compare with rule exits.</li>
     <li>Limit prices ${pct(S.buffer*100)} from the close. Falls deeper than ${pct(-S.check*100)} are flagged for a price check.</li>
    </ol>
    <p class="small" style="margin-top:14px"><b>Universe</b> · ${S.universe.length} ETFs <button class="more" type="button" id="aUni">+ add</button></p>
@@ -222,14 +277,16 @@ function empty(){return `<section class="card empty"><b>No records yet</b><p cla
 
 function draw(){
   const M=model(),has=M.open.length||M.sold.length||M.cap.length;
-  $("out").innerHTML=has?tonight(M)+portfolio(M)+holdings(M)+watch(M)+booked(M)+setup(M):empty();
+  $("out").innerHTML=has?quick()+tonight(M)+portfolio(M)+holdings(M)+watch(M)+booked(M)+setup(M):empty();
   const on=(id,f)=>{const e=$(id);if(e)e.onclick=f;};
-  on("aBuy",()=>buyForm());on("aMoney",()=>moneyForm());on("eRules",()=>settingsForm(M.S));on("aUni",()=>uniForm());
+  on("aBuy",()=>buyForm());on("qBuy",()=>buyForm({disc:true}));on("qSell",pickSell);on("aMoney",()=>moneyForm());on("eRules",()=>settingsForm(M.S));on("aUni",()=>uniForm());
   on("wAll",()=>{showAll=!showAll;draw();});on("sAll",()=>{soldAll=!soldAll;draw();});
   on("dImp",()=>I.pickImport((e,done)=>{if(e){showErr(e.message);return;}showErr("");$("st").textContent="Imported "+done.join(" and ").toUpperCase()+" records.";draw();refresh();}));
   on("dExp",()=>I.exportData());on("dSync",()=>syncNow(true));
   document.querySelectorAll("[data-fill]").forEach(b=>b.onclick=()=>{const k=b.dataset.fill,p=+b.dataset.p,q=+b.dataset.q;
-    if(k==="sell"){const s=I.load(KEY),l=s.lots[b.dataset.c];if(l)sellForm({id:b.dataset.c,...l},{price:p});}else buyForm({code:b.dataset.c,price:p,qty:q});});
+    if(k==="sell"){const l=I.load(KEY).lots[b.dataset.c];if(l)sellForm(l.code,b.dataset.c,{price:p,reason:"system"});}else buyForm({code:b.dataset.c,price:p,qty:q});});
+  document.querySelectorAll("[data-gtt]").forEach(b=>b.onclick=()=>gttForm(b.dataset.gtt));
+  document.querySelectorAll("[data-gfill]").forEach(b=>b.onclick=()=>{const l=I.load(KEY).lots[b.dataset.gfill];if(!l||!l.gtt)return;sellForm(l.code,b.dataset.gfill,{price:l.gtt.lim,units:l.gtt.qty<l.qty?l.gtt.qty:"",reason:"system"});});
   document.querySelectorAll("[data-lot]").forEach(r=>r.onclick=()=>{const l=I.load(KEY).lots[r.dataset.lot];if(l)buyForm({id:r.dataset.lot,...l});});
   document.querySelectorAll("[data-sold]").forEach(r=>r.onclick=()=>{const l=I.load(KEY).lots[r.dataset.sold];if(l)soldForm({id:r.dataset.sold,...l});});
   document.querySelectorAll("[data-cap]").forEach(r=>r.onclick=()=>{const c=I.load(KEY).cap[r.dataset.cap];if(c)moneyForm({id:r.dataset.cap,...c});});
