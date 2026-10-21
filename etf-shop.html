@@ -2,22 +2,20 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
 <title>ETF Shop · Pranju OS</title>
 <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="icon" href="icon-192.png" sizes="192x192"><link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="stylesheet" href="invest.css?v=20261021">
+<link rel="stylesheet" href="invest.css?v=20261021b">
 <link rel="stylesheet" href="tr-theme.css?v=20261020">
 </head><body class="tr-inv">
 <header><div class="hin">
   <a class="backlink" href="./#f-invest">← Investments</a>
-  <div class="eyebrow">Investments · AMO orders</div>
-  <h1>ETF Shop</h1>
-  <span class="pill" id="mkt"><i></i><span>NSE</span></span>
+  <div class="ttl"><h1>ETF Shop</h1><span class="pill" id="mkt"><i></i><span>NSE</span></span></div>
 </div></header>
 <main class="wrap">
-  <div class="bar"><span class="st" id="st"></span><button id="refresh" class="ghost" type="button">↻ Prices</button></div>
+  <div class="bar"><span class="st" id="st"></span><button id="qBuy" class="b-buy" type="button">+ Buy</button><button id="qSell" class="b-sell" type="button">− Sell</button><button id="refresh" class="b-ref" type="button" aria-label="Refresh prices" title="Refresh prices">↻</button></div>
   <div id="err" class="err" hidden></div>
   <div id="out"></div>
 </main>
 <script src="gsync.js?v=20261020"></script>
-<script src="invest.js?v=20261021"></script>
+<script src="invest.js?v=20261021b"></script>
 <script>
 "use strict";
 const I=Invest,{esc,inr,price,pct,signInr,tone,ok,r2,dshort}=I;
@@ -168,92 +166,67 @@ function uniForm(u){u=u||{};const S={...DEF,...(I.load(KEY).settings||{})};
     onDelete:u.code?()=>{I.setSettings(KEY,{universe:S.universe.filter(x=>x.code!==u.code)});draw();}:null,delLabel:"Remove"});}
 
 /* ---------- drawing ---------- */
-function ordCard(kind,o){
-  const c=kind==="sell"?o.l.code:kind==="avg"?o.h.code:o.c.code;let d="",d2="";
-  if(kind==="sell"){d=`Bought ${price(o.l.price)} · gain ${pct(o.l.gain*100,1)}`;d2=`high ${price(o.l.high)} · stop ${price(o.l.stop)}`;}
-  else if(kind==="avg"){d=`Close ${price(o.h.close)} · ${pct(o.h.fallLast*100)} from last buy`;d2=`${o.h.L.length} lots · day ${pct(o.h.chg,1)}`;}
-  else {d=`Close ${price(o.c.close)} · ${pct(o.c.fall*100)} from 52W high`;d2=`${o.c.group} · day ${pct(o.c.chg,1)}`;}
-  return `<div class="ord"><span class="s">${esc(c)}</span><span class="q">${o.qty} × ${price(o.lim)}</span><span class="d">${esc(d)}</span><span class="d2">${inr(o.qty*o.lim)}</span>
-    <span class="d" style="grid-column:1/-1">${esc(d2)}</span><button class="fill" type="button" data-fill="${kind}" data-c="${esc(kind==="sell"?o.l.id:c)}" data-q="${o.qty}" data-p="${o.lim}">Mark as filled</button></div>`;}
-function grp(kind,label,chip,list,msg){
-  return `<div class="grp"><b><span class="chip ${chip}">${label}</span>${list.length?list.length+(list.length>1?" orders":" order"):""}</b>
-    ${list.length?list.map(o=>ordCard(kind,o)).join(""):`<div class="none">${esc(msg)}</div>`}</div>`;}
+const TABS=[["hold","Holdings"],["watch","Watchlist"],["booked","Booked"]];
+let tab=I.rememberTab(KEY,"hold");
 function tonight(M){
-  const t=I.ist(),tot=M.sells.length+(M.avg?1:0)+M.buys.length,gt=M.gtts.filter(x=>x.todo).length;
-  const when=t.weekend?"Weekend · AMO orders for Monday":t.open?"Market open · live prices":t.afterClose?`${t.wd} evening · place as AMO limit orders`:`${t.wd} morning · before the open`;
-  const big=t.open?(tot?`${tot} signal${tot>1?"s":""} right now`:"No signals right now"):(tot?`${tot} order${tot>1?"s":""}${t.weekend?" for Monday":" tonight"}`:"No orders tonight");
-  return `<section class="card hero"><div class="when">${esc(when)}</div><div class="big">${esc(big)}</div>${gt?`<p class="small" style="color:var(--warn);font-weight:600">${gt} GTT stop-loss${gt>1?"es":""} to place or fix</p>`:""}
-    ${t.open?`<p class="small muted">Rules use the closing price. These move with the market and are final after the 3:30 PM close.</p>`:""}
-    ${grp("sell","Sell","sell",M.sells,"No sell")}${grp("avg","Average","avg",M.avg?[M.avg]:[],M.avgMsg||"No averaging")}${grp("buy","New buy","buy",M.buys,"No new buy"+(M.buyMsg?": "+M.buyMsg:""))}
-    ${M.checks.length?`<div class="grp"><b><span class="chip avg">Check price first</span>skipped above</b><div class="none">${M.checks.map(c=>esc(c.code)+" "+pct(c.fall52!=null&&ok(c.fall52)?c.fall52*100:c.fall*100)).join(" · ")} from 52W high looks too deep; confirm in your broker app.</div></div>`:""}
-    ${M.gtts.length?`<div class="grp"><b><span class="chip">GTT stop-loss</span>trigger = trailing stop</b>${M.gtts.map(x=>{const l=x.l;
-      return `<div class="gtt ${x.st}"><div class="row"><span><b>${esc(l.code)}</b><div class="sub">${l.qty} units · bought ${price(l.price)}${ok(l.high)?" · high "+price(l.high):""}</div></span><span class="r"><span class="${tone(l.gain)}">${pct(l.gain*100,1)}</span><div class="sub">${x.sug?"stop "+price(x.sug.trig):"trail from "+price(l.tgt)}</div></span></div>
-        <div class="gmsg">${esc(x.msg)}</div><div class="gb"><button class="fill" type="button" data-gtt="${esc(l.id)}">${x.g?(x.todo?"Update GTT":"Edit GTT"):"GTT placed"}</button>${x.g?`<button class="fill" type="button" data-gfill="${esc(l.id)}">It triggered</button>`:""}</div></div>`;}).join("")}</div>`:""}
-  </section>`;}
-function quick(){return `<section class="quick"><button type="button" id="qBuy">+ Buy</button><button type="button" class="sellbtn" id="qSell">− Sell</button><p class="small muted">At your discretion, outside tonight's orders</p></section>`;}
-function portfolio(M){
+  const t=I.ist(),gt=M.gtts.filter(x=>x.todo),tot=M.sells.length+(M.avg?1:0)+M.buys.length;
+  const when=t.weekend?"Weekend · AMO for Monday":t.open?"Market open · live":t.afterClose?`${t.wd} evening · AMO limit orders`:`${t.wd} morning · before the open`;
+  const big=tot?`${tot} order${tot>1?"s":""}${t.open?" right now":t.weekend?" for Monday":" tonight"}`:t.open?"No signals right now":"Nothing to place tonight";
+  const fill=(k,c,q,p)=>["Filled",`data-fill="${k}" data-c="${esc(c)}" data-q="${q}" data-p="${p}"`];
+  const rows=[
+    ...M.sells.map(o=>I.todo("sell","Sell",esc(o.l.code),`${o.qty} × ${price(o.lim)}`,`bought ${price(o.l.price)} · ${pct(o.l.gain*100,1)} · stop ${price(o.l.stop)}`,inr(o.qty*o.lim),fill("sell",o.l.id,o.qty,o.lim))),
+    ...(M.avg?[M.avg]:[]).map(o=>I.todo("avg","Average",esc(o.h.code),`${o.qty} × ${price(o.lim)}`,`${pct(o.h.fallLast*100)} from last buy · ${o.h.L.length} lot${o.h.L.length>1?"s":""}`,inr(o.qty*o.lim),fill("avg",o.h.code,o.qty,o.lim))),
+    ...M.buys.map(o=>I.todo("buy","Buy",esc(o.c.code),`${o.qty} × ${price(o.lim)}`,`${pct(o.c.fall*100)} from 52W high · ${esc(o.c.group)}`,inr(o.qty*o.lim),fill("buy",o.c.code,o.qty,o.lim))),
+    ...gt.map(x=>{const l=x.l,s=x.sug;return I.todo("gt "+x.st,"GTT",esc(l.code),s?price(s.trig):"",esc(!x.g&&s?"not placed yet":x.msg),s?`limit ${price(s.lim)} · ${s.qty}`:"",[x.g?"Update":"Placed",`data-gtt="${esc(l.id)}"`]);})];
+  const why=[];if(!M.sells.length&&!M.avg&&!M.buys.length){if(M.buyMsg)why.push("No new buy: "+M.buyMsg);else if(M.avgMsg)why.push(M.avgMsg);}
+  if(M.checks.length)why.push(`Check price first: ${M.checks.map(c=>esc(c.code)+" "+pct((ok(c.fall52)?c.fall52:c.fall)*100)).join(", ")} looks too deep`);
+  if(t.open&&tot)why.push("Final after the 3:30 PM close.");
+  return `<section class="card hero"><div class="when">${esc(when)}</div><div class="big">${esc(big)}</div>
+    ${rows.join("")||`<div class="nothing">No sell, average or buy signal.</div>`}
+    ${why.length?`<p class="foot">${why.map(esc).join("<br>")}</p>`:""}</section>`;}
+function summary(M){
   const val=M.open.reduce((a,l)=>a+(ok(l.value)?l.value:l.price*l.qty),0),pl=val-M.invested,dep=M.invested/M.capital*100;
-  return `<section class="card"><h2>Portfolio <small>${M.open.length} lots · ${M.held.length} ETFs</small></h2>
-   <div class="kpis">
-    <div><b>${inr(val)}</b><span>Current value</span></div>
-    <div><b class="${tone(pl)}">${signInr(pl)}</b><span>Notional · <span class="${tone(pl)}">${pct(pl/M.invested*100,1)}</span></span></div>
-    <div><b>${inr(M.invested)}</b><span>Invested</span></div>
-    <div><b>${inr(M.capital)}</b><span>Capital</span></div>
-    <div><b>${inr(M.cash)}</b><span>Cash · ${pct(M.cash/M.capital*100)}</span></div>
-    <div><b>${inr(M.tranche)}</b><span>Per tranche</span></div>
-   </div>
-   <div class="meter"><i style="width:${Math.max(0,Math.min(100,dep)).toFixed(1)}%"></i></div>
-   <p class="small muted" style="margin-top:4px">${ok(dep)?dep.toFixed(0)+"% of capital deployed · ":""}money put in ${inr(M.added)}${M.withdrawn?" · withdrawn "+inr(M.withdrawn):""} · booked growth ${inr(M.growth)}</p>
-   <div class="acts"><button type="button" class="ghost" id="aMoney">Money in / out</button></div>
-  </section>`;}
+  return I.sum([["Value",inr(val),"",`${M.open.length} lots · ${M.held.length} ETFs`],["P / L",signInr(pl),tone(pl),pct(pl/M.invested*100,1)],["Cash",inr(M.cash),"",ok(dep)?dep.toFixed(0)+"% invested":""]]);}
 function holdings(M){
-  const tgt=M.S.target*100;
   const G=M.held.slice().sort((a,b)=>(b.last.gain||-9)-(a.last.gain||-9));
-  if(!G.length)return "";
-  return `<section class="card"><h2>Holdings <small>newest lot vs ${pct(tgt)} target</small></h2>
-   ${G.map(x=>{const g=x.last.gain*100,neg=g<0,w=ok(g)?(neg?Math.min(100,-g/20*100):Math.min(100,g/tgt*100)):0,pl=x.val-x.inv;
-     return `<details class="hold"><summary><span><b>${esc(x.code)}</b> <span class="tag">${x.L.length} lot${x.L.length>1?"s":""}</span>${x.mode!=="buy"?` <span class="tag">hold only</span>`:""}${x.L.filter(l=>l.gtt).map(l=>` <span class="tag ok">GTT ${price(l.gtt.trig)}</span>`).join("")}
-       <div class="sub muted">newest <span class="${tone(g)}">${pct(g,1)}</span> · trail from ${price(x.last.tgt)} · day <span class="${tone(x.chg)}">${pct(x.chg,1)}</span></div></span>
-       <span class="r mono"><span class="${tone(pl)}">${ok(pl)?signInr(pl):"—"}</span><div class="sub">${inr(x.inv)}</div></span>
-       <span class="tbar"><i class="${neg?"neg":""}" style="width:${w}%"></i></span></summary>
-       <table class="lots"><tr><th>Bought</th><th>Price</th><th>Qty</th><th>Amount</th><th>Gain</th></tr>
-       ${x.L.map(l=>`<tr class="tap" data-lot="${esc(l.id)}"><td>${esc(dshort(l.date))}</td><td>${price(l.price)}</td><td>${l.qty}</td><td>${inr(l.price*l.qty)}</td><td class="${tone(l.gain)}">${pct(l.gain*100,1)}</td></tr>`).join("")}
-       <tr><td>Now</td><td>${price(x.close)}</td><td></td><td>${inr(x.val)}</td><td class="${tone(pl)}">${pct(pl/x.inv*100,1)}</td></tr></table>
-       <p class="small muted" style="margin:-4px 0 10px">${esc(x.group)} · ${pct(x.fallLast*100,1)} from last buy · ${pct(x.fall52*100,1)} from 52W high. Tap a lot to edit, sell or set its GTT.</p></details>`;}).join("")}
-  </section>`;}
+  if(!G.length)return `<p class="nothing">No open lots.</p>`;
+  return G.map(x=>{const g=x.last.gain*100,pl=x.val-x.inv,gtt=x.L.some(l=>l.gtt);
+     return `<details class="hold"><summary><span><b>${esc(x.code)}</b> <span class="tag">${x.L.length}</span>${gtt?` <span class="tag ok">GTT</span>`:""}${x.mode!=="buy"?` <span class="tag">hold</span>`:""}
+       <div class="sub muted">newest <span class="${tone(g)}">${pct(g,1)}</span> · day <span class="${tone(x.chg)}">${pct(x.chg,1)}</span></div></span>
+       <span class="r mono"><span class="${tone(pl)}">${ok(pl)?signInr(pl):"—"}</span><div class="sub">${inr(x.val)}</div></span></summary>
+       <table class="lots"><tr><th>Bought</th><th>Price</th><th>Qty</th><th>Gain</th></tr>
+       ${x.L.map(l=>`<tr class="tap" data-lot="${esc(l.id)}"><td>${esc(dshort(l.date))}</td><td>${price(l.price)}</td><td>${l.qty}</td><td class="${tone(l.gain)}">${pct(l.gain*100,1)}${l.gtt?` · GTT ${price(l.gtt.trig)}`:""}</td></tr>`).join("")}
+       <tr><td>Now</td><td>${price(x.close)}</td><td></td><td class="${tone(pl)}">${pct(pl/x.inv*100,1)}</td></tr></table>
+       <p class="small muted" style="margin:-4px 0 10px">Trailing starts at ${price(x.last.tgt)} · ${pct(x.fall52*100,1)} from 52W high · tap a lot to edit or sell.</p></details>`;}).join("");}
 let showAll=false;
 function watch(M){
-  const L=M.cands.filter(c=>ok(c.fall)).sort((a,b)=>a.fall-b.fall),show=showAll?L:L.slice(0,12);
-  return `<section class="card"><h2>Watchlist <small>fall from 52W-high close · buy zone ${pct(M.S.minFall*100)}</small></h2>
-   ${L.length?`<div class="rows">${show.map(c=>{const zone=c.fall<=M.S.minFall;
-     return `<div class="row"><span><b>${esc(c.code)}</b> ${c.mode!=="buy"?`<span class="tag">hold only</span>`:c.status==="BUY"?`<span class="tag ok">buy signal</span>`:c.status==="Group held"&&zone?`<span class="tag">group held</span>`:zone?`<span class="tag ok">in zone</span>`:""}
+  const L=M.cands.filter(c=>ok(c.fall)).sort((a,b)=>a.fall-b.fall),show=showAll?L:L.slice(0,10);
+  if(!L.length)return `<p class="nothing">Waiting for live prices.</p>`;
+  return `<p class="line">Fall from the 52-week-high close · buy zone below <b>${pct(M.S.minFall*100)}</b></p>
+   <div class="rows">${show.map(c=>{const zone=c.fall<=M.S.minFall;
+     return `<div class="row"><span><b>${esc(c.code)}</b> ${c.status==="BUY"?`<span class="tag ok">buy</span>`:c.mode!=="buy"?`<span class="tag">hold</span>`:zone&&c.status==="Group held"?`<span class="tag">group held</span>`:""}
        <div class="sub">${esc(c.group)}</div></span>
        <span class="r"><span class="${zone?"dn":""}">${pct(c.fall*100,1)}</span><div class="sub">${price(c.close)} · <span class="${tone(c.chg)}">${pct(c.chg,1)}</span></div></span></div>`;}).join("")}</div>
-   ${L.length>12?`<button class="more" type="button" id="wAll">${showAll?"Show fewer":"Show all "+L.length}</button>`:""}`
-   :`<p class="small muted">Waiting for live prices.</p>`}
-  </section>`;}
+   ${L.length>10?`<button class="more" type="button" id="wAll">${showAll?"Show fewer":"Show all "+L.length}</button>`:""}`;}
 let soldAll=false;
 function booked(M){
-  if(!M.sold.length)return "";
+  if(!M.sold.length)return `<p class="nothing">Nothing sold yet.</p>`;
   const mm={};M.sold.forEach(l=>{const k=l.sellDate.slice(0,7);mm[k]=(mm[k]||0)+l.p;});
   const months=Object.keys(mm).sort().map(k=>({m:k,p:mm[k]})),mx=Math.max(...months.map(m=>Math.abs(m.p)),1);
   const S=M.sold.slice().sort((a,b)=>a.sellDate<b.sellDate?1:-1),show=soldAll?S:S.slice(0,6);
   const gross=M.sold.reduce((a,l)=>a+l.p,0),ch=M.sold.reduce((a,l)=>a+l.ch,0),tax=M.sold.reduce((a,l)=>a+l.tax,0);
-  /* booked return a year, on the money that was in the shop (money-weighted) */
   const flows=M.cap.map(c=>[c.date,-c.amount]);flows.push([I.ist().iso,M.added-M.withdrawn+M.growth]);const xr=I.xirr(flows);
-  const best={};M.sold.forEach(l=>best[l.code]=(best[l.code]||0)+l.p);const disc=M.sold.filter(isDisc),top=Object.entries(best).sort((a,b)=>b[1]-a[1]).slice(0,5);
-  return `<section class="card"><h2>Booked profit <small>${M.sold.length} sells</small></h2>
-   <div class="kpis"><div><b class="up">${inr(gross)}</b><span>Gross profit</span></div><div><b>${inr(M.growth)}</b><span>After charges &amp; tax</span></div><div><b>${pct(xr)}</b><span>Booked return a year</span></div></div>
+  const disc=M.sold.filter(isDisc);
+  return `<p class="line">Gross <b class="up">${inr(gross)}</b> · net <b>${inr(M.growth)}</b> · <b>${pct(xr)}</b> a year</p>
    <div class="bars">${months.map(m=>`<div title="${m.m}: ${inr(m.p)}"><i class="${m.p<0?"neg":""}" style="height:${(Math.abs(m.p)/mx*80).toFixed(0)}%"></i><span>${new Date(m.m+"-01T00:00:00").toLocaleDateString("en-IN",{month:"short"})}</span></div>`).join("")}</div>
-   <p class="small muted">Charges ${inr(ch)} · tax ${inr(tax)} (20% + 4% cess on profit after charges)</p>
-   <div class="rows" style="margin-top:8px">${show.map(l=>`<button class="rowbtn" type="button" data-sold="${esc(l.id)}"><span><b>${esc(l.code)}</b>${isDisc(l)?` <span class="tag">discretionary</span>`:""}<div class="sub">${esc(dshort(l.sellDate))} · held ${l.days} d · ${l.qty} × ${price(l.sellPrice)}</div></span><span class="r"><span class="${tone(l.p)}">${signInr(l.p)}</span><div class="sub">${pct(l.pp,1)}</div></span></button>`).join("")}</div>
+   <div class="rows" style="margin-top:6px">${show.map(l=>`<button class="rowbtn" type="button" data-sold="${esc(l.id)}"><span><b>${esc(l.code)}</b>${isDisc(l)?` <span class="tag">own call</span>`:""}<div class="sub">${esc(dshort(l.sellDate))} · ${l.days} d · ${l.qty} × ${price(l.sellPrice)}</div></span><span class="r"><span class="${tone(l.p)}">${signInr(l.p)}</span><div class="sub">${pct(l.pp,1)}</div></span></button>`).join("")}</div>
    ${S.length>6?`<button class="more" type="button" id="sAll">${soldAll?"Show fewer":"Show all "+S.length}</button>`:""}
-   ${disc.length?`<p class="small muted" style="margin-top:8px">Discretionary sells: ${disc.length} · net ${signInr(disc.reduce((a,l)=>a+l.net,0))} · rule sells: ${M.sold.length-disc.length} · net ${signInr(M.sold.filter(l=>!isDisc(l)).reduce((a,l)=>a+l.net,0))}</p>`:""}
-   ${top.length?`<p class="small muted" style="margin-top:8px">Best earners: ${top.map(([c,p])=>esc(c)+" "+inr(p)).join(" · ")}</p>`:""}
-  </section>`;}
+   <p class="small muted" style="margin-top:8px">Charges ${inr(ch)} · tax ${inr(tax)}${disc.length?` · own-call sells ${disc.length}, net ${signInr(disc.reduce((a,l)=>a+l.net,0))}`:""}</p>`;}
+function details(M){return `<section class="card">${I.tabs(TABS,tab)}<div class="panel">${tab==="watch"?watch(M):tab==="booked"?booked(M):holdings(M)}</div></section>`;}
 function setup(M){const S=M.S;
-  return `<details class="card sec"><summary>Money, rules &amp; universe</summary>
-   <p class="small"><b>Money in / out</b></p><div class="rows">${M.cap.map(c=>`<button class="rowbtn" type="button" data-cap="${esc(c.id)}"><span>${esc(dshort(c.date))}</span><span class="r ${c.amount<0?"dn":""}">${signInr(c.amount)}</span></button>`).join("")||`<p class="small muted">None yet.</p>`}</div>
+  return `<details class="card sec more"><summary>More · money, rules, data</summary>
+   <p class="small"><b>Money in / out</b> <button class="more" type="button" id="aMoney">+ add</button></p><div class="rows">${M.cap.map(c=>`<button class="rowbtn" type="button" data-cap="${esc(c.id)}"><span>${esc(dshort(c.date))}</span><span class="r ${c.amount<0?"dn":""}">${signInr(c.amount)}</span></button>`).join("")||`<p class="small muted">None yet.</p>`}</div>
+   <p class="small muted" style="margin-top:6px">Capital ${inr(M.capital)} · tranche ${inr(M.tranche)} · booked growth ${inr(M.growth)}</p>
    <p class="small" style="margin-top:14px"><b>Rules</b> <button class="more" type="button" id="eRules">edit</button></p>
    <ol class="rules">
     <li>Check once a day after 4 PM on closing prices; place AMO limit orders.</li>
@@ -277,16 +250,16 @@ function empty(){return `<section class="card empty"><b>No records yet</b><p cla
 
 function draw(){
   const M=model(),has=M.open.length||M.sold.length||M.cap.length;
-  $("out").innerHTML=has?quick()+tonight(M)+portfolio(M)+holdings(M)+watch(M)+booked(M)+setup(M):empty();
+  $("out").innerHTML=has?tonight(M)+summary(M)+details(M)+setup(M):empty();
   const on=(id,f)=>{const e=$(id);if(e)e.onclick=f;};
   on("aBuy",()=>buyForm());on("qBuy",()=>buyForm({disc:true}));on("qSell",pickSell);on("aMoney",()=>moneyForm());on("eRules",()=>settingsForm(M.S));on("aUni",()=>uniForm());
   on("wAll",()=>{showAll=!showAll;draw();});on("sAll",()=>{soldAll=!soldAll;draw();});
+  document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{tab=b.dataset.tab;I.saveTab(KEY,tab);draw();});
   on("dImp",()=>I.pickImport((e,done)=>{if(e){showErr(e.message);return;}showErr("");$("st").textContent="Imported "+done.join(" and ").toUpperCase()+" records.";draw();refresh();}));
   on("dExp",()=>I.exportData());on("dSync",()=>syncNow(true));
   document.querySelectorAll("[data-fill]").forEach(b=>b.onclick=()=>{const k=b.dataset.fill,p=+b.dataset.p,q=+b.dataset.q;
     if(k==="sell"){const l=I.load(KEY).lots[b.dataset.c];if(l)sellForm(l.code,b.dataset.c,{price:p,reason:"system"});}else buyForm({code:b.dataset.c,price:p,qty:q});});
   document.querySelectorAll("[data-gtt]").forEach(b=>b.onclick=()=>gttForm(b.dataset.gtt));
-  document.querySelectorAll("[data-gfill]").forEach(b=>b.onclick=()=>{const l=I.load(KEY).lots[b.dataset.gfill];if(!l||!l.gtt)return;sellForm(l.code,b.dataset.gfill,{price:l.gtt.lim,units:l.gtt.qty<l.qty?l.gtt.qty:"",reason:"system"});});
   document.querySelectorAll("[data-lot]").forEach(r=>r.onclick=()=>{const l=I.load(KEY).lots[r.dataset.lot];if(l)buyForm({id:r.dataset.lot,...l});});
   document.querySelectorAll("[data-sold]").forEach(r=>r.onclick=()=>{const l=I.load(KEY).lots[r.dataset.sold];if(l)soldForm({id:r.dataset.sold,...l});});
   document.querySelectorAll("[data-cap]").forEach(r=>r.onclick=()=>{const c=I.load(KEY).cap[r.dataset.cap];if(c)moneyForm({id:r.dataset.cap,...c});});

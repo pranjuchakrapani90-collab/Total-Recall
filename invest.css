@@ -148,3 +148,60 @@ table.lots tr.tap:active td{background:var(--soft)}
 .gb{display:flex;gap:8px;flex-wrap:wrap}
 .gb .fill{grid-column:auto}
 .ord .gtt{grid-column:1/-1;margin:8px 0 0}
+
+/* ===== minimal layout (Oct 2026) ===== */
+.hin .ttl{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px}
+.hin .ttl h1{margin:0;font-size:26px}
+.hin .ttl .pill{margin-top:0}
+header{padding-bottom:14px}
+.bar{gap:6px}
+.bar button{padding:7px 12px;font-size:13.5px;border-radius:999px}
+.bar .b-buy{background:var(--acc);color:#fff}
+.bar .b-sell{background:var(--ink);color:#fff}
+.bar .b-ref{background:none;color:var(--muted);padding:7px 8px;font-size:16px}
+.err{font-size:12.5px;padding:8px 12px}
+.wrap{gap:14px}
+
+.hero{border-top:0;padding:16px}
+.hero .when{font-size:10.5px;letter-spacing:.1em}
+.hero .big{font-size:21px;margin:4px 0 10px}
+.hero .foot{font-size:12.5px;color:var(--muted);margin:10px 0 0}
+.nothing{font-size:14px;color:var(--muted);padding:6px 0 2px}
+
+.todo{display:grid;grid-template-columns:1fr auto auto;grid-template-areas:"l q b" "s a b";gap:1px 12px;align-items:center;padding:11px 0;border-top:1px solid var(--line)}
+.todo:first-of-type{border-top:0;padding-top:4px}
+.todo .tl{grid-area:l;font-size:16px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.todo .tl em{font:700 10.5px/1 var(--body);font-style:normal;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-right:4px}
+.todo .tl b{font-weight:700}
+.todo .tq{grid-area:q;font:650 15px var(--mono);text-align:right;white-space:nowrap}
+.todo .ts{grid-area:s;font-size:12.5px;color:var(--muted);min-width:0}
+.todo .ta{grid-area:a;font-size:12.5px;color:var(--muted);text-align:right;font-family:var(--mono);white-space:nowrap}
+.todo .tick{grid-area:b;background:none;border:1.5px solid var(--acc);color:var(--acc);padding:6px 11px;font-size:12.5px;border-radius:999px}
+.todo .tick.none{border:0;padding:0;width:0}
+.todo.sell em,.todo.book em{color:var(--up)}
+.todo.buy em,.todo.sip em{color:var(--acc)}
+.todo.avg em,.todo.dip em{color:var(--warn)}
+.todo.gt em{color:var(--ink)}
+.todo.gt .ts{color:var(--warn)}
+.todo.gt.bad .ts{color:var(--dn)}
+.todo.gt.ok .ts{color:var(--up)}
+.todo.done .tl b,.todo.done .tq{color:var(--muted)}
+
+.sum{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:2px 4px}
+.sum div{min-width:0}
+.sum span{display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.sum b{display:block;font:700 17px/1.3 var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sum small{display:block;font-size:11.5px;color:var(--muted)}
+
+.tabs{display:flex;gap:4px;background:var(--soft);border-radius:999px;padding:4px}
+.tabs button{flex:1;background:none;color:var(--muted);padding:8px 6px;font-size:13.5px;border-radius:999px}
+.tabs button.on{background:var(--paper);color:var(--ink);box-shadow:0 1px 3px #1c1b1918}
+.panel{padding-top:6px}
+.panel .rows .row:first-child,.panel .rowbtn:first-child{border-top:0}
+.line{font-size:13px;color:var(--muted);margin:0 0 8px}
+.line b{color:var(--ink);font-family:var(--mono);font-weight:650}
+.bars{height:70px}
+details.more{background:none;border:0;box-shadow:none;padding:4px 4px 0}
+details.more>summary{font:600 14px var(--body);color:var(--muted);justify-content:center;gap:6px}
+details.more[open]{background:var(--paper);border:1px solid var(--line);padding:14px 16px}
+details.hold>summary{padding:11px 0}

@@ -110,5 +110,12 @@ function form(o){
   d.addEventListener("cancel",()=>d.remove());
   d.showModal();}
 
-window.Invest={load,save,merge,upsert,remove,setSettings,uid,sync,push,hasSync,importData,exportData,pickImport,quotes,quotesCache,highSince,high52,ist,ok,r2,inr,price,pct,signInr,tone,esc,dshort,days,ago,xirr,form};
+/* ---------- minimal building blocks shared by both pages ---------- */
+/* one action row: kind colours the label; btn is [text, attrs] or null */
+function todo(kind,label,what,q,sub,amt,btn){return `<div class="todo ${kind}"><span class="tl"><em>${label}</em> <b>${what}</b></span><span class="tq">${q||""}</span>${btn?`<button type="button" class="tick" ${btn[1]}>${btn[0]}</button>`:`<span class="tick none"></span>`}<span class="ts">${sub||""}</span><span class="ta">${amt||""}</span></div>`;}
+function tabs(list,cur){return `<nav class="tabs" role="tablist">${list.map(([k,l])=>`<button type="button" role="tab" data-tab="${k}" class="${k===cur?"on":""}" aria-selected="${k===cur}">${l}</button>`).join("")}</nav>`;}
+function sum(items){return `<section class="sum">${items.map(([l,v,cls,sub])=>`<div><span>${l}</span><b class="${cls||""}">${v}</b>${sub?`<small>${sub}</small>`:""}</div>`).join("")}</section>`;}
+function rememberTab(key,def){let t=def;try{t=sessionStorage.getItem("inv-tab-"+key)||def;}catch(e){}return t;}
+function saveTab(key,t){try{sessionStorage.setItem("inv-tab-"+key,t);}catch(e){}}
+window.Invest={todo,tabs,sum,rememberTab,saveTab,load,save,merge,upsert,remove,setSettings,uid,sync,push,hasSync,importData,exportData,pickImport,quotes,quotesCache,highSince,high52,ist,ok,r2,inr,price,pct,signInr,tone,esc,dshort,days,ago,xirr,form};
 })();

@@ -2,22 +2,20 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
 <title>JuniorBees PKP · Pranju OS</title>
 <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="icon" href="icon-192.png" sizes="192x192"><link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="stylesheet" href="invest.css?v=20261021">
+<link rel="stylesheet" href="invest.css?v=20261021b">
 <link rel="stylesheet" href="tr-theme.css?v=20261020">
 </head><body class="tr-inv">
 <header><div class="hin">
   <a class="backlink" href="./#f-invest">← Investments</a>
-  <div class="eyebrow">Investments · SIP + buy in dips</div>
-  <h1>JuniorBees PKP</h1>
-  <span class="pill" id="mkt"><i></i><span>NSE</span></span>
+  <div class="ttl"><h1>JuniorBees PKP</h1><span class="pill" id="mkt"><i></i><span>NSE</span></span></div>
 </div></header>
 <main class="wrap">
-  <div class="bar"><span class="st" id="st"></span><button id="refresh" class="ghost" type="button">↻ Price</button></div>
+  <div class="bar"><span class="st" id="st"></span><button id="qBuy" class="b-buy" type="button">+ Buy</button><button id="qSell" class="b-sell" type="button">− Sell</button><button id="refresh" class="b-ref" type="button" aria-label="Refresh price" title="Refresh price">↻</button></div>
   <div id="err" class="err" hidden></div>
   <div id="out"></div>
 </main>
 <script src="gsync.js?v=20261020"></script>
-<script src="invest.js?v=20261021"></script>
+<script src="invest.js?v=20261021b"></script>
 <script>
 "use strict";
 const I=Invest,{esc,inr,price,pct,signInr,tone,ok,r2,dshort}=I;
@@ -115,65 +113,54 @@ function settingsForm(S){
 
 /* ---------- drawing ---------- */
 const ord=n=>n+(n%10===1&&n!==11?"st":n%10===2&&n!==12?"nd":n%10===3&&n!==13?"rd":"th");
-function quick(){return `<section class="quick"><button type="button" id="qBuy">+ Buy</button><button type="button" class="sellbtn" id="qSell">− Sell</button><p class="small muted">At your discretion, outside the SIP and BID plan</p></section>`;}
+const TABS=[["ladder","Ladder"],["hist","History"],["booked","Booked"]];
+let tab=I.rememberTab(KEY,"ladder");
 function month(M){
   const t=I.ist(),ym=t.iso.slice(0,7),buys=M.T.filter(x=>x.type==="buy"&&x.date.slice(0,7)===ym),N=M.sipNext,sells=M.T.filter(x=>x.type==="sell"&&x.date.slice(0,7)===ym);
   const mName=new Date(t.iso+"T00:00:00").toLocaleDateString("en-IN",{month:"long"});
   const gap=M.nb?M.nb.price/M.cmp*100-100:NaN,hit=ok(gap)&&gap>=0,up=M.tgtPrice/M.cmp*100-100,canSell=M.eligible>0;
+  const big=canSell?`Book profit: sell ${M.eligible} unit${M.eligible>1?"s":""}`:hit?`BID ${M.next} is live: buy ${M.nextQty}`:N.done?"SIP done · next "+wd(N.date):N.late?"SIP overdue · due "+dshort(N.due):N.days===0?"SIP due today":"Next SIP "+wd(N.date);
+  const amoTxt=N.days>0&&!N.amoToday?`AMO ${wd(N.amo)} evening · limit = that day's close`:"AMO tonight · limit = today's close";
+  const rows=[
+    I.todo("sip"+(N.done?" done":""),"SIP",esc(wd(N.date)),`${ok(M.sipQty)?M.sipQty:"—"} × ${price(M.cmp)}`,
+      esc((N.done?ym2(t.iso)+" done · ":N.late?"overdue · ":"")+amoTxt),ok(M.sipQty)?"≈ "+inr(M.sipQty*M.cmp):"",N.done?null:["Bought",`id="fSip"`]),
+    M.nb?I.todo("dip","Dip",`BID ${M.next} · ${price(M.nb.price)}`,`${ok(M.nextQty)?M.nextQty:"—"} units`,
+      hit?"price is at or below this level":ok(gap)?`needs a further ${pct(-gap)} fall`:"waiting for the price",inr(M.nb.amt),hit?["Bought",`id="fBid"`]:null):"",
+    M.units?I.todo("book","Book",price(M.tgtPrice),`${ok(M.tgtUnits)?M.tgtUnits:"—"} unit${M.tgtUnits===1?"":"s"}`,
+      canSell?"profit is above the threshold":ok(up)?`target is ${pct(up,1)} above the price`:"",`notional ${signInr(M.pl)}`,canSell?["Sold",`id="fSell"`]:null):"",
+    M.gtt&&M.gtt.st!=="ok"&&(M.gtt.todo||M.gtt.g)?I.todo("gt "+M.gtt.st,"GTT",price(M.gtt.sug.trig),`${M.gtt.sug.units} units`,esc(M.gtt.g?M.gtt.msg:"not placed yet · sell at the target"),`limit ${price(M.gtt.sug.lim)}`,[M.gtt.g?"Update":"Placed",`id="gSet"`]):""].join("");
+  const done=[...buys.map(l=>`bought ${l.units} on ${dshort(l.date)} (${l.sip?"SIP":"BID "+l.bid})`),...sells.map(x=>`sold ${x.units} on ${dshort(x.date)}`)];
   return `<section class="card hero"><div class="when">${esc(mName)} · ${esc(M.S.symbol)} ${price(M.cmp)}${ok(M.q&&M.q.chg)?` <span class="${tone(M.q.chg)}">${pct(M.q.chg,1)}</span>`:""}</div>
-   <div class="big">${canSell?`Book profit: sell ${M.eligible} unit${M.eligible>1?"s":""}`:hit?`BID ${M.next} is live: buy ${M.nextQty}`:N.done?"SIP done · next "+esc(wd(N.date)):N.late?"SIP overdue · due "+esc(dshort(N.due)):N.days===0?"SIP due today":"Next SIP "+esc(wd(N.date))}</div>
-   <div class="grp"><b><span class="chip buy">SIP</span>${inr(M.S.sip)} a month · on the ${ord(M.sipDay)}</b>
-     ${buys.map(l=>`<div class="ord"><span class="s">Bought ${esc(dshort(l.date))}</span><span class="q">${l.units} × ${price(l.price)}</span><span class="d">${l.sip?"SIP":"BID "+l.bid+" buy"}</span><span class="d2">${inr(l.amount)}</span></div>`).join("")}
-     <div class="ord"><span class="s">${N.done?"Next SIP":"SIP"} · ${esc(wd(N.date))}</span><span class="q">${ok(M.sipQty)?M.sipQty:"—"} × ${price(M.cmp)}</span><span class="d">${N.late?"overdue since "+esc(dshort(N.due))+" · ":N.days>0?"in "+N.days+" day"+(N.days>1?"s":"")+" · ":""}${N.days>0&&!N.amoToday?"AMO on "+esc(wd(N.amo))+" evening · limit = that day's close; ≈ at today's price":"place the AMO tonight · limit = today's close"}</span><span class="d2">${ok(M.sipQty)?"≈ "+inr(M.sipQty*M.cmp):""}</span>
-         ${N.done?"":`<button class="fill" type="button" id="fSip">Record SIP buy</button>`}</div>
-   </div>
-   <div class="grp"><b><span class="chip avg">Buy in dips</span>next is BID ${M.next}</b>
-     ${M.nb?`<div class="ord"><span class="s">${hit?"Buy now":"Wait for"} ${price(M.nb.price)}</span><span class="q">${ok(M.nextQty)?M.nextQty:"—"} units</span>
-       <span class="d">${hit?"price is at or below the BID level":ok(gap)?`needs a further ${pct(-gap)} fall`:"waiting for the price"}</span><span class="d2">${inr(M.nb.amt)}</span>
-       <button class="fill" type="button" id="fBid">Record BID ${M.next} buy</button></div>`:`<div class="none">Add a buy to start the ladder.</div>`}
-   </div>
-   <div class="grp"><b><span class="chip sell">Profit booking</span>above ${inr(M.min)}</b>
-     <div class="ord"><span class="s">${canSell?"Sell "+M.eligible+" units":"Not yet"}</span><span class="q">${ok(M.tgtUnits)?M.tgtUnits:"—"} @ ${price(M.tgtPrice)}</span>
-       <span class="d">${canSell?"notional profit is above the threshold":ok(up)?`target is ${pct(up,1)} above the price`:""}</span><span class="d2">notional ${signInr(M.pl)}</span>
-       <button class="fill" type="button" id="fSell">Record a sale</button></div>
-     ${M.gtt?`<div class="gtt ${M.gtt.st}"><div class="row"><span><b>GTT sell</b><div class="sub">at the profit-booking target</div></span><span class="r">${price(M.gtt.sug.trig)}<div class="sub">${M.gtt.sug.units} units</div></span></div>
-       <div class="gmsg">${esc(M.gtt.msg)}</div><div class="gb"><button class="fill" type="button" id="gSet">${M.gtt.g?(M.gtt.todo?"Update GTT":"Edit GTT"):"GTT placed"}</button>${M.gtt.g?`<button class="fill" type="button" id="gFill">It triggered</button>`:""}</div></div>`:""}
-     ${sells.length?`<div class="none">Sold this month: ${sells.map(x=>`${x.units} on ${esc(dshort(x.date))} @ ${price(x.price)}`).join(", ")}</div>`:""}
-   </div></section>`;}
+   <div class="big">${esc(big)}</div>${rows}
+   <p class="foot">${inr(M.S.sip)} SIP on the ${ord(M.sipDay)}${done.length?" · this month: "+esc(done.join(", ")):""}</p></section>`;}
+const ym2=iso=>new Date(iso+"T00:00:00").toLocaleDateString("en-IN",{month:"short"});
 function stats(M){
-  const vsAvg=M.cmp/M.avg*100-100;
-  return `<section class="card"><h2>Holding <small>${M.units} units</small></h2>
-   <div class="kpis">
-    <div><b>${inr(M.value)}</b><span>Market value</span></div>
-    <div><b class="${tone(M.pl)}">${signInr(M.pl)}</b><span>Notional · <span class="${tone(M.plp)}">${pct(M.plp,1)}</span></span></div>
-    <div><b>${inr(M.base)}</b><span>Base investment</span></div>
-    <div><b>${price(M.avg)}</b><span>Average · price <span class="${tone(vsAvg)}">${pct(vsAvg,1)}</span></span></div>
-    <div><b class="up">${inr(M.booked)}</b><span>Profit booked · ${pct(M.abs)}</span></div>
-    <div><b>${pct(M.xr)}</b><span>XIRR${ok(M.appr)?" · ETF "+pct(M.appr,1)+" since start":""}</span></div>
-   </div></section>`;}
+  return I.sum([["Value",inr(M.value),"",`${M.units} units`],["P / L",signInr(M.pl),tone(M.pl),pct(M.plp,1)],["XIRR",pct(M.xr),"",`booked ${inr(M.booked)}`]]);}
+let ladAll=false;
 function ladder(M){
-  if(!M.units)return "";let put=false,h="";
-  M.bids.forEach(b=>{if(!put&&ok(M.cmp)&&M.cmp>b.price){h+=`<div class="rung cmp"><span>Price now</span><span class="mono">${price(M.cmp)}</span></div>`;put=true;}
+  if(!M.units)return `<p class="nothing">No holding yet.</p>`;let put=false,h="";
+  /* the done levels, the next one and three after it; the rest on request */
+  const cut=ladAll?M.bids.length:Math.min(M.bids.length,M.next+3);
+  M.bids.slice(0,cut).forEach(b=>{if(!put&&ok(M.cmp)&&M.cmp>b.price){h+=`<div class="rung cmp"><span>Price now</span><span class="mono">${price(M.cmp)}</span></div>`;put=true;}
     const cls=b.n<=M.level?"done":b.n===M.next?"next":"";
     h+=`<div class="rung ${cls}"><b>${pct(b.pct*100,0).replace(".00","")}</b><span>BID ${b.n} · ${inr(b.amt)}${cls==="done"?" · done":cls==="next"?" · next":""}</span><span class="p">${price(b.price)}</span></div>`;});
-  if(!put)h+=`<div class="rung cmp"><span>Price now</span><span class="mono">${price(M.cmp)}</span></div>`;
-  return `<section class="card"><h2>Buy-in-dips ladder <small>from average ${price(M.avg)}</small></h2><div class="ladder">${h}</div>
-   <p class="small muted" style="margin-top:8px">Levels move with your average price. A profit booking resets the ladder to BID 1.</p></section>`;}
+  if(!put&&(ladAll||cut===M.bids.length))h+=`<div class="rung cmp"><span>Price now</span><span class="mono">${price(M.cmp)}</span></div>`;
+  return `<p class="line">Below your average <b>${price(M.avg)}</b> · a profit booking resets to BID 1</p><div class="ladder">${h}</div>
+   ${M.bids.length>cut||ladAll?`<button class="more" type="button" id="ladAll">${ladAll?"Show fewer":"Show all "+M.bids.length+" levels"}</button>`:""}`;}
 function bookedC(M){
   const mm={};M.T.filter(x=>x.type==="sell").forEach(x=>{const k=x.date.slice(0,7);mm[k]=(mm[k]||0)+x.profit;});
-  const months=Object.keys(mm).sort();if(!months.length)return "";const mx=Math.max(...months.map(k=>Math.abs(mm[k])),1);
-  return `<section class="card"><h2>Profit booked by month <small>${inr(M.booked)} in all</small></h2>
-   <div class="bars">${months.map(k=>`<div title="${k}: ${inr(mm[k])}"><i style="height:${(Math.abs(mm[k])/mx*80).toFixed(0)}%"></i><span>${new Date(k+"-01T00:00:00").toLocaleDateString("en-IN",{month:"short",year:"2-digit"})}</span></div>`).join("")}</div></section>`;}
+  const months=Object.keys(mm).sort();if(!months.length)return `<p class="nothing">No profit booked yet.</p>`;const mx=Math.max(...months.map(k=>Math.abs(mm[k])),1);
+  return `<p class="line">Booked <b class="up">${inr(M.booked)}</b> · ${pct(M.abs)} of base</p>
+   <div class="bars">${months.map(k=>`<div title="${k}: ${inr(mm[k])}"><i style="height:${(Math.abs(mm[k])/mx*80).toFixed(0)}%"></i><span>${new Date(k+"-01T00:00:00").toLocaleDateString("en-IN",{month:"short",year:"2-digit"})}</span></div>`).join("")}</div>`;}
 let all=false;
 function ledger(M){
   const L=M.T.slice().reverse(),show=all?L:L.slice(0,12);
-  return `<section class="card"><h2>Transactions <small>tap to edit</small></h2>
-   <div class="rows">${show.map(x=>`<button class="rowbtn" type="button" data-tx="${esc(x.id)}"><span><b>${esc(dshort(x.date))}</b> <span class="tag ${x.type==="sell"?"ok":""}">${x.type==="sell"?(x.reason&&x.reason!=="system"?"sell · discretionary":"sell"):x.bid>0?"buy · BID "+x.bid:"buy"}</span>
-     <div class="sub">${x.units} × ${price(x.price)} · holding ${x.hold} · avg ${price(x.avg)}</div></span>
-     <span class="r">${x.type==="sell"?`<span class="up">${signInr(x.profit)}</span><div class="sub">profit</div>`:`${inr(x.amount)}<div class="sub ${tone(M.cmp-x.price)}">${ok(M.cmp)?"lot "+signInr((M.cmp-x.price)*x.units):""}</div>`}</span></button>`).join("")}</div>
-   ${L.length>12?`<button class="more" id="lAll" type="button">${all?"Show fewer":"Show all "+L.length}</button>`:""}
-   <div class="acts"><button type="button" id="aBuy">+ Buy</button><button type="button" class="ghost" id="aSell">+ Sale</button></div></section>`;}
-function setup(M){return `<details class="card sec"><summary>Settings &amp; data</summary>
+  return `<div class="rows">${show.map(x=>`<button class="rowbtn" type="button" data-tx="${esc(x.id)}"><span><b>${esc(dshort(x.date))}</b> <span class="tag ${x.type==="sell"?"ok":""}">${x.type==="sell"?(x.reason&&x.reason!=="system"?"sell · own call":"sell"):x.sip?"SIP":"BID "+x.bid}</span>
+     <div class="sub">${x.units} × ${price(x.price)} · holding ${x.hold}</div></span>
+     <span class="r">${x.type==="sell"?`<span class="up">${signInr(x.profit)}</span><div class="sub">profit</div>`:`${inr(x.amount)}<div class="sub ${tone(M.cmp-x.price)}">${ok(M.cmp)?signInr((M.cmp-x.price)*x.units):""}</div>`}</span></button>`).join("")}</div>
+   ${L.length>12?`<button class="more" id="lAll" type="button">${all?"Show fewer":"Show all "+L.length}</button>`:""}`;}
+function details(M){return `<section class="card">${I.tabs(TABS,tab)}<div class="panel">${tab==="hist"?ledger(M):tab==="booked"?bookedC(M):ladder(M)}</div></section>`;}
+function setup(M){return `<details class="card sec more"><summary>More · settings, data</summary>
    <dl class="kv"><dt>ETF</dt><dd>${esc(M.S.symbol)}</dd><dt>SIP</dt><dd>${inr(M.S.sip)} on the ${ord(M.sipDay)}</dd><dt>Dip base</dt><dd>${inr(M.S.dipBase)} × BID</dd><dt>BID levels</dt><dd>${M.S.bids.map(b=>Math.round(b*100)+"%").join(" ")}</dd><dt>Book profit above</dt><dd>${pct(M.S.bookPct*100)} of base</dd></dl>
    <div class="acts"><button type="button" class="ghost" id="eSet">Edit settings</button></div>
    <p class="small muted" style="margin-top:12px">${I.hasSync()?"Records sync between your phones (encrypted).":"Sync is off: records stay on this phone. Turn on Sync from the home screen."}</p>
@@ -183,15 +170,16 @@ function empty(){return `<section class="card empty"><b>No records yet</b><p cla
 
 function draw(){
   const M=model();
-  $("out").innerHTML=M.T.length?quick()+month(M)+stats(M)+ladder(M)+bookedC(M)+ledger(M)+setup(M):empty();
+  $("out").innerHTML=M.T.length?month(M)+stats(M)+details(M)+setup(M):empty();
   const on=(id,f)=>{const e=$(id);if(e)e.onclick=f;};
   on("fSip",()=>buyForm({title:"SIP buy",price:ok(M.cmp)?M.cmp:"",units:M.sipQty||"",bid:M.level}));
   on("fBid",()=>buyForm({title:"BID "+M.next+" buy",price:M.nb?Math.round(M.nb.price*100)/100:"",units:M.nextQty||"",bid:M.next}));
   on("fSell",()=>sellForm({price:ok(M.cmp)?M.cmp:"",units:M.eligible||M.tgtUnits||"",reason:"system"}));
   on("qBuy",()=>buyForm({price:ok(M.cmp)?M.cmp:"",units:M.sipQty||"",title:"Discretionary buy"}));on("qSell",()=>sellForm({price:ok(M.cmp)?M.cmp:""}));
-  on("gSet",gttForm);on("gFill",()=>{const g=M.gtt&&M.gtt.g;if(g)sellForm({price:g.lim,units:g.units,reason:"system",fromGtt:true});});
-  on("aBuy",()=>buyForm({price:ok(M.cmp)?M.cmp:"",units:M.sipQty||""}));on("aSell",()=>sellForm({price:ok(M.cmp)?M.cmp:""}));
-  on("lAll",()=>{all=!all;draw();});on("eSet",()=>settingsForm(M.S));
+  on("gSet",gttForm);
+  on("aBuy",()=>buyForm({price:ok(M.cmp)?M.cmp:"",units:M.sipQty||""}));
+  document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{tab=b.dataset.tab;I.saveTab(KEY,tab);draw();});
+  on("lAll",()=>{all=!all;draw();});on("ladAll",()=>{ladAll=!ladAll;draw();});on("eSet",()=>settingsForm(M.S));
   on("dImp",()=>I.pickImport((e,done)=>{if(e){showErr(e.message);return;}showErr("");$("st").textContent="Imported "+done.join(" and ").toUpperCase()+" records.";draw();refresh();}));
   on("dExp",()=>I.exportData());on("dSync",()=>syncNow(true));
   document.querySelectorAll("[data-tx]").forEach(r=>r.onclick=()=>{const x=I.load(KEY).tx[r.dataset.tx];if(!x)return;(x.type==="sell"?sellForm:buyForm)({id:r.dataset.tx,...x});});
