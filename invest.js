@@ -116,28 +116,51 @@ function form(o){
   d.addEventListener("cancel",()=>d.remove());
   d.showModal();}
 
-/* ---------- Kite fund: one cash pool shared by ETF Shop and PKP ----------
-   In: ETF "money in" (less money out), every ETF sale (gain after charges; tax isn't taken from Kite),
-       every PKP sale (whole proceeds).
-   Out: ETF buys still held, PKP BID (buy-in-dip) buys. PKP SIP buys are paid with fresh money, not from the fund.
-   "Match with Kite" stores the difference to the real balance so the figure lines up with the Kite app. */
+/* ---------- Kite fund: one pool shared by ETF Shop and PKP ----------
+   Cash in Kite + LiquidBees (the reserve sold when cash falls short of a BID or a new ETF buy).
+   Cash moves with the records:
+     in  — every ETF sale (proceeds after charges; tax isn't taken from Kite), every PKP sale (whole proceeds),
+           ETF "money in"
+     out — every ETF buy, every PKP BID (buy-in-dip) buy, ETF "money out"
+     PKP SIP buys are fresh money, so they don't touch it.
+   "Update balance" records the real Kite cash and LiquidBees units on a date; after that only newer records move it.
+   Balances are kept in the encrypted PKP record set on the phones, never in this repo. */
+const LIQ="LIQUIDBEES";
 function kiteFund(){
-  const e=load("etf"),k=load("pkp");let etf=0,pIn=0,pOut=0;
-  Object.values(e.cap).forEach(c=>{if(c&&ok(c.amount))etf+=c.amount;});
-  Object.values(e.lots).forEach(l=>{if(!l||!ok(l.price)||!ok(l.qty))return;
-    if(ok(l.sellPrice))etf+=(l.sellPrice-l.price)*l.qty-(l.qty*(l.price+l.sellPrice)*0.0012+16);else etf-=l.price*l.qty;});
+  const e=load("etf"),k=load("pkp"),S=k.settings||{},fl=[];
+  const add=(date,t,amt,kind)=>{if(date&&ok(amt))fl.push({date,t:t||0,amt,kind});};
+  Object.values(e.cap).forEach(c=>{if(c)add(c.date,c.t,c.amount,"etf");});
+  Object.values(e.lots).forEach(l=>{if(!l||!ok(l.price)||!ok(l.qty))return;add(l.date,l.t,-l.price*l.qty,"etf");
+    if(ok(l.sellPrice))add(l.sellDate,l.t,l.sellPrice*l.qty-(l.qty*(l.price+l.sellPrice)*0.0012+16),"etf");});
   const T=Object.values(k.tx).filter(Boolean).sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.seq||0)-(b.seq||0));let level=0;
-  T.forEach(x=>{if(x.type==="buy"){if(ok(x.bid)&&x.bid>level)pOut+=x.amount||x.price*x.units;if(ok(x.bid))level=x.bid;}
-    else{pIn+=x.units*x.price;level=0;}});
-  const adj=(k.settings&&ok(k.settings.kiteAdj))?k.settings.kiteAdj:0,calc=etf+pIn-pOut;
-  return {total:calc+adj,calc,etf,pIn,pOut,adj,adjOn:k.settings&&k.settings.kiteAdjOn};}
+  T.forEach(x=>{if(x.type==="buy"){if(ok(x.bid)&&x.bid>level)add(x.date,x.t,-(x.amount||x.price*x.units),"bid");if(ok(x.bid))level=x.bid;}
+    else{add(x.date,x.t,x.units*x.price,"sale");level=0;}});
+  const A=ok(S.kiteBal)?{bal:S.kiteBal,date:S.kiteOn,t:S.kiteT||0}:null;
+  const after=A?fl.filter(f=>f.date>A.date||(f.date===A.date&&f.t>A.t)):fl;
+  const moved=after.reduce((a,f)=>a+f.amt,0),cash=(A?A.bal:0)+moved;
+  const qc=quotesCache()[LIQ],lp=qc&&ok(qc.price)?qc.price:NaN,lu=ok(S.liqUnits)?S.liqUnits:0,liq=lu*lp;
+  return {cash,moved,A,flows:after,liqUnits:lu,liqPrice:lp,liq,liqOn:S.liqOn,total:cash+(ok(liq)?liq:0)};}
 function fundForm(after){const F=kiteFund();
-  form({title:"Kite fund",note:`Worked out: ETF Shop ${inr(F.etf)} · PKP sales +${inr(F.pIn)} · BID buys −${inr(F.pOut)}${F.adj?` · matched to Kite ${signInr(F.adj)}${F.adjOn?" on "+dshort(F.adjOn):""}`:""}. SIP buys aren't taken from it. If Kite shows a different balance, enter it to line up.`,
-    fields:[{k:"bal",label:"Balance in Kite now (₹)",type:"number",value:Math.round(F.total)},{k:"date",label:"As on",type:"date",value:ist().iso}],ok:"Match",
-    onSubmit:v=>{if(!ok(v.bal))return "Enter the balance.";setSettings("pkp",{kiteAdj:r2(v.bal-F.calc),kiteAdjOn:v.date});if(after)after();},
-    onDelete:F.adj?()=>{setSettings("pkp",{kiteAdj:0,kiteAdjOn:null});if(after)after();}:null,delLabel:"Clear match",delConfirm:"Go back to the worked-out figure?"});}
-function fundBar(need){const F=kiteFund(),short=ok(need)&&F.total<need;
-  return `<button type="button" class="fund${short?" short":""}" id="kFund"><span>Kite fund <small>for BIDs and ETF buys</small></span><b>${inr(F.total)}</b>${short?`<small class="dn">short ${inr(need-F.total)} for the next buy</small>`:""}</button>`;}
+  form({title:"Kite fund",note:F.A?`Kite cash was ${inr(F.A.bal,2)} on ${dshort(F.A.date)}; records since then ${signInr(F.moved)}. Enter today's figures from Kite to line it up again.`
+      :"Enter the cash Kite shows now and your LiquidBees units. From then on, sales add to the cash and BID or ETF buys take from it (SIP buys don't).",
+    fields:[{k:"bal",label:"Cash in Kite (₹)",type:"number",value:F.A?r2(F.cash):""},{k:"liq",label:"LiquidBees units",type:"number",step:"1",value:F.liqUnits||"",hint:"The units grow a little each day from the daily dividend."},
+      {k:"date",label:"As on",type:"date",value:ist().iso}],ok:"Save",
+    onSubmit:v=>{if(!ok(v.bal))return "Enter the cash balance.";if(!(v.liq>=0))return "Enter the LiquidBees units (0 if none).";
+      setSettings("pkp",{kiteBal:v.bal,kiteOn:v.date,kiteT:Date.now(),liqUnits:Math.round(v.liq),liqOn:v.date});if(after)after();},
+    extra:F.A&&F.liqUnits?[{label:"Sold LiquidBees",run:()=>{setTimeout(()=>liqForm(after),0);}}]:null});}
+/* moving money from LiquidBees to cash: units down, cash up by the proceeds */
+function liqForm(after){const F=kiteFund();
+  form({title:"Sold LiquidBees",note:`You hold ${F.liqUnits} units. The proceeds are added to your Kite cash.`,
+    fields:[{k:"units",label:"Units sold",type:"number",step:"1",value:""},{k:"price",label:"Price",type:"number",value:ok(F.liqPrice)?r2(F.liqPrice):""}],
+    onSubmit:v=>{const n=Math.round(v.units);if(!(n>0)||!(v.price>0))return "Enter units and price.";if(n>F.liqUnits)return `You hold ${F.liqUnits} units.`;
+      const k=load("pkp").settings||{};setSettings("pkp",{kiteBal:r2(k.kiteBal+n*v.price),liqUnits:F.liqUnits-n});if(after)after();}});}
+/* need = money the next BID or ETF buy takes */
+function fundBar(need){const F=kiteFund();
+  let note="";if(ok(need)&&need>F.cash){const gap=need-F.cash;
+    if(ok(F.liqPrice)&&F.liqUnits*F.liqPrice>=gap){const n=Math.ceil(gap/F.liqPrice);note=`<small class="warn">Cash short by ${inr(gap)} for the next buy: sell ${n} LiquidBees first (≈ ${inr(n*F.liqPrice)})</small>`;}
+    else note=`<small class="dn">Short by ${inr(need-F.total)} for the next buy, even with LiquidBees</small>`;}
+  const set=!!F.A;
+  return `<button type="button" class="fund${note?" short":""}" id="kFund"><span>Kite fund <small>${set?`cash ${inr(F.cash)} + LiquidBees ${F.liqUnits} × ${price(F.liqPrice)}`:"tap to enter your Kite cash and LiquidBees"}</small></span><b>${set?inr(F.total):"—"}</b>${note}</button>`;}
 
 /* ---------- minimal building blocks shared by both pages ---------- */
 /* one action row: kind colours the label; btn is [text, attrs] or null */
@@ -146,5 +169,5 @@ function tabs(list,cur){return `<nav class="tabs" role="tablist">${list.map(([k,
 function sum(items){return `<section class="sum">${items.map(([l,v,cls,sub])=>`<div><span>${l}</span><b class="${cls||""}">${v}</b>${sub?`<small>${sub}</small>`:""}</div>`).join("")}</section>`;}
 function rememberTab(key,def){let t=def;try{t=sessionStorage.getItem("inv-tab-"+key)||def;}catch(e){}return t;}
 function saveTab(key,t){try{sessionStorage.setItem("inv-tab-"+key,t);}catch(e){}}
-window.Invest={todo,tabs,sum,rememberTab,saveTab,load,save,merge,upsert,remove,setSettings,uid,sync,push,hasSync,importData,exportData,pickImport,quotes,quotesCache,highSince,high52,touched,ist,ok,r2,inr,price,pct,signInr,tone,esc,dshort,days,ago,xirr,form,kiteFund,fundForm,fundBar};
+window.Invest={todo,tabs,sum,rememberTab,saveTab,load,save,merge,upsert,remove,setSettings,uid,sync,push,hasSync,importData,exportData,pickImport,quotes,quotesCache,highSince,high52,touched,ist,ok,r2,inr,price,pct,signInr,tone,esc,dshort,days,ago,xirr,form,LIQ,kiteFund,fundForm,fundBar};
 })();

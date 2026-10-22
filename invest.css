@@ -215,3 +215,4 @@ details.hold>summary{padding:11px 0}
 .fund b{font:700 20px var(--mono)}
 .fund>small{grid-column:1/-1;font-size:12.5px}
 .fund.short{border-color:var(--dn)}
+.warn{color:var(--warn)}
