@@ -62,7 +62,8 @@ function model(){
   const checks=[];
   held.forEach(h=>{h.status=!ok(h.close)?"":h.mode!=="buy"?"Exit only":!(h.fallLast<=S.avgFall)?"":groupLots[h.group]>=S.maxLots?"Max lots":!(h.chg>0)?"Wait for green":h.fall52<=S.check?"Check price":"AVERAGE";
     if(h.status==="Check price")checks.push(h);});
-  /* money for buys: the Kite fund (cash + LiquidBees reserve) once it's set up, else the page's own cash figure */
+  /* money for buys: the Kite fund (real cash + LiquidBees reserve) once it's set up. The page's own figure
+     (capital − invested) is only a fallback: it ignores PKP BIDs and other spending from the same Kite account. */
   const F=I.kiteFund(),useF=!!F.A,avail=useF?F.cash+(ok(F.liq)?F.liq:0):cash;
   let avg=null,avgMsg="";
   const avgC=held.filter(h=>h.status==="AVERAGE").sort((a,b)=>a.fallLast-b.fallLast);
@@ -193,7 +194,7 @@ function tonight(M){
     ${why.length?`<p class="foot">${why.map(esc).join("<br>")}</p>`:""}</section>`;}
 function summary(M){
   const val=M.open.reduce((a,l)=>a+(ok(l.value)?l.value:l.price*l.qty),0),pl=val-M.invested,dep=M.invested/M.capital*100;
-  return I.sum([["Value",inr(val),"",`${M.open.length} lots · ${M.held.length} ETFs`],["P / L",signInr(pl),tone(pl),pct(pl/M.invested*100,1)],["Cash",inr(M.cash),"",ok(dep)?dep.toFixed(0)+"% invested":""]]);}
+  return I.sum([["Value",inr(val),"",`${M.open.length} lots · ${M.held.length} ETFs`],["P / L",signInr(pl),tone(pl),pct(pl/M.invested*100,1)],M.useF?["Invested",inr(M.invested),"",ok(dep)?dep.toFixed(0)+"% of capital":""]:["Cash",inr(M.cash),"",ok(dep)?dep.toFixed(0)+"% invested":""]]);}
 function holdings(M){
   const G=M.held.slice().sort((a,b)=>(b.last.gain||-9)-(a.last.gain||-9));
   if(!G.length)return `<p class="nothing">No open lots.</p>`;
