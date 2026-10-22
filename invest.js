@@ -9,7 +9,7 @@
 "use strict";
 const get=k=>{try{return JSON.parse(localStorage.getItem(k)||"null");}catch(e){return null;}};
 const put=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));return true;}catch(e){return false;}};
-const SK={etf:"inv-etf-v1",pkp:"inv-pkp-v1"},COLL={etf:["lots","cap"],pkp:["tx"]},QK="inv-quotes-v1";
+const SK={etf:"inv-etf-v1",pkp:"inv-pkp-v1"},COLL={etf:["lots","cap"],pkp:["tx","liq"]},QK="inv-quotes-v1";
 const workerBase=()=>{let u=null;try{u=localStorage.getItem("totalRecallTickTickUrl");}catch(e){}return (u||"https://total-recall-ticktick.pranjuchakrapani90.workers.dev").replace(/[?#].*$/,"").replace(/\/$/,"");};
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 
@@ -135,11 +135,14 @@ function kiteFund(){
   const T=Object.values(k.tx).filter(Boolean).sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.seq||0)-(b.seq||0));let level=0;
   T.forEach(x=>{if(x.type==="buy"){if(ok(x.bid)&&x.bid>level)add(x.date,x.t,-(x.amount||x.price*x.units),"bid");if(ok(x.bid))level=x.bid;}
     else{add(x.date,x.t,x.units*x.price,"sale");level=0;}});
-  const A=ok(S.kiteBal)?{bal:S.kiteBal,date:S.kiteOn,t:S.kiteT||0}:null;
-  const after=A?fl.filter(f=>f.date>A.date||(f.date===A.date&&f.t>A.t)):fl;
+  /* LiquidBees sales are kept as records: units out of LiquidBees, proceeds into cash */
+  const sales=Object.entries(k.liq).filter(([,x])=>x&&ok(x.units)&&ok(x.price)).map(([id,x])=>({id,...x})).sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.t||0)-(b.t||0));
+  sales.forEach(x=>add(x.date,x.t,x.units*x.price,"liq"));
+  const A=ok(S.kiteBal)?{bal:S.kiteBal,date:S.kiteOn,t:S.kiteT||0}:null,isAfter=f=>!A||f.date>A.date||(f.date===A.date&&(f.t||0)>A.t);
+  const after=fl.filter(isAfter),liqAfter=sales.filter(isAfter);
   const moved=after.reduce((a,f)=>a+f.amt,0),cash=(A?A.bal:0)+moved;
-  const qc=quotesCache()[LIQ],lp=qc&&ok(qc.price)?qc.price:NaN,lu=ok(S.liqUnits)?S.liqUnits:0,liq=lu*lp;
-  return {cash,moved,A,flows:after,liqUnits:lu,liqPrice:lp,liq,liqOn:S.liqOn,total:cash+(ok(liq)?liq:0)};}
+  const qc=quotesCache()[LIQ],lp=qc&&ok(qc.price)?qc.price:NaN,lu=Math.max(0,(ok(S.liqUnits)?S.liqUnits:0)-liqAfter.reduce((a,x)=>a+x.units,0)),liq=lu*lp;
+  return {cash,moved,A,flows:after,sales,liqUnits:lu,liqPrice:lp,liq,liqOn:S.liqOn,total:cash+(ok(liq)?liq:0)};}
 function fundForm(after){const F=kiteFund();
   form({title:"Kite fund",note:F.A?`Kite cash was ${inr(F.A.bal,2)} on ${dshort(F.A.date)}; records since then ${signInr(F.moved)}. Enter today's figures from Kite to line it up again.`
       :"Enter the cash Kite shows now and your LiquidBees units. From then on, sales add to the cash and BID or ETF buys take from it (SIP buys don't).",
@@ -147,13 +150,20 @@ function fundForm(after){const F=kiteFund();
       {k:"date",label:"As on",type:"date",value:ist().iso}],ok:"Save",
     onSubmit:v=>{if(!ok(v.bal))return "Enter the cash balance.";if(!(v.liq>=0))return "Enter the LiquidBees units (0 if none).";
       setSettings("pkp",{kiteBal:v.bal,kiteOn:v.date,kiteT:Date.now(),liqUnits:Math.round(v.liq),liqOn:v.date});if(after)after();},
-    extra:F.A&&F.liqUnits?[{label:"Sold LiquidBees",run:()=>{setTimeout(()=>liqForm(after),0);}}]:null});}
-/* moving money from LiquidBees to cash: units down, cash up by the proceeds */
-function liqForm(after){const F=kiteFund();
-  form({title:"Sold LiquidBees",note:`You hold ${F.liqUnits} units. The proceeds are added to your Kite cash.`,
-    fields:[{k:"units",label:"Units sold",type:"number",step:"1",value:""},{k:"price",label:"Price",type:"number",value:ok(F.liqPrice)?r2(F.liqPrice):""}],
-    onSubmit:v=>{const n=Math.round(v.units);if(!(n>0)||!(v.price>0))return "Enter units and price.";if(n>F.liqUnits)return `You hold ${F.liqUnits} units.`;
-      const k=load("pkp").settings||{};setSettings("pkp",{kiteBal:r2(k.kiteBal+n*v.price),liqUnits:F.liqUnits-n});if(after)after();}});}
+    extra:F.A?[{label:"Sold LiquidBees",run:()=>{setTimeout(()=>liqForm(after),0);}},...(F.sales.length?[{label:"LiquidBees sales",run:()=>{setTimeout(()=>liqList(after),0);}}]:[])]:null});}
+/* the LiquidBees sale records: tap one to correct or delete it */
+function liqList(after){const F=kiteFund(),L=F.sales.slice().reverse();
+  form({title:"LiquidBees sales",note:"Pick a sale to correct or delete it.",fields:[{k:"id",label:"Sale",type:"select",value:L[0]&&L[0].id,
+      options:L.map(x=>[x.id,`${dshort(x.date)} · ${x.units} × ${price(x.price)} = ${inr(x.units*x.price)}`])}],ok:"Open",
+    onSubmit:v=>{const x=L.find(y=>y.id===v.id);if(x)setTimeout(()=>liqForm(after,x),0);}});}
+/* a LiquidBees sale: units down, cash up by the proceeds; kept as a record (synced) */
+function liqForm(after,pre){pre=pre||{};const F=kiteFund(),held=F.liqUnits+(pre.id?pre.units:0);
+  form({title:pre.id?"Edit LiquidBees sale":"Sold LiquidBees",note:pre.id?"":`You hold ${F.liqUnits} units. The proceeds are added to your Kite cash.`,
+    fields:[{k:"date",label:"Date",type:"date",value:pre.date||ist().iso},{k:"units",label:"Units sold",type:"number",step:"1",value:pre.units||""},
+      {k:"price",label:"Price",type:"number",value:pre.price||(ok(F.liqPrice)?r2(F.liqPrice):"")}],
+    onSubmit:v=>{const n=Math.round(v.units);if(!(n>0)||!(v.price>0))return "Enter units and price.";if(n>held)return `You hold ${held} units.`;
+      upsert("pkp","liq",pre.id,{date:v.date,units:n,price:v.price});if(after)after();},
+    onDelete:pre.id?()=>{remove("pkp","liq",pre.id);if(after)after();}:null});}
 /* LiquidBees units to sell to raise `gap` rupees of cash. Kite may make only part of a sale's value usable for
    buying on the same day, so this sizes for 80% of the proceeds. */
 const LIQ_SAME_DAY=0.8;
@@ -173,5 +183,5 @@ function tabs(list,cur){return `<nav class="tabs" role="tablist">${list.map(([k,
 function sum(items){return `<section class="sum">${items.map(([l,v,cls,sub])=>`<div><span>${l}</span><b class="${cls||""}">${v}</b>${sub?`<small>${sub}</small>`:""}</div>`).join("")}</section>`;}
 function rememberTab(key,def){let t=def;try{t=sessionStorage.getItem("inv-tab-"+key)||def;}catch(e){}return t;}
 function saveTab(key,t){try{sessionStorage.setItem("inv-tab-"+key,t);}catch(e){}}
-window.Invest={todo,tabs,sum,rememberTab,saveTab,load,save,merge,upsert,remove,setSettings,uid,sync,push,hasSync,importData,exportData,pickImport,quotes,quotesCache,highSince,high52,touched,ist,ok,r2,inr,price,pct,signInr,tone,esc,dshort,days,ago,xirr,form,LIQ,kiteFund,liqToSell,fundForm,fundBar};
+window.Invest={todo,tabs,sum,rememberTab,saveTab,load,save,merge,upsert,remove,setSettings,uid,sync,push,hasSync,importData,exportData,pickImport,quotes,quotesCache,highSince,high52,touched,ist,ok,r2,inr,price,pct,signInr,tone,esc,dshort,days,ago,xirr,form,LIQ,kiteFund,liqToSell,liqForm,fundForm,fundBar};
 })();

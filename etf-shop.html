@@ -2,7 +2,7 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
 <title>ETF Shop · Pranju OS</title>
 <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="icon" href="icon-192.png" sizes="192x192"><link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="stylesheet" href="invest.css?v=20261022e">
+<link rel="stylesheet" href="invest.css?v=20261022f">
 <link rel="stylesheet" href="tr-theme.css?v=20261020">
 </head><body class="tr-inv">
 <header><div class="hin">
@@ -15,7 +15,7 @@
   <div id="out"></div>
 </main>
 <script src="gsync.js?v=20261020"></script>
-<script src="invest.js?v=20261022e"></script>
+<script src="invest.js?v=20261022f"></script>
 <script>
 "use strict";
 const I=Invest,{esc,inr,price,pct,signInr,tone,ok,r2,dshort}=I;
@@ -177,12 +177,12 @@ function tonight(M){
   const t=I.ist(),gt=M.gtts.filter(x=>x.todo),tot=M.sells.length+(M.avg?1:0)+M.buys.length;
   const when=t.weekend?"Weekend · AMO for Monday":t.open?"Market open · live":t.afterClose?`${t.wd} evening · AMO limit orders`:`${t.wd} morning · before the open`;
   const big=M.liqSell&&!t.open?`Sell ${M.liqSell} LiquidBees at the open, then ${tot} order${tot>1?"s":""}`:tot?`${tot} order${tot>1?"s":""}${t.open?" right now":t.weekend?" for Monday":" tonight"}`:t.open?"No signals right now":"Nothing to place tonight";
-  const fill=(k,c,q,p)=>["Filled",`data-fill="${k}" data-c="${esc(c)}" data-q="${q}" data-p="${p}"`];
+  const fill=(k,c,q,p)=>[k==="sell"?"Sold":"Bought",`data-fill="${k}" data-c="${esc(c)}" data-q="${q}" data-p="${p}"`];
   const rows=[
     ...M.sells.map(o=>I.todo("sell","Sell",esc(o.l.code),`${o.qty} × ${price(o.lim)}`,`bought ${price(o.l.price)} · ${pct(o.l.gain*100,1)} · stop ${price(o.l.stop)}`,inr(o.qty*o.lim),fill("sell",o.l.id,o.qty,o.lim))),
     M.liqSell?I.todo("liq","First","sell LIQUIDBEES",`${M.liqSell} units`,
       esc(t.open?"now, before 3:30 PM · then place the buys below":"in market hours (can't sell after hours) · then place the buys below as normal limit orders"),
-      ok(M.F.liqPrice)?"≈ "+inr(M.liqSell*M.F.liqPrice):"",null):"",
+      ok(M.F.liqPrice)?"≈ "+inr(M.liqSell*M.F.liqPrice):"",["Sold",`id="liqSold"`]):"",
     ...(M.avg?[M.avg]:[]).map(o=>I.todo("avg","Average",esc(o.h.code),`${o.qty} × ${price(o.lim)}`,`${pct(o.h.fallLast*100)} from last buy · ${o.h.L.length} lot${o.h.L.length>1?"s":""}`,inr(o.qty*o.lim),fill("avg",o.h.code,o.qty,o.lim))),
     ...M.buys.map(o=>I.todo("buy","Buy",esc(o.c.code),`${o.qty} × ${price(o.lim)}`,`${pct(o.c.fall*100)} from 52W high · ${esc(o.c.group)}`,inr(o.qty*o.lim),fill("buy",o.c.code,o.qty,o.lim))),
     ...gt.map(x=>{const l=x.l,s=x.sug;return I.todo("gt "+x.st,"GTT",esc(l.code),s?price(s.trig):"",esc(!x.g&&s?"not placed yet":x.msg),s?`limit ${price(s.lim)} · ${s.qty}`:"",[x.g?"Update":"Placed",`data-gtt="${esc(l.id)}"`]);})];
@@ -260,7 +260,7 @@ function draw(){
   const M=model(),has=M.open.length||M.sold.length||M.cap.length;
   $("out").innerHTML=has?tonight(M)+I.fundBar(NaN)+summary(M)+details(M)+setup(M):empty();
   const on=(id,f)=>{const e=$(id);if(e)e.onclick=f;};
-  on("kFund",()=>I.fundForm(draw));
+  on("kFund",()=>I.fundForm(draw));on("liqSold",()=>I.liqForm(draw,{units:M.liqSell}));
   on("aBuy",()=>buyForm());on("qBuy",()=>buyForm({disc:true}));on("qSell",pickSell);on("aMoney",()=>moneyForm());on("eRules",()=>settingsForm(M.S));on("aUni",()=>uniForm());
   on("wAll",()=>{showAll=!showAll;draw();});on("sAll",()=>{soldAll=!soldAll;draw();});
   document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{tab=b.dataset.tab;I.saveTab(KEY,tab);draw();});
