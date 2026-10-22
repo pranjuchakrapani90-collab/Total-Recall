@@ -155,12 +155,12 @@ function liqForm(after){const F=kiteFund();
     onSubmit:v=>{const n=Math.round(v.units);if(!(n>0)||!(v.price>0))return "Enter units and price.";if(n>F.liqUnits)return `You hold ${F.liqUnits} units.`;
       const k=load("pkp").settings||{};setSettings("pkp",{kiteBal:r2(k.kiteBal+n*v.price),liqUnits:F.liqUnits-n});if(after)after();}});}
 /* need = money the next BID or ETF buy takes */
-function fundBar(need){const F=kiteFund();
-  let note="";if(ok(need)&&need>F.cash){const gap=need-F.cash;
-    if(ok(F.liqPrice)&&F.liqUnits*F.liqPrice>=gap){const n=Math.ceil(gap/F.liqPrice);note=`<small class="warn">Cash short by ${inr(gap)} for the next buy: sell ${n} LiquidBees first (≈ ${inr(n*F.liqPrice)})</small>`;}
-    else note=`<small class="dn">Short by ${inr(need-F.total)} for the next buy, even with LiquidBees</small>`;}
-  const set=!!F.A;
-  return `<button type="button" class="fund${note?" short":""}" id="kFund"><span>Kite fund <small>${set?`cash ${inr(F.cash)} + LiquidBees ${F.liqUnits} × ${price(F.liqPrice)}`:"tap to enter your Kite cash and LiquidBees"}</small></span><b>${set?inr(F.total):"—"}</b>${note}</button>`;}
+function fundBar(need){const F=kiteFund();let note="";
+  if(ok(need)&&need>F.cash){const gap=need-F.cash;
+    note=ok(F.liqPrice)&&F.liqUnits*F.liqPrice>=gap?`<small class="warn">Cash short ${inr(gap)} for the next buy · sell ${Math.ceil(gap/F.liqPrice)} LiquidBees</small>`
+      :`<small class="dn">Short ${inr(need-F.total)} for the next buy, even with LiquidBees</small>`;}
+  if(!F.A)return `<button type="button" class="fund" id="kFund"><span>Kite fund <small>tap to enter your cash and LiquidBees</small></span><b>—</b></button>`;
+  return `<button type="button" class="fund${note?" short":""}" id="kFund"><span>Kite fund <small>cash ${inr(F.cash)} · LiquidBees ${F.liqUnits}</small></span><b>${inr(F.total)}</b>${note}</button>`;}
 
 /* ---------- minimal building blocks shared by both pages ---------- */
 /* one action row: kind colours the label; btn is [text, attrs] or null */

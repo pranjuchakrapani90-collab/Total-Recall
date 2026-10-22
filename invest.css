@@ -214,5 +214,9 @@ details.hold>summary{padding:11px 0}
 .fund span small{display:block;font-weight:500;letter-spacing:0;text-transform:none;margin-top:2px}
 .fund b{font:700 20px var(--mono)}
 .fund>small{grid-column:1/-1;font-size:12.5px}
-.fund.short{border-color:var(--dn)}
+.fund.short{border-color:var(--warn)}
 .warn{color:var(--warn)}
+/* GTT chip inside a Dip / Sell row */
+.gchip{display:inline-block;margin-left:6px;padding:1px 8px;font:600 11.5px/1.6 var(--body);border-radius:999px;background:none;border:1px solid var(--warn);color:var(--warn);vertical-align:1px}
+.gchip.ok{border-color:var(--line);color:var(--up)}
+.fund{padding:10px 14px}.fund b{font-size:18px}
