@@ -2,7 +2,7 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
 <title>ETF Shop · Pranju OS</title>
 <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="icon" href="icon-192.png" sizes="192x192"><link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="stylesheet" href="invest.css?v=20261022f">
+<link rel="stylesheet" href="invest.css?v=20261022g">
 <link rel="stylesheet" href="tr-theme.css?v=20261020">
 </head><body class="tr-inv">
 <header><div class="hin">
@@ -15,7 +15,7 @@
   <div id="out"></div>
 </main>
 <script src="gsync.js?v=20261020"></script>
-<script src="invest.js?v=20261022f"></script>
+<script src="invest.js?v=20261022g"></script>
 <script>
 "use strict";
 const I=Invest,{esc,inr,price,pct,signInr,tone,ok,r2,dshort}=I;
@@ -23,6 +23,7 @@ const KEY="etf",$=id=>document.getElementById(id);
 /* the rules of the old sheet's Orders tab (Order Calc), kept as editable settings */
 const DEF={parts:40,reserve:0.2,minFall:-0.10,twoFall:-0.15,avgFall:-0.06,maxLots:4,target:0.075,trail:0.02,buffer:0.005,check:-0.30,dividend:0,universe:[]};
 const today=()=>I.ist().iso;
+const wdS=s=>s===today()?"today":new Date(s+"T00:00:00").toLocaleDateString("en-IN",{weekday:"short"})+" "+I.dshort(s);
 let Q=I.quotesCache(),qAt=Math.max(0,...Object.values(Q).map(q=>q.at||0)),missing=[];
 
 /* ---------- the numbers ---------- */
@@ -62,11 +63,16 @@ function model(){
   const checks=[];
   held.forEach(h=>{h.status=!ok(h.close)?"":h.mode!=="buy"?"Exit only":!(h.fallLast<=S.avgFall)?"":groupLots[h.group]>=S.maxLots?"Max lots":!(h.chg>0)?"Wait for green":h.fall52<=S.check?"Check price":"AVERAGE";
     if(h.status==="Check price")checks.push(h);});
+  /* orders marked "AMO placed": they block the signal for that ETF until you say whether they filled */
+  const amo=Object.entries(s.amo).filter(([,a])=>a&&a.code).map(([id,a])=>{const q=qOf(a.code),buy=a.kind!=="sell",ask=I.sessionStarted(a.session),
+      tp=ask?I.touched(q,a.session,buy?"low":"high"):NaN;
+      return {id,...a,buy,ask,tp,likely:ok(tp)?(buy?tp<=a.lim:tp>=a.lim):null};}).sort((x,y)=>(x.t||0)-(y.t||0));
+  const amoCodes=new Set(amo.filter(a=>a.buy).map(a=>a.code)),amoCost=amo.filter(a=>a.buy).reduce((x,a)=>x+a.qty*a.lim,0);
   /* money for buys: the Kite fund (real cash + LiquidBees reserve) once it's set up. The page's own figure
      (capital − invested) is only a fallback: it ignores PKP BIDs and other spending from the same Kite account. */
-  const F=I.kiteFund(),useF=!!F.A,avail=useF?F.cash+(ok(F.liq)?F.liq:0):cash;
+  const F=I.kiteFund(),useF=!!F.A,avail=(useF?F.cash+(ok(F.liq)?F.liq:0):cash)-amoCost;
   let avg=null,avgMsg="";
-  const avgC=held.filter(h=>h.status==="AVERAGE").sort((a,b)=>a.fallLast-b.fallLast);
+  const avgC=held.filter(h=>h.status==="AVERAGE"&&!amoCodes.has(h.code)).sort((a,b)=>a.fallLast-b.fallLast);
   if(avail<tranche)avgMsg=useF?"Kite fund (with LiquidBees) is below one tranche":"Cash is below one tranche";
   else if(avgC[0]){const h=avgC[0],lim=r2(h.close*(1+S.buffer));avg={h,lim,qty:Math.round(tranche/lim)};}
   /* new-buy candidates from the universe */
@@ -75,13 +81,13 @@ function model(){
     const st=u.mode!=="buy"?"":heldGroups.has(u.group)?"Group held":!(fall<=S.minFall)?"":!(q.chg>0)?"Wait for green":fall<=S.check?"Check price":"BUY";
     return {...u,close:q.price,chg:q.chg,fall,h52,status:st};}).filter(Boolean);
   cands.filter(c=>c.status==="Check price").forEach(c=>checks.push(c));
-  const buyC=cands.filter(c=>c.status==="BUY").sort((a,b)=>a.fall-b.fall),free=Math.max(0,avail-(avg?avg.qty*avg.lim:0)-S.reserve*capital);
+  const buyC=cands.filter(c=>c.status==="BUY"&&!amoCodes.has(c.code)).sort((a,b)=>a.fall-b.fall),free=Math.max(0,avail-(avg?avg.qty*avg.lim:0)-S.reserve*capital);
   const n=!buyC.length||free<tranche?0:(buyC[0].fall<=S.twoFall&&free>=2*tranche?2:1);
   const buys=[];buyC.forEach(c=>{if(buys.length<n&&!buys.some(b=>b.c.group===c.group)){const lim=r2(c.close*(1+S.buffer));buys.push({c,lim,qty:Math.round(tranche/lim)});}});
   const buyMsg=!buyC.length?"no ETF qualifies":free<tranche?"cash would dip into the "+Math.round(S.reserve*100)+"% reserve":"";
   /* LiquidBees to sell when tonight's buys need more than the cash in Kite */
-  const need=(avg?avg.qty*avg.lim:0)+buys.reduce((a,b)=>a+b.qty*b.lim,0),gap=useF?need-F.cash:0,liqSell=gap>0?I.liqToSell(gap):0;
-  return {F,useF,avail,need,gap,liqSell,s,S,U,open,sold,cap,added,withdrawn,growth,capital,invested,cash,tranche,free,sells,trailing,gtts,held,avg,avgMsg,buys,buyMsg,checks,cands};}
+  const need=(avg?avg.qty*avg.lim:0)+buys.reduce((a,b)=>a+b.qty*b.lim,0),gap=useF&&need>0?need+amoCost-F.cash:0,liqSell=gap>0?I.liqToSell(gap):0;
+  return {amo,F,useF,avail,need,gap,liqSell,s,S,U,open,sold,cap,added,withdrawn,growth,capital,invested,cash,tranche,free,sells,trailing,gtts,held,avg,avgMsg,buys,buyMsg,checks,cands};}
 
 /* ---------- entry forms ---------- */
 const codes=()=>{const s=I.load(KEY);return [...new Set([...((s.settings&&s.settings.universe)||[]).map(u=>u.code),...Object.values(s.lots).map(l=>l.code)])].sort();};
@@ -92,13 +98,13 @@ const later=f=>setTimeout(f,0);
 const REASONS=[["system","Rule exit (tonight's order or GTT)"],["cash","Discretionary · needed the cash"],["view","Discretionary · changed my view"],["other","Discretionary · other"]];
 const isDisc=l=>!!l.reason&&l.reason!=="system";
 function buyForm(pre){pre=pre||{};
-  I.form({title:pre.id?"Edit lot":pre.code?"Bought "+pre.code:"Add a buy",note:pre.id?"":pre.disc?"A buy at your discretion, outside tonight's orders. Record it once the order fills.":"Record it once the order fills.",
+  I.form({title:pre.id?"Edit lot":pre.code?"Bought "+pre.code:"Add a buy",note:pre.id?"":pre.amo?"Put in the actual fill price and units from Kite if they were different.":pre.disc?"A buy at your discretion, outside tonight's orders. Record it once the order fills.":"Record it once the order fills.",
     fields:[{k:"code",label:"ETF (NSE symbol)",value:pre.code||"",list:codes()},{k:"date",label:"Buy date",type:"date",value:pre.date||today()},
       {k:"price",label:"Buy price",type:"number",value:pre.price},{k:"qty",label:"Quantity",type:"number",step:"1",value:pre.qty},
       {k:"why",label:"Why",type:"select",value:pre.dbuy||pre.disc?"disc":"system",options:[["system","Tonight's order (rule)"],["disc","Discretionary"]]}],
     onSubmit:v=>{const c=sym(v.code);if(!c)return "Enter the symbol.";if(!(v.price>0)||!(v.qty>0))return "Price and quantity must be above zero.";
       const r={...(pre.id?lotRec(pre.id)||{}:{}),code:c,date:v.date,price:v.price,qty:Math.round(v.qty)};if(v.why==="disc")r.dbuy=true;else delete r.dbuy;
-      I.upsert(KEY,"lots",pre.id,r);draw();},
+      I.upsert(KEY,"lots",pre.id,r);if(pre.amo)I.remove(KEY,"amo",pre.amo);draw();},
     onDelete:pre.id?()=>{I.remove(KEY,"lots",pre.id);draw();}:null,delConfirm:"Delete this lot? Use this only for a wrong entry, not a sale.",
     extra:pre.id?[{label:"Sell",run:()=>{later(()=>sellForm(pre.code,pre.id,{reason:"view"}));}},{label:"GTT",run:()=>{later(()=>gttForm(pre.id));}}]:null});}
 /* step 1 of a discretionary sell: which ETF */
@@ -127,7 +133,7 @@ function sellForm(code,lotId,pre){pre=pre||{};const M=model(),S=M.S;
       const base=lotRec(l.id),sold={...base,qty:u,sellPrice:v.price,sellDate:v.date,reason:v.reason};delete sold.gtt;
       if(u===l.qty)I.upsert(KEY,"lots",l.id,sold);
       else{I.upsert(KEY,"lots",l.id,{...base,qty:l.qty-u});sold.split=l.id;I.upsert(KEY,"lots",null,sold);}
-      draw();}});}
+      if(pre.amo)I.remove(KEY,"amo",pre.amo);draw();}});}
 function soldForm(l){
   I.form({title:"Sold "+l.code,fields:[{k:"code",label:"ETF",value:l.code},{k:"date",label:"Buy date",type:"date",value:l.date},{k:"price",label:"Buy price",type:"number",value:l.price},
       {k:"qty",label:"Quantity",type:"number",step:"1",value:l.qty},{k:"sellDate",label:"Sell date",type:"date",value:l.sellDate},{k:"sellPrice",label:"Sell price",type:"number",value:l.sellPrice},
@@ -174,19 +180,24 @@ function uniForm(u){u=u||{};const S={...DEF,...(I.load(KEY).settings||{})};
 const TABS=[["hold","Holdings"],["watch","Watchlist"],["booked","Booked"]];
 let tab=I.rememberTab(KEY,"hold");
 function tonight(M){
-  const t=I.ist(),gt=M.gtts.filter(x=>x.todo),tot=M.sells.length+(M.avg?1:0)+M.buys.length;
+  const t=I.ist(),gt=M.gtts.filter(x=>x.todo),sells=M.sells.filter(o=>!M.amo.some(a=>!a.buy&&a.lot===o.l.id)),asks=M.amo.filter(a=>a.ask),tot=sells.length+(M.avg?1:0)+M.buys.length;
   const when=t.weekend?"Weekend · AMO for Monday":t.open?"Market open · live":t.afterClose?`${t.wd} evening · AMO limit orders`:`${t.wd} morning · before the open`;
-  const big=M.liqSell&&!t.open?`Sell ${M.liqSell} LiquidBees at the open, then ${tot} order${tot>1?"s":""}`:tot?`${tot} order${tot>1?"s":""}${t.open?" right now":t.weekend?" for Monday":" tonight"}`:t.open?"No signals right now":"Nothing to place tonight";
-  const fill=(k,c,q,p)=>[k==="sell"?"Sold":"Bought",`data-fill="${k}" data-c="${esc(c)}" data-q="${q}" data-p="${p}"`];
-  const rows=[
-    ...M.sells.map(o=>I.todo("sell","Sell",esc(o.l.code),`${o.qty} × ${price(o.lim)}`,`bought ${price(o.l.price)} · ${pct(o.l.gain*100,1)} · stop ${price(o.l.stop)}`,inr(o.qty*o.lim),fill("sell",o.l.id,o.qty,o.lim))),
+  const big=asks.length?`Did your ${asks.length>1?asks.length+" AMOs":"AMO"} fill?`:M.liqSell&&!t.open?`Sell ${M.liqSell} LiquidBees at the open, then ${tot} order${tot>1?"s":""}`:tot?`${tot} order${tot>1?"s":""}${t.open?" right now":t.weekend?" for Monday":" tonight"}`:M.amo.length?"AMO placed · nothing else to do":t.open?"No signals right now":"Nothing to place tonight";
+  const fill=(k,c,q,p)=>[t.open?"Placed":"AMO placed",`data-place="${k}" data-c="${esc(c)}" data-q="${q}" data-p="${p}"`];
+  const amoRows=M.amo.map(a=>{const lab=a.kind==="sell"?"Sell":a.kind==="avg"?"Average":"Buy",kind=a.kind==="sell"?"sell":a.kind==="avg"?"avg":"buy",q=`${a.qty} × ${price(a.lim)}`;
+    if(!a.ask)return I.todo(kind+" done",lab,esc(a.code),q,esc(`AMO placed · goes in ${wdS(a.session)} at 9:15`),inr(a.qty*a.lim),["Undo",`data-amo-undo="${esc(a.id)}"`]);
+    const hint=a.likely===true?`${a.buy?"low":"high"} ${price(a.tp)} reached your limit`:a.likely===false?`${a.buy?"low":"high"} ${price(a.tp)} didn't reach your limit`:"";
+    return I.todo(kind+" ask",lab,esc(a.code),q,`<span class="dn">Did it ${a.buy?"buy":"sell"}?</span>${hint?" · "+esc(hint):""}`,inr(a.qty*a.lim),null)+
+      `<div class="gask"><button type="button" data-amo-yes="${esc(a.id)}">${a.buy?"Yes, bought":"Yes, sold"}</button><button type="button" class="ghost" data-amo-no="${esc(a.id)}">No</button></div>`;});
+  const rows=[...amoRows,
+    ...sells.map(o=>I.todo("sell","Sell",esc(o.l.code),`${o.qty} × ${price(o.lim)}`,`bought ${price(o.l.price)} · ${pct(o.l.gain*100,1)} · stop ${price(o.l.stop)}`,inr(o.qty*o.lim),fill("sell",o.l.id,o.qty,o.lim))),
     M.liqSell?I.todo("liq","First","sell LIQUIDBEES",`${M.liqSell} units`,
       esc(t.open?"now, before 3:30 PM · then place the buys below":"in market hours (can't sell after hours) · then place the buys below as normal limit orders"),
       ok(M.F.liqPrice)?"≈ "+inr(M.liqSell*M.F.liqPrice):"",["Sold",`id="liqSold"`]):"",
     ...(M.avg?[M.avg]:[]).map(o=>I.todo("avg","Average",esc(o.h.code),`${o.qty} × ${price(o.lim)}`,`${pct(o.h.fallLast*100)} from last buy · ${o.h.L.length} lot${o.h.L.length>1?"s":""}`,inr(o.qty*o.lim),fill("avg",o.h.code,o.qty,o.lim))),
     ...M.buys.map(o=>I.todo("buy","Buy",esc(o.c.code),`${o.qty} × ${price(o.lim)}`,`${pct(o.c.fall*100)} from 52W high · ${esc(o.c.group)}`,inr(o.qty*o.lim),fill("buy",o.c.code,o.qty,o.lim))),
     ...gt.map(x=>{const l=x.l,s=x.sug;return I.todo("gt "+x.st,"GTT",esc(l.code),s?price(s.trig):"",esc(!x.g&&s?"not placed yet":x.msg),s?`limit ${price(s.lim)} · ${s.qty}`:"",[x.g?"Update":"Placed",`data-gtt="${esc(l.id)}"`]);})];
-  const why=[];if(!M.sells.length&&!M.avg&&!M.buys.length){if(M.buyMsg)why.push("No new buy: "+M.buyMsg);else if(M.avgMsg)why.push(M.avgMsg);}
+  const why=[];if(!M.sells.length&&!M.avg&&!M.buys.length&&!M.amo.length){if(M.buyMsg)why.push("No new buy: "+M.buyMsg);else if(M.avgMsg)why.push(M.avgMsg);}
   if(M.checks.length)why.push(`Check price first: ${M.checks.map(c=>esc(c.code)+" "+pct((ok(c.fall52)?c.fall52:c.fall)*100)).join(", ")} looks too deep`);
   if(t.open&&tot)why.push("Final after the 3:30 PM close.");
   return `<section class="card hero"><div class="when">${esc(when)}</div><div class="big">${esc(big)}</div>
@@ -266,8 +277,16 @@ function draw(){
   document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{tab=b.dataset.tab;I.saveTab(KEY,tab);draw();});
   on("dImp",()=>I.pickImport((e,done)=>{if(e){showErr(e.message);return;}showErr("");$("st").textContent="Imported "+done.join(" and ").toUpperCase()+" records.";draw();refresh();}));
   on("dExp",()=>I.exportData());on("dSync",()=>syncNow(true));
-  document.querySelectorAll("[data-fill]").forEach(b=>b.onclick=()=>{const k=b.dataset.fill,p=+b.dataset.p,q=+b.dataset.q;
-    if(k==="sell"){const l=I.load(KEY).lots[b.dataset.c];if(l)sellForm(l.code,b.dataset.c,{price:p,reason:"system"});}else buyForm({code:b.dataset.c,price:p,qty:q});});
+  /* AMO placed → kept as pending; once its session opens the card asks whether it filled */
+  document.querySelectorAll("[data-place]").forEach(b=>b.onclick=()=>{const k=b.dataset.place,p=+b.dataset.p,q=+b.dataset.q,c=b.dataset.c;
+    const lot=k==="sell"?I.load(KEY).lots[c]:null,rec={kind:k,code:lot?lot.code:c,qty:q,lim:p,placed:today(),session:I.orderSession()};if(lot)rec.lot=c;
+    if(I.ist().open)rec.session=today();/* a normal order in market hours: ask right away */
+    I.upsert(KEY,"amo",null,rec);draw();});
+  document.querySelectorAll("[data-amo-undo]").forEach(b=>b.onclick=()=>{I.remove(KEY,"amo",b.dataset.amoUndo);draw();});
+  document.querySelectorAll("[data-amo-no]").forEach(b=>b.onclick=()=>{if(!confirm("Nothing recorded. Clear this order? If the signal still holds, it shows again."))return;I.remove(KEY,"amo",b.dataset.amoNo);draw();});
+  document.querySelectorAll("[data-amo-yes]").forEach(b=>b.onclick=()=>{const a=M.amo.find(x=>x.id===b.dataset.amoYes);if(!a)return;
+    if(a.kind==="sell"){const l=I.load(KEY).lots[a.lot];if(l)sellForm(l.code,a.lot,{price:a.lim,units:a.qty,date:a.session,reason:"system",amo:a.id});else{I.remove(KEY,"amo",a.id);draw();}}
+    else buyForm({code:a.code,price:a.lim,qty:a.qty,date:a.session,amo:a.id});});
   document.querySelectorAll("[data-gtt]").forEach(b=>b.onclick=()=>gttForm(b.dataset.gtt));
   document.querySelectorAll("[data-lot]").forEach(r=>r.onclick=()=>{const l=I.load(KEY).lots[r.dataset.lot];if(l)buyForm({id:r.dataset.lot,...l});});
   document.querySelectorAll("[data-sold]").forEach(r=>r.onclick=()=>{const l=I.load(KEY).lots[r.dataset.sold];if(l)soldForm({id:r.dataset.sold,...l});});

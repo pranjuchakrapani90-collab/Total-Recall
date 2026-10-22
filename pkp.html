@@ -2,7 +2,7 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
 <title>JuniorBees PKP · Pranju OS</title>
 <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="icon" href="icon-192.png" sizes="192x192"><link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="stylesheet" href="invest.css?v=20261022f">
+<link rel="stylesheet" href="invest.css?v=20261022g">
 <link rel="stylesheet" href="tr-theme.css?v=20261020">
 </head><body class="tr-inv">
 <header><div class="hin">
@@ -15,7 +15,7 @@
   <div id="out"></div>
 </main>
 <script src="gsync.js?v=20261020"></script>
-<script src="invest.js?v=20261022f"></script>
+<script src="invest.js?v=20261022g"></script>
 <script>
 "use strict";
 const I=Invest,{esc,inr,price,pct,signInr,tone,ok,r2,dshort}=I;
@@ -68,8 +68,7 @@ function model(){
 
 /* ---------- next SIP date ---------- */
 const iso=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
-/* NSE equity trading holidays (weekdays). Add each new year's list when NSE publishes it. */
-const NSE_HOLIDAYS=new Set(["2026-01-15","2026-01-26","2026-03-03","2026-03-26","2026-03-31","2026-04-03","2026-04-14","2026-05-01","2026-05-28","2026-06-26","2026-09-14","2026-10-02","2026-10-20","2026-11-10","2026-11-24","2026-12-25"]);
+const NSE_HOLIDAYS=I.NSE_HOLIDAYS;
 const closed=d=>d.getDay()===0||d.getDay()===6||NSE_HOLIDAYS.has(iso(d));
 const toTrading=d=>{while(closed(d))d.setDate(d.getDate()+1);return d;};
 const prevTrading=d=>{d=new Date(d);do d.setDate(d.getDate()-1);while(closed(d));return d;};
@@ -84,13 +83,13 @@ const wd=s=>new Date(s+"T00:00:00").toLocaleDateString("en-IN",{weekday:"short"}
 
 /* ---------- forms ---------- */
 function buyForm(pre){pre=pre||{};const M=model();
-  I.form({title:pre.id?"Edit buy":pre.title||"Record a buy",note:pre.id?"":pre.fromGtt?"Put in the actual fill price from your broker app if it was different.":"BID level: 0 for a plain SIP; the BID number when you buy at a dip level. It sets the next BID.",
+  I.form({title:pre.id?"Edit buy":pre.title||"Record a buy",note:pre.id?"":pre.fromGtt||pre.fromSip?"Put in the actual fill price from your broker app if it was different.":"BID level: 0 for a plain SIP; the BID number when you buy at a dip level. It sets the next BID.",
     fields:[{k:"date",label:"Date",type:"date",value:pre.date||today()},{k:"price",label:"Price",type:"number",value:pre.price},{k:"units",label:"Units",type:"number",step:"1",value:pre.units},
       {k:"bid",label:"BID level after this buy",type:"select",value:ok(pre.bid)?pre.bid:M.level,options:[[0,"0 · no dip level"],...M.bids.map(b=>[b.n,"BID "+b.n+" ("+pct(b.pct*100)+")"])]}],
     onSubmit:v=>{if(!(v.price>0)||!(v.units>0))return "Price and units must be above zero.";
       const amt=pre.id&&ok(pre.amount)&&pre.price===v.price&&pre.units===v.units?pre.amount:Math.round(v.price*v.units*100)/100;
       I.upsert(KEY,"tx",pre.id,{date:v.date,type:"buy",price:v.price,units:Math.round(v.units),bid:+v.bid,amount:amt,seq:pre.seq||Date.now()});
-      if(pre.fromGtt)I.setSettings(KEY,{gttBuy:null});draw();},
+      if(pre.fromGtt)I.setSettings(KEY,{gttBuy:null});if(pre.fromSip)I.setSettings(KEY,{sipAmo:null});draw();},
     onDelete:pre.id?()=>{I.remove(KEY,"tx",pre.id);draw();}:null});}
 const REASONS=[["system","Profit booking (rule or GTT)"],["cash","Discretionary · needed the cash"],["view","Discretionary · changed my view"],["other","Discretionary · other"]];
 function sellForm(pre){pre=pre||{};const M=model();
@@ -145,11 +144,11 @@ function month(M){
   const mName=new Date(t.iso+"T00:00:00").toLocaleDateString("en-IN",{month:"long"});
   const gap=M.nb?M.nb.price/M.cmp*100-100:NaN,hit=ok(gap)&&gap>=0,up=M.tgtPrice/M.cmp*100-100,canSell=M.eligible>0;
   const askB=M.gttB&&M.gttB.ask,askS=M.gtt&&M.gtt.ask;
-  const big=askB?`Did your BID ${M.gttB.g.bid} GTT buy?`:askS?"Did your sell GTT book the profit?":canSell?`Book profit: sell ${M.eligible} unit${M.eligible>1?"s":""}`:hit?`BID ${M.next} is live: buy ${M.nextQty}`:N.late?"SIP overdue · due "+dshort(N.due):N.days===0||N.amoToday&&!N.done?"SIP due · place the AMO":M.gttB&&M.gttB.todo&&M.gttB.sug?`Set the BID ${M.gttB.sug.bid} GTT`:M.gtt&&M.gtt.todo&&M.gtt.sug&&M.gtt.sug.units>0?"Set the sell GTT":"Nothing to do today";
+  const sa=M.S.sipAmo,saAsk=sa&&I.sessionStarted(sa.session);
+  const big=saAsk?"Did your SIP AMO buy?":askB?`Did your BID ${M.gttB.g.bid} GTT buy?`:askS?"Did your sell GTT book the profit?":canSell?`Book profit: sell ${M.eligible} unit${M.eligible>1?"s":""}`:hit?`BID ${M.next} is live: buy ${M.nextQty}`:N.late&&!sa?"SIP overdue · due "+dshort(N.due):!sa&&(N.days===0||N.amoToday)?"SIP due · place the AMO":M.gttB&&M.gttB.todo&&M.gttB.sug?`Set the BID ${M.gttB.sug.bid} GTT`:M.gtt&&M.gtt.todo&&M.gtt.sug&&M.gtt.sug.units>0?"Set the sell GTT":"Nothing to do today";
   const amoTxt=N.done?`${ym2(t.iso)} done · AMO ${wd(N.amo)} eve`:N.days>0&&!N.amoToday?`AMO ${wd(N.amo)} evening`:"AMO tonight at today's close";
   const rows=[
-    I.todo("sip"+(N.done?" done":""),"SIP",esc(wd(N.date)),`${ok(M.sipQty)?M.sipQty:"—"} units`,
-      esc((N.late?"overdue · ":"")+amoTxt),ok(M.sipQty)?"≈ "+inr(M.sipQty*M.cmp):"",N.done?null:["Bought",`id="fSip"`]),
+    sipRow(M,N,amoTxt),
     M.nb?plan(M.gttB,"Dip",`BID ${M.next} · ${price(M.nb.price)}`,`${ok(M.nextQty)?M.nextQty:"—"} units`,
       hit?"at this level now":ok(gap)?`${pct(-gap)} away`:"",inr(M.nb.amt),hit?["Bought",`id="fBid"`]:null):"",
     M.units?plan(M.gtt,"Sell",price(M.tgtPrice),`${ok(M.tgtUnits)?M.tgtUnits:"—"} unit${M.tgtUnits===1?"":"s"}`,
@@ -166,6 +165,17 @@ function plan(x,label,what,q,sub,amt,btn){const kind=label==="Dip"?"dip":"book";
   const chip=!placeable?"":x.st==="ok"?`<button type="button" class="gchip ok" id="gS${k}" title="${esc(x.msg)}">GTT ✓</button>`
     :`<button type="button" class="gchip" id="gS${k}" title="${esc(x.msg)}">${x.g?"GTT · update":"GTT · set"}</button>`;
   return I.todo(kind,label,what,q,esc(sub)+(chip?" "+chip:""),amt,btn);}
+/* SIP: "AMO placed" the evening before; once that session opens it asks whether the AMO bought */
+function sipRow(M,N,amoTxt){const sa=M.S.sipAmo;
+  if(sa&&M.T.some(x=>x.type==="buy"&&x.sip&&x.date>=sa.placed)){setTimeout(()=>{I.setSettings(KEY,{sipAmo:null});draw();},0);return "";}/* recorded some other way */
+  if(sa){const q=`${sa.units} × ${price(sa.lim)}`;
+    if(!I.sessionStarted(sa.session))return I.todo("sip done","SIP",esc(wd(sa.session)),q,"AMO placed · goes in at 9:15",inr(sa.units*sa.lim),["Undo",`id="sUndo"`]);
+    const lo=I.touched(M.q,sa.session,"low"),hint=ok(lo)?(lo<=sa.lim?` · low ${price(lo)} reached your limit`:` · low ${price(lo)} didn't reach your limit`):"";
+    return I.todo("sip ask","SIP",esc(wd(sa.session)),q,`<span class="dn">Did it buy?</span>${esc(hint)}`,inr(sa.units*sa.lim),null)+
+      `<div class="gask"><button type="button" id="sYes">Yes, bought</button><button type="button" class="ghost" id="sNo">No</button></div>`;}
+  const due=N.amoToday||N.late||N.days===0;
+  return I.todo("sip"+(N.done?" done":""),"SIP",esc(wd(N.date)),`${ok(M.sipQty)?M.sipQty:"—"} units`,
+    esc((N.late?"overdue · ":"")+amoTxt),ok(M.sipQty)?"≈ "+inr(M.sipQty*M.cmp):"",due?[I.ist().open?"Placed":"AMO placed",`id="fSip"`]:null);}
 const ym2=iso=>new Date(iso+"T00:00:00").toLocaleDateString("en-IN",{month:"short"});
 function stats(M){
   return I.sum([["Value",inr(M.value),"",`${M.units} units`],["P / L",signInr(M.pl),tone(M.pl),pct(M.plp,1)],["XIRR",pct(M.xr),"",`booked ${inr(M.booked)}`]]);}
@@ -205,7 +215,10 @@ function draw(){
   const M=model();
   $("out").innerHTML=M.T.length?month(M)+I.fundBar(M.units&&M.gttB&&M.gttB.sug&&(M.gttB.g||M.nb&&M.nb.price/M.cmp>0.97)?M.gttB.sug.units*M.gttB.sug.lim:NaN)+stats(M)+details(M)+setup(M):empty();
   const on=(id,f)=>{const e=$(id);if(e)e.onclick=f;};
-  on("fSip",()=>buyForm({title:"SIP buy",price:ok(M.cmp)?M.cmp:"",units:M.sipQty||"",bid:M.level}));
+  on("fSip",()=>{I.setSettings(KEY,{sipAmo:{units:M.sipQty,lim:r2(M.cmp),placed:today(),session:I.ist().open?today():I.orderSession()}});draw();});
+  on("sUndo",()=>{I.setSettings(KEY,{sipAmo:null});draw();});
+  on("sNo",()=>{if(!confirm("Nothing recorded. Clear this AMO so you can place it again?"))return;I.setSettings(KEY,{sipAmo:null});draw();});
+  on("sYes",()=>{const sa=M.S.sipAmo;if(sa)buyForm({title:"SIP buy",date:sa.session,price:sa.lim,units:sa.units,bid:M.level,fromSip:true});});
   on("fBid",()=>buyForm({title:"BID "+M.next+" buy",price:M.nb?Math.round(M.nb.price*100)/100:"",units:M.nextQty||"",bid:M.next}));
   on("fSell",()=>sellForm({price:ok(M.cmp)?M.cmp:"",units:M.eligible||M.tgtUnits||"",reason:"system"}));
   on("qBuy",()=>buyForm({price:ok(M.cmp)?M.cmp:"",units:M.sipQty||"",title:"Discretionary buy"}));on("qSell",()=>sellForm({price:ok(M.cmp)?M.cmp:""}));
