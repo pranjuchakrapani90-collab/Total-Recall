@@ -99,6 +99,7 @@ input{accent-color:var(--steel)}
 .nbinfo{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .nbgoal{font:600 12px var(--mono);color:var(--muted);white-space:nowrap}
 .nbgoal.met{color:var(--good)}
+.cboxes{display:flex;flex-wrap:wrap;gap:14px;margin:10px 0}.cbox{color:var(--ink,currentColor);flex:none}
 .nbtempo{display:flex;align-items:center;gap:6px;font:600 13px var(--mono);flex:none}
 .nbtempo button{padding:6px 10px}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:84px;z-index:30;background:var(--good);color:#fff;padding:10px 16px;border-radius:12px;font-weight:600;max-width:calc(100% - 32px);text-align:center}
@@ -128,7 +129,7 @@ input{accent-color:var(--steel)}
 <script>
 "use strict";
 /* ===================== The course: chords, levels and lessons live in fs-course.js (shared with the hub) ===================== */
-const {TUNINGS,CH,LEVELS,ALL,EX}=FSC;
+const {TUNINGS,CH,LEVELS,ALL,EX}=FSC,FING=FSC.FING||{},lvNo=FSC.lvNo||(li=>li+1);
 let TUNE=TUNINGS.std.o; // open-string pitches for the lesson being built
 const X=null;
 const fretOn=(c,s)=>c.f[6-s];
@@ -153,7 +154,15 @@ function walkNote(cur,next,key){ // a bass note one scale step from the next roo
   let best=null;for(const s of [6,5,4]){const f=m-TUNE[s];if(f>=0&&f<=5&&(!best||f<best.f))best={s,f,m};}if(best)return best;
   return {s:next.c.r[0],f:next.c.r[1],m:nr};
 }
+function scanEvents(L){ // hold the shape, pluck its strings one at a time: low to high and back down
+  const meter=L.meter,bars=chordsOf(L.prog,meter),ev=[],step=L.step||1,total=bars.length*meter;let prev=null,i=0;
+  for(let t=0;t<total-1e-6;t=r12(t+step)){const seg=bars.flat().find(g=>t>=g.b-1e-6&&t<g.b+g.d-1e-6);if(!seg||!seg.c)continue;
+    if(seg!==prev&&(!prev||prev.name!==seg.name))i=0;prev=seg;
+    const up=[6,5,4,3,2,1].filter(s=>fretOn(seg.c,s)!=null),seq=up.concat(up.slice(1,-1).reverse()),s=seq[i++%seq.length],f=fretOn(seg.c,s);
+    ev.push({b:t,d:step,s,f,m:midiOf(s,f),role:s>=4?"b":"f"});}
+  return {ev:finish(ev),ch:bars.flat(),total,meter};}
 function patternEvents(L){
+  if(L.scan)return scanEvents(L);
   const meter=L.meter,bars=chordsOf(L.prog,meter),ev=[];
   const parse=p=>p.split(/\s+/).map(st=>{const[b,parts]=st.split(":");return {b:r12(Number(b)-1),parts:parts.split("+")};});
   bars.forEach((segs,bi)=>{
@@ -363,7 +372,7 @@ function sched(){
   }
 }
 /* tempo ladder: after every 2 clean loops the tempo rises 4 bpm, until the lesson's goal tempo */
-function climb(){if(!st.set.climb||!play)return;const L=play.L,goal=L.tempo[1];play.loops=(play.loops||0)+1;
+function climb(){if(!st.set.climb||!play||play.L.free)return;const L=play.L,goal=L.tempo[1];play.loops=(play.loops||0)+1;
   if(play.loops%2||play.tempo>=goal)return;
   const T=bt(play.cb),nt=Math.min(goal,play.tempo+4);play.tempo=nt;play.t0=T-(play.cb+play.ci)*60/nt;
   st.tempo[L.id]=nt;st.tUpd=Date.now();save(true);
@@ -415,7 +424,7 @@ function tabHTML(E){
 }
 function fixClefs(){document.querySelectorAll(".tab").forEach(t=>{let last=null;[...t.children].forEach(b=>{b.classList.toggle("nc",b.offsetTop===last);last=b.offsetTop;});});}
 window.addEventListener("resize",()=>setTimeout(fixClefs,100));
-function header(){document.getElementById("hLevel").textContent=curLevel()+1;document.getElementById("hDone").textContent=PR().n;}
+function header(){document.getElementById("hLevel").textContent=lvNo(curLevel());document.getElementById("hDone").textContent=PR().n;}
 function goalCard(){return `<div class="card goal"><div class="row between"><h3>Daily goal · ${goalMin()} min</h3><span class="num">all of Guitar Studio</span></div>
   <div class="gbar"><i id="goalBar"></i></div><p id="goalTxt"></p></div>`;}
 /* a session: a technique warm-up you already know, the new lesson, then a finished piece to keep in your fingers */
@@ -423,7 +432,7 @@ function sessionPlan(nx){const day=Math.floor(Date.now()/864e5),done=ALL.filter(
   const tech=done.filter(x=>!x.song&&!x.task),songs=done.filter(x=>x.song);
   const warm=tech.length?tech[day%tech.length]:ALL[0],out=[];
   if(warm.id!==nx.id)out.push({min:2,L:warm,h:"Warm up",why:"A pattern you already play, at a comfortable tempo, to wake up the thumb and fingers."});
-  out.push({min:songs.length?6:8,L:nx,main:1,h:nx.task?"This week's project":"New lesson",why:nx.task?"Work through the steps; it may take several sessions.":"Start slow with Climb on and loop the hardest bar first."});
+  out.push({min:songs.length?6:8,L:nx,main:1,h:nx.task?"This week's project":"New lesson",why:nx.task?"Work through the steps; it may take several sessions.":nx.free?"Hold the shape and pluck string by string at whatever tempo suits you.":"Start slow with Climb on and loop the hardest bar first."});
   if(songs.length){const r=songs[(day*7+3)%songs.length];out.push({min:2,L:r,h:"Keep a piece alive",why:"Play a finished piece once through without stopping, as a performance."});}
   return out;}
 function homeView(){
@@ -436,7 +445,7 @@ function homeView(){
     <p>Every lesson has a goal tempo. With <b>Climb</b> on, the tempo rises 4 bpm after every two clean loops until it reaches the goal. Each lesson is a set of exercises: the pattern in every open key (barre lessons in all 12 keys), songs in stages and then in a second key. Mark an exercise done when you can play it three times in a row at the goal; when all of a lesson's exercises are done the lesson is complete, and finishing a level opens the next.</p></section>
   ${syncCard()}
   <section class="card"><h3>The course</h3><div class="levels">${LEVELS.map((L,li)=>{const un=unlockedLv(li),fin=levelDone(li),cur=li===curLevel()&&!fin;
-    return `<div class="lvl${un?"":" lock"}${fin?" fin":""}${cur?" cur":""}"><div class="lvh"><b>Level ${li+1}: ${L.n}</b><span>${fin?"✓ complete":un?`${L.ls.filter(x=>lDone(ALL.find(l=>l.id===x.id))).length} of ${L.ls.length} lessons done`:"🔒 finish the level before"}</span></div>
+    return `<div class="lvl${un?"":" lock"}${fin?" fin":""}${cur?" cur":""}"><div class="lvh"><b>Level ${lvNo(li)}: ${L.n}</b><span>${fin?"✓ complete":un?`${L.ls.filter(x=>lDone(ALL.find(l=>l.id===x.id))).length} of ${L.ls.length} lessons done`:"🔒 finish the level before"}</span></div>
       <p>${L.d}</p><div class="lessons">${L.ls.map(y=>{const x=ALL.find(l=>l.id===y.id),d=lDone(x),k=x.ex.filter(exDone).length;return `<button type="button" class="les${d?" ok":x.id===nx.pid?" next":""}" ${un?`data-open="${x.id}"`:"disabled"}>${d?"✓ ":""}${x.id} ${x.t}${x.ex.length>1?` <small>${k}/${x.ex.length}</small>`:""}</button>`;}).join("")}</div></div>`;}).join("")}</div></section>`;
 }
 /* hear it → sing it → see it → play it, on tunes you already know (Eli Koskoff's melody exercise) */
@@ -444,7 +453,7 @@ function earSong(L){const o={Twinkle:"1 1 5 5 6 6 5",Ode:"3 3 4 5 5 4 3 2",Amazi
   const how="Before you read the tab, hum the root of the key and call it 'one', sing the first phrase by scale numbers, picture where those notes sit on the top strings, then try to play the phrase first time. Check it against the tab afterwards.";
   return k?`${how} It starts <b>${o[k]}</b>: sing that before you play.`:`${how} Work the numbers out by singing up the scale from the root.`;}
 function taskView(L){const Lv=LEVELS[L.lv],all=ALL.indexOf(lessonOf(L)),prev=ALL[all-1],next=ALL[all+1];
-  return `<section class="card"><div class="num">Level ${L.lv+1} · ${Lv.n}</div><h2>${L.t}</h2>
+  return `<section class="card"><div class="num">Level ${lvNo(L.lv)} · ${Lv.n}</div><h2>${L.t}</h2>
     <div class="chips"><span class="chip t">project</span></div>
     <p class="pdesc">${L.w}</p><p class="tip">💡 ${L.tip}</p>
     <ol class="steps">${L.steps.map(x=>`<li>${x}</li>`).join("")}</ol>
@@ -452,11 +461,28 @@ function taskView(L){const Lv=LEVELS[L.lv],all=ALL.indexOf(lessonOf(L)),prev=ALL
       ${exDone(L)?`<button type="button" data-undone="${L.id}">Mark as not done</button>`:`<button type="button" class="good big" data-done="${L.id}">✓ Done</button>`}
       ${next?`<button type="button" data-open="${next.id}"${unlockedLv(next.lv)||next.lv===L.lv?"":" disabled"}>${next.id} ▸</button>`:""}</div></section>`;}
 function howTo(L){const lo=L.tempo[0],hi=L.tempo[1];
+  if(L.scan)return `<details class="how" open><summary>How to practise this lesson</summary><ol>
+    <li>Look at the diagram and place the fingers one at a time, then lift the whole hand off and place the shape again, all fingers together. Five times.</li>
+    <li>Press Play. Pluck the strings one by one with the tab: thumb on the bass strings, i-m-a on the top three. Stop on any note that buzzes or sounds dead, fix the finger, carry on.</li>
+    <li>Choose your own tempo with the slider or the − / + buttons. It stays where you leave it; nothing climbs on its own.</li>
+    <li>When every string rings clean and you can find the shape without looking, mark the exercise done and move to the next chord.</li></ol></details>`;
   const a=L.song?["Sing or hum the tune first, then play the melody notes alone (the orange numbers) until they are secure.","Add the thumb: loop two bars with bar practice, slowly, until the bass never stops under the melody."]
     :["Play the pattern on the first chord only, looping bar 1, until the right hand runs without thinking.","Then the whole progression: change chords without breaking the rhythm."];
   return `<details class="how"><summary>How to practise this lesson</summary><ol>${a.map(x=>`<li>${x}</li>`).join("")}
     <li>Turn on <b>Climb</b>: start at ${lo} bpm and let the tempo rise 4 bpm every two loops. If it gets messy, drop back 8 bpm and climb again.</li>
     <li>At ${hi} bpm, play it three times in a row without a mistake, then mark it done.</li></ol></details>`;}
+/* chord box: dots with left-hand finger numbers, X = not played, O = open */
+function chordBox(n){const c=CH[n];if(!c)return "";const fn=FING[n]||[],fs=c.f.filter(x=>x!=null&&x>0),hi=Math.max(4,...fs),lo=hi>5?Math.min(...fs):1,W=118,x=i=>16+i*17,y=k=>30+k*22;
+  let g=`<text x="${W/2}" y="13" text-anchor="middle" font-weight="700" font-size="14" fill="currentColor">${esc2(cname(n))}</text>`;
+  g+=`<line x1="${x(0)}" y1="${y(0)}" x2="${x(5)}" y2="${y(0)}" stroke="currentColor" stroke-width="${lo===1?4:1}"/>`;
+  for(let k=1;k<=4;k++)g+=`<line x1="${x(0)}" y1="${y(k)}" x2="${x(5)}" y2="${y(k)}" stroke="currentColor" stroke-opacity=".45"/>`;
+  for(let i=0;i<6;i++){g+=`<line x1="${x(i)}" y1="${y(0)}" x2="${x(i)}" y2="${y(4)}" stroke="currentColor" stroke-opacity=".7"/>`;const f=c.f[i];
+    if(f==null)g+=`<text x="${x(i)}" y="${y(0)-5}" text-anchor="middle" font-size="11" fill="currentColor">✕</text>`;
+    else if(f===0)g+=`<circle cx="${x(i)}" cy="${y(0)-8}" r="4" fill="none" stroke="currentColor"/>`;
+    else{const yy=y(f-lo+.5);g+=`<circle cx="${x(i)}" cy="${yy}" r="7.5" fill="var(--thumb)"/>${fn[i]?`<text x="${x(i)}" y="${yy+4}" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">${fn[i]}</text>`:""}`;}}
+  if(lo>1)g+=`<text x="${x(5)+8}" y="${y(.5)+4}" font-size="10" fill="currentColor">${lo}fr</text>`;
+  ["E","A","D","G","B","e"].forEach((t,i)=>g+=`<text x="${x(i)}" y="${y(4)+14}" text-anchor="middle" font-size="9" fill="currentColor" opacity=".6">${t}</text>`);
+  return `<svg class="cbox" viewBox="0 0 ${W} ${y(4)+20}" width="${W}" role="img" aria-label="${esc2(cname(n))} chord shape">${g}</svg>`;}
 /* the lesson's exercises: one button each, ticked when done */
 function exTabs(L,P){if(P.ex.length<2)return "";const k=P.ex.filter(exDone).length;
   return `<div class="extabs"><div class="num">Exercise ${P.ex.indexOf(P.ex.find(e=>e.id===L.id))+1} of ${P.ex.length} · ${k} done${lDone(P)?" · lesson complete ✓":""}</div><div class="row" style="flex-wrap:wrap;gap:6px;margin:6px 0 10px">${P.ex.map((e,i)=>`<button type="button" data-open="${e.id}" class="${e.id===L.id?"play":exDone(e)?"good":""}">${exDone(e)?"✓ ":""}${esc2(e.vt||"Exercise "+(i+1))}</button>`).join("")}</div>
@@ -467,27 +493,28 @@ function lessonView(L){
   const P=lessonOf(L),E=eventsOf(L),Lv=LEVELS[L.lv],idx=Lv.ls.findIndex(x=>x.id===P.id),all=ALL.indexOf(P),prev=ALL[all-1],next=ALL[all+1];
   const chords=[...new Set(E.ch.map(c=>cname(c.name)))].filter(Boolean);
   const nb=Math.ceil(E.total/E.meter-1e-6);
-  return `<section class="card"><div class="num">Level ${L.lv+1} · ${Lv.n} · lesson ${idx+1} of ${Lv.ls.length}</div>
+  return `<section class="card"><div class="num">Level ${lvNo(L.lv)} · ${Lv.n} · lesson ${idx+1} of ${Lv.ls.length}</div>
     <h2>${L.t}</h2>${exTabs(L,P)}
-    <div class="chips"><span class="chip">${L.meter}/4</span>${chords.length?`<span class="chip t">${chords.join(" · ")}</span>`:""}<span class="chip">${nb} bars</span><span class="chip g">goal ${L.tempo[1]} bpm</span>${L.song?`<span class="chip t">song</span>`:""}${L.tune?`<span class="chip t">🎛 ${TUNINGS[L.tune].n} tuning</span>`:""}${L.swing?`<span class="chip">swing</span>`:""}</div>
+    <div class="chips"><span class="chip">${L.meter}/4</span>${chords.length?`<span class="chip t">${chords.join(" · ")}</span>`:""}<span class="chip">${nb} bars</span>${L.free?`<span class="chip g">your tempo</span>`:`<span class="chip g">goal ${L.tempo[1]} bpm</span>`}${L.song?`<span class="chip t">song</span>`:""}${L.tune?`<span class="chip t">🎛 ${TUNINGS[L.tune].n} tuning</span>`:""}${L.swing?`<span class="chip">swing</span>`:""}</div>
     <p class="pdesc"><b>In words:</b> ${L.w}</p>
     <p class="tip">💡 ${L.tip}</p>
+    ${L.scan?`<div class="cboxes">${chords.map(chordBox).join("")}</div><p class="tip">🖐 Numbers on the dots are left-hand fingers: 1 index, 2 middle, 3 ring, 4 little. ✕ = don't play that string, ○ = play it open.</p>`:""}
     ${L.tune?`<p class="tip">🎛 <b>Retune first:</b> ${L.tune==="dd"?"low string down to D (D A D G B E)":"D A D G A D, low to high"}. Tune back to standard afterwards.</p>`:""}
     ${howTo(L)}
     ${L.song?`<p class="tip">👂 <b>Ear first.</b> ${earSong(L)}</p>`:""}
     ${L.prog&&/maj7|sus|add|[m\d]?[679](?![\d])/.test(L.prog)?`<p class="tip">🧩 <b>The last word matters.</b> In a chord like ${(L.prog.match(/[A-G][#b]?(?:maj7|m7|sus\d|add\d|m?[679])/)||["Fmaj7"])[0]}, the last part of the name (the 7, the 6, the sus) is the note that gives the chord its sound. Find it in the shape, one or two frets from the plain triad, and let it ring clearly in the arpeggio.</p>`:""}
     ${/^6/.test(L.id)?`<p class="tip">🎨 <b>Colour, then theory.</b> Once the pattern flows, lift one fretting finger off the barre so an open string rings through the arpeggio, or let a neighbouring scale note ring on top. The chord underneath is still the same major or minor triad; you've just added colour (an add9 or add11). Keep what sounds good, then name it afterwards by writing down its notes.</p>`:""}
-    <div class="row"><label class="ctl">Tempo <input type="range" id="tempo" min="30" max="160" step="1" value="${tempoOf(L)}"> <b id="tempoV">${tempoOf(L)}</b> bpm</label>
+    <div class="row"><label class="ctl">Tempo <input type="range" id="tempo" min="${L.free?20:30}" max="160" step="1" value="${tempoOf(L)}"> <b id="tempoV">${tempoOf(L)}</b> bpm</label>
       <label class="chk"><input type="checkbox" id="click"${st.set.click?" checked":""}> Metronome</label>
       <label class="chk"><input type="checkbox" id="countin"${st.set.countin?" checked":""}> Count-in</label>
       <label class="chk"><input type="checkbox" id="loop"${st.set.loop?" checked":""}> Loop</label>
-      <label class="chk" title="Raise the tempo 4 bpm after every two loops, up to the goal"><input type="checkbox" id="climb"${st.set.climb?" checked":""}> Climb to ${L.tempo[1]}</label></div>
+      ${L.free?"":`<label class="chk" title="Raise the tempo 4 bpm after every two loops, up to the goal"><input type="checkbox" id="climb"${st.set.climb?" checked":""}> Climb to ${L.tempo[1]}</label>`}</div>
     <div class="legend"><span><i style="background:var(--thumb)"></i>thumb (p) on the bass</span>${L.song||/!/.test(L.pat||"")?`<span><i style="background:var(--mel)"></i>melody</span>`:""}<span><i style="background:var(--fill)"></i>fingers (i m a)</span><span>Letters under each count: which finger plucks</span>${/\d[hp\/]|<|m/.test(L.pat||"")?`<span><b>h</b> hammer-on · <b>p</b> pull-off · <b>/</b> slide · <b>‹12›</b> harmonic · <b>pm</b> muted thumb</span>`:""}</div>
     <div class="barsbar"><span class="num">Bar practice</span><b id="selLbl">${sel?(sel.a===sel.b?`Looping bar ${sel.a+1}`:`Looping bars ${sel.a+1}–${sel.b+1}`):"Whole piece"}</b>
       <button type="button" data-bars="add">＋ Add next bar</button><button type="button" data-bars="next">Next bar only ▶</button><button type="button" data-bars="all"${sel?"":" disabled"}>All bars</button></div>
     <div class="tabscroll"><div class="tab${sel?" hassel":""}">${tabHTML(E)}</div></div>
     <div class="navf">${prev?`<button type="button" data-open="${prev.id}">◂ ${prev.id}</button>`:"<span></span>"}<button type="button" class="linkb" data-home="1">All levels</button>
-      ${exDone(L)?`<button type="button" data-undone="${L.id}">Mark as not done</button>`:`<button type="button" class="good big" data-done="${L.id}">✓ I can play it at ${L.tempo[1]} bpm</button>`}
+      ${exDone(L)?`<button type="button" data-undone="${L.id}">Mark as not done</button>`:`<button type="button" class="good big" data-done="${L.id}">${L.free?"✓ Every string rings clean":`✓ I can play it at ${L.tempo[1]} bpm`}</button>`}
       ${next?`<button type="button" data-open="${next.id}"${unlockedLv(next.lv)||next.lv===L.lv?"":" disabled"}>${next.id} ▸</button>`:""}</div></section>`;
 }
 function render(){
@@ -506,7 +533,7 @@ document.addEventListener("click",e=>{
   const o=e.target.closest("[data-open]");if(o){open(o.dataset.open);return;}
   if(e.target.closest("[data-home]")){view={k:"home"};sel=null;render();window.scrollTo({top:0});return;}
   if(e.target.closest("#nbPlay")){play?stop():start();return;}
-  const td=e.target.closest("[data-tdelta]");if(td){const L=byId(view.id);st.tempo[L.id]=Math.max(30,Math.min(160,tempoOf(L)+Number(td.dataset.tdelta)));st.tUpd=Date.now();save();
+  const td=e.target.closest("[data-tdelta]");if(td){const L=byId(view.id);st.tempo[L.id]=Math.max(L.free?20:30,Math.min(160,tempoOf(L)+Number(td.dataset.tdelta)));st.tUpd=Date.now();save();
     const r=document.getElementById("tempo");if(r){r.value=tempoOf(L);document.getElementById("tempoV").textContent=tempoOf(L);}if(play){const was=true;stop();start();}else setBar();return;}
   const ld=e.target.closest("[data-lessondone]");if(ld){const P=ALL.find(l=>l.id===ld.dataset.lessondone);P.ex.forEach(x=>{if(!exDone(x)){st.done[x.id]=dkey(new Date());st.doneT[x.id]=Date.now();}});save();
     const nx=ALL[ALL.indexOf(P)+1];if(nx&&unlockedLv(nx.lv))open(nx.id);else{view={k:"home"};render();}return;}

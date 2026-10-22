@@ -54,6 +54,14 @@ const TWINKLE="A3:1 A3:1 E4:1 E4:1|F#4:1 F#4:1 E4:2|D4:1 D4:1 C#4:1 C#4:1|B3:1 B
 const T_AR="1:B+1 1.5:3 2:A 2.5:2 3:B+1 3.5:3 4:A 4.5:2"; // Travis with pinches on 1 and 3
 
 const LEVELS=[
+ {n:"Chord shapes, one string at a time",zero:1,d:"Before any picking pattern, get each chord shape into your fingers. Hold the shape and pluck its strings one by one, lowest to highest and back down, so you hear at once if a note is buzzing or dead. No goal tempo here: set any speed you like on the slider and change it whenever you want.",ls:[
+  {id:"s1",t:"Minor shapes: Em, Am, Dm",shapes:["Em","Am","Dm"],scan:1,free:1,meter:4,tempo:[40,40],w:"Place the shape, then pluck every string it uses, one at a time, from the lowest to the highest and back down. Thumb (p) plays the bass strings, i-m-a the G, B and high e. Every note should ring clearly: no buzz, no dead note.",tip:"A dead note means a finger is leaning on the next string. Arch the fingers, press with the very tips, and sit each tip just behind its fret."},
+  {id:"s2",t:"Major shapes: E, A, D, C, G",shapes:["E","A","D","C","G"],scan:1,free:1,meter:4,tempo:[40,40],w:"The five open major shapes, each held for four bars while you pluck its strings one by one, up and back down. Strings marked X on the diagram are not played, and the plucking skips them.",tip:"A: three fingers crowd into fret 2. If the B string buzzes, angle the fingers slightly or try fingers 2-3-4. C and G: reach with the fingertips so the open strings between them ring."},
+  {id:"s3",t:"Seventh chords: E7, A7, D7, G7, C7, B7",shapes:["E7","A7","D7","G7","C7","B7"],scan:1,free:1,meter:4,tempo:[40,40],w:"Each 7th chord is a shape you know with one note changed. Pluck string by string and listen for the extra note: it gives the chord its pull towards the next one.",tip:"Compare each with its plain chord first: E to E7 just lifts one finger. B7 is the stretch of the set. Place the second finger (A string, fret 2) first and build the shape around it."},
+  {id:"s4",t:"Minor sevenths: Em7, Am7, Dm7, Bm7",shapes:["Em7","Am7","Dm7","Bm7"],scan:1,free:1,meter:4,tempo:[40,40],w:"Soft, open minor-7th sounds used all through the course (Bm7 stands in for the Bm barre in the key of D). Hold, pluck each string, listen.",tip:"Bm7 (x 2 0 2 0 2): finger 1 on the A string fret 2, finger 2 on the G string fret 2, finger 3 on the high e fret 2. The D and B strings ring open between them, so keep the fingers steep. The low E is not played."},
+  {id:"s5",t:"Major sevenths: Cmaj7, Fmaj7, Gmaj7, Dmaj7, Amaj7, Emaj7",shapes:["Cmaj7","Fmaj7","Gmaj7","Dmaj7","Amaj7","Emaj7"],scan:1,free:1,meter:4,tempo:[40,40],w:"Dreamy major-7th shapes. Several are a familiar chord with one finger moved or lifted. String by string, up and down.",tip:"Cmaj7 is C with the first finger lifted. Fmaj7 is the easy F with no barre: fingers 3-2-1 on frets 3-2-1 of the D, G and B strings, high e open."},
+  {id:"s6",t:"Changing between shapes",pairs:[["C","Am"],["G","Em"],["D","Bm7"],["A","E7"],["Am","Fmaj7"],["G","D"],["E","B7"],["Dm","A7"]],scan:1,free:1,meter:4,tempo:[40,40],w:"Two bars on one shape, string by string, then two bars on the other, round and round. These are the changes the later lessons use most.",tip:"Look for a finger that can stay put or slide: C to Am keeps fingers 1 and 2 in place. Lift and land the other fingers together, as one movement, while the last note of the old chord rings."},
+ ]},
  {n:"Thumb and fingers",d:"Your thumb (p) owns the bass strings and your fingers own the top three: i on the G string, m on the B, a on the high e. Every later level is built on this division of labour.",ls:[
   {id:"1a",t:"Thumb on the bass",w:"Hold each chord and let your thumb play its root on every beat. The fingers rest lightly on the top three strings.",tip:"Rest your thumb on the next string after each stroke (a rest stroke) so the bass is even and full.",meter:4,prog:"C|Am|Em|G",pat:"1:B 2:B 3:B 4:B",tempo:[50,90]},
   {id:"1b",t:"p, i, m, a one at a time",w:"Thumb plays the root on beat 1, then the fingers pluck one string each on beats 2, 3 and 4: i on G, m on B, a on high e.",tip:"Keep each finger over its own string. Only the tip moves, curling into the palm.",meter:4,prog:"C|Am|Em|G",pat:"1:B 2:3 3:2 4:1",tempo:[50,90]},
@@ -202,6 +210,11 @@ const TPL={C:["C","Am","Fmaj7","G"],G:["G","Em","C","D"],D:["D","Bm7","G","A"],A
 CH.Bm7={f:[X,2,0,2,0,2],r:[5,2],a:[4,0]};CH.Cmaj7={f:[X,3,2,0,0,0],r:[5,3],a:[4,2]};CH.Gmaj7={f:[3,2,0,0,0,2],r:[6,3],a:[4,0]};
 CH.Dmaj7={f:[X,X,0,2,2,2],r:[4,0],a:[5,0]};CH.Amaj7={f:[X,0,2,1,2,0],r:[5,0],a:[4,2]};CH.Emaj7={f:[0,2,1,1,0,0],r:[6,0],a:[4,2]};
 CH.Am7={f:[X,0,2,0,1,0],r:[5,0],a:[4,2]};CH.Em7={f:[0,2,0,0,0,0],r:[6,0],a:[4,2]};CH.Dm7={f:[X,X,0,2,1,1],r:[4,0],a:[5,0]};
+/* left-hand fingers for the open shapes, low E to high e (0 open, null not played) */
+const FING={C:[X,3,2,0,1,0],G:[2,1,0,0,0,3],Am:[X,0,2,3,1,0],Em:[0,2,3,0,0,0],D:[X,X,0,1,3,2],Dm:[X,X,0,2,3,1],E:[0,2,3,1,0,0],
+  A:[X,0,1,2,3,0],E7:[0,2,0,1,0,0],A7:[X,0,2,0,3,0],D7:[X,X,0,2,1,3],G7:[3,2,0,0,0,1],C7:[X,3,2,4,1,0],Fmaj7:[X,X,3,2,1,0],
+  B7:[X,2,1,3,0,4],Bm7:[X,1,0,2,0,3],Cmaj7:[X,3,2,0,0,0],Gmaj7:[3,2,0,0,0,1],Dmaj7:[X,X,0,1,2,3],Amaj7:[X,0,2,1,3,0],
+  Emaj7:[0,3,1,2,0,0],Am7:[X,0,2,0,1,0],Em7:[0,2,0,0,0,0],Dm7:[X,X,0,2,1,1]};
 function tpl(p,T){let i=0;return p.split("|").map(b=>b.split(",").map(x=>x.trim()==="-"?"-":TPL[T][i++%4]).join(",")).join("|");}
 const KM=["C","G","D","A","E"],Km=["Am","Em","Dm"],keyPc=K=>NOTE[K.replace(/m$/,"")],isMin=K=>/m$/.test(K);
 function homeKey(p){const c=pc(p.split("|").map(x=>x.split(",")[0].trim()).find(x=>x!=="-")||"C");return NM[NOTE[c.r]]+(/^m(?!aj)/.test(c.q)?"m":"");}
@@ -211,6 +224,8 @@ const midi=t=>{const m=/^([A-G][#b]?)(\d)$/.exec(t);return m?(+m[2]+1)*12+NOTE[m
 const melRange=mel=>{const ms=mel.split(/[|\s]+/).map(t=>midi(t.split(":")[0])).filter(x=>x!=null);return [Math.min(...ms),Math.max(...ms)];};
 const BARRE_LV=LEVELS.findIndex(L=>/^Up the neck/.test(L.n)),BLUES_LV=LEVELS.findIndex(L=>/^Blues/.test(L.n));
 function expand(L){const one=[{...L,pid:L.id,home:1}];
+  if(L.shapes)return L.shapes.map((c,i)=>({...L,id:`${L.id}.${c}`,pid:L.id,vt:c,prog:`${c}|${c}|${c}|${c}`,home:i?0:1}));
+  if(L.pairs)return L.pairs.map(([a,b],i)=>({...L,id:`${L.id}.${a}-${b}`,pid:L.id,vt:`${a} ↔ ${b}`,prog:`${a}|${a}|${b}|${b}|${a}|${a}|${b}|${b}`,home:i?0:1}));
   if(L.task||L.tune)return one;
   if(L.song){const hk=homeKey(L.ch),n=L.mel.split("|").length,ex=[],add=(tag,vt,o)=>ex.push({...L,...o,id:`${L.id}.${tag}`,pid:L.id,vt});
     if(L.style!=="mel")add("m","Stage 1 · melody alone",{style:"mel"});
@@ -252,5 +267,6 @@ function progress(done){done=done||{};
   const next=EX.find(x=>unlocked(x.lv)&&!exDone(x))||null;
   const n=EX.filter(exDone).length;
   return {levelDone,unlocked,lessonDone,exDone,level,next,n,total:EX.length,lessons:ALL.length};}
-window.FSC={TUNINGS,CH,LEVELS,ALL,EX,progress};
+const lvNo=li=>LEVELS[0].zero?li:li+1;
+window.FSC={TUNINGS,CH,FING,LEVELS,ALL,EX,progress,lvNo};
 })();

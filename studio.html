@@ -248,7 +248,7 @@ function render(){
 
   /* Fingerstyle Solo */
   if(window.FSC){const P=FSC.progress(fs.done||{});
-    $("fLv").textContent=`level of ${FSC.LEVELS.length}`;$("fLevel").textContent=P.level+1;$("fDone").textContent=P.n;$("fLeft").textContent=P.total-P.n;
+    $("fLv").textContent=`level of ${FSC.LEVELS.length}`;$("fLevel").textContent=FSC.lvNo?FSC.lvNo(P.level):P.level+1;$("fDone").textContent=P.n;$("fLeft").textContent=P.total-P.n;
     $("fBar").style.width=(P.total?P.n/P.total*100:0)+"%";
     $("fNext").textContent=P.n===P.total?"Course complete: review any lesson":P.next?`Next: ${P.next.pid||P.next.id} ${P.next.t}`:"Start with lesson 1a";}
 
