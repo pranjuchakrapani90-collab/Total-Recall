@@ -106,13 +106,17 @@ async function handleQuotes(request){
   const url=new URL(request.url),list=String(url.searchParams.get('s')||'').split(',').map(x=>x.trim().toUpperCase().replace(/^NSE:/,'')).filter(x=>/^[A-Z0-9&\-]{1,20}$/.test(x));
   const syms=[...new Set(list)].slice(0,40),out={};
   await Promise.all(syms.map(async sym=>{try{
-    const res=await yahooChart(sym),m=res.meta||{},ts=res.timestamp||[],cl=((res.indicators||{}).quote||[{}])[0].close||[];
-    const days=[];for(let i=0;i<ts.length;i++){if(cl[i]!=null)days.push([istDate(ts[i]),Math.round(cl[i]*100)/100]);}
+    const res=await yahooChart(sym),m=res.meta||{},ts=res.timestamp||[],qq=((res.indicators||{}).quote||[{}])[0],cl=qq.close||[],lo=qq.low||[],hi=qq.high||[];
+    const R=v=>v==null?null:Math.round(v*100)/100;
+    /* each day: [date, close, low, high] (low/high let the PKP page tell whether a GTT trigger was touched intraday) */
+    const days=[];for(let i=0;i<ts.length;i++){if(cl[i]!=null)days.push([istDate(ts[i]),R(cl[i]),R(lo[i]),R(hi[i])]);}
     const price=m.regularMarketPrice!=null?m.regularMarketPrice:(days.length?days[days.length-1][1]:null);
     const mt=m.regularMarketTime?istDate(m.regularMarketTime):(days.length?days[days.length-1][0]:'');
-    if(days.length&&days[days.length-1][0]===mt)days[days.length-1][1]=Math.round(price*100)/100; else if(price!=null&&mt)days.push([mt,Math.round(price*100)/100]);
+    const dLo=R(m.regularMarketDayLow),dHi=R(m.regularMarketDayHigh);
+    if(days.length&&days[days.length-1][0]===mt){const d=days[days.length-1];d[1]=R(price);if(dLo!=null)d[2]=dLo;if(dHi!=null)d[3]=dHi;}
+    else if(price!=null&&mt)days.push([mt,R(price),dLo,dHi]);
     const prev=days.length>1?days[days.length-2][1]:null;
-    out[sym]={price,prev,chg:prev?(price/prev-1)*100:null,time:m.regularMarketTime||null,day:mt,closes:days};
+    out[sym]={price,prev,chg:prev?(price/prev-1)*100:null,time:m.regularMarketTime||null,day:mt,dayLow:dLo,dayHigh:dHi,closes:days};
   }catch(e){out[sym]={error:String(e&&e.message||e)};}}));
   return new Response(JSON.stringify({at:Date.now(),quotes:out}),{headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
 }

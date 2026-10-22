@@ -205,3 +205,6 @@ details.more{background:none;border:0;box-shadow:none;padding:4px 4px 0}
 details.more>summary{font:600 14px var(--body);color:var(--muted);justify-content:center;gap:6px}
 details.more[open]{background:var(--paper);border:1px solid var(--line);padding:14px 16px}
 details.hold>summary{padding:11px 0}
+/* GTT fill check: Yes / No under the row */
+.gask{display:flex;gap:8px;justify-content:flex-end;padding:0 0 10px}
+.gask button{padding:7px 14px;font-size:13px;border-radius:999px}

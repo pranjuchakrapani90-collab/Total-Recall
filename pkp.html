@@ -2,7 +2,7 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
 <title>JuniorBees PKP · Pranju OS</title>
 <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="icon" href="icon-192.png" sizes="192x192"><link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="stylesheet" href="invest.css?v=20261021b">
+<link rel="stylesheet" href="invest.css?v=20261022">
 <link rel="stylesheet" href="tr-theme.css?v=20261020">
 </head><body class="tr-inv">
 <header><div class="hin">
@@ -15,7 +15,7 @@
   <div id="out"></div>
 </main>
 <script src="gsync.js?v=20261020"></script>
-<script src="invest.js?v=20261021b"></script>
+<script src="invest.js?v=20261022"></script>
 <script>
 "use strict";
 const I=Invest,{esc,inr,price,pct,signInr,tone,ok,r2,dshort}=I;
@@ -42,18 +42,29 @@ function model(){
   const eligible=pl>min?Math.floor(pl/cmp):0,tgtPrice=(base+min)/units,tgtUnits=pl>min?Math.floor(pl/cmp):Math.floor(min/tgtPrice);
   const xr=ok(cmp)&&units?I.xirr([...flows,[today(),value]]):NaN;
   const first=T.find(x=>x.type==="buy");
-  /* GTT sell for the profit-booking target (PKP has no trailing stop; its exit is the booking threshold) */
-  let gtt=null;if(units&&ok(tgtPrice)){const g=S.gtt||null,sug={trig:r2(tgtPrice),lim:r2(tgtPrice*0.998),units:tgtUnits};let st="warn",todo=true,msg;
-    if(g&&ok(cmp)&&cmp>=g.trig){st="bad";msg=`Price ${price(cmp)} is at or above your GTT ${price(g.trig)}. If it triggered, record the sale.`;}
-    else if(!g&&ok(cmp)&&cmp>=sug.trig){todo=false;msg=`Price is already above the target: book the profit with an AMO sell; a GTT isn't needed now.`;}
-    else if(!g){msg=`No GTT yet. Place a sell GTT: trigger ${price(sug.trig)} · limit ${price(sug.lim)} · ${sug.units} units.`;}
-    else if(Math.abs(g.trig-sug.trig)>0.005){msg=`Your average changed: move the GTT from ${price(g.trig)} to ${price(sug.trig)}, limit ${price(sug.lim)}.`;}
-    else if(g.units!==sug.units){msg=`GTT is for ${g.units} units; the target needs ${sug.units}.`;}
-    else{st="ok";todo=false;msg=`GTT matches the target · set ${dshort(g.date)}.`;}
-    gtt={g,sug,st,todo,msg};}
+  /* Two GTTs, both kept in the app so it can ask about them:
+     sell GTT at the profit-booking target, buy GTT at the next BID (buy-in-dip) level.
+     Once the price has touched a GTT's trigger since the day it was placed, the app asks: did it fill?
+     Yes → record the trade (a buy moves the BID counter on; a sale resets it to BID 1) and clear that GTT.
+     No → nothing is recorded; the GTT is cleared so the app asks you to place the next one. */
+  const mk=(g,sug,side)=>{if(!g&&!sug)return null;let st="warn",todo=true,msg,hitAt=NaN,ask=false;
+    const buy=side==="buy",touch=g?I.touched(q,g.date,buy?"low":"high"):NaN;
+    if(g&&ok(touch)&&(buy?touch<=g.trig:touch>=g.trig)){st="bad";ask=true;hitAt=touch;
+      msg=`${buy?"Low":"High"} ${price(touch)} reached your trigger ${price(g.trig)}. Did the GTT fill?`;}
+    else if(!sug){msg=buy?"All BID levels are done; remove this GTT.":"Nothing to sell; remove this GTT.";}
+    else if(!g&&ok(cmp)&&(buy?cmp<=sug.trig:cmp>=sug.trig)){todo=false;msg=buy?`Price is already at BID ${sug.bid}: buy with an AMO; a GTT isn't needed now.`:`Price is already above the target: book the profit with an AMO sell; a GTT isn't needed now.`;}
+    else if(!g){msg=`not placed yet · ${buy?"buy at BID "+sug.bid:"sell at the target"}`;}
+    else if(buy&&g.bid!==sug.bid){msg=`GTT is for BID ${g.bid}; the next level is BID ${sug.bid} at ${price(sug.trig)}.`;}
+    else if(Math.abs(g.trig-sug.trig)>0.005){msg=`Your average changed: move it from ${price(g.trig)} to ${price(sug.trig)}, limit ${price(sug.lim)}.`;}
+    else if(g.units!==sug.units){msg=`GTT is for ${g.units} units; it should be ${sug.units}.`;}
+    else{st="ok";todo=false;msg=`placed ${dshort(g.date)} · matches`;}
+    return {side,g,sug,st,todo,ask,msg,hitAt};};
+  const gtt=units&&ok(tgtPrice)||S.gtt?mk(S.gtt||null,units&&ok(tgtPrice)?{trig:r2(tgtPrice),lim:r2(tgtPrice*0.998),units:tgtUnits}:null,"sell"):null;
+  const nbx=units?bids[level]:null;/* undefined once every BID is used */
+  const gttB=nbx||S.gttBuy?mk(S.gttBuy||null,nbx?{trig:r2(nbx.price),lim:r2(nbx.price*1.002),units:Math.ceil(nbx.amt/nbx.price),bid:nbx.n}:null,"buy"):null;
   const sipDay=S.sipDay||1;
   return {s,S,q,T,sipDay,sipNext:nextSip(T,sipDay),units,base,avg,cmp,value,pl,plp:base?pl/base*100:NaN,booked,abs:base?booked/base*100:NaN,xr,min,bids,level,next,nb,nextQty,eligible,tgtPrice,tgtUnits,
-    gtt,sipQty:Math.ceil(S.sip/cmp),appr:first&&ok(cmp)?(cmp/first.price-1)*100:NaN};}
+    gtt,gttB,sipQty:Math.ceil(S.sip/cmp),appr:first&&ok(cmp)?(cmp/first.price-1)*100:NaN};}
 
 /* ---------- next SIP date ---------- */
 const iso=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
@@ -73,16 +84,17 @@ const wd=s=>new Date(s+"T00:00:00").toLocaleDateString("en-IN",{weekday:"short"}
 
 /* ---------- forms ---------- */
 function buyForm(pre){pre=pre||{};const M=model();
-  I.form({title:pre.id?"Edit buy":pre.title||"Record a buy",note:pre.id?"":"BID level: 0 for a plain SIP; the BID number when you buy at a dip level. It sets the next BID.",
+  I.form({title:pre.id?"Edit buy":pre.title||"Record a buy",note:pre.id?"":pre.fromGtt?"Put in the actual fill price from your broker app if it was different.":"BID level: 0 for a plain SIP; the BID number when you buy at a dip level. It sets the next BID.",
     fields:[{k:"date",label:"Date",type:"date",value:pre.date||today()},{k:"price",label:"Price",type:"number",value:pre.price},{k:"units",label:"Units",type:"number",step:"1",value:pre.units},
       {k:"bid",label:"BID level after this buy",type:"select",value:ok(pre.bid)?pre.bid:M.level,options:[[0,"0 · no dip level"],...M.bids.map(b=>[b.n,"BID "+b.n+" ("+pct(b.pct*100)+")"])]}],
     onSubmit:v=>{if(!(v.price>0)||!(v.units>0))return "Price and units must be above zero.";
       const amt=pre.id&&ok(pre.amount)&&pre.price===v.price&&pre.units===v.units?pre.amount:Math.round(v.price*v.units*100)/100;
-      I.upsert(KEY,"tx",pre.id,{date:v.date,type:"buy",price:v.price,units:Math.round(v.units),bid:+v.bid,amount:amt,seq:pre.seq||Date.now()});draw();},
+      I.upsert(KEY,"tx",pre.id,{date:v.date,type:"buy",price:v.price,units:Math.round(v.units),bid:+v.bid,amount:amt,seq:pre.seq||Date.now()});
+      if(pre.fromGtt)I.setSettings(KEY,{gttBuy:null});draw();},
     onDelete:pre.id?()=>{I.remove(KEY,"tx",pre.id);draw();}:null});}
 const REASONS=[["system","Profit booking (rule or GTT)"],["cash","Discretionary · needed the cash"],["view","Discretionary · changed my view"],["other","Discretionary · other"]];
 function sellForm(pre){pre=pre||{};const M=model();
-  I.form({title:pre.id?"Edit sale":pre.reason==="system"?"Record a profit booking":"Sell",note:pre.id?"":"A partial sale books the whole amount as profit and keeps the base investment, like the sheet. Selling all units closes the holding.",
+  I.form({title:pre.id?"Edit sale":pre.title||(pre.reason==="system"?"Record a profit booking":"Sell"),note:pre.id?"":"A partial sale books the whole amount as profit and keeps the base investment, like the sheet. Selling all units closes the holding.",
     fields:[{k:"date",label:"Date",type:"date",value:pre.date||today()},{k:"price",label:"Sell price",type:"number",value:pre.price},{k:"units",label:"Units sold",type:"number",step:"1",value:pre.units,hint:`You hold ${M.units} units.`},
       {k:"reason",label:"Reason",type:"select",value:pre.reason||(pre.id?"system":"view"),options:REASONS}],
     onSubmit:v=>{if(!(v.price>0)||!(v.units>0))return "Price and units must be above zero.";const u=Math.round(v.units);
@@ -92,14 +104,27 @@ function sellForm(pre){pre=pre||{};const M=model();
       I.upsert(KEY,"tx",pre.id,{date:v.date,type:"sell",price:v.price,units:u,reason:v.reason,seq:pre.seq||Date.now()});
       if(pre.fromGtt)I.setSettings(KEY,{gtt:null});draw();},
     onDelete:pre.id?()=>{I.remove(KEY,"tx",pre.id);draw();}:null});}
-function gttForm(){const M=model(),x=M.gtt;if(!x)return;const g=x.g,s=x.sug;
-  I.form({title:"GTT · "+M.S.symbol,note:`Profit-booking target now: trigger ${price(s.trig)} · limit ${price(s.lim)} · ${s.units} units. It moves after every buy, so update the GTT then.`,
-    fields:[{k:"trig",label:"Trigger price",type:"number",value:g?g.trig:s.trig},{k:"lim",label:"Limit price",type:"number",value:g?g.lim:s.lim},
-      {k:"units",label:"Units",type:"number",step:"1",value:g?g.units:s.units},{k:"date",label:"Set on",type:"date",value:today()}],
-    onSubmit:v=>{if(!(v.trig>0)||!(v.lim>0)||!(v.units>0))return "Fill in trigger, limit and units.";if(v.units>M.units)return `You hold ${M.units} units.`;
-      I.setSettings(KEY,{gtt:{trig:v.trig,lim:v.lim,units:Math.round(v.units),date:v.date}});draw();},
-    onDelete:g?()=>{I.setSettings(KEY,{gtt:null});draw();}:null,delLabel:"Remove",delConfirm:"Remove this GTT from the app? Cancel it in your broker app too.",
-    extra:g?[{label:"It triggered",run:()=>{setTimeout(()=>sellForm({price:g.lim,units:g.units,reason:"system",fromGtt:true}),0);}}]:null});}
+const GK={sell:"gtt",buy:"gttBuy"};
+function gttForm(side){const M=model(),x=side==="buy"?M.gttB:M.gtt;if(!x)return;const g=x.g,s=x.sug||g,buy=side==="buy";
+  const fields=[{k:"trig",label:"Trigger price",type:"number",value:g?g.trig:s.trig},{k:"lim",label:"Limit price",type:"number",value:g?g.lim:s.lim,
+      hint:buy?"A little above the trigger so it fills; you still get the lower price if it's there.":"A little below the trigger so it fills; you still get the higher price if it's there."},
+    {k:"units",label:"Units",type:"number",step:"1",value:g?g.units:s.units}];
+  if(buy)fields.push({k:"bid",label:"BID level it buys",type:"select",value:g?g.bid:s.bid,options:M.bids.map(b=>[b.n,"BID "+b.n+" ("+pct(b.pct*100)+")"])});
+  fields.push({k:"date",label:"Placed on",type:"date",value:g?g.date:today()});
+  I.form({title:(buy?"Buy GTT · BID ":"Sell GTT · ")+(buy?(g?g.bid:s.bid):M.S.symbol),
+    note:x.sug?(buy?`Next dip level now: BID ${x.sug.bid} · trigger ${price(x.sug.trig)} · limit ${price(x.sug.lim)} · ${x.sug.units} units. It moves when your average changes, so update the GTT after every buy.`
+      :`Profit-booking target now: trigger ${price(x.sug.trig)} · limit ${price(x.sug.lim)} · ${x.sug.units} units. It moves after every buy, so update the GTT then.`):"",
+    fields,
+    onSubmit:v=>{if(!(v.trig>0)||!(v.lim>0)||!(v.units>0))return "Fill in trigger, limit and units.";if(!buy&&v.units>M.units)return `You hold ${M.units} units.`;
+      const rec={trig:v.trig,lim:v.lim,units:Math.round(v.units),date:v.date||today()};if(buy)rec.bid=+v.bid;
+      I.setSettings(KEY,{[GK[side]]:rec});draw();},
+    onDelete:g?()=>{I.setSettings(KEY,{[GK[side]]:null});draw();}:null,delLabel:"Remove",delConfirm:"Remove this GTT from the app? Cancel it in your broker app too."});}
+/* the price touched the trigger: record the fill (Yes) or clear it so the next GTT can be placed (No) */
+function gttFilled(side){const M=model(),x=side==="buy"?M.gttB:M.gtt;if(!x||!x.g)return;const g=x.g;
+  if(side==="buy")buyForm({title:"BID "+g.bid+" bought by GTT",date:today(),price:g.trig,units:g.units,bid:g.bid,fromGtt:true});
+  else sellForm({title:"Profit booked by GTT",date:today(),price:g.trig,units:g.units,reason:"system",fromGtt:true});}
+function gttMissed(side){if(!confirm(side==="buy"?"No buy recorded; the BID counter stays as it is.\n\nClear this GTT so the app shows the next one to place?":"No sale recorded.\n\nClear this GTT so the app shows the next one to place?"))return;
+  I.setSettings(KEY,{[GK[side]]:null});draw();}
 function settingsForm(S){
   I.form({title:"PKP settings",fields:[{k:"symbol",label:"ETF (NSE symbol)",value:S.symbol},{k:"sip",label:"Monthly SIP amount (₹)",type:"number",value:S.sip},
       {k:"sipDay",label:"SIP day of the month (1–31)",type:"number",step:"1",value:S.sipDay||1,hint:"Weekends and NSE holidays move to the next trading day."},
@@ -119,7 +144,8 @@ function month(M){
   const t=I.ist(),ym=t.iso.slice(0,7),buys=M.T.filter(x=>x.type==="buy"&&x.date.slice(0,7)===ym),N=M.sipNext,sells=M.T.filter(x=>x.type==="sell"&&x.date.slice(0,7)===ym);
   const mName=new Date(t.iso+"T00:00:00").toLocaleDateString("en-IN",{month:"long"});
   const gap=M.nb?M.nb.price/M.cmp*100-100:NaN,hit=ok(gap)&&gap>=0,up=M.tgtPrice/M.cmp*100-100,canSell=M.eligible>0;
-  const big=canSell?`Book profit: sell ${M.eligible} unit${M.eligible>1?"s":""}`:hit?`BID ${M.next} is live: buy ${M.nextQty}`:N.done?"SIP done · next "+wd(N.date):N.late?"SIP overdue · due "+dshort(N.due):N.days===0?"SIP due today":"Next SIP "+wd(N.date);
+  const askB=M.gttB&&M.gttB.ask,askS=M.gtt&&M.gtt.ask;
+  const big=askB?`Did your BID ${M.gttB.g.bid} GTT buy?`:askS?"Did your sell GTT book the profit?":canSell?`Book profit: sell ${M.eligible} unit${M.eligible>1?"s":""}`:hit?`BID ${M.next} is live: buy ${M.nextQty}`:N.done?"SIP done · next "+wd(N.date):N.late?"SIP overdue · due "+dshort(N.due):N.days===0?"SIP due today":"Next SIP "+wd(N.date);
   const amoTxt=N.days>0&&!N.amoToday?`AMO ${wd(N.amo)} evening · limit = that day's close`:"AMO tonight · limit = today's close";
   const rows=[
     I.todo("sip"+(N.done?" done":""),"SIP",esc(wd(N.date)),`${ok(M.sipQty)?M.sipQty:"—"} × ${price(M.cmp)}`,
@@ -128,11 +154,17 @@ function month(M){
       hit?"price is at or below this level":ok(gap)?`needs a further ${pct(-gap)} fall`:"waiting for the price",inr(M.nb.amt),hit?["Bought",`id="fBid"`]:null):"",
     M.units?I.todo("book","Book",price(M.tgtPrice),`${ok(M.tgtUnits)?M.tgtUnits:"—"} unit${M.tgtUnits===1?"":"s"}`,
       canSell?"profit is above the threshold":ok(up)?`target is ${pct(up,1)} above the price`:"",`notional ${signInr(M.pl)}`,canSell?["Sold",`id="fSell"`]:null):"",
-    M.gtt&&M.gtt.st!=="ok"&&(M.gtt.todo||M.gtt.g)?I.todo("gt "+M.gtt.st,"GTT",price(M.gtt.sug.trig),`${M.gtt.sug.units} units`,esc(M.gtt.g?M.gtt.msg:"not placed yet · sell at the target"),`limit ${price(M.gtt.sug.lim)}`,[M.gtt.g?"Update":"Placed",`id="gSet"`]):""].join("");
+    gttRow(M.gttB),gttRow(M.gtt)].join("");
   const done=[...buys.map(l=>`bought ${l.units} on ${dshort(l.date)} (${l.sip?"SIP":"BID "+l.bid})`),...sells.map(x=>`sold ${x.units} on ${dshort(x.date)}`)];
   return `<section class="card hero"><div class="when">${esc(mName)} · ${esc(M.S.symbol)} ${price(M.cmp)}${ok(M.q&&M.q.chg)?` <span class="${tone(M.q.chg)}">${pct(M.q.chg,1)}</span>`:""}</div>
    <div class="big">${esc(big)}</div>${rows}
    <p class="foot">${inr(M.S.sip)} SIP on the ${ord(M.sipDay)}${done.length?" · this month: "+esc(done.join(", ")):""}</p></section>`;}
+/* one GTT row; when the price touched the trigger it asks Yes / No instead */
+function gttRow(x){if(!x||!(x.todo||x.g)||(!x.g&&!(x.sug&&x.sug.units>0)))return "";const buy=x.side==="buy",k=buy?"b":"s",v=x.g||x.sug;
+  const what=(buy?"Buy ":"Sell ")+price(v.trig),q=`${v.units} units${buy&&v.bid?" · BID "+v.bid:""}`;
+  if(x.ask)return I.todo("gt bad","GTT",what,q,esc(x.msg),`limit ${price(v.lim)}`,null)+
+    `<div class="gask"><button type="button" id="gY${k}">${buy?"Yes, bought":"Yes, sold"}</button><button type="button" class="ghost" id="gN${k}">No, didn't fill</button></div>`;
+  return I.todo("gt "+x.st,"GTT",what,q,esc(x.msg),`limit ${price(v.lim)}`,[x.g?(x.st==="ok"?"Edit":"Update"):"Placed",`id="gS${k}"`]);}
 const ym2=iso=>new Date(iso+"T00:00:00").toLocaleDateString("en-IN",{month:"short"});
 function stats(M){
   return I.sum([["Value",inr(M.value),"",`${M.units} units`],["P / L",signInr(M.pl),tone(M.pl),pct(M.plp,1)],["XIRR",pct(M.xr),"",`booked ${inr(M.booked)}`]]);}
@@ -176,7 +208,7 @@ function draw(){
   on("fBid",()=>buyForm({title:"BID "+M.next+" buy",price:M.nb?Math.round(M.nb.price*100)/100:"",units:M.nextQty||"",bid:M.next}));
   on("fSell",()=>sellForm({price:ok(M.cmp)?M.cmp:"",units:M.eligible||M.tgtUnits||"",reason:"system"}));
   on("qBuy",()=>buyForm({price:ok(M.cmp)?M.cmp:"",units:M.sipQty||"",title:"Discretionary buy"}));on("qSell",()=>sellForm({price:ok(M.cmp)?M.cmp:""}));
-  on("gSet",gttForm);
+  ["b","s"].forEach(k=>{const side=k==="b"?"buy":"sell";on("gS"+k,()=>gttForm(side));on("gY"+k,()=>gttFilled(side));on("gN"+k,()=>gttMissed(side));});
   on("aBuy",()=>buyForm({price:ok(M.cmp)?M.cmp:"",units:M.sipQty||""}));
   document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{tab=b.dataset.tab;I.saveTab(KEY,tab);draw();});
   on("lAll",()=>{all=!all;draw();});on("ladAll",()=>{ladAll=!ladAll;draw();});on("eSet",()=>settingsForm(M.S));
