@@ -71,9 +71,14 @@ function model(){
   /* money for buys: the Kite fund (real cash + LiquidBees reserve) once it's set up. The page's own figure
      (capital − invested) is only a fallback: it ignores PKP BIDs and other spending from the same Kite account. */
   const F=I.kiteFund(),useF=!!F.A,avail=(useF?F.cash+(ok(F.liq)?F.liq:0):cash)-amoCost;
+  /* one new ETF and one average per session: a pending AMO, or a rule buy already recorded for the session
+     the next order goes into, uses up that day's slot */
+  const sess=I.orderSession(),usedBy=k=>amo.some(a=>a.kind===k&&a.session>=sess)||open.some(l=>!l.dbuy&&l.date>=sess&&(k==="avg")===!!(by[l.code]&&by[l.code].length>1));
+  const buyDone=usedBy("buy"),avgDone=usedBy("avg");
   let avg=null,avgMsg="";
   const avgC=held.filter(h=>h.status==="AVERAGE"&&!amoCodes.has(h.code)).sort((a,b)=>a.fallLast-b.fallLast);
   if(avail<tranche)avgMsg=useF?"Kite fund (with LiquidBees) is below one tranche":"Cash is below one tranche";
+  else if(avgDone)avgMsg="Today's average is already placed";
   else if(avgC[0]){const h=avgC[0],lim=r2(h.close*(1+S.buffer));avg={h,lim,qty:Math.round(tranche/lim)};}
   /* new-buy candidates from the universe */
   const heldGroups=new Set(held.map(h=>h.group));
@@ -82,9 +87,9 @@ function model(){
     return {...u,close:q.price,chg:q.chg,fall,h52,status:st};}).filter(Boolean);
   cands.filter(c=>c.status==="Check price").forEach(c=>checks.push(c));
   const buyC=cands.filter(c=>c.status==="BUY"&&!amoCodes.has(c.code)).sort((a,b)=>a.fall-b.fall),free=Math.max(0,avail-(avg?avg.qty*avg.lim:0)-S.reserve*capital);
-  const n=!buyC.length||free<tranche?0:(buyC[0].fall<=S.twoFall&&free>=2*tranche?2:1);
+  const n=buyDone||!buyC.length||free<tranche?0:1;
   const buys=[];buyC.forEach(c=>{if(buys.length<n&&!buys.some(b=>b.c.group===c.group)){const lim=r2(c.close*(1+S.buffer));buys.push({c,lim,qty:Math.round(tranche/lim)});}});
-  const buyMsg=!buyC.length?"no ETF qualifies":free<tranche?"cash would dip into the "+Math.round(S.reserve*100)+"% reserve":"";
+  const buyMsg=buyDone?"today's buy is already placed":!buyC.length?"no ETF qualifies":free<tranche?"cash would dip into the "+Math.round(S.reserve*100)+"% reserve":"";
   /* LiquidBees to sell when tonight's buys need more than the cash in Kite */
   const need=(avg?avg.qty*avg.lim:0)+buys.reduce((a,b)=>a+b.qty*b.lim,0),gap=useF&&need>0?need+amoCost-F.cash:0,liqSell=gap>0?I.liqToSell(gap):0;
   return {amo,F,useF,avail,need,gap,liqSell,s,S,U,open,sold,cap,added,withdrawn,growth,capital,invested,cash,tranche,free,sells,trailing,gtts,held,avg,avgMsg,buys,buyMsg,checks,cands};}
@@ -163,7 +168,6 @@ function settingsForm(S){const P=x=>r2(x*100);
     {k:"trail",label:"Trailing stop below highest close %",type:"number",value:P(S.trail)},
     {k:"avgFall",label:"Average when fallen from last buy %",type:"number",value:P(S.avgFall)},
     {k:"minFall",label:"New buy: minimum fall from 52W high %",type:"number",value:P(S.minFall)},
-    {k:"twoFall",label:"Buy 2 ETFs when top pick has fallen %",type:"number",value:P(S.twoFall)},
     {k:"reserve",label:"Cash reserve kept for averaging %",type:"number",value:P(S.reserve)},
     {k:"maxLots",label:"Maximum lots per index group",type:"number",step:"1",value:S.maxLots},
     {k:"buffer",label:"Limit price buffer from close %",type:"number",value:P(S.buffer)},
@@ -252,7 +256,7 @@ function setup(M){const S=M.S;
     <li>Capital split into ${S.parts} parts: one buy or one averaging = one tranche (${inr(M.tranche)}); profits compound into it.</li>
     <li>Sell: once a lot's highest close since buying is ${pct(S.target*100)} above cost, trail ${pct(S.trail*100)} below that high; sell the whole lot when the close reaches the stop. LIFO, no daily limit.</li>
     <li>Average: at most one a day, the ETF most fallen ≥ ${pct(-S.avgFall*100)} below its last buy and closing green; not above ${S.maxLots} lots per index group, not for hold-only ETFs, not with cash below a tranche.</li>
-    <li>New buy: ≥ ${pct(-S.minFall*100)} below the 52-week-high close, closing green, index group not held. Two buys when the top pick is ≥ ${pct(-S.twoFall*100)} down and cash allows. Keep ${pct(S.reserve*100)} of capital as reserve.</li>
+    <li>New buy: ≥ ${pct(-S.minFall*100)} below the 52-week-high close, closing green, index group not held. One new ETF a day, the most fallen. Keep ${pct(S.reserve*100)} of capital as reserve.</li>
     <li>GTT: while a lot's stop is on, keep a GTT sell in the broker app at trigger = the stop, limit ${pct(S.buffer*100)} below, for the lot's units. Raise it when the stop rises; never lower it.</li>
     <li>Discretionary buys and sells are allowed but tagged, so booked profit shows how they compare with rule exits.</li>
     <li>Limit prices ${pct(S.buffer*100)} from the close. Falls deeper than ${pct(-S.check*100)} are flagged for a price check.</li>
