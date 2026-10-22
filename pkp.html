@@ -2,7 +2,7 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
 <title>JuniorBees PKP · Pranju OS</title>
 <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="icon" href="icon-192.png" sizes="192x192"><link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="stylesheet" href="invest.css?v=20261022">
+<link rel="stylesheet" href="invest.css?v=20261022b">
 <link rel="stylesheet" href="tr-theme.css?v=20261020">
 </head><body class="tr-inv">
 <header><div class="hin">
@@ -15,7 +15,7 @@
   <div id="out"></div>
 </main>
 <script src="gsync.js?v=20261020"></script>
-<script src="invest.js?v=20261022"></script>
+<script src="invest.js?v=20261022b"></script>
 <script>
 "use strict";
 const I=Invest,{esc,inr,price,pct,signInr,tone,ok,r2,dshort}=I;
@@ -161,7 +161,7 @@ function month(M){
    <p class="foot">${inr(M.S.sip)} SIP on the ${ord(M.sipDay)}${done.length?" · this month: "+esc(done.join(", ")):""}</p></section>`;}
 /* one GTT row; when the price touched the trigger it asks Yes / No instead */
 function gttRow(x){if(!x||!(x.todo||x.g)||(!x.g&&!(x.sug&&x.sug.units>0)))return "";const buy=x.side==="buy",k=buy?"b":"s",v=x.g||x.sug;
-  const what=(buy?"Buy ":"Sell ")+price(v.trig),q=`${v.units} units${buy&&v.bid?" · BID "+v.bid:""}`;
+  const what=(buy?"Buy · BID "+v.bid:"Sell")+" · "+price(v.trig),q=`${v.units} units`;
   if(x.ask)return I.todo("gt bad","GTT",what,q,esc(x.msg),`limit ${price(v.lim)}`,null)+
     `<div class="gask"><button type="button" id="gY${k}">${buy?"Yes, bought":"Yes, sold"}</button><button type="button" class="ghost" id="gN${k}">No, didn't fill</button></div>`;
   return I.todo("gt "+x.st,"GTT",what,q,esc(x.msg),`limit ${price(v.lim)}`,[x.g?(x.st==="ok"?"Edit":"Update"):"Placed",`id="gS${k}"`]);}
@@ -202,13 +202,14 @@ function empty(){return `<section class="card empty"><b>No records yet</b><p cla
 
 function draw(){
   const M=model();
-  $("out").innerHTML=M.T.length?month(M)+stats(M)+details(M)+setup(M):empty();
+  $("out").innerHTML=M.T.length?month(M)+I.fundBar(M.units&&M.gttB&&M.gttB.sug?M.gttB.sug.units*M.gttB.sug.lim:NaN)+stats(M)+details(M)+setup(M):empty();
   const on=(id,f)=>{const e=$(id);if(e)e.onclick=f;};
   on("fSip",()=>buyForm({title:"SIP buy",price:ok(M.cmp)?M.cmp:"",units:M.sipQty||"",bid:M.level}));
   on("fBid",()=>buyForm({title:"BID "+M.next+" buy",price:M.nb?Math.round(M.nb.price*100)/100:"",units:M.nextQty||"",bid:M.next}));
   on("fSell",()=>sellForm({price:ok(M.cmp)?M.cmp:"",units:M.eligible||M.tgtUnits||"",reason:"system"}));
   on("qBuy",()=>buyForm({price:ok(M.cmp)?M.cmp:"",units:M.sipQty||"",title:"Discretionary buy"}));on("qSell",()=>sellForm({price:ok(M.cmp)?M.cmp:""}));
   ["b","s"].forEach(k=>{const side=k==="b"?"buy":"sell";on("gS"+k,()=>gttForm(side));on("gY"+k,()=>gttFilled(side));on("gN"+k,()=>gttMissed(side));});
+  on("kFund",()=>I.fundForm(draw));
   on("aBuy",()=>buyForm({price:ok(M.cmp)?M.cmp:"",units:M.sipQty||""}));
   document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{tab=b.dataset.tab;I.saveTab(KEY,tab);draw();});
   on("lAll",()=>{all=!all;draw();});on("ladAll",()=>{ladAll=!ladAll;draw();});on("eSet",()=>settingsForm(M.S));
@@ -219,7 +220,8 @@ function draw(){
 function status(){const t=I.ist();$("mkt").className="pill"+(t.open?" open":"");$("mkt").querySelector("span").textContent=t.open?"NSE open · live":"NSE closed";
   $("st").textContent=qAt?"Price "+I.ago(qAt):"";}
 function showErr(m){$("err").hidden=!m;$("err").textContent=m||"";}
-async function syncNow(loud){try{const r=await I.sync(KEY);if(r.ok&&r.changed)draw();if(loud)$("st").textContent=r.ok?"Synced.":r.msg;}catch(e){if(loud)showErr("Sync failed: "+e.message);}}
+async function syncNow(loud){try{const r=await I.sync(KEY);let o=null;try{o=await I.sync("etf");}catch(e){}/* the other page's records feed the shared Kite fund */
+  if(r.ok&&(r.changed||o&&o.changed))draw();if(loud)$("st").textContent=r.ok?"Synced.":r.msg;}catch(e){if(loud)showErr("Sync failed: "+e.message);}}
 async function refresh(){const S={...DEF,...(I.load(KEY).settings||{})};
   $("refresh").disabled=true;$("st").textContent="Getting live price…";
   try{const r=await I.quotes([S.symbol]);Q=r.quotes;qAt=Date.now();showErr(r.missing.length?"No live price for "+S.symbol+".":"");draw();}

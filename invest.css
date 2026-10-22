@@ -208,3 +208,10 @@ details.hold>summary{padding:11px 0}
 /* GTT fill check: Yes / No under the row */
 .gask{display:flex;gap:8px;justify-content:flex-end;padding:0 0 10px}
 .gask button{padding:7px 14px;font-size:13px;border-radius:999px}
+/* Kite fund bar (shared cash pool) */
+.fund{display:grid;grid-template-columns:1fr auto;align-items:center;gap:2px 12px;width:100%;margin:0 0 12px;padding:12px 14px;border-radius:14px;background:var(--paper);color:var(--ink);border:1px solid var(--line);text-align:left}
+.fund span{font:700 11px/1.2 var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.fund span small{display:block;font-weight:500;letter-spacing:0;text-transform:none;margin-top:2px}
+.fund b{font:700 20px var(--mono)}
+.fund>small{grid-column:1/-1;font-size:12.5px}
+.fund.short{border-color:var(--dn)}
