@@ -154,10 +154,14 @@ function liqForm(after){const F=kiteFund();
     fields:[{k:"units",label:"Units sold",type:"number",step:"1",value:""},{k:"price",label:"Price",type:"number",value:ok(F.liqPrice)?r2(F.liqPrice):""}],
     onSubmit:v=>{const n=Math.round(v.units);if(!(n>0)||!(v.price>0))return "Enter units and price.";if(n>F.liqUnits)return `You hold ${F.liqUnits} units.`;
       const k=load("pkp").settings||{};setSettings("pkp",{kiteBal:r2(k.kiteBal+n*v.price),liqUnits:F.liqUnits-n});if(after)after();}});}
+/* LiquidBees units to sell to raise `gap` rupees of cash. Kite may make only part of a sale's value usable for
+   buying on the same day, so this sizes for 80% of the proceeds. */
+const LIQ_SAME_DAY=0.8;
+function liqToSell(gap){const F=kiteFund();if(!(gap>0)||!ok(F.liqPrice))return 0;return Math.min(F.liqUnits,Math.ceil(gap/(F.liqPrice*LIQ_SAME_DAY)));}
 /* need = money the next BID or ETF buy takes */
 function fundBar(need){const F=kiteFund();let note="";
   if(ok(need)&&need>F.cash){const gap=need-F.cash;
-    note=ok(F.liqPrice)&&F.liqUnits*F.liqPrice>=gap?`<small class="warn">Cash short ${inr(gap)} for the next buy · sell ${Math.ceil(gap/F.liqPrice)} LiquidBees</small>`
+    note=ok(F.liqPrice)&&F.liqUnits*F.liqPrice>=gap?`<small class="warn">Cash short ${inr(gap)} for the next buy · sell ${liqToSell(gap)} LiquidBees in market hours</small>`
       :`<small class="dn">Short ${inr(need-F.total)} for the next buy, even with LiquidBees</small>`;}
   if(!F.A)return `<button type="button" class="fund" id="kFund"><span>Kite fund <small>tap to enter your cash and LiquidBees</small></span><b>—</b></button>`;
   return `<button type="button" class="fund${note?" short":""}" id="kFund"><span>Kite fund <small>cash ${inr(F.cash)} · LiquidBees ${F.liqUnits}</small></span><b>${inr(F.total)}</b>${note}</button>`;}
@@ -169,5 +173,5 @@ function tabs(list,cur){return `<nav class="tabs" role="tablist">${list.map(([k,
 function sum(items){return `<section class="sum">${items.map(([l,v,cls,sub])=>`<div><span>${l}</span><b class="${cls||""}">${v}</b>${sub?`<small>${sub}</small>`:""}</div>`).join("")}</section>`;}
 function rememberTab(key,def){let t=def;try{t=sessionStorage.getItem("inv-tab-"+key)||def;}catch(e){}return t;}
 function saveTab(key,t){try{sessionStorage.setItem("inv-tab-"+key,t);}catch(e){}}
-window.Invest={todo,tabs,sum,rememberTab,saveTab,load,save,merge,upsert,remove,setSettings,uid,sync,push,hasSync,importData,exportData,pickImport,quotes,quotesCache,highSince,high52,touched,ist,ok,r2,inr,price,pct,signInr,tone,esc,dshort,days,ago,xirr,form,LIQ,kiteFund,fundForm,fundBar};
+window.Invest={todo,tabs,sum,rememberTab,saveTab,load,save,merge,upsert,remove,setSettings,uid,sync,push,hasSync,importData,exportData,pickImport,quotes,quotesCache,highSince,high52,touched,ist,ok,r2,inr,price,pct,signInr,tone,esc,dshort,days,ago,xirr,form,LIQ,kiteFund,liqToSell,fundForm,fundBar};
 })();

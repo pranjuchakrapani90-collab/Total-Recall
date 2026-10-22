@@ -220,3 +220,4 @@ details.hold>summary{padding:11px 0}
 .gchip{display:inline-block;margin-left:6px;padding:1px 8px;font:600 11.5px/1.6 var(--body);border-radius:999px;background:none;border:1px solid var(--warn);color:var(--warn);vertical-align:1px}
 .gchip.ok{border-color:var(--line);color:var(--up)}
 .fund{padding:10px 14px}.fund b{font-size:18px}
+.todo.liq em{color:var(--warn)}
