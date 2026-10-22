@@ -136,10 +136,47 @@ async function handleSync(request,env){
   }
   return new Response(JSON.stringify({error:'Method not allowed'}),{status:405,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
 }
+/* WhatsApp Review: Claude drafts items from the WhatsApp self-chat into a TickTick project named "WA REVIEW".
+   Pranju OS lists them (GET ?mode=wa-review) and, per item, approves it into its destination project with the
+   edited title/tags/date/notes (POST action=approve) or discards it (POST action=discard).
+   Writes only ever touch tasks that are inside the WA REVIEW project. */
+const WA_PROJECT='wa review';
+const WA_TARGETS=['inbox','reference','schedule','projects','checklists'];
+function waMeta(content){const m=String(content||'').match(/\n?\[wa\]\s*target=([a-z]+)\s*$/i);return {target:m?m[1].toLowerCase():'inbox',notes:String(content||'').replace(/\n?\[wa\][^\n]*$/i,'').trim()};}
+async function waProjects(token){const projects=await tick('/project',token);const list=Array.isArray(projects)?projects:((projects&&projects.projects)||[]);return list;}
+async function handleWaReview(request,env,origin){
+  const json=(o,st)=>new Response(JSON.stringify(o),{status:st||200,headers:{...corsHeaders(origin),'Content-Type':'application/json'}});
+  const token=env.TICKTICK_ACCESS_TOKEN;if(!token)return json({error:'TICKTICK_ACCESS_TOKEN secret is not configured'},500);
+  const list=await waProjects(token);const review=list.find(p=>String(p.name||'').trim().toLowerCase()===WA_PROJECT);
+  if(!review)return json({items:[],note:'No TickTick project named WA REVIEW yet.'});
+  const data=await tick('/project/'+encodeURIComponent(review.id)+'/data',token);
+  const tasks=unwrapTasks(data&&data.tasks?data.tasks:data).filter(t=>!t.status);
+  if(request.method==='GET'){
+    const items=tasks.map(t=>{const m=waMeta(t.content||t.desc);return {id:t.id,title:t.title||'',notes:m.notes,target:m.target,tags:Array.isArray(t.tags)?t.tags:[],due:String(t.dueDate||'').slice(0,10),priority:t.priority||0,created:t.createdTime||''}});
+    items.sort((a,b)=>String(a.created).localeCompare(String(b.created)));
+    return json({projectId:review.id,items});
+  }
+  if(request.method!=='POST')return json({error:'Method not allowed'},405);
+  let body={};try{body=await request.json()}catch(_){return json({error:'Invalid JSON'},400)}
+  const task=tasks.find(t=>t.id===body.id);if(!task)return json({error:'That item is no longer in WA REVIEW.'},404);
+  if(body.action==='discard'){await fetch(API+'/project/'+encodeURIComponent(review.id)+'/task/'+encodeURIComponent(task.id),{method:'DELETE',headers:{Authorization:'Bearer '+token}});return json({ok:true,discarded:task.id});}
+  if(body.action!=='approve')return json({error:'Unknown action'},400);
+  const target=String(body.target||'inbox').toLowerCase();if(WA_TARGETS.indexOf(target)<0)return json({error:'Unknown destination'},400);
+  let projectId='inbox';if(target!=='inbox'){const p=list.find(x=>String(x.name||'').trim().toLowerCase()===target);if(!p)return json({error:'TickTick project '+target.toUpperCase()+' not found'},404);projectId=p.id;}
+  const tags=(Array.isArray(body.tags)?body.tags:[]).map(t=>String(t).trim().toLowerCase().replace(/^#/,'').replace(/\s+/g,'-')).filter(Boolean).slice(0,10);
+  const out={title:String(body.title||task.title||'').slice(0,300),content:String(body.notes||'').slice(0,5000),tags,priority:[0,1,3,5].indexOf(+body.priority)>=0?+body.priority:(task.priority||0),timeZone:env.TIME_ZONE||'Asia/Kolkata'};
+  if(projectId!=='inbox')out.projectId=projectId;
+  if(/^\d{4}-\d{2}-\d{2}$/.test(String(body.due||''))){out.dueDate=body.due+'T00:00:00.000+0530';out.startDate=out.dueDate;out.isAllDay=true;}
+  const created=await tick('/task',token,{method:'POST',body:out});
+  await fetch(API+'/project/'+encodeURIComponent(review.id)+'/task/'+encodeURIComponent(task.id),{method:'DELETE',headers:{Authorization:'Bearer '+token}});
+  return json({ok:true,created:{id:created.id,projectId:created.projectId}});
+}
+
 export default {async fetch(request,env){const origin=request.headers.get('Origin')||'';if(request.method==='OPTIONS'){const h=corsHeaders(origin);const requested=request.headers.get('Access-Control-Request-Headers');if(requested)h['Access-Control-Allow-Headers']=requested;return new Response(null,{status:204,headers:h});}const url=new URL(request.url);
  if(url.pathname==='/memory-extract'){if(request.method!=='POST')return new Response('Method not allowed',{status:405,headers:corsHeaders(origin)});try{return await memoryExtract(request,env)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.pathname==='/sync'||url.searchParams.get('mode')==='sync'){try{return await handleSync(request,env)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.searchParams.get('mode')==='quotes'||url.pathname==='/quotes'){try{return await handleQuotes(request)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
+ if(url.searchParams.get('mode')==='wa-review'||url.pathname==='/wa-review'){try{return await handleWaReview(request,env,origin)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.searchParams.get('mode')==='travel-file'){try{return await handleTravelFile(request,env)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(request.method!=='GET')return new Response('Method not allowed',{status:405,headers:corsHeaders(origin)});
  if(url.pathname!=='/'&&url.pathname!=='/responsibility-tasks'&&url.pathname!=='/completed-tasks'&&url.pathname!=='/task-detail')return new Response('Not found',{status:404,headers:corsHeaders(origin)});
