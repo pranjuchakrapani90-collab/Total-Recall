@@ -53,14 +53,37 @@ const TWINKLE="A3:1 A3:1 E4:1 E4:1|F#4:1 F#4:1 E4:2|D4:1 D4:1 C#4:1 C#4:1|B3:1 B
   MINUET_CH="G|G|C|G|C|G|D|D|G|G|C|G|C|G|D|G";
 const T_AR="1:B+1 1.5:3 2:A 2.5:2 3:B+1 3.5:3 4:A 4.5:2"; // Travis with pinches on 1 and 3
 
+/* Level 0 chord changes: every pair of open shapes that live together in a key (each pair once, in the first key
+   that uses it), then the everyday progressions that string those changes together. */
+const KEYSETS=[["C",["C","G","Am","Fmaj7","Dm","Em","G7"]],["G",["G","C","D","Em","Am","D7","Bm7"]],["D",["D","G","A","Bm7","Em","A7"]],
+  ["A",["A","D","E","E7","Bm7"]],["E",["E","A","B7"]],["A minor",["Am","Dm","E","E7","C","G","Fmaj7"]],["E minor",["Em","Am","C","D","G","B7"]]];
+const CHG=[],seenPair=new Set();
+KEYSETS.forEach(([k,cs],i)=>{const pairs=[];
+  for(let a=0;a<cs.length;a++)for(let b=a+1;b<cs.length;b++){const key=[cs[a],cs[b]].sort().join("|");if(seenPair.has(key))continue;seenPair.add(key);pairs.push([cs[a],cs[b]]);}
+  if(pairs.length)CHG.push({id:"c"+(i+1),t:`Changes in ${k}`,pairs,scan:1,free:1,meter:4,tempo:[40,40],
+    w:`Every change between the open shapes of ${k}${i?" not already covered in an earlier key":""}: ${pairs.length} pairs. Two bars on the first shape, string by string, then two bars on the second, round and round.`,
+    tip:i?"Before pressing Play, change between the two shapes ten times in silence: lift, move, land all fingers together. Then let the plucking keep you in time.":"Look for a finger that can stay put or slide: C to Am keeps fingers 1 and 2 where they are. Lift and land the other fingers together, as one movement, while the last note of the old chord still rings."});});
+CHG.push(
+ {id:"p1",t:"Three-chord songs: I–IV–V",progs:[["C","C|Fmaj7|G7|C"],["G","G|C|D7|G"],["D","D|G|A7|D"],["A","A|D|E7|A"],["E","E|A|B7|E"]],scan:1,free:1,meter:4,tempo:[40,40],
+  w:"Home, away and back: the three chords behind folk songs, bhajans, Bihu tunes and the blues. One bar on each chord, so the change now comes every bar.",tip:"With one bar per chord you reach only the top strings before changing. Start moving the left hand on beat 4; the old note can ring while you go."},
+ {id:"p2",t:"The pop loop: I–V–vi–IV",progs:[["C","C|G|Am|Fmaj7"],["G","G|D|Em|C"],["D","D|A|Bm7|G"]],scan:1,free:1,meter:4,tempo:[40,40],
+  w:"The four chords under countless modern songs, in every key it fits on open shapes.",tip:"Say the chord names out loud one beat before each change. Knowing what comes next is half the change."},
+ {id:"p3",t:"The fifties loop: I–vi–IV–V",progs:[["C","C|Am|Fmaj7|G"],["G","G|Em|C|D"],["D","D|Bm7|G|A"]],scan:1,free:1,meter:4,tempo:[40,40],
+  w:"The doo-wop and old film-song loop. Same chords as the pop loop in a different order, so the changes feel new.",tip:"In C, Am to Fmaj7 is a small move: the first finger stays on the B string, fret 1."},
+ {id:"p4",t:"Minor loops",progs:[["Am","Am|G|Fmaj7|E"],["Am ii–V","Am|Dm|E7|Am"],["Em","Em|C|G|D"],["Em ii–V","Em|Am|B7|Em"],["Dm","Dm|C|A7|Dm"]],scan:1,free:1,meter:4,tempo:[40,40],
+  w:"The sad, dramatic side: minor keys with the major V chord that pulls back home.",tip:"The falling Am–G–Fmaj7–E loop is one of the most used in all of music. Listen to the bass step down under the shapes."},
+ {id:"p5",t:"Jazz turn: ii–V–I with sevenths",progs:[["C","Dm7|G7|Cmaj7|C"],["G","Am7|D7|Gmaj7|G"],["D","Em7|A7|Dmaj7|D"]],scan:1,free:1,meter:4,tempo:[40,40],
+  w:"Seventh chords chained the way jazz and old ghazal accompaniments use them. The shapes from lessons s3 to s5, now in motion.",tip:"Dm7 to G7 to Cmaj7: notice how few fingers really move. Find the shortest path for each one."},
+ {id:"p6",t:"Circle of dominants",progs:[["to G","E7|A7|D7|G"],["to C","A7|D7|G7|C"]],scan:1,free:1,meter:4,tempo:[40,40],
+  w:"Each seven-chord pulls into the next, round the circle home: the ragtime and old-song sound the blues lessons use later.",tip:"All seventh shapes, all changing every bar: the hardest drill of Level 0. Take it as slowly as you like."});
 const LEVELS=[
- {n:"Chord shapes, one string at a time",zero:1,d:"Before any picking pattern, get each chord shape into your fingers. Hold the shape and pluck its strings one by one, lowest to highest and back down, so you hear at once if a note is buzzing or dead. No goal tempo here: set any speed you like on the slider and change it whenever you want.",ls:[
+ {n:"Chord shapes, one string at a time",zero:1,d:"Before any picking pattern, get each chord shape into your fingers. Hold the shape and pluck its strings one by one, lowest to highest and back down, so you hear at once if a note is buzzing or dead. Then change between shapes in every key, and run the everyday progressions, all before the thumb-and-fingers work. No goal tempo here: set any speed you like on the slider and change it whenever you want.",ls:[
   {id:"s1",t:"Minor shapes: Em, Am, Dm",shapes:["Em","Am","Dm"],scan:1,free:1,meter:4,tempo:[40,40],w:"Place the shape, then pluck every string it uses, one at a time, from the lowest to the highest and back down. Thumb (p) plays the bass strings, i-m-a the G, B and high e. Every note should ring clearly: no buzz, no dead note.",tip:"A dead note means a finger is leaning on the next string. Arch the fingers, press with the very tips, and sit each tip just behind its fret."},
   {id:"s2",t:"Major shapes: E, A, D, C, G",shapes:["E","A","D","C","G"],scan:1,free:1,meter:4,tempo:[40,40],w:"The five open major shapes, each held for four bars while you pluck its strings one by one, up and back down. Strings marked X on the diagram are not played, and the plucking skips them.",tip:"A: three fingers crowd into fret 2. If the B string buzzes, angle the fingers slightly or try fingers 2-3-4. C and G: reach with the fingertips so the open strings between them ring."},
   {id:"s3",t:"Seventh chords: E7, A7, D7, G7, C7, B7",shapes:["E7","A7","D7","G7","C7","B7"],scan:1,free:1,meter:4,tempo:[40,40],w:"Each 7th chord is a shape you know with one note changed. Pluck string by string and listen for the extra note: it gives the chord its pull towards the next one.",tip:"Compare each with its plain chord first: E to E7 just lifts one finger. B7 is the stretch of the set. Place the second finger (A string, fret 2) first and build the shape around it."},
   {id:"s4",t:"Minor sevenths: Em7, Am7, Dm7, Bm7",shapes:["Em7","Am7","Dm7","Bm7"],scan:1,free:1,meter:4,tempo:[40,40],w:"Soft, open minor-7th sounds used all through the course (Bm7 stands in for the Bm barre in the key of D). Hold, pluck each string, listen.",tip:"Bm7 (x 2 0 2 0 2): finger 1 on the A string fret 2, finger 2 on the G string fret 2, finger 3 on the high e fret 2. The D and B strings ring open between them, so keep the fingers steep. The low E is not played."},
   {id:"s5",t:"Major sevenths: Cmaj7, Fmaj7, Gmaj7, Dmaj7, Amaj7, Emaj7",shapes:["Cmaj7","Fmaj7","Gmaj7","Dmaj7","Amaj7","Emaj7"],scan:1,free:1,meter:4,tempo:[40,40],w:"Dreamy major-7th shapes. Several are a familiar chord with one finger moved or lifted. String by string, up and down.",tip:"Cmaj7 is C with the first finger lifted. Fmaj7 is the easy F with no barre: fingers 3-2-1 on frets 3-2-1 of the D, G and B strings, high e open."},
-  {id:"s6",t:"Changing between shapes",pairs:[["C","Am"],["G","Em"],["D","Bm7"],["A","E7"],["Am","Fmaj7"],["G","D"],["E","B7"],["Dm","A7"]],scan:1,free:1,meter:4,tempo:[40,40],w:"Two bars on one shape, string by string, then two bars on the other, round and round. These are the changes the later lessons use most.",tip:"Look for a finger that can stay put or slide: C to Am keeps fingers 1 and 2 in place. Lift and land the other fingers together, as one movement, while the last note of the old chord rings."},
+  ...CHG,
  ]},
  {n:"Thumb and fingers",d:"Your thumb (p) owns the bass strings and your fingers own the top three: i on the G string, m on the B, a on the high e. Every later level is built on this division of labour.",ls:[
   {id:"1a",t:"Thumb on the bass",w:"Hold each chord and let your thumb play its root on every beat. The fingers rest lightly on the top three strings.",tip:"Rest your thumb on the next string after each stroke (a rest stroke) so the bass is even and full.",meter:4,prog:"C|Am|Em|G",pat:"1:B 2:B 3:B 4:B",tempo:[50,90]},
@@ -225,6 +248,7 @@ const melRange=mel=>{const ms=mel.split(/[|\s]+/).map(t=>midi(t.split(":")[0])).
 const BARRE_LV=LEVELS.findIndex(L=>/^Up the neck/.test(L.n)),BLUES_LV=LEVELS.findIndex(L=>/^Blues/.test(L.n));
 function expand(L){const one=[{...L,pid:L.id,home:1}];
   if(L.shapes)return L.shapes.map((c,i)=>({...L,id:`${L.id}.${c}`,pid:L.id,vt:c,prog:`${c}|${c}|${c}|${c}`,home:i?0:1}));
+  if(L.progs)return L.progs.map(([k,pr],i)=>({...L,id:`${L.id}.${k.replace(/[^A-Za-z#]/g,"")}`,pid:L.id,vt:`in ${k}`,prog:pr+"|"+pr,home:i?0:1}));
   if(L.pairs)return L.pairs.map(([a,b],i)=>({...L,id:`${L.id}.${a}-${b}`,pid:L.id,vt:`${a} ↔ ${b}`,prog:`${a}|${a}|${b}|${b}|${a}|${a}|${b}|${b}`,home:i?0:1}));
   if(L.task||L.tune)return one;
   if(L.song){const hk=homeKey(L.ch),n=L.mel.split("|").length,ex=[],add=(tag,vt,o)=>ex.push({...L,...o,id:`${L.id}.${tag}`,pid:L.id,vt});
