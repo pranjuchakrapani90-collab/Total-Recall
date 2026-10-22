@@ -247,7 +247,9 @@ const midi=t=>{const m=/^([A-G][#b]?)(\d)$/.exec(t);return m?(+m[2]+1)*12+NOTE[m
 const melRange=mel=>{const ms=mel.split(/[|\s]+/).map(t=>midi(t.split(":")[0])).filter(x=>x!=null);return [Math.min(...ms),Math.max(...ms)];};
 const BARRE_LV=LEVELS.findIndex(L=>/^Up the neck/.test(L.n)),BLUES_LV=LEVELS.findIndex(L=>/^Blues/.test(L.n));
 function expand(L){const one=[{...L,pid:L.id,home:1}];
-  if(L.shapes)return L.shapes.map((c,i)=>({...L,id:`${L.id}.${c}`,pid:L.id,vt:c,prog:`${c}|${c}|${c}|${c}`,home:i?0:1}));
+  if(L.shapes)return L.shapes.map((c,i)=>{ // whole up-and-down cycles only, so the loop goes back to bar 1 on the lowest string
+    const n=CH[c].f.filter(x=>x!=null).length,cyc=2*n-2,M=L.meter||4;let k=1;while((k*cyc)%M||k*cyc<4*M)k++;
+    return {...L,id:`${L.id}.${c}`,pid:L.id,vt:c,prog:Array(k*cyc/M).fill(c).join("|"),home:i?0:1};});
   if(L.progs)return L.progs.map(([k,pr],i)=>({...L,id:`${L.id}.${k.replace(/[^A-Za-z#]/g,"")}`,pid:L.id,vt:`in ${k}`,prog:pr+"|"+pr,home:i?0:1}));
   if(L.pairs)return L.pairs.map(([a,b],i)=>({...L,id:`${L.id}.${a}-${b}`,pid:L.id,vt:`${a} ↔ ${b}`,prog:`${a}|${a}|${b}|${b}|${a}|${a}|${b}|${b}`,home:i?0:1}));
   if(L.task||L.tune)return one;
