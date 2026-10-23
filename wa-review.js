@@ -25,7 +25,7 @@ var css=document.createElement("style");css.textContent=
 ".wah{display:flex;justify-content:space-between;align-items:center;gap:8px}.wah h3{margin:0;font:700 17px system-ui,sans-serif}"+
 ".wah span{color:var(--tr-muted,#6b6a64);font-size:12.5px}"+
 ".was label{display:flex;flex-direction:column;gap:5px;font:600 12px system-ui,sans-serif;color:var(--tr-muted,#6b6a64);text-transform:uppercase;letter-spacing:.04em}"+
-".was input,.was select,.was textarea{font:500 15px system-ui,sans-serif;color:var(--tr-ink,#1c1b19);text-transform:none;letter-spacing:0;padding:10px}.was textarea{min-height:78px}"+
+".was input,.was select,.was textarea{font:500 15px system-ui,sans-serif;color:var(--tr-ink,#1c1b19);text-transform:none;letter-spacing:0;padding:10px}.was textarea{min-height:78px}#waTitle{text-transform:uppercase}"+
 ".wa2{display:grid;grid-template-columns:1fr 1fr;gap:10px}"+
 ".wat{display:flex;flex-wrap:wrap;gap:6px}.wat button{padding:6px 10px;font-size:12.5px;border-radius:999px;background:var(--tr-soft,#f0eee8);color:var(--tr-ink,#1c1b19);font-weight:600;border:1px solid transparent}"+
 ".wat button.on{background:var(--tr-acc,#4f46e5);color:#fff}.wat button.mo{font-weight:500}"+
@@ -59,7 +59,7 @@ function open(i){if(!items.length){close();return}cur=Math.max(0,Math.min(i,item
   $("waDest").value=it.target||"inbox";$("waDue").value=it.due||"";$("waPri").value=String(it.priority||0);$("waNotes").value=it.notes||"";$("waErr").textContent="";
   modal.hidden=false;}
 function close(){modal.hidden=true;cur=-1;}
-function current(){var it=items[cur];return {id:it.id,title:$("waTitle").value.trim()||it.title,tags:[].map.call($("waTags").querySelectorAll("button.on"),function(b){return b.dataset.t}),
+function current(){var it=items[cur];return {id:it.id,title:($("waTitle").value.trim()||it.title).toUpperCase(),tags:[].map.call($("waTags").querySelectorAll("button.on"),function(b){return b.dataset.t}),
   target:$("waDest").value,due:$("waDue").value,priority:+$("waPri").value,notes:$("waNotes").value.trim()};}
 async function post(body){var r=await fetch(URLB(),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body),cache:"no-store"});
   var d={};try{d=await r.json()}catch(e){}if(!r.ok||d.error)throw new Error(d.error||("HTTP "+r.status));return d;}
@@ -87,7 +87,7 @@ document.addEventListener("click",function(e){var b=e.target.closest&&e.target.c
 if($("waRefresh"))$("waRefresh").addEventListener("click",function(){$("waStatus").textContent="Loading…";load()});
 if($("waOne"))$("waOne").addEventListener("click",function(){open(0)});
 if($("waAll"))$("waAll").addEventListener("click",async function(){if(busy||!items.length)return;if(!confirmAll())return;busy=true;var btn=this,left=[];btn.textContent="Approving…";
-  for(var i=0;i<items.length;i++){var it=items[i];try{await post({action:"approve",id:it.id,title:it.title,tags:it.tags,target:it.target,due:it.due,priority:it.priority,notes:it.notes})}catch(e){left.push(it)}}
+  for(var i=0;i<items.length;i++){var it=items[i];try{await post({action:"approve",id:it.id,title:String(it.title).toUpperCase(),tags:it.tags,target:it.target,due:it.due,priority:it.priority,notes:it.notes})}catch(e){left.push(it)}}
   items=left;paint();btn.textContent="Approve all as drafted";busy=false;if(left.length)$("waStatus").textContent=left.length+" could not be approved. Try them one by one.";});
 function confirmAll(){return window.confirm("Approve all "+items.length+" items exactly as drafted?")}
 
