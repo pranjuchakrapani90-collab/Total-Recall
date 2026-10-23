@@ -117,7 +117,8 @@ tr.r{cursor:pointer}tr.r:hover td{background:var(--soft)}
 .fr em{font-style:normal;font-weight:650;font-size:14px;white-space:nowrap}
 .fr em small{font-weight:500}
 .rh{font:600 11px var(--body);letter-spacing:.07em;text-transform:uppercase;color:var(--muted);padding:12px 4px 4px}
-.cats[hidden]{display:none}.cats{display:flex;flex-wrap:wrap;gap:6px;padding:4px 0 8px}
+#cats{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:4px 16px 8px}#cats::-webkit-scrollbar{display:none}#cats button{flex:none}
+.cats[hidden],#cats[hidden]{display:none}.cats{display:flex;flex-wrap:wrap;gap:6px;padding:4px 0 8px}
 .cats button{background:var(--soft);color:var(--ink);font-weight:500;font-size:13px;padding:7px 11px;border-radius:99px}
 .cats button.on{background:var(--acc);color:#fff}
 .qty{display:flex;align-items:center;justify-content:center;gap:14px;margin:14px 0 6px}
@@ -138,7 +139,7 @@ tr.r{cursor:pointer}tr.r:hover td{background:var(--soft)}
   <div id="out"></div>
 </main>
 <script src="gsync.js?v=20261020"></script>
-<script src="foods.js?v=20261023"></script>
+<script src="foods.js?v=20261023b"></script>
 <script>
 "use strict";
 /* ============================================================================
@@ -185,7 +186,9 @@ const ip=it=>typeof it==="number"?0:it&&ok(it.p)?it.p:0;
 function dayItems(date){const d=load().days[date]||{};return (d.items||(ok(d.kcal)&&d.kcal>0?[d.kcal]:[])).slice();}
 function putItems(date,items){setDay(date,{items,kcal:items.length?Math.round(items.reduce((a,b)=>a+ik(b),0)):null});}
 const FD=window.FOODS||{cats:{},list:[]};
-function allFoods(){const my=Object.entries(load().foods||{}).filter(([,f])=>f&&!f.del).map(([id,f])=>({id,c:"m",n:f.n,u:f.u,k:f.k,p:f.p||0,a:""}));return my.concat(FD.list);}
+/* database foods are per 100 g with portions [label, grams]; "My foods" are per portion (stored as a 100-unit portion) */
+function allFoods(){const my=Object.entries(load().foods||{}).filter(([,f])=>f&&!f.del).map(([id,f])=>({id,c:"m",n:f.n,a:"",k:f.k,p:f.p||0,units:[[f.u,100]],s:-1,my:true}));return my.concat(FD.list);}
+const per=(f,g)=>({k:f.k*g/100,p:(f.p||0)*g/100});
 function setFood(id,f){const s=load();s.foods=s.foods||{};s.foods[id]={...f,t:Date.now()};save(s);}
 /* how often each food was logged in the last 60 days, for "Recent" and search ranking */
 function usage(){const s=load(),T=today(),u={};Object.entries(s.days).forEach(([d,r])=>{const ago=diffDays(d,T);if(ago<0||ago>60)return;
@@ -290,9 +293,9 @@ function mealsHtml(d){
   return `<div class="meals">${order.filter(m=>groups[m]).map(m=>{const g=groups[m],t=g.reduce((a,[it])=>a+ik(it),0);
     return `<div class="meal"><div class="mh"><b>${MEALN[m]||"Other"}</b><span>${kc(t)} kcal</span></div>${g.map(([it,i])=>{
       if(typeof it==="number")return `<div class="fi"><div class="nm"><b>Quick add</b><small>calories only</small></div><em>${kc(it)}</em><button type="button" class="rm" data-i="${i}" aria-label="Remove">✕</button></div>`;
-      return `<div class="fi"><div class="nm" data-e="${i}"><b>${it.f?(it.q!==1?fmtQ(it.q)+" × ":"")+esc(it.n):esc(it.n||"Quick add")}</b><small>${it.f?esc(it.u)+(ip(it)?" · "+Math.round(ip(it))+" g protein":""):"calories only"}</small></div><em>${kc(it.k)}</em><button type="button" class="rm" data-i="${i}" aria-label="Remove">✕</button></div>`;}).join("")}</div>`;}).join("")}
+      return `<div class="fi"><div class="nm" data-e="${i}"><b>${it.f?(it.u!=="g"&&it.q!==1?fmtQ(it.q)+" × ":"")+esc(it.n):esc(it.n||"Quick add")}</b><small>${it.f?(it.u==="g"?it.q+" g":esc(it.u))+(ip(it)?" · "+Math.round(ip(it))+" g protein":""):"calories only"}</small></div><em>${kc(it.k)}</em><button type="button" class="rm" data-i="${i}" aria-label="Remove">✕</button></div>`;}).join("")}</div>`;}).join("")}
     <div class="tot"><span>${prot?"Protein ~"+Math.round(prot)+" g":""}</span><a href="#" id="bKset" style="color:var(--muted)">Set day total…</a></div></div>`;}
-const fmtQ=q=>q===0.5?"½":q===1.5?"1½":q===2.5?"2½":String(q);
+const fmtQ=q=>q===0.5?"½":q===1.5?"1½":q===2.5?"2½":q===0.25?"¼":q===0.75?"¾":String(q);
 
 function planCard(M){
   const S=M.S,dirTxt=M.dir<0?"Lose":M.dir>0?"Gain":"Maintain";
@@ -385,7 +388,12 @@ function wire(M){
   on("bFood",()=>foodPicker());
   document.querySelectorAll(".fi .rm").forEach(b=>b.onclick=()=>{const items=dayItems(logDate);items.splice(+b.dataset.i,1);putItems(logDate,items);draw();});
   document.querySelectorAll(".fi .nm[data-e]").forEach(b=>b.onclick=()=>{const i=+b.dataset.e,it=dayItems(logDate)[i];if(!it||!it.f)return;
-    const f=allFoods().find(x=>x.id===it.f)||{id:it.f,n:it.n,u:it.u,k:it.k/it.q,p:ip(it)/it.q};foodPicker({food:f,q:it.q,m:it.m,idx:i});});
+    let f=allFoods().find(x=>x.id===it.f),ui=0,q=it.q;
+    if(!f){f={id:it.f,n:it.n,a:"",k:it.k/it.q,p:ip(it)/it.q,units:[[it.u,100]],s:-1,my:true};}
+    else if(it.u==="g"&&!f.my)ui=-1;
+    else{const j=f.units.findIndex(u=>u[0]===it.u||u[0].split(" (")[0]===String(it.u).split(" (")[0]);
+      if(j>=0)ui=j;else if(!f.my){ui=-1;q=Math.round(it.k/f.k*100);}}/* an older entry whose portion no longer exists: show it as grams */
+    foodPicker({food:f,q,ui,m:it.m,idx:i});});
   on("bKset",e=>{if(e&&e.preventDefault)e.preventDefault();const d=load().days[logDate]||{},v=prompt("Total calories for "+dlong(logDate)+" (blank clears it)",ok(d.kcal)?d.kcal:"");if(v===null)return;const n=Math.round(parseFloat(v));
     setDay(logDate,n>0?{kcal:n,items:[n]}:{kcal:null,items:[]});draw();});
   document.querySelectorAll("#seg button").forEach(b=>b.onclick=()=>{range=+b.dataset.r;try{localStorage.setItem("health-range",range);}catch(e){}draw();});
@@ -430,32 +438,36 @@ function foodPicker(edit){
     const box=s.querySelector("#fp");
     const mealSeg=()=>`<div class="mseg">${MEALS.map(([k,l])=>`<button type="button" data-m="${k}" class="${meal===k?"on":""}">${l}</button>`).join("")}</div>`;
     const wireMeal=()=>box.querySelectorAll(".mseg button").forEach(b=>b.onclick=()=>{meal=b.dataset.m;box.querySelectorAll(".mseg button").forEach(x=>x.classList.toggle("on",x===b));});
-    const row=f=>`<button type="button" class="fr" data-id="${esc(f.id)}"><span><b>${esc(f.n)}</b><small>${esc(f.u)}${f.p?" · "+f.p+" g protein":""}</small></span><em>${kc(f.k)} <small>kcal</small></em></button>`;
+    const row=f=>{const u=f.units[0],v=per(f,u[1]);return `<button type="button" class="fr" data-id="${esc(f.id)}"><span><b>${esc(f.n)}</b><small>${esc(u[0])}${v.p>=1?" · "+Math.round(v.p)+" g protein":""}</small></span><em>${kc(v.k)} <small>kcal</small></em></button>`;};
     function results(){
       const el=box.querySelector("#res");if(!el)return;const foods=allFoods(),U=usage();let h="";
       const qq=q.trim().toLowerCase();
       if(qq){const toks=qq.split(/\s+/),words=h=>h.split(/[^a-z0-9]+/);
         /* exact substrings first; if nothing matches (a typo like "chiken"), match words by their first 3 letters */
+        /* edit distance between a typed word and the start of a food word, so "chiken" finds chicken */
+        const lev=(x,y)=>{const m=x.length,n=y.length,d=Array.from({length:m+1},(_,i)=>[i].concat(Array(n).fill(0)));for(let j=1;j<=n;j++)d[0][j]=j;
+          for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(x[i-1]===y[j-1]?0:1));return d[m][n];};
+        const near=(t,w)=>{let best=99;for(const L of [t.length-1,t.length,t.length+1])if(L>0)best=Math.min(best,lev(t,w.slice(0,L)));return best;};
         const find=loose=>foods.map(f=>{const nm=f.n.toLowerCase(),hay=nm+" "+(f.a||"")+" "+(FD.cats[f.c]||"").toLowerCase(),ws=words(hay);
-          if(!toks.every(t=>loose?ws.some(w=>w.startsWith(t.slice(0,3))):hay.includes(t)))return null;
-          const lcp=(x,y)=>{let i=0;while(i<x.length&&i<y.length&&x[i]===y[i])i++;return i;},nw=words(nm);
-          if(loose){const sc=toks.reduce((a,t)=>a+Math.max(0,...nw.map(w=>lcp(t,w))),0)+Math.min(1,(U[f.id]?U[f.id].n:0)*0.1);return [sc,f];}
+          if(loose){let sc=0;for(const t of toks){const dd=Math.min(...ws.map(w=>near(t,w)));if(dd>Math.max(1,Math.floor(t.length/4)))return null;sc+=t.length-dd+(words(nm).some(w=>near(t,w)===dd)?1:0);}
+            return [sc+(f.s===0?0.5:0)+Math.min(1,(U[f.id]?U[f.id].n:0)*0.1),f];}
+          if(!toks.every(t=>ws.some(w=>w.startsWith(t))))return null;
           let sc=nm.startsWith(qq)?4:new RegExp("\\b"+qq.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).test(nm)?3:nm.includes(qq)?2:1;
-          if(f.c==="m")sc+=0.5;sc+=Math.min(2,(U[f.id]?U[f.id].n:0)*0.2);return [sc,f];}).filter(Boolean).sort((a,b)=>b[0]-a[0]).slice(0,40);
+          sc+=f.s===-1?0.6:f.s===0?0.5:f.s===2?-0.3:0;sc+=Math.min(2,(U[f.id]?U[f.id].n:0)*0.2);return [sc,f];}).filter(Boolean).sort((a,b)=>b[0]-a[0]).slice(0,60);
         let hits=find(false);if(!hits.length){hits=find(true);const top=hits.length?hits[0][0]:0;hits=hits.filter(x=>x[0]>=top*0.75).slice(0,12);}
         h=hits.length?hits.map(x=>row(x[1])).join(""):`<p class="empty">No match for “${esc(q)}”.</p>`;
         h+=`<div class="acts" style="margin:10px 0 4px"><button type="button" class="plain" id="fNew">+ Create “${esc(q.trim())}”</button></div>`;}
-      else if(cat){h=`<div class="rh">${esc(cat==="m"?"My foods":FD.cats[cat])}</div>`+foods.filter(f=>f.c===cat).map(row).join("");}
+      else if(cat){h=`<div class="rh">${esc(cat==="m"?"My foods":FD.cats[cat])}</div>`+foods.filter(f=>f.c===cat).sort((a,b)=>(a.s-b.s)||a.n.localeCompare(b.n)).map(row).join("");}
       else{const rec=Object.entries(U).sort((a,b)=>b[1].n-a[1].n||(b[1].last>a[1].last?1:-1)).map(([id])=>foods.find(f=>f.id===id)).filter(Boolean).slice(0,10);
         if(rec.length)h+=`<div class="rh">Frequent</div>`+rec.map(row).join("");
         else h+=`<p class="small muted" style="padding:10px 4px">Search above, or browse by type. Foods you log often will show up here.</p>`;}
       el.innerHTML=h;
-      el.querySelectorAll(".fr").forEach(b=>b.onclick=()=>{const f=foods.find(x=>x.id===b.dataset.id);if(f)qtyView(f,1);});
+      el.querySelectorAll(".fr").forEach(b=>b.onclick=()=>{const f=foods.find(x=>x.id===b.dataset.id);if(f)qtyView(f,1,0);});
       const nb=el.querySelector("#fNew");if(nb)nb.onclick=()=>newFoodView(q.trim());}
     function listView(){
       const hasMy=allFoods().some(f=>f.c==="m");
       box.innerHTML=`<h3>Add food${logDate===today()?"":" · "+dshort(logDate)}</h3>${mealSeg()}
-        <input id="fq" type="search" placeholder="Search: roti, dal, chicken curry, momos…" value="${esc(q)}" autocomplete="off">
+        <input id="fq" type="search" placeholder="Search 1,500 foods: roti, dal, chicken, momos…" value="${esc(q)}" autocomplete="off">
         ${added.length?`<div class="added">Added ${added.map(esc).join(", ")}</div>`:""}
         <div class="cats" id="cats" ${q?"hidden":""}>${(hasMy?[["m","My foods"]]:[]).concat(Object.entries(FD.cats)).map(([k,l])=>`<button type="button" data-c="${k}" class="${cat===k?"on":""}">${esc(l)}</button>`).join("")}</div>
         <div class="res" id="res"></div>
@@ -465,28 +477,40 @@ function foodPicker(edit){
       box.querySelectorAll("#cats button").forEach(b=>b.onclick=()=>{cat=cat===b.dataset.c?"":b.dataset.c;box.querySelectorAll("#cats button").forEach(x=>x.classList.toggle("on",x.dataset.c===cat));results();});
       box.querySelector("#fDone").onclick=close;results();
       if(window.matchMedia("(min-width:600px)").matches)inp.focus();}
-    function qtyView(f,q0,idx){
-      let qn=q0;
-      box.innerHTML=`<h3>${esc(f.n)}</h3><p class="small muted">${kc(f.k)} kcal per ${esc(f.u)}${f.p?" · "+f.p+" g protein":""}</p>${mealSeg()}
-        <div class="qty"><button type="button" id="qm" aria-label="Less">−</button><input id="qv" type="number" inputmode="decimal" step="0.5" min="0.25" value="${qn}"><button type="button" id="qp" aria-label="More">+</button></div>
-        <p class="small muted" style="text-align:center">× ${esc(f.u)}</p>
-        <div class="mseg" style="justify-content:center">${[0.5,1,1.5,2,3].map(v=>`<button type="button" data-q="${v}">${fmtQ(v)}</button>`).join("")}</div>
+    function qtyView(f,q0,ui,idx){
+      /* ui = index into f.units, or -1 for exact grams */
+      const units=f.units,canG=!f.my;let qn=q0;
+      const lab=()=>ui<0?"grams":units[ui][0];
+      box.innerHTML=`<h3>${esc(f.n)}</h3><p class="small muted">${f.my?kc(f.k)+" kcal per "+esc(units[0][0]):kc(f.k)+" kcal per 100 g"}${f.p?" · "+fmt(f.p,f.p%1?1:0)+" g protein":""}</p>${mealSeg()}
+        <div class="rh" style="padding-top:4px">Portion</div>
+        <div class="cats" id="uSeg">${units.map((u,i)=>`<button type="button" data-u="${i}">${esc(u[0])}</button>`).join("")}${canG?`<button type="button" data-u="-1">Grams</button>`:""}</div>
+        <div class="qty"><button type="button" id="qm" aria-label="Less">−</button><input id="qv" type="number" inputmode="decimal" min="0" value="${qn}"><button type="button" id="qp" aria-label="More">+</button></div>
+        <p class="small muted" style="text-align:center" id="qlab"></p>
+        <div class="mseg" style="justify-content:center" id="qChips"></div>
         <div class="qbig" id="qk"></div>
         <div class="acts"><button type="button" class="plain" id="qBack">${idx!=null?"Cancel":"Back"}</button><span class="sp"></span><button type="button" id="qAdd">${idx!=null?"Save":"Add"}</button></div>`;
       wireMeal();const v=box.querySelector("#qv");
-      const upd=()=>{box.querySelector("#qk").innerHTML=ok(qn)&&qn>0?`${kc(f.k*qn)} <small>kcal${f.p?" · "+Math.round(f.p*qn)+" g protein":""}</small>`:"–";
-        box.querySelectorAll(".mseg button[data-q]").forEach(b=>b.classList.toggle("on",+b.dataset.q===qn));};
-      const setQ=n=>{qn=Math.max(0.25,Math.round(n*4)/4);v.value=qn;upd();};
-      box.querySelector("#qm").onclick=()=>setQ(qn-(qn>1?0.5:0.25));box.querySelector("#qp").onclick=()=>setQ(qn+(qn>=1?0.5:0.25));
+      const grams=()=>ui<0?qn:units[ui][1]*qn;
+      const upd=()=>{const x=per(f,grams());box.querySelector("#qk").innerHTML=ok(qn)&&qn>0?`${kc(x.k)} <small>kcal${x.p>=0.5?" · "+Math.round(x.p)+" g protein":""}</small>`:"–";
+        box.querySelectorAll("#qChips button").forEach(b=>b.classList.toggle("on",+b.dataset.q===qn));};
+      const chips=()=>{const vals=ui<0?[50,100,150,200,250]:[0.5,1,1.5,2,3];
+        box.querySelector("#qChips").innerHTML=vals.map(x=>`<button type="button" data-q="${x}">${ui<0?x+" g":fmtQ(x)}</button>`).join("");
+        box.querySelectorAll("#qChips button").forEach(b=>b.onclick=()=>setQ(+b.dataset.q));
+        box.querySelector("#qlab").textContent=ui<0?"grams":"× "+lab();
+        box.querySelectorAll("#uSeg button").forEach(b=>b.classList.toggle("on",+b.dataset.u===ui));};
+      const setQ=n=>{qn=ui<0?Math.max(1,Math.round(n)):Math.max(0.25,Math.round(n*4)/4);v.value=qn;upd();};
+      box.querySelectorAll("#uSeg button").forEach(b=>b.onclick=()=>{const nu=+b.dataset.u;if(nu===ui)return;
+        const g0=grams();ui=nu;qn=ui<0?Math.round(g0):1;v.value=qn;chips();upd();});
+      box.querySelector("#qm").onclick=()=>setQ(ui<0?qn-10:qn-(qn>1?0.5:0.25));box.querySelector("#qp").onclick=()=>setQ(ui<0?qn+10:qn+(qn>=1?0.5:0.25));
       v.oninput=()=>{qn=parseFloat(v.value);upd();};
-      box.querySelectorAll(".mseg button[data-q]").forEach(b=>b.onclick=()=>setQ(+b.dataset.q));
       box.querySelector("#qBack").onclick=()=>idx!=null?close():listView();
-      box.querySelector("#qAdd").onclick=()=>{if(!(qn>0&&qn<=50)){v.focus();return;}
-        const it={f:f.id,n:f.n,u:f.u,q:qn,k:Math.round(f.k*qn),p:Math.round((f.p||0)*qn*10)/10,m:meal};
+      box.querySelector("#qAdd").onclick=()=>{if(!(qn>0&&(ui<0?qn<=3000:qn<=50))){v.focus();return;}
+        const x=per(f,grams());
+        const it={f:f.id,n:f.n,u:ui<0?"g":lab(),q:qn,k:Math.round(x.k),p:Math.round(x.p*10)/10,m:meal};
         const items=dayItems(logDate);if(idx!=null)items[idx]=it;else items.push(it);putItems(logDate,items);draw();
         if(idx!=null){close();return;}
-        added.push((qn!==1?fmtQ(qn)+" × ":"")+f.n);q="";cat="";listView();};
-      upd();}
+        added.push((ui<0?qn+" g ":qn!==1?fmtQ(qn)+" × ":"")+f.n);q="";cat="";listView();};
+      chips();upd();}
     function newFoodView(name){
       box.innerHTML=`<h3>New food</h3><p class="small muted">Saved to My foods, so you can pick it again. Check the pack label or HealthifyMe for the calories.</p>
         <div class="fld"><label>Name</label><input id="nN" value="${esc(name)}"></div>
@@ -499,8 +523,8 @@ function foodPicker(edit){
       box.querySelector("#nSave").onclick=()=>{const g=id=>box.querySelector(id).value.trim(),n=g("#nN"),u=g("#nU")||"1 portion",k=Math.round(parseFloat(g("#nK"))),p=parseFloat(g("#nP"));
         const err=m=>{const e=box.querySelector("#nErr");e.textContent=m;e.hidden=false;};
         if(!n)return err("Give it a name.");if(!(k>0&&k<=3000))return err("Enter the calories for one portion.");
-        const id="my-"+Date.now().toString(36);const f={n,u,k,p:p>0?Math.round(p*10)/10:0};setFood(id,f);qtyView({id,c:"m",...f},1);};}
-    if(edit)qtyView(edit.food,edit.q,edit.idx);else listView();});}
+        const id="my-"+Date.now().toString(36);const f={n,u,k,p:p>0?Math.round(p*10)/10:0};setFood(id,f);qtyView({id,c:"m",n:f.n,a:"",k:f.k,p:f.p,units:[[f.u,100]],s:-1,my:true},1,0);};}
+    if(edit)qtyView(edit.food,edit.q,edit.ui,edit.idx);else listView();});}
 
 function exportData(){const o={kind:"pranju-os-health",exported:today(),data:load()};const a=document.createElement("a");
   a.href=URL.createObjectURL(new Blob([JSON.stringify(o)],{type:"application/json"}));a.download="weight-backup-"+o.exported+".json";document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);}
