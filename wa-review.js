@@ -39,7 +39,7 @@ modal.innerHTML='<div class="was"><div class="wah"><h3>WhatsApp Review</h3><span
 '<label>Title<input id="waTitle" autocomplete="off"></label>'+
 '<label>Tags<div class="wat" id="waTags"></div></label>'+
 '<div class="wa2"><label>Goes to<select id="waDest"></select></label><label>Due<input id="waDue" type="date"></label></div>'+
-'<label>Priority<select id="waPri"></select></label>'+
+'<div class="wa2"><label>Priority<select id="waPri"></select></label><label>Repeat<select id="waRep"><option value="daily">Daily</option><option value="none">Does not repeat</option></select></label></div>'+
 '<label>Notes<textarea id="waNotes"></textarea></label>'+
 '<div class="waerr" id="waErr"></div>'+
 '<div class="wab"><button id="waOk">Approve ✓</button><button id="waDel" class="danger">Discard</button></div>'+
@@ -56,11 +56,11 @@ function tagsHtml(sel){var s={};(sel||[]).forEach(function(t){s[String(t).toLowe
     MORE.map(function(t){return '<button type="button" data-t="'+t+'" class="mo '+(s[t]?"on":"")+'">'+t+'</button>'}).join("");}
 function open(i){if(!items.length){close();return}cur=Math.max(0,Math.min(i,items.length-1));var it=items[cur];
   $("waPos").textContent=(cur+1)+" of "+items.length;$("waTitle").value=it.title;$("waTags").innerHTML=tagsHtml(it.tags);
-  $("waDest").value=it.target||"inbox";$("waDue").value=it.due||"";$("waPri").value=String(it.priority||0);$("waNotes").value=it.notes||"";$("waErr").textContent="";
+  $("waDest").value=it.target||"inbox";$("waDue").value=it.due||"";$("waPri").value=String(it.priority||0);$("waRep").value=it.repeat==="daily"?"daily":"none";$("waNotes").value=it.notes||"";$("waErr").textContent="";
   modal.hidden=false;}
 function close(){modal.hidden=true;cur=-1;}
 function current(){var it=items[cur];return {id:it.id,title:($("waTitle").value.trim()||it.title).toUpperCase(),tags:[].map.call($("waTags").querySelectorAll("button.on"),function(b){return b.dataset.t}),
-  target:$("waDest").value,due:$("waDue").value,priority:+$("waPri").value,notes:$("waNotes").value.trim()};}
+  target:$("waDest").value,due:$("waDue").value,priority:+$("waPri").value,repeat:$("waRep").value,notes:$("waNotes").value.trim()};}
 async function post(body){var r=await fetch(URLB(),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body),cache:"no-store"});
   var d={};try{d=await r.json()}catch(e){}if(!r.ok||d.error)throw new Error(d.error||("HTTP "+r.status));return d;}
 async function act(kind){if(busy||cur<0)return;busy=true;$("waErr").textContent="";var b=kind==="approve"?$("waOk"):$("waDel"),t=b.textContent;b.textContent="…";
@@ -80,14 +80,14 @@ function paint(){var n=items.length,b=$("bWa");if(b){b.hidden=!n;b.textContent=n
   $("waAll").hidden=!n;$("waOne").hidden=!n;
   l.innerHTML=items.map(function(it,i){var dest=(DEST.filter(function(d){return d[0]===it.target})[0]||DEST[0])[1].replace(" (task)","");
     return '<button type="button" class="wai" data-i="'+i+'"><span class="wad'+(it.target==="reference"?" ref":"")+'">'+esc(dest)+'</span><span><b>'+esc(it.title)+'</b><small>'+
-      esc((it.tags||[]).join(" · ").toUpperCase())+(it.due?" · due "+esc(it.due):"")+'</small></span></button>'}).join("");}
+      esc((it.tags||[]).join(" · ").toUpperCase())+(it.repeat==="daily"?" · daily":"")+(it.due?" · from "+esc(it.due):"")+'</small></span></button>'}).join("");}
 async function load(){try{var r=await fetch(URLB(),{cache:"no-store"});var d=await r.json();if(d.error)throw new Error(d.error);items=d.items||[];paint();return true}
   catch(e){if($("waStatus"))$("waStatus").textContent="Could not reach the TickTick bridge: "+e.message;return false}}
 document.addEventListener("click",function(e){var b=e.target.closest&&e.target.closest(".wai");if(b)open(+b.dataset.i)});
 if($("waRefresh"))$("waRefresh").addEventListener("click",function(){$("waStatus").textContent="Loading…";load()});
 if($("waOne"))$("waOne").addEventListener("click",function(){open(0)});
 if($("waAll"))$("waAll").addEventListener("click",async function(){if(busy||!items.length)return;if(!confirmAll())return;busy=true;var btn=this,left=[];btn.textContent="Approving…";
-  for(var i=0;i<items.length;i++){var it=items[i];try{await post({action:"approve",id:it.id,title:String(it.title).toUpperCase(),tags:it.tags,target:it.target,due:it.due,priority:it.priority,notes:it.notes})}catch(e){left.push(it)}}
+  for(var i=0;i<items.length;i++){var it=items[i];try{await post({action:"approve",id:it.id,title:String(it.title).toUpperCase(),tags:it.tags,target:it.target,due:it.due,priority:it.priority,repeat:it.repeat,notes:it.notes})}catch(e){left.push(it)}}
   items=left;paint();btn.textContent="Approve all as drafted";busy=false;if(left.length)$("waStatus").textContent=left.length+" could not be approved. Try them one by one.";});
 function confirmAll(){return window.confirm("Approve all "+items.length+" items exactly as drafted?")}
 

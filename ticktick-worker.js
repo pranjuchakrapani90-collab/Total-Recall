@@ -146,7 +146,7 @@ async function handleSync(request,env){
    Writes only ever touch tasks that are inside the WA REVIEW project. */
 const WA_PROJECT='wa review';
 const WA_TARGETS=['inbox','reference','schedule','projects','checklists'];
-function waMeta(content){const m=String(content||'').match(/\n?\[wa\]\s*target=([a-z]+)\s*$/i);return {target:m?m[1].toLowerCase():'inbox',notes:String(content||'').replace(/\n?\[wa\][^\n]*$/i,'').trim()};}
+function waMeta(content){const s=String(content||'');const line=(s.match(/\[wa\][^\n]*$/i)||[''])[0];const t=line.match(/target=([a-z]+)/i),r=line.match(/repeat=([a-z]+)/i);return {target:t?t[1].toLowerCase():'inbox',repeat:r?r[1].toLowerCase():'none',notes:s.replace(/\n?\[wa\][^\n]*$/i,'').trim()};}
 async function waProjects(token){const projects=await tick('/project',token);const list=Array.isArray(projects)?projects:((projects&&projects.projects)||[]);return list;}
 async function handleWaReview(request,env,origin){
   const json=(o,st)=>new Response(JSON.stringify(o),{status:st||200,headers:{...corsHeaders(origin),'Content-Type':'application/json'}});
@@ -156,7 +156,7 @@ async function handleWaReview(request,env,origin){
   const data=await tick('/project/'+encodeURIComponent(review.id)+'/data',token);
   const tasks=unwrapTasks(data&&data.tasks?data.tasks:data).filter(t=>!t.status);
   if(request.method==='GET'){
-    const items=tasks.map(t=>{const m=waMeta(t.content||t.desc);return {id:t.id,title:t.title||'',notes:m.notes,target:m.target,tags:Array.isArray(t.tags)?t.tags:[],due:String(t.dueDate||'').slice(0,10),priority:t.priority||0,created:t.createdTime||''}});
+    const items=tasks.map(t=>{const m=waMeta(t.content||t.desc);return {id:t.id,title:t.title||'',notes:m.notes,target:m.target,repeat:m.repeat,tags:Array.isArray(t.tags)?t.tags:[],due:String(t.dueDate||'').slice(0,10),priority:t.priority||0,created:t.createdTime||''}});
     items.sort((a,b)=>String(a.created).localeCompare(String(b.created)));
     return json({projectId:review.id,items});
   }
@@ -170,7 +170,9 @@ async function handleWaReview(request,env,origin){
   const tags=(Array.isArray(body.tags)?body.tags:[]).map(t=>String(t).trim().toLowerCase().replace(/^#/,'').replace(/\s+/g,'-')).filter(Boolean).slice(0,10);
   const out={title:String(body.title||task.title||'').slice(0,300),content:String(body.notes||'').slice(0,5000),tags,priority:[0,1,3,5].indexOf(+body.priority)>=0?+body.priority:(task.priority||0),timeZone:env.TIME_ZONE||'Asia/Kolkata'};
   if(projectId!=='inbox')out.projectId=projectId;
-  if(/^\d{4}-\d{2}-\d{2}$/.test(String(body.due||''))){out.dueDate=body.due+'T00:00:00.000+0530';out.startDate=out.dueDate;out.isAllDay=true;}
+  let due=/^\d{4}-\d{2}-\d{2}$/.test(String(body.due||''))?body.due:'';
+  if(body.repeat==='daily'){if(!due)due=todayInZone(env.TIME_ZONE||'Asia/Kolkata');out.repeatFlag='RRULE:FREQ=DAILY;INTERVAL=1';}
+  if(due){out.dueDate=due+'T00:00:00.000+0530';out.startDate=out.dueDate;out.isAllDay=true;}
   const created=await tick('/task',token,{method:'POST',body:out});
   await fetch(API+'/project/'+encodeURIComponent(review.id)+'/task/'+encodeURIComponent(task.id),{method:'DELETE',headers:{Authorization:'Bearer '+token}});
   return json({ok:true,created:{id:created.id,projectId:created.projectId}});
