@@ -1896,13 +1896,13 @@ function boxView(){
     <p class="lead">${txt} Play it up and down with the playback until it's under your fingers, then move on.</p>
     <p id="posWhy" hidden></p>
     <div id="fretboard" class="board"></div>
-    ${today.scale==="major"?"":(()=>{const P=parentMajor(),B=posEvents("major");if(B.ev.length&&B.ev[B.ev.length-1].rest)B.ev.pop();
+    ${today.scale==="major"?"":(()=>{const P=parentMajor(),B=posEvents("major");if(B.ev.length&&B.ev[B.ev.length-1].rest){B.ev.pop();const l=B.ev[B.ev.length-1];B.total=Math.ceil((l.b+l.d)/4-1e-6)*4;}
       return `<h3 class="tabh">1 · ${NOTE[P.tonic]} major, ${shapeName(today.position)}, as tab</h3>
     <p class="tnote">Played first. The full major shape from its root ${NOTE[P.tonic]} up to the top, down to the bottom, and back up to ${NOTE[P.tonic]}. Orange numbers are ${NOTE[P.tonic]}.</p>
     <div class="tabscroll"><div class="tab">${tabHTML(B,"pm")}</div></div>`;})()}
     <h3 class="tabh">${today.scale==="major"?"The box as tab":`2 · The ${SCALES[today.scale].name} box as tab`}</h3>
     <p class="tnote">${today.scale==="major"?"":`Played second, then the loop goes back to the major shape. Orange numbers are ${NOTE[S.keyPc]}. `}From the root up to the top of the shape, down to the bottom, and back up to the root.</p>
-    <div class="tabscroll"><div class="tab">${(()=>{const B=posEvents(true);if(B.ev.length&&B.ev[B.ev.length-1].rest)B.ev.pop();return tabHTML(B,"pos");})()}</div></div>
+    <div class="tabscroll"><div class="tab">${(()=>{const B=posEvents(true);if(B.ev.length&&B.ev[B.ev.length-1].rest){B.ev.pop();const l=B.ev[B.ev.length-1];B.total=Math.ceil((l.b+l.d)/4-1e-6)*4;}return tabHTML(B,"pos");})()}</div></div>
     ${groovePanel("pos",grooveOf("pos"))}
     <div class="lblsw" role="group" aria-label="Diagram labels"><span>Show</span><button type="button" class="seg" data-labels="fingers" aria-pressed="${S.labels!=="degrees"}">Fingers</button><button type="button" class="seg" data-labels="degrees" aria-pressed="${S.labels==="degrees"}">Scale degrees</button></div>
     <div class="legend"><span><i class="dot sq" style="background:var(--root)"></i>${today.scale==="minpent"?NOTE[S.keyPc]+" minor root":"Root"}</span>${today.scale==="minpent"?`<span><i class="dot sq" style="background:var(--steel)"></i>${NOTE[(S.keyPc+3)%12]} major root, the shape's usual anchor</span>`:""}<span><i class="dot" style="background:var(--steel)"></i>Other scale notes</span><span id="lgExtra" hidden><i class="dot ring"></i>Major-scale notes the box leaves out</span><span>Fret numbers below the diagram</span></div>
