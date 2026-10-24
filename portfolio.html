@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
+<title>Portfolio · Pranju OS</title>
+<link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="icon" href="icon-192.png" sizes="192x192"><link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="invest.css?v=20261024b">
+<link rel="stylesheet" href="tr-theme.css?v=20261020">
+<style>
+.alloc{display:flex;height:10px;border-radius:999px;overflow:hidden;margin:12px 0 8px;background:var(--soft)}
+.alloc i{display:block;height:100%}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12.5px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}.legend i{width:9px;height:9px;border-radius:3px;display:inline-block}
+.grp{display:flex;justify-content:space-between;align-items:baseline;margin:2px 0 4px}
+.grp h2{font:700 11px/1 var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:0}
+.grp b{font:650 14px var(--mono)}
+a.rowbtn{color:inherit;text-decoration:none}
+.rowbtn .nm{font-weight:650}
+.sipb{margin-left:6px;padding:1px 8px;font:600 11.5px/1.6 var(--body);border-radius:999px;background:none;border:1px solid var(--acc);color:var(--acc)}
+.hero .tot{font:750 30px/1.15 var(--mono);margin:6px 0 2px}
+.hero .line2{font-size:13.5px;color:var(--muted)}
+</style>
+</head><body class="tr-inv">
+<header><div class="hin">
+  <a class="backlink" href="./#f-invest">← Investments</a>
+  <div class="ttl"><h1>Portfolio</h1><span class="pill" id="mkt"><i></i><span>NSE</span></span></div>
+</div></header>
+<main class="wrap">
+  <div class="bar"><span class="st" id="st"></span><button id="qAdd" class="b-buy" type="button">+ Add</button><button id="refresh" class="b-ref" type="button" aria-label="Refresh prices" title="Refresh prices">↻</button></div>
+  <div id="err" class="err" hidden></div>
+  <div id="out"></div>
+</main>
+<script src="gsync.js?v=20261020"></script>
+<script src="invest.js?v=20261024b"></script>
+<script>
+"use strict";
+/* Everything in one place: the ETF Shop and JuniorBees PKP holdings (from their own records), the Kite fund
+   (cash + LiquidBees), and what you add here — mutual funds and SIPs, bank accounts, deposits, PPF/EPF/NPS,
+   stocks, gold, anything else. Your entries live in the encrypted "#inv-pf" sync slot, never in this repo. */
+const I=Invest,{esc,inr,price,pct,signInr,tone,ok,r2,dshort}=I;
+const KEY="pf",$=id=>document.getElementById(id),today=()=>I.ist().iso;
+const TYPES=[["mf","Mutual fund / SIP"],["bank","Bank account"],["fd","FD / RD"],["ret","PPF / EPF / NPS"],["stock","Stocks"],["gold","Gold"],["other","Other"]];
+const TN=Object.fromEntries(TYPES);
+/* groups for the totals and the allocation bar */
+const GROUPS=[["mkt","Equity & funds","#1f7a5a"],["cash","Cash & liquid","#c58b2a"],["safe","Deposits & retirement","#4a6fa5"],["other","Gold & other","#8a6d9e"]];
+const GROUP_OF={mf:"mkt",stock:"mkt",bank:"cash",fd:"safe",ret:"safe",gold:"other",other:"other"};
+let Q=I.quotesCache(),NAV=I.navCache(),qAt=0;
+
+/* ---------- the numbers ---------- */
+const qp=c=>Q[c]&&ok(Q[c].price)?Q[c].price:NaN;
+function etfPart(){const e=I.load("etf");let inv=0,val=0,booked=0,n=0;
+  Object.values(e.lots).forEach(l=>{if(!l||!ok(l.price)||!ok(l.qty))return;const cost=l.price*l.qty;
+    if(ok(l.sellPrice)){const sv=l.sellPrice*l.qty;booked+=sv-cost-I.charges("buy",cost)-I.charges("sell",sv);return;}
+    n++;inv+=cost;const p=qp(l.code);val+=ok(p)?p*l.qty:cost;});
+  return {inv,val,booked,n};}
+/* same replay as the PKP page: a partial sale books the whole amount as profit and keeps the base */
+function pkpPart(){const k=I.load("pkp"),sym=((k.settings||{}).symbol||"JUNIORBEES").toUpperCase();let units=0,base=0,booked=0;
+  Object.values(k.tx).filter(Boolean).sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.seq||0)-(b.seq||0)).forEach(x=>{
+    if(x.type==="buy"){units+=x.units;base+=x.amount||x.price*x.units;}
+    else{const avg=units?base/units:0;booked+=x.units>=units?(x.price-avg)*x.units:x.units*x.price;units-=x.units;if(units<=0){units=0;base=0;}}});
+  const p=qp(sym);return {sym,units,inv:base,val:ok(p)?units*p:base,booked};}
+function assetVal(a){if(a.type==="mf"&&a.code&&ok(a.units)&&NAV[a.code])return {val:a.units*NAV[a.code].nav,live:true,nav:NAV[a.code]};
+  return {val:ok(a.value)?a.value:(ok(a.invested)?a.invested:0),live:false};}
+function model(){
+  const s=I.load(KEY),A=Object.entries(s.assets).filter(([,a])=>a&&a.name).map(([id,a])=>({id,...a,...assetVal(a)}))
+    .map(a=>({...a,inv:ok(a.invested)?a.invested:a.val,grp:GROUP_OF[a.type]||"other"})).sort((x,y)=>y.val-x.val);
+  const E=etfPart(),P=pkpPart(),F=I.kiteFund();
+  const liqV=ok(F.liq)?F.liq:0;
+  /* every line: [group, name, invested, value, href or id, sub] */
+  const lines=[];
+  if(E.n||E.booked)lines.push({grp:"mkt",name:"ETF Shop",inv:E.inv,val:E.val,href:"etf-shop.html",sub:`${E.n} lot${E.n===1?"":"s"}`});
+  if(P.units||P.booked)lines.push({grp:"mkt",name:"JuniorBees PKP",inv:P.inv,val:P.val,href:"pkp.html",sub:`${P.units} units`});
+  if(F.A){lines.push({grp:"cash",name:"Kite cash",inv:F.cash,val:F.cash,href:"#kite",sub:"for BIDs and ETF buys"});
+    lines.push({grp:"cash",name:"LiquidBees",inv:liqV,val:liqV,href:"#kite",sub:`${F.liqUnits} units${ok(F.liqPrice)?" × "+price(F.liqPrice):""}`});}
+  A.forEach(a=>lines.push({grp:a.grp,name:a.name,inv:a.inv,val:a.val,id:a.id,a,sub:sub(a)}));
+  const val=lines.reduce((x,l)=>x+l.val,0),inv=lines.reduce((x,l)=>x+l.inv,0),pl=val-inv,booked=E.booked+P.booked;
+  const byG=GROUPS.map(([k,n,c])=>({k,n,c,val:lines.filter(l=>l.grp===k).reduce((x,l)=>x+l.val,0)}));
+  const sip=A.filter(a=>ok(a.sip)&&a.sip>0).reduce((x,a)=>x+a.sip,0);
+  try{localStorage.setItem("inv-summary",JSON.stringify({val,inv,pl,at:Date.now()}));}catch(e){}
+  return {A,E,P,F,lines,val,inv,pl,booked,byG,sip,empty:!lines.length};}
+function sub(a){const b=[TN[a.type]||"Other"];
+  if(a.type==="mf"&&ok(a.units))b.push(`${a.units} units${a.nav?" · NAV "+price(a.nav.nav)+" ("+a.nav.date+")":""}`);
+  if(ok(a.sip)&&a.sip>0)b.push(`SIP ${inr(a.sip)}${a.sipDay?" on the "+a.sipDay+ord(a.sipDay):""}`);
+  if(!a.live&&a.asOn)b.push("as on "+dshort(a.asOn));
+  return b.join(" · ");}
+const ord=n=>n%10===1&&n!==11?"st":n%10===2&&n!==12?"nd":n%10===3&&n!==13?"rd":"th";
+
+/* ---------- forms ---------- */
+function assetForm(pre){pre=pre||{};
+  const f=[{k:"type",label:"Kind",type:"select",value:pre.type||"mf",options:TYPES},{k:"name",label:"Name",value:pre.name||"",hint:"e.g. Parag Parikh Flexi Cap, SBI savings, Post office RD"},
+    {k:"invested",label:"Amount invested (₹)",type:"number",value:pre.invested,req:false,hint:"For a bank account, leave blank: the balance is the amount."},
+    {k:"value",label:"Current value (₹)",type:"number",value:pre.value,req:false,hint:"Not needed for a fund with units and an AMFI code: its value updates itself from the daily NAV."},
+    {k:"units",label:"Units (mutual fund)",type:"number",value:pre.units,req:false},
+    {k:"code",label:"AMFI scheme code (mutual fund)",value:pre.code||"",req:false,hint:"Tap “Find code” to search by fund name."},
+    {k:"sip",label:"Monthly SIP (₹)",type:"number",value:pre.sip,req:false},{k:"sipDay",label:"SIP day of the month",type:"number",step:"1",value:pre.sipDay,req:false},
+    {k:"asOn",label:"Figures as on",type:"date",value:today()}];
+  I.form({title:pre.id?"Edit "+pre.name:"Add to portfolio",fields:f,
+    onSubmit:v=>{if(!v.name)return "Give it a name.";const r={type:v.type,name:v.name.trim(),asOn:v.asOn};
+      ["invested","value","units","sip","sipDay"].forEach(k=>{if(ok(v[k]))r[k]=v[k];});if(v.code)r.code=v.code.replace(/\D/g,"");
+      if(!ok(r.value)&&!ok(r.invested)&&!(r.code&&ok(r.units)))return "Enter the current value, or units with an AMFI code.";
+      if(r.type==="bank"){if(!ok(r.value))r.value=r.invested;r.invested=r.value;}
+      I.upsert(KEY,"assets",pre.id,r);draw();if(r.code)refreshNav();},
+    onDelete:pre.id?()=>{I.remove(KEY,"assets",pre.id);draw();}:null,
+    extra:[{label:"Find code",run:v=>{const c={};Object.entries(v).forEach(([k,x])=>{if(x!==""&&!(typeof x==="number"&&!ok(x)))c[k]=x;});setTimeout(()=>findCode({...pre,...c,id:pre.id}),0);}},...(pre.id&&ok(pre.sip)&&pre.sip>0?[{label:"SIP done",run:()=>{setTimeout(()=>sipDone(pre),0);}}]:[])]});}
+async function findCode(pre){const q=prompt("Fund name to search (AMFI)",pre.name||"");if(!q)return assetForm(pre);
+  let L=[];try{L=await I.mfSearch(q);}catch(e){alert("Search failed: "+e.message);return assetForm(pre);}
+  if(!L.length){alert("No fund found for “"+q+"”. Try fewer words.");return assetForm(pre);}
+  I.form({title:"Pick the fund",note:"Choose the exact plan (Direct / Regular, Growth / IDCW) you hold.",ok:"Use",
+    fields:[{k:"code",label:"Fund",type:"select",value:L[0].schemeCode,options:L.map(x=>[x.schemeCode,x.schemeName])}],
+    onSubmit:v=>{const x=L.find(y=>String(y.schemeCode)===String(v.code));setTimeout(()=>assetForm({...pre,code:String(v.code),name:pre.name||x&&x.schemeName}),0);}});}
+/* a SIP instalment: adds the amount to invested and (for a fund with units) the units it bought */
+function sipDone(a){const n=a.code&&NAV[a.code]?NAV[a.code].nav:NaN;
+  I.form({title:"SIP done · "+a.name,fields:[{k:"amt",label:"Amount (₹)",type:"number",value:a.sip},
+      ...(ok(a.units)?[{k:"u",label:"Units bought",type:"number",value:ok(n)?Math.round(a.sip/n*1000)/1000:"",hint:"From the fund's statement or SMS."}]:[])],
+    onSubmit:v=>{if(!(v.amt>0))return "Enter the amount.";const r={...I.load(KEY).assets[a.id]};delete r.t;
+      r.invested=(ok(r.invested)?r.invested:0)+v.amt;if(ok(r.units)&&ok(v.u))r.units=Math.round((r.units+v.u)*1000)/1000;
+      if(!r.code&&ok(r.value))r.value+=v.amt;r.asOn=today();I.upsert(KEY,"assets",a.id,r);draw();}});}
+
+/* ---------- drawing ---------- */
+function hero(M){const plp=M.inv?M.pl/M.inv*100:NaN;
+  return `<section class="card hero"><div class="when">Net worth${M.sip?" · SIPs "+inr(M.sip)+" a month":""}</div>
+   <div class="tot">${inr(M.val)}</div>
+   <div class="line2">Invested ${inr(M.inv)} · <span class="${tone(M.pl)}">${signInr(M.pl)} (${pct(plp,1)})</span>${M.booked?` · booked <span class="up">${inr(M.booked)}</span>`:""}</div>
+   <div class="alloc">${M.byG.filter(g=>g.val>0).map(g=>`<i style="width:${(g.val/M.val*100).toFixed(2)}%;background:${g.c}" title="${esc(g.n)}"></i>`).join("")}</div>
+   <div class="legend">${M.byG.filter(g=>g.val>0).map(g=>`<span><i style="background:${g.c}"></i>${esc(g.n)} ${Math.round(g.val/M.val*100)}%</span>`).join("")}</div></section>`;}
+function groups(M){return GROUPS.map(([k,n])=>{const L=M.lines.filter(l=>l.grp===k);if(!L.length)return "";const tot=L.reduce((x,l)=>x+l.val,0);
+  return `<section class="card"><div class="grp"><h2>${esc(n)}</h2><b>${inr(tot)}</b></div><div class="rows">${L.map(row).join("")}</div></section>`;}).join("");}
+function row(l){const pl=l.val-l.inv,tag=l.href?"a":"div",at=l.href?`href="${l.href}"`:`role="button" tabindex="0" data-a="${esc(l.id)}"`;
+  const sipBtn=l.a&&ok(l.a.sip)&&l.a.sip>0?`<button type="button" class="sipb" data-sip="${esc(l.id)}">SIP done</button>`:"";
+  return `<${tag} class="rowbtn" ${at}><span><span class="nm">${esc(l.name)}</span>${sipBtn}<div class="sub">${esc(l.sub||"")}</div></span>
+   <span class="r">${inr(l.val)}${Math.abs(pl)>=1?`<div class="sub ${tone(pl)}">${signInr(pl)}</div>`:""}</span></${tag}>`;}
+function empty(){return `<section class="card empty"><b>Nothing here yet</b><p class="small muted">Your ETF Shop, JuniorBees and Kite fund show up here by themselves. Add your mutual funds, SIPs, bank accounts and deposits with + Add.</p>
+  <div class="acts"><button type="button" id="aAdd">+ Add</button></div></section>`;}
+function draw(){const M=model();
+  $("out").innerHTML=M.empty?empty():hero(M)+groups(M)+`<p class="small muted" style="text-align:center;margin:14px 0">${I.hasSync()?"Synced between your phones (encrypted).":"Sync is off: entries stay on this phone."} Bank and deposit figures are what you last entered; funds with an AMFI code update from the daily NAV.</p>`;
+  const on=(id,f)=>{const e=$(id);if(e)e.onclick=f;};on("qAdd",()=>assetForm());on("aAdd",()=>assetForm());
+  document.querySelectorAll("[data-a]").forEach(b=>b.onclick=e=>{if(e.target.closest("[data-sip]"))return;const a=I.load(KEY).assets[b.dataset.a];if(a)assetForm({id:b.dataset.a,...a});});
+  document.querySelectorAll("[data-sip]").forEach(b=>b.onclick=e=>{e.stopPropagation();const a=I.load(KEY).assets[b.dataset.sip];if(a)sipDone({id:b.dataset.sip,...a});});
+  document.querySelectorAll('a[href="#kite"]').forEach(a=>a.onclick=e=>{e.preventDefault();I.fundForm(draw);});
+  const t=I.ist();$("mkt").className="pill"+(t.open?" open":"");$("mkt").querySelector("span").textContent=t.open?"NSE open · live":"NSE closed";
+  $("st").textContent=qAt?"Prices "+I.ago(qAt):"";}
+function showErr(m){$("err").hidden=!m;$("err").textContent=m||"";}
+async function refreshNav(){const codes=Object.values(I.load(KEY).assets).filter(a=>a&&a.code&&ok(a.units)).map(a=>a.code);if(!codes.length)return;
+  try{NAV=await I.navs(codes);draw();}catch(e){}}
+async function refresh(){const e=I.load("etf"),k=I.load("pkp");
+  const syms=[...new Set([...Object.values(e.lots).filter(l=>l&&!ok(l.sellPrice)).map(l=>l.code),((k.settings||{}).symbol||"JUNIORBEES").toUpperCase(),I.LIQ])];
+  $("refresh").disabled=true;$("st").textContent="Getting live prices…";
+  try{const r=await I.quotes(syms);Q=r.quotes;qAt=Date.now();showErr("");}catch(err){showErr("Live prices: "+err.message);}
+  await refreshNav();$("refresh").disabled=false;draw();}
+async function syncAll(){let ch=false;for(const k of ["pf","etf","pkp"]){try{const r=await I.sync(k);if(r.ok&&r.changed)ch=true;}catch(e){}}if(ch)draw();}
+$("refresh").onclick=refresh;
+draw();
+(async()=>{await syncAll();refresh();})();
+</script>
+</body></html>

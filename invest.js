@@ -9,7 +9,7 @@
 "use strict";
 const get=k=>{try{return JSON.parse(localStorage.getItem(k)||"null");}catch(e){return null;}};
 const put=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));return true;}catch(e){return false;}};
-const SK={etf:"inv-etf-v1",pkp:"inv-pkp-v1"},COLL={etf:["lots","cap","amo"],pkp:["tx","liq"]},QK="inv-quotes-v1";
+const SK={etf:"inv-etf-v1",pkp:"inv-pkp-v1",pf:"inv-pf-v1"},COLL={etf:["lots","cap","amo"],pkp:["tx","liq"],pf:["assets"]},QK="inv-quotes-v1";
 const workerBase=()=>{let u=null;try{u=localStorage.getItem("totalRecallTickTickUrl");}catch(e){}return (u||"https://total-recall-ticktick.pranjuchakrapani90.workers.dev").replace(/[?#].*$/,"").replace(/\/$/,"");};
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 
@@ -45,9 +45,9 @@ async function sync(key){
 /* ---------- import / export ---------- */
 function importData(obj){
   if(!obj||obj.kind!=="total-recall-investments")throw new Error("This isn't a Pranju OS investments file.");
-  const done=[];["etf","pkp"].forEach(k=>{if(obj[k]){const m=merge(k,load(k),obj[k]);put(SK[k],m);push(k).catch(()=>{});done.push(k);}});
+  const done=[];["etf","pkp","pf"].forEach(k=>{if(obj[k]){const m=merge(k,load(k),obj[k]);put(SK[k],m);push(k).catch(()=>{});done.push(k);}});
   return done;}
-function exportData(){const o={kind:"total-recall-investments",exported:new Date().toISOString().slice(0,10),etf:load("etf"),pkp:load("pkp")};
+function exportData(){const o={kind:"total-recall-investments",exported:new Date().toISOString().slice(0,10),etf:load("etf"),pkp:load("pkp"),pf:load("pf")};
   const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(o)],{type:"application/json"}));
   a.download="investments-backup-"+o.exported+".json";document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);}
 function pickImport(onDone){const i=document.createElement("input");i.type="file";i.accept="application/json,.json";
@@ -72,6 +72,19 @@ function touched(q,fromIso,side){if(!q)return NaN;const lo=side==="low";let v=lo
   (q.closes||[]).forEach(r=>{if(r[0]>=fromIso)take(ok(lo?r[2]:r[3])?(lo?r[2]:r[3]):r[1]);});
   if(q.day&&q.day>=fromIso)take(lo?q.dayLow:q.dayHigh);take(q.price);return ok(v)?v:NaN;}
 function high52(q){const d=new Date(Date.now()-365*864e5).toISOString().slice(0,10);return highSince(q,d);}
+
+/* ---------- mutual fund NAVs (AMFI, through mfapi.in) ----------
+   Tries mfapi.in straight from the phone; if that's blocked, goes through the Pranju OS worker (?mode=nav). */
+const NK="inv-nav-v1";
+function navCache(){return get(NK)||{};}
+async function mfJson(path){
+  try{const r=await fetch("https://api.mfapi.in"+path,{cache:"no-store"});if(r.ok)return await r.json();}catch(e){}
+  const r=await fetch(workerBase()+"/?mode=nav&p="+encodeURIComponent(path),{cache:"no-store"});if(!r.ok)throw new Error("NAV service HTTP "+r.status);return r.json();}
+async function navs(codes){const out=navCache();
+  await Promise.all([...new Set(codes.map(String))].map(async c=>{try{const j=await mfJson("/mf/"+encodeURIComponent(c)+"/latest");
+    const d=j&&j.data&&j.data[0];if(d&&d.nav)out[c]={nav:parseFloat(d.nav),date:d.date,name:j.meta&&j.meta.scheme_name,at:Date.now()};}catch(e){}}));
+  put(NK,out);return out;}
+async function mfSearch(q){const j=await mfJson("/mf/search?q="+encodeURIComponent(q));return (Array.isArray(j)?j:[]).slice(0,25);}
 
 /* ---------- market clock (IST) ---------- */
 function ist(){const p=new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Kolkata",weekday:"short",hour:"2-digit",minute:"2-digit",hour12:false,day:"2-digit",month:"2-digit",year:"numeric"}).formatToParts(new Date()),g=t=>(p.find(x=>x.type===t)||{}).value;
@@ -208,5 +221,5 @@ function tabs(list,cur){return `<nav class="tabs" role="tablist">${list.map(([k,
 function sum(items){return `<section class="sum">${items.map(([l,v,cls,sub])=>`<div><span>${l}</span><b class="${cls||""}">${v}</b>${sub?`<small>${sub}</small>`:""}</div>`).join("")}</section>`;}
 function rememberTab(key,def){let t=def;try{t=sessionStorage.getItem("inv-tab-"+key)||def;}catch(e){}return t;}
 function saveTab(key,t){try{sessionStorage.setItem("inv-tab-"+key,t);}catch(e){}}
-window.Invest={todo,tabs,sum,rememberTab,saveTab,load,save,merge,upsert,remove,setSettings,uid,sync,push,hasSync,importData,exportData,pickImport,quotes,quotesCache,highSince,high52,touched,ist,ok,r2,inr,price,pct,signInr,tone,esc,dshort,days,ago,xirr,form,NSE_HOLIDAYS,nseClosed,nextTrading,orderSession,sessionStarted,LIQ,kiteFund,charges,liqToSell,liqForm,fundForm,fundBar};
+window.Invest={todo,tabs,sum,rememberTab,saveTab,load,save,merge,upsert,remove,setSettings,uid,sync,push,hasSync,importData,exportData,pickImport,quotes,quotesCache,highSince,high52,touched,ist,ok,r2,inr,price,pct,signInr,tone,esc,dshort,days,ago,xirr,form,navs,navCache,mfSearch,NSE_HOLIDAYS,nseClosed,nextTrading,orderSession,sessionStarted,LIQ,kiteFund,charges,liqToSell,liqForm,fundForm,fundBar};
 })();

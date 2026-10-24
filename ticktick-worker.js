@@ -102,6 +102,11 @@ async function yahooChart(sym){
   throw new Error(last||'no data');
 }
 const istDate=sec=>new Date((sec+19800)*1000).toISOString().slice(0,10);
+/* Mutual fund NAVs for the Portfolio page: GET ?mode=nav&p=/mf/<code>/latest or /mf/search?q=<text> (passes through to mfapi.in) */
+async function handleNav(request){const p=String(new URL(request.url).searchParams.get('p')||'');
+  if(!/^\/mf\/(\d{3,8}\/latest|search\?q=[^&]{1,80})$/.test(p))return new Response(JSON.stringify({error:'bad path'}),{status:400,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
+  const r=await fetch('https://api.mfapi.in'+p,{cf:{cacheTtl:600,cacheEverything:true}});
+  return new Response(await r.text(),{status:r.status,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});}
 async function handleQuotes(request){
   const url=new URL(request.url),list=String(url.searchParams.get('s')||'').split(',').map(x=>x.trim().toUpperCase().replace(/^NSE:/,'')).filter(x=>/^[A-Z0-9&\-]{1,20}$/.test(x));
   const syms=[...new Set(list)].slice(0,40),out={};
@@ -181,6 +186,7 @@ async function handleWaReview(request,env,origin){
 export default {async fetch(request,env){const origin=request.headers.get('Origin')||'';if(request.method==='OPTIONS'){const h=corsHeaders(origin);const requested=request.headers.get('Access-Control-Request-Headers');if(requested)h['Access-Control-Allow-Headers']=requested;return new Response(null,{status:204,headers:h});}const url=new URL(request.url);
  if(url.pathname==='/memory-extract'){if(request.method!=='POST')return new Response('Method not allowed',{status:405,headers:corsHeaders(origin)});try{return await memoryExtract(request,env)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.pathname==='/sync'||url.searchParams.get('mode')==='sync'){try{return await handleSync(request,env)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
+ if(url.searchParams.get('mode')==='nav'){try{return await handleNav(request)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.searchParams.get('mode')==='quotes'||url.pathname==='/quotes'){try{return await handleQuotes(request)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.searchParams.get('mode')==='wa-review'||url.pathname==='/wa-review'){try{return await handleWaReview(request,env,origin)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.searchParams.get('mode')==='travel-file'){try{return await handleTravelFile(request,env)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
