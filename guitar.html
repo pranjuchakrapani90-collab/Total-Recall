@@ -1225,7 +1225,7 @@ function describeCell(c,alt,scale){
    where they start; empty slots still show their count, and a held note shows a faint line while it rings. */
 function gridOf(ev){for(const s of [2,3,4,6,12])if(ev.every(e=>Math.abs(e.b*s-Math.round(e.b*s))<1e-3))return s;return 12;}
 function tabNote(e){
-  const n=e.n!=null?posData.notes[e.n]:(posData.notes.find(x=>x.m===e.m&&e.sf===x.s+"-"+x.f)||(e.sf?null:posData.notes.find(x=>x.m===e.m))||{s:+e.sf.split("-")[0],f:+e.sf.split("-")[1],deg:e.dg!=null?e.dg:-1});
+  const n=e.own?{s:+e.sf.split("-")[0],f:+e.sf.split("-")[1],deg:e.dg}:e.n!=null?posData.notes[e.n]:(posData.notes.find(x=>x.m===e.m&&e.sf===x.s+"-"+x.f)||(e.sf?null:posData.notes.find(x=>x.m===e.m))||{s:+e.sf.split("-")[0],f:+e.sf.split("-")[1],deg:e.dg!=null?e.dg:-1});
   const n2=e.m2!=null?{s:+e.sf2.split("-")[0],f:+e.sf2.split("-")[1],deg:e.dg2}:null;return [n,n2];
 }
 function tabHTML(E,id){
@@ -1234,7 +1234,7 @@ function tabHTML(E,id){
   const sub=gridOf(ev),per=bpb*sub;
   const end=Math.max(E.total||0,...ev.map(e=>e.b+e.d)),nb=Math.ceil(end/bpb-1e-6);
   const at={};ev.forEach((e,k)=>{const sl=Math.round(e.b*sub);if(!(sl in at)||(!e.rest&&ev[at[sl]].rest))at[sl]=k;});
-  const pick=id!=="pos"&&!id.startsWith("pv"),sel=pick&&barSel[selKey(id)];let h="",ring=null,grp=null;
+  const pick=id!=="pos"&&id!=="pm"&&!id.startsWith("pv"),sel=pick&&barSel[selKey(id)];let h="",ring=null,grp=null;
   for(let br=0;br<nb;br++){
     const on=sel&&br>=sel.a&&br<=sel.b;
     h+=`<div class="tbar${pick?" pick":""}${on?" sel":""}" style="--n:${per}"${pick?` data-bar="${br}" data-bid="${id}" title="Tap to loop this bar"`:""}>${labels[br]?`<span class="chd">${labels[br]}</span>`:""}${pick?`<span class="bno">${br+1}</span>`:""}${SL}`;
@@ -1896,8 +1896,12 @@ function boxView(){
     <p class="lead">${txt} Play it up and down with the playback until it's under your fingers, then move on.</p>
     <p id="posWhy" hidden></p>
     <div id="fretboard" class="board"></div>
-    <h3 class="tabh">The box as tab</h3>
-    <p class="tnote">${today.scale==="major"?"":"Listen plays the full major shape first, then this. "}From the root up to the top of the shape, down to the bottom, and back up to the root.</p>
+    ${today.scale==="major"?"":(()=>{const P=parentMajor(),B=posEvents("major");if(B.ev.length&&B.ev[B.ev.length-1].rest)B.ev.pop();
+      return `<h3 class="tabh">1 · ${NOTE[P.tonic]} major, ${shapeName(today.position)}, as tab</h3>
+    <p class="tnote">Played first. The full major shape from its root ${NOTE[P.tonic]} up to the top, down to the bottom, and back up to ${NOTE[P.tonic]}. Orange numbers are ${NOTE[P.tonic]}.</p>
+    <div class="tabscroll"><div class="tab">${tabHTML(B,"pm")}</div></div>`;})()}
+    <h3 class="tabh">${today.scale==="major"?"The box as tab":`2 · The ${SCALES[today.scale].name} box as tab`}</h3>
+    <p class="tnote">${today.scale==="major"?"":`Played second, then the loop goes back to the major shape. Orange numbers are ${NOTE[S.keyPc]}. `}From the root up to the top of the shape, down to the bottom, and back up to the root.</p>
     <div class="tabscroll"><div class="tab">${(()=>{const B=posEvents(true);if(B.ev.length&&B.ev[B.ev.length-1].rest)B.ev.pop();return tabHTML(B,"pos");})()}</div></div>
     ${groovePanel("pos",grooveOf("pos"))}
     <div class="lblsw" role="group" aria-label="Diagram labels"><span>Show</span><button type="button" class="seg" data-labels="fingers" aria-pressed="${S.labels!=="degrees"}">Fingers</button><button type="button" class="seg" data-labels="degrees" aria-pressed="${S.labels==="degrees"}">Scale degrees</button></div>
@@ -2122,13 +2126,15 @@ function rootRun(notes,rootPc){ // root -> top of the shape -> bottom of the sha
   for(let i=1;i<=r;i++)idx.push(i);
   return idx.map(i=>notes[i]);
 }
-function posEvents(boxOnly){
+function posEvents(boxOnly){ // boxOnly: true = just the box, "major" = just the parent major shape
   const par=parentMajor(),key=S.keyPc;
-  const phases=par&&!boxOnly?[[par.notes,par.tonic],[posData.notes,key]]:[[posData.notes,key]],ev=[];let t=0;
-  phases.forEach(([ns,rpc],ph)=>{const run=rootRun(ns,rpc),box=ph===phases.length-1;let j=0;
+  const phases=par&&boxOnly==="major"?[[par.notes,par.tonic,1]]:par&&!boxOnly?[[par.notes,par.tonic,1],[posData.notes,key,0]]:[[posData.notes,key,0]],ev=[];let t=0;
+  phases.forEach(([ns,rpc,maj])=>{const run=rootRun(ns,rpc);let j=0;
     run.forEach((n,i)=>{const last=i===run.length-1,first=i===0,d=last?1:.5;
-      ev.push({m:n.m,sf:n.s+"-"+n.f,b:t,d,a:first||last?2:(i%2===0?1:0),tk:box?j++:null});t+=d;});
-    const nt=Math.ceil((t+1)/4-1e-6)*4;ev.push({rest:1,b:t,d:nt-t,tk:box?j++:null});t=nt;});
+      const e={m:n.m,sf:n.s+"-"+n.f,b:t,d,a:first||last?2:(i%2===0?1:0),tk:maj?null:j,tm:maj?j:null};j++;
+      if(maj){e.own=1;e.dg=((n.m-rpc)%12+12)%12===0?0:1;}
+      ev.push(e);t+=d;});
+    const nt=Math.ceil((t+1)/4-1e-6)*4;ev.push({rest:1,b:t,d:nt-t,tk:maj?null:j,tm:maj?j:null});j++;t=nt;});
   const hc=homeChord(),ch=[];for(let b=0;b<t;b+=4)ch.push({b,d:4,...hc});
   return {ev,ch,total:t,bpb:4,R:null};
 }
@@ -2272,7 +2278,7 @@ function schedule(){
     if(tC===t){if(play.test&&play.clickBeat<0)(play.ci=play.ci||[]).push(tC);if(play.clickBeat<0||(S.click&&!play.dr.length))click(tC,((play.clickBeat%play.bpb)+play.bpb)%play.bpb===0);play.clickBeat++;
       if(play.clickBeat>=off+play.total&&play.evi>=play.ev.length){
         if(play.test){play.clickBeat=Infinity;play.evi=Infinity;play.chi=Infinity;play.dri=Infinity;}else if(play.after&&S.loop){const F=play.after;play.base+=play.total;play.after=null;play.resumed=0;Object.assign(play,{ev:F.ev,ch:F.ch,dr:F.dr,total:F.total,bars:null,evi:0,chi:0,dri:0});setNowbar();}
-      else if(S.loop||play.bars){play.base+=play.total;play.evi=0;play.chi=0;play.dri=0;}else{const p=play;setTimeout(()=>{if(play===p)stop();},Math.max(0,(tC-now)*1000+300));play.clickBeat=Infinity;play.evi=Infinity;play.chi=Infinity;play.dri=Infinity;}}
+      else if(S.loop||play.bars||(play.id==="pos"&&parentMajor())){play.base+=play.total;play.evi=0;play.chi=0;play.dri=0;}else{const p=play;setTimeout(()=>{if(play===p)stop();},Math.max(0,(tC-now)*1000+300));play.clickBeat=Infinity;play.evi=Infinity;play.chi=Infinity;play.dri=Infinity;}}
       continue;}
     const e=play.ev[play.evi];if(!e.rest){const m=e.m!=null?e.m:posData.notes[e.n].m;
       if(!play.test||(S.hearNotes&&!play.mute)){const gn=e.a===2?.8:e.a?.66:.5;note(m,tN,e.d*spb()*(e.last?1.6:1),e.m2!=null?gn*.8:gn);if(e.m2!=null)note(e.m2,tN,e.d*spb(),gn*.8);}}
@@ -2327,8 +2333,9 @@ function draw(){if(!play)return;let k=null,fin=false;
   let ek=null;while(play.vis.length&&play.vis[0][0]<=ctx.currentTime){const v=play.vis.shift();k=v[1];ek=v[3];if(v[2])fin=true;}
   if(k!==null&&play.ro!=="groove"){document.querySelectorAll(".col.on,.dt.on").forEach(c=>c.classList.remove("on"));const e=ek||play.ev[k];
     const c=play.id==="pos"?(e&&e.sf?document.querySelector(`.dt[data-sf="${e.sf}"]`):null):document.querySelector(`.col[data-id="${play.id}"][data-k="${e&&e.k0!=null?e.k0:k}"]`);if(c)c.classList.add("on");
-    if(play.id==="pos"&&e&&e.tk!=null){const tc=document.querySelector(`.col[data-id="pos"][data-k="${e.tk}"]`);if(tc)tc.classList.add("on");}
-    followEl(play.id==="pos"?(e&&e.tk!=null?document.querySelector(`.col[data-id="pos"][data-k="${e.tk}"]`):document.querySelector("#fretboard svg")):c);
+    const pt=play.id==="pos"&&e?(e.tk!=null?document.querySelector(`.col[data-id="pos"][data-k="${e.tk}"]`):e.tm!=null?document.querySelector(`.col[data-id="pm"][data-k="${e.tm}"]`):null):null;
+    if(pt)pt.classList.add("on");
+    followEl(play.id==="pos"?(pt||document.querySelector("#fretboard svg")):c);
   }
   if(play&&play.sub){ // moving count cursor: lights up every slot of the grid, including the silent ones
     const b=play.lastB+(ctx.currentTime-play.lastT)/spb()-play.base,off=play.bars?play.bars.a*play.bpb:0;
