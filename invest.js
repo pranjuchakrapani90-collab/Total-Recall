@@ -137,25 +137,39 @@ function form(o){
    "Update balance" records the real Kite cash and LiquidBees units on a date; after that only newer records move it.
    Balances are kept in the encrypted PKP record set on the phones, never in this repo. */
 const LIQ="LIQUIDBEES";
+/* Zerodha delivery charges, so the fund matches Kite to the paisa (zerodha.com/charges, support article on Liquid BeES):
+   both sides  NSE transaction 0.00307% + SEBI ₹10/crore, GST 18% on those two; brokerage ₹0
+   buy         stamp duty 0.015%
+   sell        STT 0.001% on equity ETFs (none on LiquidBees); DP charge once per ETF per day sold:
+               ₹15.34 (₹13 + GST) for equity ETFs, ₹11.21 (₹9.50 + GST) for LiquidBees
+   The rates sit here in one place: change them if Zerodha changes its charges. */
+const CHG={txn:0.0000307,sebi:0.0000001,gst:0.18,stamp:0.00015,stt:0.00001,dp:15.34,dpLiq:11.21};
+const r2c=v=>Math.round(v*100)/100;
+function charges(side,value,liquid){const txn=r2c(value*CHG.txn),sebi=r2c(value*CHG.sebi),gst=r2c((txn+sebi)*CHG.gst);
+  return txn+sebi+gst+(side==="buy"?r2c(value*CHG.stamp):liquid?0:r2c(value*CHG.stt));}
 function kiteFund(){
-  const e=load("etf"),k=load("pkp"),S=k.settings||{},fl=[];
-  const add=(date,t,amt,kind)=>{if(date&&ok(amt))fl.push({date,t:t||0,amt,kind});};
-  Object.values(e.cap).forEach(c=>{if(c)add(c.date,c.t,c.amount,"etf");});
-  Object.values(e.lots).forEach(l=>{if(!l||!ok(l.price)||!ok(l.qty))return;add(l.date,l.t,-l.price*l.qty,"etf");
-    if(ok(l.sellPrice))add(l.sellDate,l.t,l.sellPrice*l.qty-(l.qty*(l.price+l.sellPrice)*0.0012+16),"etf");});
-  const T=Object.values(k.tx).filter(Boolean).sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.seq||0)-(b.seq||0));let level=0;
-  T.forEach(x=>{if(x.type==="buy"){if(ok(x.bid)&&x.bid>level)add(x.date,x.t,-(x.amount||x.price*x.units),"bid");if(ok(x.bid))level=x.bid;}
-    else{add(x.date,x.t,x.units*x.price,"sale");level=0;}});
+  const e=load("etf"),k=load("pkp"),S=k.settings||{},fl=[],dpDays={};
+  const add=(date,t,amt,kind,chg,what)=>{if(date&&ok(amt))fl.push({date,t:t||0,amt:amt-(chg||0),chg:chg||0,kind,what:what||kind});};
+  /* a sale: proceeds less charges, plus the DP charge the first time that ETF is sold that day */
+  const sell=(date,t,code,value,kind)=>{const liquid=code===LIQ,key=date+"|"+code,dp=dpDays[key]?0:(liquid?CHG.dpLiq:CHG.dp);dpDays[key]=1;
+    add(date,t,value,kind,charges("sell",value,liquid)+dp,"sold "+code);};
+  Object.values(e.cap).forEach(c=>{if(c)add(c.date,c.t,c.amount,"money",0,c.amount<0?"money out":"money in");});
+  Object.values(e.lots).forEach(l=>{if(!l||!ok(l.price)||!ok(l.qty))return;const v=l.price*l.qty;add(l.date,l.t,-v,"etf",charges("buy",v),"bought "+l.code);
+    if(ok(l.sellPrice))sell(l.sellDate,l.t,l.code,l.sellPrice*l.qty,"etf");});
+  const sym=(S.symbol||"JUNIORBEES").toUpperCase(),T=Object.values(k.tx).filter(Boolean).sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.seq||0)-(b.seq||0));let level=0;
+  T.forEach(x=>{if(x.type==="buy"){if(ok(x.bid)&&x.bid>level){const v=x.amount||x.price*x.units;add(x.date,x.t,-v,"bid",charges("buy",v),"BID "+x.bid+" "+sym);}if(ok(x.bid))level=x.bid;}
+    else{sell(x.date,x.t,sym,x.units*x.price,"sale");level=0;}});
   /* LiquidBees sales are kept as records: units out of LiquidBees, proceeds into cash */
   const sales=Object.entries(k.liq).filter(([,x])=>x&&ok(x.units)&&ok(x.price)).map(([id,x])=>({id,...x})).sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.t||0)-(b.t||0));
-  sales.forEach(x=>add(x.date,x.t,x.units*x.price,"liq"));
+  sales.forEach(x=>sell(x.date,x.t,LIQ,x.units*x.price,"liq"));
   const A=ok(S.kiteBal)?{bal:S.kiteBal,date:S.kiteOn,t:S.kiteT||0}:null,isAfter=f=>!A||f.date>A.date||(f.date===A.date&&(f.t||0)>A.t);
-  const after=fl.filter(isAfter),liqAfter=sales.filter(isAfter);
-  const moved=after.reduce((a,f)=>a+f.amt,0),cash=(A?A.bal:0)+moved;
+  const after=fl.filter(isAfter).sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:a.t-b.t),liqAfter=sales.filter(isAfter);
+  const moved=after.reduce((a,f)=>a+f.amt,0),chg=after.reduce((a,f)=>a+f.chg,0),cash=(A?A.bal:0)+moved;
   const qc=quotesCache()[LIQ],lp=qc&&ok(qc.price)?qc.price:NaN,lu=Math.max(0,(ok(S.liqUnits)?S.liqUnits:0)-liqAfter.reduce((a,x)=>a+x.units,0)),liq=lu*lp;
-  return {cash,moved,A,flows:after,sales,liqUnits:lu,liqPrice:lp,liq,liqOn:S.liqOn,total:cash+(ok(liq)?liq:0)};}
+  return {cash,moved,chg,A,flows:after,sales,liqUnits:lu,liqPrice:lp,liq,liqOn:S.liqOn,total:cash+(ok(liq)?liq:0)};}
 function fundForm(after){const F=kiteFund();
-  form({title:"Kite fund",note:F.A?`Kite cash was ${inr(F.A.bal,2)} on ${dshort(F.A.date)}; records since then ${signInr(F.moved)}. Enter today's figures from Kite to line it up again.`
+  const lines=F.flows.slice(-8).map(f=>`${dshort(f.date)} ${f.what} ${f.amt>0?"+":"−"}${Math.abs(f.amt).toFixed(2)}${f.chg?` (charges ${f.chg.toFixed(2)})`:""}`);
+  form({title:"Kite fund",note:F.A?`Kite cash ${F.A.bal.toFixed(2)} on ${dshort(F.A.date)}, then: ${lines.join(" · ")||"no records"}. Now ${F.cash.toFixed(2)} (charges included: ${F.chg.toFixed(2)}). If Kite still differs, enter its figures below.`
       :"Enter the cash Kite shows now and your LiquidBees units. From then on, sales add to the cash and BID or ETF buys take from it (SIP buys don't).",
     fields:[{k:"bal",label:"Cash in Kite (₹)",type:"number",value:F.A?r2(F.cash):""},{k:"liq",label:"LiquidBees units",type:"number",step:"1",value:F.liqUnits||"",hint:"The units grow a little each day from the daily dividend."},
       {k:"date",label:"As on",type:"date",value:ist().iso}],ok:"Save",
@@ -185,7 +199,7 @@ function fundBar(need){const F=kiteFund();let note="";
     note=ok(F.liqPrice)&&F.liqUnits*F.liqPrice>=gap?`<small class="warn">Cash short ${inr(gap)} for the next buy · sell ${liqToSell(gap)} LiquidBees in market hours</small>`
       :`<small class="dn">Short ${inr(need-F.total)} for the next buy, even with LiquidBees</small>`;}
   if(!F.A)return `<button type="button" class="fund" id="kFund"><span>Kite fund <small>tap to enter your cash and LiquidBees</small></span><b>—</b></button>`;
-  return `<button type="button" class="fund${note?" short":""}" id="kFund"><span>Kite fund <small>cash ${inr(F.cash)} · LiquidBees ${F.liqUnits}</small></span><b>${inr(F.total)}</b>${note}</button>`;}
+  return `<button type="button" class="fund${note?" short":""}" id="kFund"><span>Kite fund <small>cash ${inr(F.cash,2)} · LiquidBees ${F.liqUnits}</small></span><b>${inr(F.total)}</b>${note}</button>`;}
 
 /* ---------- minimal building blocks shared by both pages ---------- */
 /* one action row: kind colours the label; btn is [text, attrs] or null */
@@ -194,5 +208,5 @@ function tabs(list,cur){return `<nav class="tabs" role="tablist">${list.map(([k,
 function sum(items){return `<section class="sum">${items.map(([l,v,cls,sub])=>`<div><span>${l}</span><b class="${cls||""}">${v}</b>${sub?`<small>${sub}</small>`:""}</div>`).join("")}</section>`;}
 function rememberTab(key,def){let t=def;try{t=sessionStorage.getItem("inv-tab-"+key)||def;}catch(e){}return t;}
 function saveTab(key,t){try{sessionStorage.setItem("inv-tab-"+key,t);}catch(e){}}
-window.Invest={todo,tabs,sum,rememberTab,saveTab,load,save,merge,upsert,remove,setSettings,uid,sync,push,hasSync,importData,exportData,pickImport,quotes,quotesCache,highSince,high52,touched,ist,ok,r2,inr,price,pct,signInr,tone,esc,dshort,days,ago,xirr,form,NSE_HOLIDAYS,nseClosed,nextTrading,orderSession,sessionStarted,LIQ,kiteFund,liqToSell,liqForm,fundForm,fundBar};
+window.Invest={todo,tabs,sum,rememberTab,saveTab,load,save,merge,upsert,remove,setSettings,uid,sync,push,hasSync,importData,exportData,pickImport,quotes,quotesCache,highSince,high52,touched,ist,ok,r2,inr,price,pct,signInr,tone,esc,dshort,days,ago,xirr,form,NSE_HOLIDAYS,nseClosed,nextTrading,orderSession,sessionStarted,LIQ,kiteFund,charges,liqToSell,liqForm,fundForm,fundBar};
 })();
