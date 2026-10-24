@@ -2335,7 +2335,7 @@ function draw(){if(!play)return;let k=null,fin=false;
     const c=play.id==="pos"?(e&&e.sf?document.querySelector(`.dt[data-sf="${e.sf}"]`):null):document.querySelector(`.col[data-id="${play.id}"][data-k="${e&&e.k0!=null?e.k0:k}"]`);if(c)c.classList.add("on");
     const pt=play.id==="pos"&&e?(e.tk!=null?document.querySelector(`.col[data-id="pos"][data-k="${e.tk}"]`):e.tm!=null?document.querySelector(`.col[data-id="pm"][data-k="${e.tm}"]`):null):null;
     if(pt)pt.classList.add("on");
-    followEl(play.id==="pos"?(pt||document.querySelector("#fretboard svg")):c);
+    if(play.id!=="pos")followEl(c);else if(pt)followEl(pt); // the rest between the major run and the box has no tab column: hold the screen where it is
   }
   if(play&&play.sub){ // moving count cursor: lights up every slot of the grid, including the silent ones
     const b=play.lastB+(ctx.currentTime-play.lastT)/spb()-play.base,off=play.bars?play.bars.a*play.bpb:0;
