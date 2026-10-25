@@ -383,6 +383,9 @@ function draw(){if(!play)return;let hit=null;
   if(hit){document.querySelectorAll(".col.on").forEach(c=>c.classList.remove("on"));const c=document.querySelector(`.col[data-s="${slotOf(hit.b+play.off)}"]`);if(c){c.classList.add("on");follow(c);}}
   let b=(ctx.currentTime-play.t0)/spb()-play.ci;if(b>=0&&(st.set.loop||sel))b=b%play.E.total;
   const g=b>=0&&b<play.E.total?Math.floor((b+play.off)*play.sub+1e-6):null;
+  if(play.L.chain&&b>=0){const bar=Math.floor((b+play.off)/play.E.meter+1e-6),R=play.L.rep,q=play.L.seq,ci=Math.floor(bar/R);
+    if(ci<q.length){const k=ci+"."+bar;if(k!==play.ck){play.ck=k;const nx=q[ci+1]||q[0];
+      document.getElementById("nbInfo").textContent=`${cname(q[ci])} ${bar%R+1}/${R} → ${cname(nx)}`;}}}
   if(g!==play.tg){play.tg=g;document.querySelectorAll(".col.tick").forEach(c=>c.classList.remove("tick"));if(g!=null){const c=document.querySelector(`.col[data-s="${g}"]`);if(c)c.classList.add("tick");}}
   play.raf=requestAnimationFrame(draw);}
 let lastRow=null;
@@ -441,6 +444,7 @@ function homeView(){
   <section class="card"><div class="row between"><div class="num">Today's 15-minute session</div><span class="num">${pr.n} of ${pr.total} exercises · ${Math.round(pr.n/pr.total*100)}%</span></div>
     <h2>${pr.n?"Pick up where you left off":"Start your fingerstyle journey"}</h2>
     <div class="gbar" style="height:8px;border-radius:5px;background:var(--steel-soft);overflow:hidden"><i style="display:block;height:100%;width:${pr.n/pr.total*100}%;background:var(--good)"></i></div>
+    <div class="row" style="margin:6px 0 10px"><button type="button" data-open="wu.all">🔥 Warm-up · full chord chain</button><button type="button" data-open="wu.p1">Part 1</button><button type="button" data-open="wu.p2">Part 2</button><button type="button" data-open="wu.p3">Part 3</button></div>
     <ol class="sess">${S.map(x=>`<li><span class="sm">${x.min} min</span><div><b>${x.h}</b><br><span>${x.why}</span></div><button type="button" class="${x.main?"play":""}" data-open="${x.L.id}">${(x.L.pid||x.L.id)} ${x.L.t}${x.L.vt&&x.L.pid!==x.L.id?` · ${x.L.vt}`:""} ▸</button></li>`).join("")}</ol>
     <p>Every lesson has a goal tempo. With <b>Climb</b> on, the tempo rises 4 bpm after every two clean loops until it reaches the goal. Each lesson is a set of exercises: the pattern in every open key (barre lessons in all 12 keys), songs in stages and then in a second key. Mark an exercise done when you can play it three times in a row at the goal; when all of a lesson's exercises are done the lesson is complete, and finishing a level opens the next.</p></section>
   ${syncCard()}
@@ -461,6 +465,11 @@ function taskView(L){const Lv=LEVELS[L.lv],all=ALL.indexOf(lessonOf(L)),prev=ALL
       ${exDone(L)?`<button type="button" data-undone="${L.id}">Mark as not done</button>`:`<button type="button" class="good big" data-done="${L.id}">✓ Done</button>`}
       ${next?`<button type="button" data-open="${next.id}"${unlockedLv(next.lv)||next.lv===L.lv?"":" disabled"}>${next.id} ▸</button>`:""}</div></section>`;}
 function howTo(L){const lo=L.tempo[0],hi=L.tempo[1];
+  if(L.chain)return `<details class="how" open><summary>How to use the warm-up</summary><ol>
+    <li>Pick a part for a short warm-up (about 2–3 minutes at 70 bpm), or the full chain when you have more time.</li>
+    <li>Press Play. Each chord gets ${L.rep} bars: thumb on the root on beat 1, then i, m, a on the G, B and high e strings. The next chord follows by itself; the bar under Play tells you which chord is coming.</li>
+    <li>Choose your tempo with the slider or − / +. Slow enough that every change lands on beat 1 is the right speed; it never climbs on its own.</li>
+    <li>When a part runs through with no gaps at the changes and every string ringing, mark it done. Keep using it as a warm-up afterwards.</li></ol></details>`;
   if(L.scan)return `<details class="how" open><summary>How to practise this lesson</summary><ol>
     <li>Look at the diagram and place the fingers one at a time, then lift the whole hand off and place the shape again, all fingers together. Five times.</li>
     <li>Press Play. Pluck the strings one by one with the tab: thumb on the bass strings, i-m-a on the top three. Stop on any note that buzzes or sounds dead, fix the finger, carry on.</li>
@@ -498,7 +507,7 @@ function lessonView(L){
     <div class="chips"><span class="chip">${L.meter}/4</span>${chords.length?`<span class="chip t">${chords.join(" · ")}</span>`:""}<span class="chip">${nb} bars</span>${L.free?`<span class="chip g">your tempo</span>`:`<span class="chip g">goal ${L.tempo[1]} bpm</span>`}${L.song?`<span class="chip t">song</span>`:""}${L.tune?`<span class="chip t">🎛 ${TUNINGS[L.tune].n} tuning</span>`:""}${L.swing?`<span class="chip">swing</span>`:""}</div>
     <p class="pdesc"><b>In words:</b> ${L.w}</p>
     <p class="tip">💡 ${L.tip}</p>
-    ${L.scan?`<div class="cboxes">${chords.map(chordBox).join("")}</div><p class="tip">🖐 Numbers on the dots are left-hand fingers: 1 index, 2 middle, 3 ring, 4 little. ✕ = don't play that string, ○ = play it open.</p>`:""}
+    ${L.scan||L.chain?`<div class="cboxes">${chords.map(chordBox).join("")}</div><p class="tip">🖐 Numbers on the dots are left-hand fingers: 1 index, 2 middle, 3 ring, 4 little. ✕ = don't play that string, ○ = play it open.</p>`:""}
     ${L.tune?`<p class="tip">🎛 <b>Retune first:</b> ${L.tune==="dd"?"low string down to D (D A D G B E)":"D A D G A D, low to high"}. Tune back to standard afterwards.</p>`:""}
     ${howTo(L)}
     ${L.song?`<p class="tip">👂 <b>Ear first.</b> ${earSong(L)}</p>`:""}
@@ -514,7 +523,7 @@ function lessonView(L){
       <button type="button" data-bars="add">＋ Add next bar</button><button type="button" data-bars="next">Next bar only ▶</button><button type="button" data-bars="all"${sel?"":" disabled"}>All bars</button></div>
     <div class="tabscroll"><div class="tab${sel?" hassel":""}">${tabHTML(E)}</div></div>
     <div class="navf">${prev?`<button type="button" data-open="${prev.id}">◂ ${prev.id}</button>`:"<span></span>"}<button type="button" class="linkb" data-home="1">All levels</button>
-      ${exDone(L)?`<button type="button" data-undone="${L.id}">Mark as not done</button>`:`<button type="button" class="good big" data-done="${L.id}">${L.free?"✓ Every string rings clean":`✓ I can play it at ${L.tempo[1]} bpm`}</button>`}
+      ${exDone(L)?`<button type="button" data-undone="${L.id}">Mark as not done</button>`:`<button type="button" class="good big" data-done="${L.id}">${L.chain?"✓ Clean changes all the way through":L.free?"✓ Every string rings clean":`✓ I can play it at ${L.tempo[1]} bpm`}</button>`}
       ${next?`<button type="button" data-open="${next.id}"${unlockedLv(next.lv)||next.lv===L.lv?"":" disabled"}>${next.id} ▸</button>`:""}</div></section>`;
 }
 function render(){
