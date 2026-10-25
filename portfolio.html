@@ -30,7 +30,7 @@ a.rowbtn{color:inherit;text-decoration:none}
 </main>
 <script src="gsync.js?v=20261020"></script>
 <script src="invest.js?v=20261025"></script>
-<script src="money.js?v=20261025"></script>
+<script src="money.js?v=20261025b"></script>
 <script>
 "use strict";
 /* Everything in one place: the ETF Shop and JuniorBees PKP holdings (from their own records), the Kite fund
@@ -74,12 +74,15 @@ function model(){
   /* wallet and bank as the Money Book keeps them */
   if(window.Money){const C=Money.summary(),N=Money.names();
     [["bank",C.bank],["wallet",C.wallet]].forEach(([k,b])=>{if(b.set)lines.push({grp:"cash",name:N[k],inv:b.val,val:b.val,href:"money.html",sub:"Money Book"+(b.cp?" · checked "+dshort(b.cp.date):"")});});}
-  A.forEach(a=>lines.push({grp:a.grp,name:a.name,inv:a.inv,val:a.val,id:a.id,a,sub:sub(a)}));
+  /* once the Money Book keeps the bank balance, bank accounts entered here would count the same money twice */
+  const mbBank=!!(window.Money&&Money.summary().bank.set);
+  A.forEach(a=>{if(mbBank&&a.type==="bank")return;lines.push({grp:a.grp,name:a.name,inv:a.inv,val:a.val,id:a.id,a,sub:sub(a)});});
+  const dupBanks=mbBank?A.filter(a=>a.type==="bank"):[];
   const val=lines.reduce((x,l)=>x+l.val,0),inv=lines.reduce((x,l)=>x+l.inv,0),pl=val-inv,booked=E.booked+P.booked;
   const byG=GROUPS.map(([k,n,c])=>({k,n,c,val:lines.filter(l=>l.grp===k).reduce((x,l)=>x+l.val,0)}));
   const sip=A.filter(a=>ok(a.sip)&&a.sip>0).reduce((x,a)=>x+a.sip,0);
   try{localStorage.setItem("inv-summary",JSON.stringify({val,inv,pl,at:Date.now()}));}catch(e){}
-  return {A,E,P,F,lines,val,inv,pl,booked,byG,sip,empty:!lines.length};}
+  return {dupBanks,A,E,P,F,lines,val,inv,pl,booked,byG,sip,empty:!lines.length};}
 function sub(a){const b=[TN[a.type]||"Other"];
   if(a.type==="mf"&&ok(a.units))b.push(`${a.units} units${a.nav?" · NAV "+price(a.nav.nav)+" ("+a.nav.date+")":""}`);
   if(ok(a.sip)&&a.sip>0)b.push(`SIP ${inr(a.sip)}${a.sipDay?" on the "+a.sipDay+ord(a.sipDay):""}`);
@@ -133,10 +136,14 @@ function row(l){const pl=l.val-l.inv,tag=l.href?"a":"div",at=l.href?`href="${l.h
    <span class="r">${inr(l.val)}${Math.abs(pl)>=1?`<div class="sub ${tone(pl)}">${signInr(pl)}</div>`:""}</span></${tag}>`;}
 function empty(){return `<section class="card empty"><b>Nothing here yet</b><p class="small muted">Your ETF Shop, JuniorBees, Kite fund and Money Book balances show up here by themselves. Add your mutual funds, SIPs, bank accounts and deposits with + Add.</p>
   <div class="acts"><button type="button" id="aAdd">+ Add</button></div></section>`;}
+function dupNote(M){if(!M.dupBanks.length)return "";
+  return `<section class="card"><p class="small muted">Not counted, because the Money Book now keeps your bank balance: ${M.dupBanks.map(a=>`<b>${esc(a.name)}</b> ${inr(a.val)}`).join(", ")}. Remove ${M.dupBanks.length>1?"them":"it"} here if it's the same account.</p>
+   <div class="acts">${M.dupBanks.map(a=>`<button type="button" class="ghost" data-rmb="${esc(a.id)}">Remove ${esc(a.name)}</button>`).join("")}</div></section>`;}
 function draw(){const M=model();
-  $("out").innerHTML=M.empty?empty():hero(M)+groups(M)+`<p class="small muted" style="text-align:center;margin:14px 0">${I.hasSync()?"Synced between your phones (encrypted).":"Sync is off: entries stay on this phone."} Bank and deposit figures are what you last entered; funds with an AMFI code update from the daily NAV.</p>`;
+  $("out").innerHTML=M.empty?empty():hero(M)+groups(M)+dupNote(M)+`<p class="small muted" style="text-align:center;margin:14px 0">${I.hasSync()?"Synced between your phones (encrypted).":"Sync is off: entries stay on this phone."} Bank and deposit figures are what you last entered; funds with an AMFI code update from the daily NAV.</p>`;
   const on=(id,f)=>{const e=$(id);if(e)e.onclick=f;};on("qAdd",()=>assetForm());on("aAdd",()=>assetForm());
   document.querySelectorAll("[data-a]").forEach(b=>b.onclick=e=>{if(e.target.closest("[data-sip]"))return;const a=I.load(KEY).assets[b.dataset.a];if(a)assetForm({id:b.dataset.a,...a});});
+  document.querySelectorAll("[data-rmb]").forEach(b=>b.onclick=()=>{if(confirm("Remove this bank entry from Portfolio? The Money Book balance stays."))I.remove(KEY,"assets",b.dataset.rmb);draw();});
   document.querySelectorAll("[data-sip]").forEach(b=>b.onclick=e=>{e.stopPropagation();const a=I.load(KEY).assets[b.dataset.sip];if(a)sipDone({id:b.dataset.sip,...a});});
   document.querySelectorAll('a[href="#kite"]').forEach(a=>a.onclick=e=>{e.preventDefault();I.fundForm(draw);});
   const t=I.ist();$("mkt").className="pill"+(t.open?" open":"");$("mkt").querySelector("span").textContent=t.open?"NSE open · live":"NSE closed";

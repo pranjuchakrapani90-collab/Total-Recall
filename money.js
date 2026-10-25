@@ -24,10 +24,19 @@ function entries(){return list("tx").filter(x=>ok(x.amt)).sort((a,b)=>ord(a)<ord
 /* what an entry does to one account */
 function effect(x,acct){if(x.kind==="move")return x.acct===acct?-x.amt:x.to===acct?x.amt:0;
   if(x.acct!==acct)return 0;return x.kind==="in"?x.amt:-x.amt;}
-/* balance of one account: its latest check, then every newer entry */
+/* does an entry move the balance after this check, or is it already inside the checked figure?
+   - a hand entry counts if it was logged after the check was entered (whatever date or time it carries):
+     spend first and then count the cash, and the count already has it; count first and then log, and it's taken off
+   - a statement row counts only if it is dated after the check's day, since the bank balance (typed in, or the
+     statement's closing balance) already includes that day's rows; a row given a time later than a check typed in
+     the same day also counts */
+function counts(x,cp){
+  if(x.src==="yono")return x.date>cp.date||(x.date===cp.date&&cp.src!=="yono"&&!!x.time&&x.time>(cp.time||""));
+  return (x.t||0)>(cp.t||0);}
+/* balance of one account: its latest check, then every entry that came after it */
 function balance(acct,T){T=T||entries();
   const cps=list("bal").filter(b=>b.acct===acct&&ok(b.amt)).sort((a,b)=>ord(a)<ord(b)?-1:1),cp=cps[cps.length-1]||null;
-  const o=cp?ord(cp):"",after=T.filter(x=>!cp||ord(x)>o);
+  const after=T.filter(x=>!cp||counts(x,cp));
   return {acct,cp,val:(cp?cp.amt:0)+after.reduce((a,x)=>a+effect(x,acct),0),set:!!cp||T.some(x=>effect(x,acct))};}
 function summary(){const T=entries(),b=balance("bank",T),w=balance("wallet",T);return {T,bank:b,wallet:w,total:b.val+w.val,any:b.set||w.set};}
 function names(){const s=(I.load(KEY).settings)||{};return {bank:s.bankName||"Bank",wallet:s.walletName||"Wallet"};}
@@ -113,5 +122,5 @@ function approve(id,edit){const s=I.load(KEY),p=s.pend[id];if(!p)return;const r=
   if(r.kind!=="move")I.upsert(KEY,"learn",learnKey(r.raw),{kind:r.kind,cat:r.cat,note:r.note});
   I.remove(KEY,"pend",id);return twin?"linked":"added";}
 function discard(id){I.remove(KEY,"pend",id);}
-window.Money={KEY,ACCTS,OUT_CATS,IN_CATS,NOT_SPEND,now,ord,isSpend,list,entries,effect,balance,summary,names,readStatement,payee,draft,importRows,approve,discard,handTwin};
+window.Money={counts,KEY,ACCTS,OUT_CATS,IN_CATS,NOT_SPEND,now,ord,isSpend,list,entries,effect,balance,summary,names,readStatement,payee,draft,importRows,approve,discard,handTwin};
 })();
