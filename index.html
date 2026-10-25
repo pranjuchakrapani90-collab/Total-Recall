@@ -438,7 +438,7 @@ $('completedFlash').addEventListener('click',function(e){if(e.target.closest&&e.
 
 // Travel Trace — persistent, date-indexed GPX archive.
 var travelData=null,travelMap=null,travelPolylines=[],travelMarkers=[],travelGpsMarkers=[],travelGapLines=[],travelMapsReady=false,travelGeocoder=null,travelAddressCache={};
-var travelStops=[],travelPlaybackTimer=null,travelPlaybackPoints=[],travelPlaybackIndex=0,travelPlaybackRunning=false,travelPlaybackMarker=null,travelPlaybackInfo=null,travelParsedCache={},travelPlaybackFollow=true,travelPlaybackZoom=18,travelPlaybackCameraReady=false;
+var travelPlaybackTimer=null,travelPlaybackPoints=[],travelPlaybackIndex=0,travelPlaybackRunning=false,travelPlaybackMarker=null,travelPlaybackInfo=null,travelParsedCache={},travelPlaybackFollow=true,travelPlaybackZoom=18,travelPlaybackCameraReady=false;
 var TRAVEL_IDB_NAME='TotalRecallTravelFiles_v1',TRAVEL_IDB_STORE='files',travelDbPromise=null;
 
 function travelDbOpen(){
@@ -740,33 +740,6 @@ async function travelLoadSelectedDate(){
 }
 function travelSelectedSegments(){var d=$('travelDate').value;return travelData&&travelData.byDay&&travelData.byDay[d]?travelData.byDay[d]:[]}
 function travelSelectedJourney(){var d=$('travelDate').value;return travelData&&travelData.journeyByDay&&travelData.journeyByDay[d]?travelData.journeyByDay[d]:[]}
-function travelDetectStops(segments){
-  var pts=[];
-  segments.forEach(function(seg){seg.forEach(function(p){if(p&&isFinite(p.ms))pts.push(p)})});
-  pts.sort(function(a,b){return a.ms-b.ms});
-  var stops=[],run=[],radius=60,minMs=5*60*1000;
-  function finish(){
-    if(run.length<2){run=[];return}
-    var first=run[0],last=run[run.length-1],duration=last.ms-first.ms;
-    if(duration<=minMs){run=[];return}
-    var lat=0,lng=0;
-    run.forEach(function(p){lat+=p.lat;lng+=p.lng});
-    lat/=run.length;lng/=run.length;
-    var maxDist=0;
-    run.forEach(function(p){maxDist=Math.max(maxDist,travelHaversine({lat:lat,lng:lng},p))});
-    if(maxDist<=radius)stops.push({startTime:first.time,endTime:last.time,duration:duration,lat:lat,lng:lng,points:run.length});
-    run=[];
-  }
-  /* A stop is a run of points within 60 m of where it began, lasting over 5 minutes. A gap in recording does not end it:
-     with GPSLogger's distance filter nothing is logged while you sit still, so a long gap followed by a point at the
-     same spot means you stayed there. */
-  pts.forEach(function(p){
-    if(!run.length){run=[p];return}
-    if(travelHaversine({lat:run[0].lat,lng:run[0].lng},p)>radius){finish();run=[p]}else run.push(p);
-  });
-  finish();
-  return stops;
-}
 
 function travelPlaybackBuild(){
   var segs=travelSelectedSegments(),pts=[];
@@ -938,27 +911,13 @@ async function travelIdentifyPlaces(){
   for(var i=0;i<items.length;i++){var e=items[i],p=e.end||e.start;if(p&&!e.address){try{e.address=await travelGeocodePoint(p);if(e.address)n++}catch(_){}}}
   travelRenderJourney();$('travelStatus').textContent=n?'Identified '+n+' location'+(n===1?'':'s')+'.':'Place names were not available.'
 }
-function travelRenderStops(){
-  travelMarkers.forEach(function(m){m.setMap(null)});travelMarkers=[];
-  if(!travelMap)return;
-  travelStops.forEach(function(s,i){
-    var mins=Math.round(s.duration/60000);
-    var m=new google.maps.Marker({map:travelMap,position:{lat:s.lat,lng:s.lng},title:'Stop '+(i+1)+' · '+mins+' min',label:{text:'S',color:'#fff',fontWeight:'700'},icon:{path:google.maps.SymbolPath.CIRCLE,scale:9,fillColor:'#10b981',fillOpacity:1,strokeColor:'#fff',strokeWeight:2}});
-    m.addListener('click',function(){travelMap.panTo({lat:s.lat,lng:s.lng});travelMap.setZoom(Math.max(travelMap.getZoom()||14,16));});
-    travelMarkers.push(m);
-  });
-}
 function travelRenderJourney(){
   var box=$('travelJourneyList'),items=travelSelectedJourney();if(!box)return;
-  if(!items.length&&!travelStops.length){box.innerHTML='<div class="journeyEmpty">No chronological journey events or stops were found for this date.</div>';return}
-  var stopHtml=travelStops.map(function(s,i){
-    var p={lat:s.lat,lng:s.lng},range=travelFormatClock(s.startTime)+' → '+travelFormatClock(s.endTime),mins=Math.round(s.duration/60000);
-    return '<div class="journeyItem"><div class="journeyTime">'+esc(range)+'</div><div><div class="journeyType"><span class="journeyDot" style="background:#10b981"></span>Stop</div><div class="journeyPlace">Stayed here for '+mins+' minutes</div><div class="journeyMeta">'+esc(s.lat.toFixed(6)+', '+s.lng.toFixed(6))+' · GPS points: '+s.points+'</div></div><div class="journeyActions"><button type="button" data-stop-index="'+i+'">Show on map</button><a href="'+travelMapsUrl(p)+'" target="_blank" rel="noopener">Maps ↗</a></div></div>';
-  }).join('');
+  if(!items.length){box.innerHTML='<div class="journeyEmpty">No chronological journey events were found for this date.</div>';return}
   box.innerHTML=items.map(function(e,i){
     var p=e.end||e.start,range=travelFormatClock(e.startTime)+(e.endTime?' → '+travelFormatClock(e.endTime):''),title=travelPlaceText(e),meta=(e.fileName?e.fileName+' · ':'')+(e.label||'Recorded GPS path');
     return '<div class="journeyItem"><div class="journeyTime">'+esc(range)+'</div><div><div class="journeyType"><span class="journeyDot"></span>'+esc(e.type||'Journey')+'</div><div class="journeyPlace">'+esc(title)+'</div><div class="journeyMeta">'+esc(meta)+'</div></div><div class="journeyActions">'+(p?'<button type="button" data-journey-index="'+i+'">Show on map</button><a href="'+travelMapsUrl(p)+'" target="_blank" rel="noopener">Maps ↗</a>':'')+'</div></div>'
-  }).join('')+stopHtml
+  }).join('')
 }
 function travelShowJourneyIndex(i){
   var e=travelSelectedJourney()[Number(i)];if(!e||!travelMap)return;var p=e.end||e.start;if(!p)return;
@@ -969,8 +928,7 @@ async function travelRender(){
   if(!travelData)return;
   await travelEnsureMap();
   var segments=travelSelectedSegments();
-  travelStops=travelDetectStops(segments);
-  travelDraw(segments);travelDrawEvidence(segments);travelRenderStops();travelRenderJourney();travelPlaybackBuild();travelClearNoteEditor();travelRenderNotes();travelLiveDot();
+  travelDraw(segments);travelDrawEvidence(segments);travelRenderJourney();travelPlaybackBuild();travelClearNoteEditor();travelRenderNotes();travelLiveDot();
   var nFiles=travelFilesForDate($('travelDate').value).length;
   $('travelStatus').textContent=travelIsLiveDate($('travelDate').value)?travelLiveStatusText(nFiles):'Showing '+nFiles+' saved GPX file'+(nFiles===1?'':'s')+' for '+$('travelDate').value+'.'
 }
@@ -1101,7 +1059,7 @@ async function travelLiveRefresh(){
     if(!hadData||!travelMap){await travelLoadSelectedDate();return}
     travelData=travelAggregateForDate(date,travelFilesForDate(date));travelLiveMerge(travelData,date);
     var segs=travelSelectedSegments();
-    travelDraw(segs,true);travelDrawEvidence(segs);travelStops=travelDetectStops(segs);travelRenderStops();travelRenderJourney();travelRenderNotes();travelLiveDot();
+    travelDraw(segs,true);travelDrawEvidence(segs);travelRenderJourney();travelRenderNotes();travelLiveDot();
     if(!travelPlaybackRunning){
       var pts=[];segs.forEach(function(seg){seg.forEach(function(p){if(p&&p.time&&isFinite(p.ms))pts.push(p)})});pts.sort(function(a,b){return a.ms-b.ms});
       travelPlaybackPoints=pts;$('travelPlaybackSeek').max=Math.max(0,pts.length-1);$('travelPlay').disabled=pts.length<2;$('travelReset').disabled=!pts.length;$('travelPlaybackSeek').disabled=!pts.length
@@ -1151,7 +1109,7 @@ $('travelLoadMap').addEventListener('click',function(){travelEnsureMap().then(fu
 $('travelDate').addEventListener('change',function(){travelLoadSelectedDate().catch(function(e){$('travelStatus').textContent=e.message})});
 $('travelFit').addEventListener('click',function(){if(travelMap)travelRender().catch(function(){})});
 $('travelIdentify').addEventListener('click',function(){travelIdentifyPlaces().catch(function(e){$('travelStatus').textContent=e.message})});
-$('travelJourneyList').addEventListener('click',function(e){var i=e.target&&e.target.dataset?e.target.dataset.journeyIndex:null;if(i!==null&&i!==undefined)travelShowJourneyIndex(i);var si=e.target&&e.target.dataset?e.target.dataset.stopIndex:null;if(si!==null&&si!==undefined&&travelStops[Number(si)]){var s=travelStops[Number(si)];travelMap.panTo({lat:s.lat,lng:s.lng});travelMap.setZoom(Math.max(travelMap.getZoom()||14,16))}});
+$('travelJourneyList').addEventListener('click',function(e){var i=e.target&&e.target.dataset?e.target.dataset.journeyIndex:null;if(i!==null&&i!==undefined)travelShowJourneyIndex(i)});
 $('travelNoteSave').addEventListener('click',function(){
   if(!travelNotePoint||!travelData)return;
   var value=$('travelNoteText').value.trim();if(!value){alert('Write a memory first.');return}
