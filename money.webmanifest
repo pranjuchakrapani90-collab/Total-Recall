@@ -1,0 +1,16 @@
+{
+  "id": "./money.html?app=log",
+  "name": "Money Log · Pranju OS",
+  "short_name": "Money Log",
+  "description": "Log cash and bank spends in Pranju OS Money Book.",
+  "start_url": "./money.html?add&app=1",
+  "scope": "./money.html",
+  "display": "standalone",
+  "background_color": "#f6f5f1",
+  "theme_color": "#1c1b19",
+  "icons": [
+    {"src": "money-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "money-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "money-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}

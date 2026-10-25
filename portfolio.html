@@ -29,7 +29,8 @@ a.rowbtn{color:inherit;text-decoration:none}
   <div id="out"></div>
 </main>
 <script src="gsync.js?v=20261020"></script>
-<script src="invest.js?v=20261024b"></script>
+<script src="invest.js?v=20261025"></script>
+<script src="money.js?v=20261025"></script>
 <script>
 "use strict";
 /* Everything in one place: the ETF Shop and JuniorBees PKP holdings (from their own records), the Kite fund
@@ -70,6 +71,9 @@ function model(){
   if(P.units||P.booked)lines.push({grp:"mkt",name:"JuniorBees PKP",inv:P.inv,val:P.val,href:"pkp.html",sub:`${P.units} units`});
   if(F.A){lines.push({grp:"cash",name:"Kite cash",inv:F.cash,val:F.cash,href:"#kite",sub:"for BIDs and ETF buys"});
     lines.push({grp:"cash",name:"LiquidBees",inv:liqV,val:liqV,href:"#kite",sub:`${F.liqUnits} units${ok(F.liqPrice)?" × "+price(F.liqPrice):""}`});}
+  /* wallet and bank as the Money Book keeps them */
+  if(window.Money){const C=Money.summary(),N=Money.names();
+    [["bank",C.bank],["wallet",C.wallet]].forEach(([k,b])=>{if(b.set)lines.push({grp:"cash",name:N[k],inv:b.val,val:b.val,href:"money.html",sub:"Money Book"+(b.cp?" · checked "+dshort(b.cp.date):"")});});}
   A.forEach(a=>lines.push({grp:a.grp,name:a.name,inv:a.inv,val:a.val,id:a.id,a,sub:sub(a)}));
   const val=lines.reduce((x,l)=>x+l.val,0),inv=lines.reduce((x,l)=>x+l.inv,0),pl=val-inv,booked=E.booked+P.booked;
   const byG=GROUPS.map(([k,n,c])=>({k,n,c,val:lines.filter(l=>l.grp===k).reduce((x,l)=>x+l.val,0)}));
@@ -127,7 +131,7 @@ function row(l){const pl=l.val-l.inv,tag=l.href?"a":"div",at=l.href?`href="${l.h
   const sipBtn=l.a&&ok(l.a.sip)&&l.a.sip>0?`<button type="button" class="sipb" data-sip="${esc(l.id)}">SIP done</button>`:"";
   return `<${tag} class="rowbtn" ${at}><span><span class="nm">${esc(l.name)}</span>${sipBtn}<div class="sub">${esc(l.sub||"")}</div></span>
    <span class="r">${inr(l.val)}${Math.abs(pl)>=1?`<div class="sub ${tone(pl)}">${signInr(pl)}</div>`:""}</span></${tag}>`;}
-function empty(){return `<section class="card empty"><b>Nothing here yet</b><p class="small muted">Your ETF Shop, JuniorBees and Kite fund show up here by themselves. Add your mutual funds, SIPs, bank accounts and deposits with + Add.</p>
+function empty(){return `<section class="card empty"><b>Nothing here yet</b><p class="small muted">Your ETF Shop, JuniorBees, Kite fund and Money Book balances show up here by themselves. Add your mutual funds, SIPs, bank accounts and deposits with + Add.</p>
   <div class="acts"><button type="button" id="aAdd">+ Add</button></div></section>`;}
 function draw(){const M=model();
   $("out").innerHTML=M.empty?empty():hero(M)+groups(M)+`<p class="small muted" style="text-align:center;margin:14px 0">${I.hasSync()?"Synced between your phones (encrypted).":"Sync is off: entries stay on this phone."} Bank and deposit figures are what you last entered; funds with an AMFI code update from the daily NAV.</p>`;
@@ -145,7 +149,7 @@ async function refresh(){const e=I.load("etf"),k=I.load("pkp");
   $("refresh").disabled=true;$("st").textContent="Getting live prices…";
   try{const r=await I.quotes(syms);Q=r.quotes;qAt=Date.now();showErr("");}catch(err){showErr("Live prices: "+err.message);}
   await refreshNav();$("refresh").disabled=false;draw();}
-async function syncAll(){let ch=false;for(const k of ["pf","etf","pkp"]){try{const r=await I.sync(k);if(r.ok&&r.changed)ch=true;}catch(e){}}if(ch)draw();}
+async function syncAll(){let ch=false;for(const k of ["pf","etf","pkp","cash"]){try{const r=await I.sync(k);if(r.ok&&r.changed)ch=true;}catch(e){}}if(ch)draw();}
 $("refresh").onclick=refresh;
 draw();
 (async()=>{await syncAll();refresh();})();

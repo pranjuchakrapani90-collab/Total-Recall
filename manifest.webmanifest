@@ -31,5 +31,32 @@
       "type": "image/svg+xml",
       "purpose": "any"
     }
+  ],
+  "shortcuts": [
+    {
+      "name": "Log money",
+      "short_name": "Log ₹",
+      "description": "New Money Book entry",
+      "url": "./money.html?add",
+      "icons": [
+        {
+          "src": "money-96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Money Book",
+      "short_name": "Money",
+      "url": "./money.html",
+      "icons": [
+        {
+          "src": "money-96.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    }
   ]
 }

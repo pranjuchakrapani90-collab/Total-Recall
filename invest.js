@@ -9,7 +9,7 @@
 "use strict";
 const get=k=>{try{return JSON.parse(localStorage.getItem(k)||"null");}catch(e){return null;}};
 const put=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));return true;}catch(e){return false;}};
-const SK={etf:"inv-etf-v1",pkp:"inv-pkp-v1",pf:"inv-pf-v1"},COLL={etf:["lots","cap","amo"],pkp:["tx","liq"],pf:["assets"]},QK="inv-quotes-v1";
+const SK={etf:"inv-etf-v1",pkp:"inv-pkp-v1",pf:"inv-pf-v1",cash:"inv-cash-v1"},COLL={etf:["lots","cap","amo"],pkp:["tx","liq"],pf:["assets"],cash:["tx","pend","bal","learn"]},QK="inv-quotes-v1";
 const workerBase=()=>{let u=null;try{u=localStorage.getItem("totalRecallTickTickUrl");}catch(e){}return (u||"https://total-recall-ticktick.pranjuchakrapani90.workers.dev").replace(/[?#].*$/,"").replace(/\/$/,"");};
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 
@@ -45,9 +45,9 @@ async function sync(key){
 /* ---------- import / export ---------- */
 function importData(obj){
   if(!obj||obj.kind!=="total-recall-investments")throw new Error("This isn't a Pranju OS investments file.");
-  const done=[];["etf","pkp","pf"].forEach(k=>{if(obj[k]){const m=merge(k,load(k),obj[k]);put(SK[k],m);push(k).catch(()=>{});done.push(k);}});
+  const done=[];["etf","pkp","pf","cash"].forEach(k=>{if(obj[k]){const m=merge(k,load(k),obj[k]);put(SK[k],m);push(k).catch(()=>{});done.push(k);}});
   return done;}
-function exportData(){const o={kind:"total-recall-investments",exported:new Date().toISOString().slice(0,10),etf:load("etf"),pkp:load("pkp"),pf:load("pf")};
+function exportData(){const o={kind:"total-recall-investments",exported:new Date().toISOString().slice(0,10),etf:load("etf"),pkp:load("pkp"),pf:load("pf"),cash:load("cash")};
   const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(o)],{type:"application/json"}));
   a.download="investments-backup-"+o.exported+".json";document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);}
 function pickImport(onDone){const i=document.createElement("input");i.type="file";i.accept="application/json,.json";
