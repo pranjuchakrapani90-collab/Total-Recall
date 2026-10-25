@@ -62,3 +62,10 @@ The Worker returns JSON like:
 ```
 
 Total Recall fetches this every time Responsibility Recall starts, so tomorrow's task cards change automatically.
+
+## Security lock (26 Oct 2026)
+
+Every Worker route except GPSLogger's `mode=live-log` now requires header `X-Pranju-Key` = your Pranju OS sync code.
+`pos-guard.js` (loaded first on every page) adds it automatically from the code saved under ☁ Sync.
+The first time your code reaches the Worker it becomes the owner code (only a code that already has a sync vault can claim it).
+To pin it explicitly or change it later, add a Worker secret `OWNER_CODE` with your sync code.

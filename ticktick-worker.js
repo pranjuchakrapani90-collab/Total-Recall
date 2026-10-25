@@ -7,15 +7,55 @@ const RESPONSIBILITIES = ['SDE-TECH','SDE-REV','SDE-ESTT','HOME-MANAGER','BROTHE
 const API = 'https://api.ticktick.com/open/v1';
 const OPENAI_API = 'https://api.openai.com/v1/responses';
 
+/* ---------- Security lock (26 Oct 2026) ----------
+   Every route except GPSLogger's live-log needs header X-Pranju-Key = the owner's Pranju OS sync code
+   (pos-guard.js adds it on every page). Before this, anyone who found this Worker's URL (it is in the
+   public repo) could read and change TickTick, read/approve money drafts, spend the OpenAI key and flood KV.
+   Owner: Worker secret OWNER_CODE (if set), else KV "auth:owner", enrolled automatically the first time a
+   code arrives whose sync vault already existed (only the real owner holds that code). */
+const hex=buf=>Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+const sha=async t=>hex(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t)));
+const OWNER_SLOTS=['','#melodies','#path','#fingerstyle','#solos','#estimates','#sldsurvey','#health','#inv-cash','#inv-etf','#inv-pkp','#inv-pf'];
+/* KV name for a sync vault. It used to be SHA-256(code), the very bytes the pages use as the AES key, so anyone
+   who could list KV could decrypt everything. Now it is a separate, labelled hash; old names are moved on first use. */
+const kvName=async c=>'vault2:'+await sha('kv-name-v2|'+c);
+let ownerCache=null;
+async function ownerHash(env){
+  if(env.OWNER_CODE)return sha('owner|'+String(env.OWNER_CODE).trim());
+  if(ownerCache)return ownerCache;
+  if(!env.SYNC_KV)return null;
+  const h=await env.SYNC_KV.get('auth:owner');if(h)ownerCache=h;return h;}
+async function vaultExists(env,code){
+  for(const slot of OWNER_SLOTS){const c=code+slot;
+    if(await env.SYNC_KV.get('vault:'+await sha(c))!==null)return true;
+    if(await env.SYNC_KV.get(await kvName(c))!==null)return true;}
+  return false;}
+/* null when allowed, else the error Response */
+async function requireOwner(request,env,origin){
+  const deny=async(msg,st)=>{await new Promise(r=>setTimeout(r,400));return new Response(JSON.stringify({error:msg,auth:false}),{status:st||401,headers:{...corsHeaders(origin),'Content-Type':'application/json'}});};
+  const key=String(request.headers.get('X-Pranju-Key')||'').trim();
+  if(key.length<8)return deny('Locked: turn on ☁ Sync on this device with your Pranju OS sync code.');
+  const mine=await sha('owner|'+key);
+  let owner=await ownerHash(env);
+  if(!owner){ // first use after the lock: enrol only a code that already owns a sync vault
+    if(!env.SYNC_KV||!(await vaultExists(env,key)))return deny('Locked: this sync code is not the owner code.',403);
+    await env.SYNC_KV.put('auth:owner',mine);ownerCache=owner=mine;}
+  if(mine!==owner)return deny('Locked: this sync code is not the owner code.',403);
+  const sc=request.headers.get('X-Total-Recall-Sync');
+  if(sc!==null){const c=String(sc).trim();if(c!==key&&c.indexOf(key+'#')!==0)return deny('That sync slot does not belong to this code.',403);}
+  return null;}
+
 function corsHeaders(origin) {
   const allowed=origin===ALLOWED_ORIGIN;
   return {
     'Access-Control-Allow-Origin': allowed?origin:ALLOWED_ORIGIN,
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, X-Total-Recall-Sync, X-Live-Token',
+    'Access-Control-Allow-Headers': 'Content-Type, X-Total-Recall-Sync, X-Live-Token, X-Pranju-Key',
     'Access-Control-Max-Age': '86400',
     'Vary': 'Origin, Access-Control-Request-Method, Access-Control-Request-Headers',
-    'Cache-Control': 'no-store'
+    'Cache-Control': 'no-store',
+    'X-Content-Type-Options': 'nosniff',
+    'Referrer-Policy': 'no-referrer'
   };
 }
 function normTag(t) { return String(t || '').trim().replace(/^#/,'').toUpperCase().replace(/\s+/g,'-'); }
@@ -67,11 +107,10 @@ async function handleTravelFile(request,env){
   if(code.length<8)return new Response(JSON.stringify({error:'A sync code of at least 8 characters is required.'}),{status:400,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
   const fileId=String(new URL(request.url).searchParams.get('fileId')||'').trim();
   if(!/^gpx-[a-f0-9]{64}$/.test(fileId))return new Response(JSON.stringify({error:'Invalid travel file id.'}),{status:400,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
-  const hash=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(code));
-  const codeHash=Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('');
-  const key='travel-file:'+codeHash+':'+fileId;
+  const key='travel-file2:'+await sha('kv-name-v2|'+code)+':'+fileId,oldKey='travel-file:'+await sha(code)+':'+fileId;
   if(request.method==='GET'){
-    const blob=await env.SYNC_KV.get(key);
+    let blob=await env.SYNC_KV.get(key);
+    if(blob===null){blob=await env.SYNC_KV.get(oldKey);if(blob!==null){await env.SYNC_KV.put(key,blob);await env.SYNC_KV.delete(oldKey);}}
     if(blob===null)return new Response(JSON.stringify({error:'Travel file not found.'}),{status:404,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
     return new Response(blob,{status:200,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json','Cache-Control':'no-store'}});
   }
@@ -79,7 +118,7 @@ async function handleTravelFile(request,env){
     const blob=await request.text();
     if(!blob)return new Response(JSON.stringify({error:'Encrypted travel file is empty.'}),{status:400,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
     if(new TextEncoder().encode(blob).byteLength>25*1024*1024)return new Response(JSON.stringify({error:'Travel file exceeds the 25 MiB Workers KV value limit after encryption.'}),{status:413,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
-    await env.SYNC_KV.put(key,blob);
+    await env.SYNC_KV.put(key,blob);await env.SYNC_KV.delete(oldKey);
     return new Response(JSON.stringify({ok:true}),{status:200,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
   }
   return new Response(JSON.stringify({error:'Method not allowed'}),{status:405,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
@@ -192,18 +231,20 @@ async function handleSync(request,env){
   if(!env.SYNC_KV)return new Response(JSON.stringify({error:'Cloud sync is not configured: SYNC_KV binding is missing on the Worker.'}),{status:503,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
   const code=String(request.headers.get('X-Total-Recall-Sync')||'').trim();
   if(code.length<8)return new Response(JSON.stringify({error:'A sync code of at least 8 characters is required.'}),{status:400,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
-  const hash=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(code));
-  const key='vault:'+Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  const key=await kvName(code),oldKey='vault:'+await sha(code);
   if(request.method==='POST'){
     const body=await request.json();
     if(!body||!body.state)return new Response(JSON.stringify({error:'state is required'}),{status:400,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
-    const blob=await env.SYNC_KV.get(key);
+    let blob=await env.SYNC_KV.get(key);
+    if(blob===null){blob=await env.SYNC_KV.get(oldKey);if(blob!==null){await env.SYNC_KV.put(key,blob);await env.SYNC_KV.delete(oldKey);}}
     return new Response(JSON.stringify({blob:blob||null}),{status:200,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
   }
   if(request.method==='PUT'){
     const blob=await request.text();
     if(!blob)throw new Error('Encrypted sync payload is empty');
+    if(blob.length>20*1024*1024)throw new Error('Sync payload too large');
     await env.SYNC_KV.put(key,blob);
+    if(await env.SYNC_KV.get(oldKey)!==null)await env.SYNC_KV.delete(oldKey);
     return new Response(JSON.stringify({ok:true}),{status:200,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
   }
   return new Response(JSON.stringify({error:'Method not allowed'}),{status:405,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
@@ -279,6 +320,7 @@ async function handleMoneyReview(request,env,origin){
 }
 
 export default {async fetch(request,env){const origin=request.headers.get('Origin')||'';if(request.method==='OPTIONS'){const h=corsHeaders(origin);const requested=request.headers.get('Access-Control-Request-Headers');if(requested)h['Access-Control-Allow-Headers']=requested;return new Response(null,{status:204,headers:h});}const url=new URL(request.url);
+ if(url.searchParams.get('mode')!=='live-log'){try{const denied=await requireOwner(request,env,origin);if(denied)return denied;}catch(e){return new Response(JSON.stringify({error:'Auth check failed'}),{status:503,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.pathname==='/memory-extract'){if(request.method!=='POST')return new Response('Method not allowed',{status:405,headers:corsHeaders(origin)});try{return await memoryExtract(request,env)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.pathname==='/sync'||url.searchParams.get('mode')==='sync'){try{return await handleSync(request,env)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.searchParams.get('mode')==='nav'){try{return await handleNav(request)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
