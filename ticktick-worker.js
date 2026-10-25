@@ -249,8 +249,8 @@ async function handleWaReview(request,env,origin){
 /* Money from WhatsApp: Claude drafts money notes from the self-chat into the TickTick project "MONEY REVIEW",
    one task per amount, last line '[money] status=draft kind=in|out amt=.. acct=wallet|bank date=YYYY-MM-DD time=HH:MM cat=.. book=personal|apdcl'.
    Money Book (Pranju OS) lists drafts (GET ?mode=money-review) and, on approval, POSTs action=approve with the final values:
-   book=apdcl -> the task stays in MONEY REVIEW with status=approved (the nightly review then writes it into the FINANCE sheet);
-   book=personal, or action=discard -> the task is deleted. Only tasks inside MONEY REVIEW are ever touched. */
+   approve (Personal or APDCL) or discard -> the task is deleted: the Money Book holds the entry (APDCL ones on its Imprest
+   account; the FINANCE sheet is no longer written, 26 Oct 2026). Only tasks inside MONEY REVIEW are ever touched. */
 const MONEY_PROJECT='money review';
 function moneyMeta(content){const s=String(content||'');const line=(s.match(/\[money\][^\n]*$/i)||[''])[0];const o={};line.replace(/([a-z]+)=([^\s]*)/gi,(m,k,v)=>{try{o[k.toLowerCase()]=decodeURIComponent(v)}catch(_){o[k.toLowerCase()]=v}return m});o.notes=s.replace(/\n?\[money\][^\n]*$/i,'').trim();return o;}
 function moneyLine(o){const enc=v=>encodeURIComponent(String(v==null?'':v));return '[money] status='+enc(o.status)+' kind='+enc(o.kind)+' amt='+enc(o.amt)+' acct='+enc(o.acct)+' date='+enc(o.date)+' time='+enc(o.time)+' cat='+enc(o.cat)+' book='+enc(o.book);}
@@ -269,7 +269,7 @@ async function handleMoneyReview(request,env,origin){
   let body={};try{body=await request.json()}catch(_){return json({error:'Invalid JSON'},400)}
   const task=tasks.find(t=>t.id===body.id);if(!task)return json({ok:true,gone:true});
   const del=()=>fetch(API+'/project/'+encodeURIComponent(proj.id)+'/task/'+encodeURIComponent(task.id),{method:'DELETE',headers:{Authorization:'Bearer '+token}});
-  if(body.action==='discard'||(body.action==='approve'&&body.book!=='apdcl')){await del();return json({ok:true});}
+  if(body.action==='discard'||body.action==='approve'){await del();return json({ok:true});}
   if(body.action!=='approve')return json({error:'Unknown action'},400);
   const m=moneyMeta(task.content||task.desc);
   const o={status:'approved',kind:body.kind==='in'?'in':'out',amt:+body.amt>0?+body.amt:+m.amt,acct:body.acct==='bank'?'bank':'wallet',date:/^\d{4}-\d{2}-\d{2}$/.test(body.date||'')?body.date:(m.date||''),time:/^\d{2}:\d{2}$/.test(body.time||'')?body.time:(m.time||''),cat:String(body.cat||m.cat||'').slice(0,40),book:'apdcl'};

@@ -9,7 +9,7 @@
 "use strict";
 const get=k=>{try{return JSON.parse(localStorage.getItem(k)||"null");}catch(e){return null;}};
 const put=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));return true;}catch(e){return false;}};
-const SK={etf:"inv-etf-v1",pkp:"inv-pkp-v1",pf:"inv-pf-v1",cash:"inv-cash-v1"},COLL={etf:["lots","cap","amo"],pkp:["tx","liq"],pf:["assets"],cash:["tx","pend","bal","learn"]},QK="inv-quotes-v1";
+const SK={etf:"inv-etf-v1",pkp:"inv-pkp-v1",pf:"inv-pf-v1",cash:"inv-cash-v1"},COLL={etf:["lots","cap","amo"],pkp:["tx","liq"],pf:["assets"],cash:["tx","pend","bal","learn","arch"]},QK="inv-quotes-v1";
 const workerBase=()=>{let u=null;try{u=localStorage.getItem("totalRecallTickTickUrl");}catch(e){}return (u||"https://total-recall-ticktick.pranjuchakrapani90.workers.dev").replace(/[?#].*$/,"").replace(/\/$/,"");};
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 
