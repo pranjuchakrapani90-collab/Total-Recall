@@ -2209,7 +2209,7 @@ const mmss=s=>{s=Math.floor(s);return Math.floor(s/60)+":"+String(s%60).padStart
 let goalToastDay=null;
 function paintGoal(){
   const sec=todaySec(),g=goalSec(),met=sec>=g,pct=Math.min(100,sec/g*100);
-  const nb=document.getElementById("nbGoal");if(nb){nb.textContent=met?`✓ ${mmss(sec)} played`:`⏱ ${mmss(sec)} / ${mmss(g)}`;nb.classList.toggle("met",met);}
+  const nb=document.getElementById("nbGoal");if(nb&&!window.GSP_NB){nb.textContent=met?`✓ ${mmss(sec)} played`:`⏱ ${mmss(sec)} / ${mmss(g)}`;nb.classList.toggle("met",met);}
   const h=document.getElementById("hToday");if(h)h.textContent=`${Math.floor(sec/60)}/${S.goalMin||45}`;
   const hs=document.getElementById("hTodayS");if(hs)hs.classList.toggle("met",met);
   const bar=document.getElementById("goalBar");if(bar)bar.style.width=pct+"%";
@@ -2852,5 +2852,5 @@ function restartInNewFormat(old){
 })();
 </script>
 
-<script src="plan.js?v=20261020c"></script><script>GSPlan.watch("ml",{live:()=>play?(performance.now()-(play.lf||play.t0))/1000:0,playing:()=>!!play,stop:()=>stop()});</script>
+<script src="plan.js?v=20261025"></script><script>GSPlan.watch("ml",{live:()=>play?(performance.now()-(play.lf||play.t0))/1000:0,playing:()=>!!play,stop:()=>stop()});</script>
 </body></html>

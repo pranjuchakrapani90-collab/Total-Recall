@@ -69,7 +69,11 @@ let styled=false;function style(){if(styled)return;styled=true;const s=document.
    o = {live: unsaved seconds being played right now, playing: is the player running, stop: stop the player} */
 function watch(here,o){style();o=o||{};const live=()=>{try{return Math.max(0,Math.min(90,o.live?o.live():0));}catch(e){return 0;}};
   const P=PLAN.find(p=>p.k===here);if(!P)return; // a section on hold has no cycle timer
-  function chip(c){let el=document.getElementById("gspHere");
+  function chip(c){const me0=c.rows.find(r=>r.k===here),done=me0.sec>=me0.min*60;
+    /* the same timer in the page's bottom bar (next to Play), so it can be read while playing without scrolling up */
+    window.GSP_NB=1;document.querySelectorAll("#nbGoal,[data-gsp-timer]").forEach(nb=>{const t=`${done?"✓":P.ico} ${mm(Math.min(me0.sec,me0.min*60))} / ${me0.min}:00`;
+      if(nb.textContent!==t)nb.textContent=t;nb.classList.toggle("met",done);nb.title=`${P.n}: time played in this cycle`;});
+    let el=document.getElementById("gspHere");
     if(!el){const a=document.getElementById("hTodayS"),host=a&&a.parentElement;if(!host)return;
       el=document.createElement("div");el.id="gspHere";el.className="gsp-here";host.insertAdjacentElement("afterend",el);}
     const me=c.rows.find(r=>r.k===here),f=Math.min(1,me.sec/(me.min*60));
@@ -88,7 +92,7 @@ function watch(here,o){style();o=o||{};const live=()=>{try{return Math.max(0,Mat
     const nx=next(c.rows);if(!nx)return;
     const was=o.playing&&o.playing();if(was&&o.stop)o.stop();
     show(`<div><b>✓ ${me.min} minutes of ${me.n} done${was?". The player has stopped":""}.</b> Next in cycle ${c.n}: ${nx.ico} <b>${nx.n}</b>.</div>${barHTML(c.rows,here)}<div class="row"><button type="button">Keep going here</button><a href="${nx.href}">Go to ${nx.n} ▸</a></div>`,nx.col);}
-  tick();setInterval(tick,1000);}
+  tick();setInterval(tick,1000);window.GSPlanTick=tick;}
 function show(html,col){const el=document.createElement("div");el.className="gsp-nudge";el.setAttribute("role","status");el.style.setProperty("--c",col);el.innerHTML=html;
   el.querySelector("button").onclick=()=>el.remove();document.body.appendChild(el);}
 window.GSPlan={LABEL:PLAN.map(p=>p.min).join(" + "),PLAN,today,cycle,next,skip,barHTML,watch,style,mm};

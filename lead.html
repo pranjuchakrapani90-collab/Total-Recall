@@ -1234,7 +1234,7 @@ let toastDay=null;
 function toast(msg,ms){const t=document.getElementById("toast");t.textContent=msg;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>t.hidden=true,ms||4000);}
 setInterval(()=>{if(play&&performance.now()-play.lf>15000)flush();paintGoal();},1000);
 function paintGoal(){const k=dkey(new Date()),g=goalMin()*60;let s=daySec(k);if(play)s+=Math.min(90,(performance.now()-play.lf)/1000);const met=s>=g;
-  const nb=document.getElementById("nbGoal");nb.textContent=met?`✓ ${mmss(s)} played`:`⏱ ${mmss(s)} / ${mmss(g)}`;nb.classList.toggle("met",met);
+  const nb=document.getElementById("nbGoal");if(!window.GSP_NB){nb.textContent=met?`✓ ${mmss(s)} played`:`⏱ ${mmss(s)} / ${mmss(g)}`;nb.classList.toggle("met",met);}
   document.getElementById("hToday").textContent=`${Math.floor(s/60)}/${goalMin()}`;document.getElementById("hTodayS").classList.toggle("met",met);
   const gb=document.getElementById("goalBar");if(gb)gb.style.width=Math.min(100,s/g*100)+"%";
   const gt=document.getElementById("goalTxt");if(gt)gt.innerHTML=met?`<b>Goal reached:</b> ${mmss(s)} played today in Guitar Studio.`:`<b>${mmss(s)}</b> played today across Guitar Studio. <b>${Math.ceil((g-s)/60)} min</b> to go.`;
@@ -1486,5 +1486,5 @@ render();
 cloudSync();
 /*APP-END*/
 </script>
-<script src="plan.js"></script><script>GSPlan.watch("lc",{live:()=>play?(performance.now()-play.lf)/1000:0,playing:()=>!!play,stop:()=>stop()});</script>
+<script src="plan.js?v=20261025"></script><script>GSPlan.watch("lc",{live:()=>play?(performance.now()-play.lf)/1000:0,playing:()=>!!play,stop:()=>stop()});</script>
 </body></html>

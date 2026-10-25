@@ -81,6 +81,7 @@ details.primer summary{cursor:pointer;font-weight:650}
 .transport .tin{max-width:900px;margin:0 auto;display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center}
 .transport .tempo{display:flex;align-items:center;gap:4px;font:700 14px var(--mono)}
 .transport .tempo button{padding:7px 10px}
+.transport .nbinfo{font:600 13px var(--body);color:var(--muted)}.transport .nbgoal{font:700 15px var(--mono);color:#c2410c;white-space:nowrap;margin-left:auto}.transport .nbgoal.met{color:#15803d}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(80px + env(safe-area-inset-bottom,0px));z-index:60;background:var(--ink);color:#fff;border-radius:10px;padding:9px 14px;font-size:14px;max-width:calc(100% - 32px)}
 </style><link rel="stylesheet" href="studio-theme.css?v=20261020"></head><body class="gs-sc">
 <header><div class="hin">
@@ -410,7 +411,7 @@ function start(a,b,src){stop();audio();if(!src){load();const s=S();src={key:s.ke
     if(now>play.nextTs-1.2){play.it++;const bpm=loopTempo(play.src,play.it);play.spb=60/bpm;const ts=play.nextTs;play.loops.push({ts,spb:play.spb,bpm});if(play.loops.length>4)play.loops.shift();
       scheduleLoop(ts);play.nextTs=ts+play.len*play.spb;}
     /* minutes count only while the band is playing */
-    const dt=now-play.last;play.last=now;if(now>play.t0&&dt>0&&dt<1){const k=dkey(new Date());st.days[k]=Math.round(((st.days[k]||0)+dt)*10)/10;
+    const dt=now-play.last;play.last=now;if(now>play.t0&&dt>0&&dt<1){const k=dkey(new Date());st.days[k]=(st.days[k]||0)+dt;
       if(now-(play.sv||0)>3){play.sv=now;save(true);}}}; // keep the minutes on the phone every few seconds, for the cycle timer
   play.timer=setInterval(sched,50);sched();
   const draw=()=>{if(!play)return;const now=ctx.currentTime,L=[...play.loops].reverse().find(x=>x.ts<=now);let bar=-1;
@@ -619,10 +620,15 @@ function barBox(b){const s=S(),bar=s.bars[b]||[],W=160,T=8,G=9,x=p=>6+p/BAR*(W-1
     pos+=n.d;});g+=bl.cn;
   return `<div class="bar${b===sel?" sel":""}" data-bar="${b}"><div class="bh">${chordName(C16[b],s.key)}<span>${ui.skel&&SK.length?`◎${nn(P[SK[b]].m,s.key)} · `:""}${b+1}</span></div><svg viewBox="0 0 ${W} ${H}" data-sub="${bl.sub}">${g}</svg></div>`;}
 
-function renderTransport(){const el=document.getElementById("transport");if(view==="jam"||view==="course"){el.hidden=true;return;}if(view!=="build"||!S()){el.hidden=true;return;}el.hidden=false;const s=S(),ph=Math.floor(sel/4);
+function renderTransport(){const el=document.getElementById("transport");el.hidden=false;const tm=`<span class="nbgoal" data-gsp-timer></span>`;
+  if(view!=="build"||!S()){ // course, warm-up and the solo list: a slim bar with Stop and this section's timer for the cycle
+    const what=play?(view==="course"?"Playing the example":view==="jam"?"Warm-up playing":"Playing"):"Soloing Course";
+    el.innerHTML=`<div class="tin">${play?`<button class="pri" ${view==="course"?"data-cstop":"data-stop"}="1">■ Stop</button>`:""}<span class="nbinfo">${what}</span>${tm}</div>`;
+    if(window.GSPlanTick)GSPlanTick();return;}
+  const s=S(),ph=Math.floor(sel/4);
   el.innerHTML=`<div class="tin">${play?`<button class="pri" data-stop="1">■ Stop</button>`:`<button class="pri" data-playph="1">▶ Phrase ${ph+1}</button><button data-playall="1">▶ All 16</button>`}
     <span class="tempo"><button data-tempo="-4">−</button>${s.tempo}<button data-tempo="4">+</button></span>
-    <button data-lead="1" class="${ui.lead===false?"":"on"}" title="Your solo">🎸</button><button data-band="1" class="${ui.band===false?"":"on"}" title="Band">🥁</button></div>`;}
+    <button data-lead="1" class="${ui.lead===false?"":"on"}" title="Your solo">🎸</button><button data-band="1" class="${ui.band===false?"":"on"}" title="Band">🥁</button>${tm}</div>`;if(window.GSPlanTick)GSPlanTick();}
 
 function filledOf(s){return (s.bars||[]).filter(b=>b&&b.some(x=>!x.r)).length;}
 function weekMin(){let t=0;for(let i=0;i<7;i++){const d=new Date();d.setDate(d.getDate()-i);const k=dkey(d);t+=(st.days[k]||0)+Object.values(st.odays).reduce((a,o)=>a+((o&&o[k])||0),0);}return Math.floor(t/60);}
@@ -764,6 +770,6 @@ render();setSync(syncCode()?"busy":"off");cloudSync().then(ch=>{if(ch&&!play)ren
 <script src="triad-course.js?v=20261020d"></script>
 <script src="soloing-course.js?v=20261025"></script>
 <script>render();</script>
-<script src="plan.js?v=20261020d"></script><script>GSPlan.watch("sc",{live:()=>0,playing:()=>!!play,stop:()=>{stop();render();}});
+<script src="plan.js?v=20261025"></script><script>GSPlan.watch("sc",{live:()=>play&&play.sv&&ctx?ctx.currentTime-play.sv:0,playing:()=>!!play,stop:()=>{stop();render();}});
 setInterval(()=>{const el=document.getElementById("hToday");if(!el)return;const k=dkey(new Date());el.textContent=Math.floor(GSPlan.today().reduce((a,r)=>a+r.sec,0)/60);},2000);</script>
 </body></html>
