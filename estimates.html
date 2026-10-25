@@ -56,8 +56,9 @@ button:focus-visible,input:focus-visible,select:focus-visible,.tile:focus-visibl
 .seg button{background:none;border:0;padding:7px 12px;font:500 .85rem var(--f-body);color:var(--muted);cursor:pointer}
 .seg button+button{border-left:1px solid var(--line)}
 .seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
-.body{display:grid;grid-template-columns:230px minmax(0,1fr);gap:20px;margin-top:18px}
-@media (max-width:640px){.body{grid-template-columns:minmax(0,1fr)}.figure{max-width:260px;margin:0 auto}}
+.body{display:grid;grid-template-columns:minmax(0,1fr);gap:20px;margin-top:18px}
+.figure{max-width:520px;width:100%}
+@media (min-width:1180px){.body{grid-template-columns:420px minmax(0,1fr)}.figure{max-width:none}}
 .figure{border:1px dashed var(--line);border-radius:4px;padding:8px;align-self:start}
 .figure svg{width:100%;height:auto;display:block}
 .figure .cap{font:.72rem/1.35 var(--f-mono);color:var(--muted);margin-top:6px}
@@ -118,21 +119,106 @@ footer{margin-top:28px;color:var(--muted);font-size:.78rem;max-width:80ch}
 /* svg */
 .s-pole{fill:var(--conc);stroke:var(--ink);stroke-width:1}
 .s-steel{fill:var(--steel);stroke:var(--ink);stroke-width:1}
-.s-arm{fill:var(--steel);stroke:var(--ink);stroke-width:.8}
-.s-ins{fill:var(--panel);stroke:var(--ink);stroke-width:1}
+.s-bury{fill:var(--line);stroke:var(--muted);stroke-width:.8;stroke-dasharray:3 2}
+.s-ground{stroke:var(--ink);stroke-width:1.6}
+.s-hatch{stroke:var(--muted);stroke-width:.8}
+.s-pit{fill:none;stroke:var(--muted);stroke-width:.8;stroke-dasharray:3 2}
+.s-boulder{fill:var(--line);stroke:var(--muted);stroke-width:.8}
+.s-baseplate,.s-plate{fill:var(--conc);stroke:var(--ink);stroke-width:.8}
+.s-conc{fill:var(--conc);opacity:.55;stroke:var(--muted);stroke-width:.8}
+.s-clamp{fill:var(--steel);stroke:var(--ink);stroke-width:.8}
+.s-bolt{fill:var(--warn);stroke:var(--ink);stroke-width:.6}
+.s-hole{fill:var(--panel);stroke:var(--ink);stroke-width:.6}
+.s-pinst{stroke:var(--steel);stroke-width:3}
+.s-ins{fill:var(--panel);stroke:var(--ink);stroke-width:.9}
+.s-condpt{fill:var(--ink)}
+.s-armV{stroke:var(--steel);stroke-width:5;fill:none;stroke-linejoin:round}
+.s-armfill{fill:var(--steel);stroke:var(--ink);stroke-width:.8}
+.s-web{stroke:var(--ink);stroke-width:.6;opacity:.6}
+.s-hw{fill:var(--steel);stroke:var(--ink);stroke-width:.7}
+.s-hwl{stroke:var(--steel);stroke-width:2.5;fill:none}
 .s-disc{fill:var(--panel);stroke:var(--ink);stroke-width:.9}
-.s-cond{stroke:var(--ink);stroke-width:1.2;fill:none}
-.s-stay{stroke:var(--muted);stroke-width:1.2;fill:none}
-.s-earth{stroke:var(--earth);stroke-width:1.4;fill:none}
-.s-ground{stroke:var(--ink);stroke-width:1.5}
-.s-grout{fill:var(--line);stroke:var(--muted);stroke-dasharray:3 2}
-.s-dp{fill:var(--danger)}
+.s-tc,.s-tcb{fill:var(--steel);stroke:var(--ink);stroke-width:.8}
+.s-cond{stroke:var(--ink);stroke-width:1.4;fill:none}
+.s-condlt{stroke:var(--ink);stroke-width:1;fill:none;opacity:.8}
+.s-jump{stroke:var(--ink);stroke-width:1.2;fill:none;stroke-dasharray:4 2}
+.s-stw,.s-stwz{stroke:var(--ink);stroke-width:1.5;fill:none;opacity:.85}
+.s-stwz{stroke-width:2.2}
+.s-bind{stroke:var(--danger);stroke-width:2}
+.s-guy{fill:var(--earth);stroke:var(--ink);stroke-width:.7}
+.s-loop{fill:none;stroke:var(--ink);stroke-width:1.2}
+.s-turn{fill:var(--panel);stroke:var(--ink);stroke-width:1.2}
+.s-rod,.s-rodp{stroke:var(--steel);stroke-width:3;fill:none}
+.s-rodp{stroke-width:2}
+.s-earth{stroke:var(--earth);stroke-width:1.6;fill:none}
+.s-eclip{fill:var(--earth)}
+.s-epipe{fill:var(--earth);stroke:var(--ink);stroke-width:.6}
+.s-chem{fill:var(--accent-soft);stroke:var(--earth);stroke-width:1.2}
+.s-dplate{fill:var(--danger)}
+.s-bolt2{stroke:#fff;stroke-width:1.3;fill:none}
 .s-barb{stroke:var(--muted);stroke-width:1;fill:none}
+.s-strap{stroke:var(--steel);stroke-width:2.2;fill:none}
+.s-strapl{stroke:var(--steel);stroke-width:2.5}
+.s-knob{fill:var(--earth);stroke:var(--ink);stroke-width:.6}
 .s-dtr{fill:var(--accent-soft);stroke:var(--ink);stroke-width:1.2}
+.s-fin{stroke:var(--ink);stroke-width:1.6}
+.s-tube{stroke:var(--ink);stroke-width:3.2;stroke-linecap:round}
+.s-la{fill:var(--accent-soft);stroke:var(--ink);stroke-width:.9}
+.s-blade{stroke:var(--ink);stroke-width:2;stroke-linecap:round}
+.s-horn{stroke:var(--ink);stroke-width:1.4;fill:none}
+.s-oprod{stroke:var(--steel);stroke-width:2}
+.s-abc{stroke:var(--ink);fill:none;stroke-linecap:round}
+.s-cap{fill:var(--danger)}
+.s-ipc{fill:var(--accent);stroke:var(--ink);stroke-width:.6}
+.s-hook{fill:none;stroke:var(--ink);stroke-width:1.6}
 .s-box{fill:var(--panel);stroke:var(--ink);stroke-width:1}
-.s-t{fill:var(--muted);font:9px var(--f-mono)}
-.s-tb{fill:var(--ink);font:600 9px var(--f-mono)}
-.s-acc{fill:var(--accent)}
+.s-meter{fill:var(--panel);stroke:var(--ink);stroke-width:1}
+.s-ct{fill:var(--warn-soft);stroke:var(--ink);stroke-width:.8}
+.s-cab{stroke:var(--ink);stroke-width:2.6;fill:none;stroke-linecap:round}
+.s-cc{stroke:var(--accent);stroke-width:1.4;fill:none;stroke-dasharray:5 3}
+.s-mvcc{stroke:var(--accent);stroke-width:3;fill:none;stroke-linecap:round}
+.s-term{fill:var(--accent-soft);stroke:var(--ink);stroke-width:.9}
+.s-xlpe{stroke:var(--accent);stroke-width:3;fill:none;stroke-linejoin:round}
+.s-pipe{fill:var(--line);stroke:var(--muted);stroke-width:.8}
+.s-spun{fill:var(--line);stroke:var(--ink);stroke-width:1}
+.s-trench{fill:none;stroke:var(--muted);stroke-width:.8;stroke-dasharray:3 2}
+.s-rail{fill:var(--steel);stroke:var(--ink);stroke-width:.6}
+.s-marker{fill:var(--warn);stroke:var(--ink);stroke-width:.6}
+.s-road{fill:var(--line);stroke:var(--muted);stroke-width:.6}
+.s-house{fill:var(--panel);stroke:var(--ink);stroke-width:1}
+.s-bear{stroke:var(--steel);stroke-width:1.2;fill:none}
+.s-svc{stroke:var(--ink);stroke-width:2.2;fill:none}
+.s-guardl{stroke:var(--earth);stroke-width:1.5;fill:none}
+.s-guardw{fill:var(--earth)}
+.s-lace{stroke:var(--earth);stroke-width:.9;fill:none}
+.s-belt{stroke:var(--steel);stroke-width:2.4;fill:none}
+.s-steelL{stroke:var(--steel);stroke-width:3;fill:none}
+.s-wolf{stroke:var(--accent);stroke-width:2.2;fill:none}
+.s-oldc{stroke:var(--muted);stroke-width:1.2;fill:none;stroke-dasharray:3 3}
+.s-old,.s-old rect{fill:none;stroke:var(--muted);stroke-width:1;stroke-dasharray:4 3}
+.s-broken{fill:var(--conc);stroke:var(--ink);stroke-width:.8;opacity:.6}
+.s-crack{stroke:var(--danger);stroke-width:1.6;fill:none}
+.s-pg{fill:var(--warn);stroke:var(--ink);stroke-width:.6}
+.s-hlc{fill:var(--warn);stroke:var(--ink);stroke-width:.7}
+.s-dim{stroke:var(--muted);stroke-width:.8;fill:none}
+.s-zoom{fill:none;stroke:var(--accent);stroke-width:1.2}
+.s-zoomln{stroke:var(--accent);stroke-width:1;stroke-dasharray:3 2}
+.s-inset{fill:var(--bg);stroke:var(--accent);stroke-width:1.4}
+.s-sld{stroke:var(--ink);stroke-width:1.6;fill:none}
+.s-sldp{fill:var(--ink)}
+.s-cb{fill:var(--panel);stroke:var(--ink);stroke-width:1.4}
+.s-ct2{fill:none;stroke:var(--ink);stroke-width:1.4}
+.s-tr{fill:none;stroke:var(--ink);stroke-width:1.5}
+.s-ctl{stroke:var(--muted);stroke-width:1;fill:none;stroke-dasharray:3 2}
+.s-batt{stroke:var(--ink);stroke-width:1.6}
+.s-mat{stroke:var(--earth);stroke-width:.9;fill:none}
+.s-in{fill:var(--ink);font:600 10px var(--f-mono)}
+.s-ld{stroke:var(--muted);stroke-width:.8;fill:none;stroke-dasharray:2.5 2}
+.s-ldot{fill:var(--accent)}
+.s-t{fill:var(--ink);font:400 12px var(--f-body)}
+.s-tb{fill:var(--ink);font:600 12px var(--f-body)}
+.s-num{fill:var(--accent)}
+.s-numt{fill:#fff;font:700 10px var(--f-body)}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chips button{font:500 .85rem var(--f-body);padding:6px 12px;border:1px solid var(--line);border-radius:3px;background:var(--panel);color:var(--ink);cursor:pointer}
 .chips button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
@@ -189,7 +275,7 @@ footer{margin-top:28px;color:var(--muted);font-size:.78rem;max-width:80ch}
   nav.tabs::-webkit-scrollbar{display:none}
   nav.tabs button{flex:none;font-size:.9rem;padding:6px 11px}
   .kit{padding:14px}
-  .figure{max-width:220px}
+  .figure{padding:4px}
   .tbl-wrap table{min-width:520px}
   .seg{max-width:100%}
   .seg button{padding:7px 9px}
@@ -468,7 +554,8 @@ stay11:{lv:"blk",t:"One stay (guy) — 11 kV",fig:"stay",src:"GEN/09A-B (G-1), R
   ["guy11",1,"Guy insulator type C (88 kN) for 11 kV, fitted in the stay wire well above ground so a fallen live wire can't make the lower stay live."],
   ["wire710",10,"Stay wire 7/3.15 mm (= 7/10 SWG, 36.26 kN) for 11 kV. 7/3.15 weighs about 0.43 kg/m; office estimates allow about 10 kg per stay including the wraps and wastage."],
   ["staycc",1,"Stay pit 500×500×1600 (REC amendment) with about 0.2 m³ of CC 1:2:4 round the anchor plate where the soil is not firm. In APDCL estimates this is stay grouting 428."],
-  ["pclamp",1,"Stay clamp on the pole: at least 50×6 flat with 12 mm bolts (QAM)."]],
+  ["pclamp",1,"Stay clamp on the pole: at least 50×6 flat with 12 mm bolts (QAM)."],
+  ["nb",0.5,"The pole clamp's two halves are bolted round the pole: 2 bolts (12–16 mm) with nuts and washers, about 0.5 kg. Check SoR 830's wording first; if it already says \"with nuts & bolts\", leave this line out."]],
  notes:[["tip","LT stay: same 16 mm set, guy insulator type A (44 kN), stay wire 7/2.5 mm (7/12 SWG). APDCL estimates use 7/14 SWG for LT."],["tip","33 kV stay: 20 mm set (plate 300×300×8, 2 thimbles, weld 4900 kg), TWO type-C guy insulators in series, stay wire 7/4.0 mm (7/8 SWG, 58.45 kN)."],["trap","Count check: stay sets = guy insulators = stay pits (428 jobs). QAM also checks the thimble on the turnbuckle, the guy insulator, a tight stay wire, and that the stay is on the correct side, against the resultant pull."],["tip","Stay angle with the pole 30°–45°. Where there's no room for a stay, use a strut: an extra 8 m pole with clamps (GEN/10)."]]},
 earth:{lv:"blk",t:"One pole earthing",fig:"earth",src:"GEN/04, GEN/07, GEN/08, RDSS-TS 31/36 (earthing coil, GI pipe), QAM line checklists",
  scen:"QAM wants every 11 kV and LT pole individually earthed with 8 SWG GI wire and an earth pit, coil or spike. What goes in for one pole?",
@@ -962,73 +1049,698 @@ function swapRows(rows,lv,kit){
 function kitRows(k){const kit=K[k];return swapRows(kit.items.map(r=>({id:r[0],q:r[1],why:r[2],opt:!!r[3]})),kit.lv,kit)}
 function grouped(rows){const by={};rows.forEach(r=>{const g=C[r.id][4];(by[g]=by[g]||[]).push(r)});return Object.keys(G).filter(g=>by[g]).map(g=>[g,by[g]])}
 
-/* ---------- SVG sketches ---------- */
-const GY=230;
-function pole(x,top=30,steel=false){return `<polygon class="${steel?'s-steel':'s-pole'}" points="${x-5},${GY} ${x+5},${GY} ${x+3},${top} ${x-3},${top}"/><rect class="s-grout" x="${x-10}" y="${GY}" width="20" height="30"/><line x1="${x}" y1="${GY}" x2="${x}" y2="${GY+26}" stroke="var(--muted)" stroke-dasharray="2 2"/>`}
-function ground(){return `<line class="s-ground" x1="6" y1="${GY}" x2="254" y2="${GY}"/>`}
-function pin(x,y,s=1){return `<rect class="s-ins" x="${x-3.5*s}" y="${y-11*s}" width="${7*s}" height="${11*s}" rx="2"/><line x1="${x-5*s}" y1="${y-7*s}" x2="${x+5*s}" y2="${y-7*s}" stroke="var(--ink)" stroke-width=".8"/><line x1="${x-5*s}" y1="${y-3.5*s}" x2="${x+5*s}" y2="${y-3.5*s}" stroke="var(--ink)" stroke-width=".8"/><circle cx="${x}" cy="${y-12*s}" r="1.6" class="s-acc"/>`}
-function dplate(x,y=165){return `<rect class="s-dp" x="${x-6}" y="${y}" width="12" height="9"/>`}
-function barbs(x){let s="";for(let i=0;i<4;i++){s+=`<path class="s-barb" d="M${x-9} ${188+i*4} l18 2"/>`}return s}
-function stay(x,y,dir=1){const gx=x+dir*78;return `<line class="s-stay" x1="${x}" y1="${y}" x2="${gx}" y2="${GY}"/><rect class="s-ins" x="${x+dir*30-4}" y="${y+(GY-y)*0.38-3}" width="8" height="6" rx="3"/><line x1="${gx}" y1="${GY}" x2="${gx+dir*6}" y2="${GY+22}" stroke="var(--muted)" stroke-width="2"/><rect class="s-grout" x="${gx+dir*6-8}" y="${GY+18}" width="16" height="8"/>`}
-function earthL(x,dir=-1,top=60){const ex=x+dir*22;return `<path class="s-earth" d="M${x+dir*4} ${top} L${x+dir*4} ${GY-6} L${ex} ${GY-6} L${ex} ${GY+18}"/><rect fill="var(--earth)" x="${ex-2}" y="${GY+2}" width="4" height="24"/><path class="s-earth" d="M${ex-8} ${GY+28} h16 M${ex-5} ${GY+32} h10 M${ex-2} ${GY+36} h4"/>`}
-function lbl(x,y,t,b){return `<text class="${b?'s-tb':'s-t'}" x="${x}" y="${y}">${t}</text>`}
-function discString(x,y,dir,n=3,len=110){let s="";for(let i=0;i<n;i++){s+=`<ellipse class="s-disc" cx="${x+dir*(6+i*5)}" cy="${y}" rx="2.4" ry="5"/>`}const e=6+n*5;s+=`<rect class="s-arm" x="${dir>0?x+e-6:x-e}" y="${y-2}" width="6" height="4"/>`;s+=`<line class="s-cond" x1="${x+dir*e}" y1="${y}" x2="${x+dir*len}" y2="${y+6}"/>`;return s}
-function vArm(x,y,w=52){return `<path stroke="var(--steel)" stroke-width="4.5" fill="none" d="M${x-w} ${y} L${x} ${y+20} L${x+w} ${y}"/>`+pin(x-w+4,y)+pin(x+w-4,y)}
-function topBr(x,y){return `<rect class="s-arm" x="${x-3}" y="${y}" width="6" height="12"/>`+pin(x,y)}
-function acdS(x,y=150){return `<path stroke="var(--danger)" stroke-width="1" fill="none" d="M${x-8} ${y} h16 M${x-8} ${y+16} h16 M${x-6} ${y} v-4 M${x} ${y} v-4 M${x+6} ${y} v-4 M${x-6} ${y+16} v4 M${x} ${y+16} v4 M${x+6} ${y+16} v4"/>`}
-function svg(inner,vb="0 0 260 270"){return `<svg viewBox="${vb}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Structure sketch">${inner}</svg>`}
-function shk(x,y){return `<circle class="s-ins" cx="${x}" cy="${y}" r="4"/>`}
-function knob(x,y){return `<rect fill="var(--earth)" x="${x-3}" y="${y-3}" width="6" height="6" rx="1"/>`}
-function dpFrame(a,b,top=36){return pole(a,top)+pole(b,top)+`<rect class="s-arm" x="${a-14}" y="${top+12}" width="${b-a+28}" height="5"/><path stroke="var(--steel)" stroke-width="2.5" fill="none" d="M${a} 96 H${b} M${a} 96 L${b} 140 M${b} 96 L${a} 140 M${a} 140 H${b}"/>`}
-function draw(kind){
- const x=130;let s="";
- switch(kind){
- case"stay":s=ground()+pole(70,36)+stay(70,60,1)+lbl(116,100,"stay wire 7/3.15",1)+lbl(100,132,"guy insulator (C)",1)+lbl(140,GY+38,"stay pit 1:2:4");break;
- case"earth":s=ground()+pole(x,36)+vArm(x,50,40)+earthL(x,-1,56)+lbl(16,140,"8 SWG lead",1)+lbl(150,GY+22,"spike / coil / pipe",1);break;
- case"strain":{s=pole(40,10)+`<rect class="s-arm" x="44" y="96" width="14" height="8"/>`+lbl(30,88,"strap")+`<line stroke="var(--ink)" x1="58" y1="100" x2="72" y2="100"/>`;for(let i=0;i<1;i++)s+=`<ellipse class="s-disc" cx="86" cy="100" rx="7" ry="22"/>`;
-  s+=`<path stroke="var(--ink)" fill="none" d="M93 100 h16"/><rect class="s-box" x="109" y="92" width="34" height="16" rx="3"/><line class="s-cond" x1="143" y1="100" x2="250" y2="104"/>`+lbl(70,138,"disc 45 kN")+lbl(102,84,"strain clamp")+lbl(160,96,"conductor")+lbl(30,180,"strap + bolt + cotter pins = hardware",1);return svg(s,"0 0 260 200")}
- case"fdnN":s=ground()+pole(x,40)+`<rect fill="none" stroke="var(--muted)" stroke-dasharray="3 2" x="${x-26}" y="${GY}" width="52" height="34"/><rect fill="var(--conc)" x="${x-20}" y="${GY+30}" width="40" height="5"/>`;for(let i=0;i<12;i++)s+=`<circle cx="${x-20+(i%6)*8}" cy="${GY+8+Math.floor(i/6)*12}" r="3" fill="var(--line)" stroke="var(--muted)"/>`;s+=lbl(x+30,GY+14,"boulders + soil")+lbl(x+30,GY+34,"RCC base plate");return svg(s,"0 0 260 275");
- case"fdnC":s=ground()+pole(x,40)+`<rect fill="var(--conc)" opacity=".55" x="${x-26}" y="${GY}" width="52" height="34"/><rect fill="var(--conc)" x="${x-12}" y="${GY-10}" width="24" height="10"/>`+lbl(x+30,GY+16,"CC 1:2:4 ≈ 0.45 m³")+lbl(x+20,GY-14,"muffing");return svg(s,"0 0 260 275");
- case"abc":s=ground()+pole(x,70)+`<path class="s-cond" d="M10 96 Q70 104 ${x-8} 92 Q190 104 250 96" stroke-width="4"/><rect class="s-box" x="${x-12}" y="86" width="12" height="9" rx="2"/><circle cx="${x-4}" cy="84" r="3" fill="none" stroke="var(--ink)"/>`+dplate(x)+acdS(x)+earthL(x,1,90)+lbl(x+10,80,"suspension assembly");break;
- case"abcend":s=ground()+pole(x,70)+`<path class="s-cond" d="M10 100 Q60 108 ${x-14} 92" stroke-width="4"/><rect class="s-box" x="${x-16}" y="87" width="10" height="9" rx="2"/>`+stay(x,90,1)+dplate(x)+acdS(x)+earthL(x,-1,92)+lbl(12,84,"anchoring assembly");break;
- case"abctap":s=ground()+pole(x,70)+`<path class="s-cond" d="M10 96 Q70 104 ${x-8} 92 Q190 104 250 96" stroke-width="4"/><path class="s-cond" d="M${x+6} 110 Q${x+60} 122 ${x+110} 150" stroke-width="3.5"/><rect class="s-box" x="${x+2}" y="105" width="10" height="9" rx="2"/>`;[0,1,2,3].forEach(i=>s+=`<rect fill="var(--accent)" x="${x+18+i*6}" y="100" width="4" height="7"/>`);s+=stay(x,110,-1)+dplate(x)+lbl(x+16,94,"IPCs")+lbl(x+50,140,"branch ABC");break;
- case"lt1v":s=ground()+pole(x,70)+`<rect class="s-arm" x="${x+4}" y="78" width="16" height="34"/>`+shk(x+24,86)+shk(x+24,104)+`<line class="s-cond" x1="10" y1="86" x2="250" y2="86"/><line class="s-cond" x1="10" y1="104" x2="250" y2="104"/>`+dplate(x)+acdS(x)+earthL(x,-1,80)+lbl(x+34,82,"shackles 300 c/c");break;
- case"lt1vd":s=ground()+pole(x,70)+`<rect class="s-arm" x="${x-20}" y="78" width="16" height="34"/>`+shk(x-24,86)+shk(x-24,104)+`<line class="s-cond" x1="10" y1="88" x2="${x-28}" y2="86"/><line class="s-cond" x1="10" y1="106" x2="${x-28}" y2="104"/>`+stay(x,96,1)+dplate(x)+acdS(x)+earthL(x,-1,80);break;
- case"lt3h":s=ground()+pole(x,64)+`<rect class="s-arm" x="${x-44}" y="76" width="88" height="5"/>`+pin(x-38,76)+pin(x,76)+pin(x+38,76)+knob(x+8,104)+lbl(x+14,108,"earth knob (N)")+dplate(x)+acdS(x)+earthL(x,-1,80)+lbl(x+10,GY-6,"PCC 7.5 m");break;
- case"lt3v":s=ground()+pole(x,64)+shk(x+10,76)+shk(x+10,94)+shk(x+10,112)+knob(x+8,130)+lbl(x+18,80,"R")+lbl(x+18,98,"Y")+lbl(x+18,116,"B")+lbl(x+16,134,"N (earth knob)")+dplate(x)+acdS(x)+earthL(x,-1,80);break;
- case"lt3vd":s=ground()+pole(x,64);[76,94,112,130].forEach(y=>{s+=shk(x-10,y)+`<line class="s-cond" x1="10" y1="${y+3}" x2="${x-14}" y2="${y}"/>`});s+=stay(x,100,1)+dplate(x)+acdS(x)+earthL(x,-1,80);break;
- case"svc":s=ground()+pole(40,60)+`<rect class="s-box" x="180" y="120" width="70" height="110"/><path fill="none" stroke="var(--ink)" d="M180 120 l35 -26 l35 26"/><line stroke="var(--muted)" stroke-width="2" x1="190" y1="120" x2="190" y2="86"/><path class="s-cond" d="M44 76 Q115 104 190 90"/><path stroke="var(--muted)" stroke-dasharray="3 2" fill="none" d="M44 72 Q115 100 190 86"/><rect class="s-box" x="200" y="150" width="20" height="26"/>`+lbl(70,74,"service cable + 3.15 mm bearer")+lbl(198,190,"meter, MCB")+lbl(60,120,"≤ 35 m");break;
- case"varm11":case"varm11s":s=ground()+pole(x,30)+topBr(x,30)+vArm(x,58)+dplate(x)+acdS(x)+barbs(x)+earthL(x,-1,60)+lbl(x+10,GY-6,"PCC 8 m")+lbl(x+44,76,"V-arm 1070");if(kind==="varm11s")s+=stay(x,70,1);break;
- case"ang":s=ground()+pole(x,30);[48,66,84].forEach(y=>{s+=discString(x-5,y,-1,1,100)+discString(x+5,y,1,1,100)+`<path class="s-cond" d="M${x-16} ${y} Q${x} ${y+12} ${x+16} ${y}"/>`});s+=stay(x,70,1)+dplate(x,170)+acdS(x,190)+earthL(x,-1,90)+lbl(12,40,"strings 900 apart, no arm");break;
- case"dpdead":{const a=100,b=160;s=ground()+dpFrame(a,b);[a+8,x,b-8].forEach(px=>{s+=`<ellipse class="s-disc" cx="${px}" cy="62" rx="2.4" ry="5"/><line class="s-cond" x1="${px}" y1="67" x2="${px-60}" y2="80"/>`});s+=`<line class="s-stay" x1="${a}" y1="60" x2="${a+90}" y2="${GY}"/><line class="s-stay" x1="${b}" y1="60" x2="${b+70}" y2="${GY}"/>`+dplate(a)+earthL(a,-1)+lbl(10,28,"← line   dead-end on DP, 2 guys");break}
- case"dp":{const a=100,b=160;s=ground()+dpFrame(a,b)+pin(a+10,48)+pin(x,48)+pin(b-10,48);[54,64,74].forEach(y=>{s+=discString(a-14,y,-1,1,80)+discString(b+14,y,1,1,80)});s+=`<line class="s-stay" x1="${a}" y1="60" x2="22" y2="${GY}"/><line class="s-stay" x1="${b}" y1="60" x2="238" y2="${GY}"/>`+dplate(a)+earthL(a,-1)+lbl(a-6,26,"DP 1500 c/c, 4 stays");break}
- case"dpsw":{const a=95,b=165;s=ground()+dpFrame(a,b);[a+12,x,b-12].forEach(px=>s+=`<rect class="s-box" x="${px-3}" y="64" width="6" height="14" rx="1"/><line stroke="var(--ink)" x1="${px}" y1="64" x2="${px+8}" y2="58"/>`);s+=`<line stroke="var(--muted)" stroke-width="2" x1="${b+6}" y1="80" x2="${b+6}" y2="${GY-20}"/><rect class="s-box" x="${b}" y="${GY-26}" width="12" height="8"/>`+lbl(b+16,GY-20,"handle (earthed)")+lbl(a-10,26,"AB switch on DP 2440 c/c")+dplate(a)+earthL(a,-1);break}
- case"tapsp":{const a=95,b=165;s=ground()+dpFrame(a,b)+`<line class="s-cond" x1="10" y1="40" x2="250" y2="40"/>`;[a+12,x,b-12].forEach(px=>{s+=`<line class="s-cond" x1="${px}" y1="40" x2="${px}" y2="62"/><rect class="s-box" x="${px-3}" y="62" width="6" height="14" rx="1"/><line class="s-cond" x1="${px}" y1="80" x2="${px+60}" y2="120"/>`});s+=lbl(10,34,"main 11 kV line")+lbl(b+20,112,"spur ≤50 m to 1st pole")+stay(b,90,1)+earthL(a,-1);break}
- case"comp":s=ground()+pole(x,30)+topBr(x,30)+vArm(x,58);[100,114,128,142].forEach((y,i)=>s+=shk(x+10,y)+`<line class="s-cond" x1="10" y1="${y}" x2="250" y2="${y}" stroke-width=".8"/>`);s+=lbl(x+18,96,"LT, 800 below V-arm")+dplate(x,170)+acdS(x,190)+earthL(x,-1,60);break;
- case"tap":s=ground()+pole(x,36)+`<line class="s-cond" x1="10" y1="40" x2="250" y2="40"/><rect class="s-arm" x="${x-44}" y="78" width="88" height="5"/>`;[-30,0,30].forEach(d=>{s+=`<line class="s-cond" x1="${x+d}" y1="40" x2="${x+d}" y2="62"/><rect class="s-box" x="${x+d-3}" y="62" width="6" height="16" rx="1"/><line class="s-cond" x1="${x+d}" y1="83" x2="${x+d+40}" y2="130"/>`});s+=lbl(10,34,"main 11 kV line")+lbl(x+48,74,"DO set",1)+earthL(x,-1);break;
- case"dt1p":s=ground()+pole(x,24)+`<rect class="s-arm" x="${x-36}" y="34" width="72" height="5"/>`;[-28,0,28].forEach(d=>s+=`<rect class="s-box" x="${x+d-3}" y="22" width="6" height="12" rx="1"/>`);s+=`<rect class="s-arm" x="${x-30}" y="66" width="60" height="4"/>`;[-20,0,20].forEach(d=>s+=`<rect class="s-box" x="${x+d-3}" y="70" width="6" height="14" rx="1"/>`);
-  s+=`<rect class="s-arm" x="${x}" y="150" width="44" height="5"/><rect class="s-dtr" x="${x+6}" y="118" width="40" height="32" rx="3"/><text class="s-tb" x="${x+26}" y="138" text-anchor="middle">25</text><rect class="s-box" x="${x-30}" y="168" width="22" height="26"/>`+lbl(x+40,30,"LAs")+lbl(x+34,82,"DO")+lbl(x-60,206,"LT DB")+stay(x,40,-1)+lbl(150,GY+38,"3 earth pits");break;
- case"dtr":{const a=95,b=165;s=ground()+pole(a,36)+pole(b,36)+`<rect class="s-arm" x="${a-14}" y="46" width="${b-a+28}" height="5"/><rect class="s-arm" x="${a-14}" y="78" width="${b-a+28}" height="5"/><rect class="s-arm" x="${a-6}" y="148" width="${b-a+12}" height="5"/>`;
-  [a+12,x,b-12].forEach(px=>{s+=`<rect class="s-box" x="${px-3}" y="60" width="6" height="16" rx="1"/><line class="s-cond" x1="${px}" y1="83" x2="${px}" y2="110"/>`});
-  s+=`<rect class="s-dtr" x="${a+10}" y="110" width="${b-a-20}" height="38" rx="3"/><text class="s-tb" x="${x}" y="133" text-anchor="middle">DT</text>`+lbl(b+10,70,"HG / AB")+lbl(b+10,54,"dead-end + LA");
-  s+=`<rect class="s-box" x="${b+12}" y="170" width="22" height="28"/>`+lbl(b+6,210,"LT DB")+`<path class="s-cond" d="M${b-14} 140 Q${b+6} 150 ${b+20} 170"/>`;
-  [60,130,200].forEach((ex,i)=>s+=`<rect fill="var(--earth)" x="${ex-2}" y="${GY+4}" width="4" height="22"/>`+lbl(ex-14,GY+38,["neutral","LA","body"][i]));s+=dplate(a,175);break}
- case"dt1ph":s=ground()+pole(x,30)+topBr(x,30)+`<rect class="s-box" x="${x+8}" y="52" width="6" height="16" rx="1"/><rect class="s-dtr" x="${x+6}" y="110" width="34" height="40" rx="10"/><text class="s-tb" x="${x+23}" y="134" text-anchor="middle">1φ</text>`+shk(x-10,90)+lbl(x+18,60,"cut-out")+lbl(x-60,94,"neutral")+lbl(x+44,130,"16 kVA")+earthL(x,-1,100);break;
- case"varm33":s=ground()+pole(x,22,true)+topBr(x,20)+vArm(x,46,62)+dplate(x)+acdS(x)+barbs(x)+earthL(x,-1,60)+lbl(x+10,GY-6,"33 kV support")+lbl(x+30,82,"V-arm 1525");break;
- case"cut33":case"dead33":s=ground()+pole(x,22,true)+`<rect class="s-arm" x="${x-6}" y="40" width="12" height="6"/>`;[36,46,56].forEach(y=>{s+=discString(x-5,y,-1,3);if(kind==="cut33")s+=discString(x+5,y,1,3)});if(kind==="cut33"){s+=stay(x,52,-1)}s+=stay(x,52,1)+earthL(x,-1)+dplate(x)+barbs(x)+lbl(12,22,"3 × 45 kN B&S per string");break;
- case"guard":{const a=40,b=220;s=ground()+pole(a,36)+pole(b,36)+`<line class="s-cond" x1="${a}" y1="44" x2="${b}" y2="44"/><line class="s-cond" x1="${a}" y1="52" x2="${b}" y2="52"/><path stroke="var(--earth)" stroke-width="1" fill="none" d="M${a} 78 Q130 92 ${b} 78 M${a} 90 Q130 104 ${b} 90"/>`;for(let i=0;i<9;i++){const gx=a+20+i*18;s+=`<line stroke="var(--earth)" stroke-width=".8" x1="${gx}" y1="${80+(i>4?8-i:i)*1.2}" x2="${gx}" y2="${94+(i>4?8-i:i)*1.2}"/>`}
-  s+=`<rect fill="var(--line)" x="70" y="${GY-14}" width="120" height="14"/>`+lbl(108,GY-4,"ROAD")+lbl(a+30,74,"guard wires 4 mm + lacing",1)+lbl(90,GY-22,"≥ 6.1 m")+earthL(a,-1)+earthL(b,1);break}
- case"rail":{const a=40,b=220;s=ground()+pole(a,40)+pole(b,40)+`<path class="s-cond" stroke-width="2" d="M${a+6} 60 V${GY+20} H${b-6} V60"/><rect fill="none" stroke="var(--muted)" stroke-dasharray="3 2" x="80" y="${GY+12}" width="100" height="14"/>`;for(let i=0;i<5;i++)s+=`<rect fill="var(--steel)" x="${90+i*20}" y="${GY-4}" width="10" height="4"/>`;s+=lbl(96,GY-10,"TRACKS")+lbl(84,GY+40,"GI pipe ≥1 m deep")+lbl(a-30,30,"AB-switch DP")+lbl(b-50,30,"cable-end DP");return svg(s,"0 0 260 280")}
- case"pss":{const st=["33 kV line","ISO","VCB","CT","PTR","11 kV panels","Feeder DP"];let o="";st.forEach((t,i)=>{const row=i<4?0:1,col=row?i-4:i,xx=row?20+col*80:12+col*62,yy=row?140:40,w=row?70:52;
-   o+=`<rect class="${t==='PTR'?'s-dtr':'s-box'}" x="${xx}" y="${yy}" width="${w}" height="34" rx="3"/><text class="s-tb" x="${xx+w/2}" y="${yy+20}" text-anchor="middle" style="font-size:7.5px">${t}</text>`});
-   o+=`<path class="s-cond" d="M64 57 H74 M126 57 H136 M188 57 H198 M224 74 V110 H55 V140 M90 157 H100 M170 157 H180"/>`+lbl(12,28,"Type A: 1 × 3.15 MVA")+lbl(12,206,"+ station transformer, C&R, battery,")+lbl(12,218,"earth mat ≤ 2 Ω, fencing");return svg(o,"0 0 260 230")}
- case"ptr":{const st=["33 kV bus","Isolator","VCB","CT","LA","PTR","LA","11 kV cable","Incomer"];let o="";st.forEach((t,i)=>{const row=i<5?0:1,col=row?i-5:i,xx=row?20+col*58:12+col*48,yy=row?150:40;
-   const w=t==="PTR"?50:40;o+=`<rect class="${t==='PTR'?'s-dtr':'s-box'}" x="${xx}" y="${yy}" width="${w}" height="34" rx="3"/><text class="s-tb" x="${xx+w/2}" y="${yy+20}" text-anchor="middle" style="font-size:7.5px">${t}</text>`;
-   if(i<4)o+=`<line class="s-cond" x1="${xx+40}" y1="${yy+17}" x2="${xx+48}" y2="${yy+17}"/>`;if(i>=5&&i<8)o+=`<line class="s-cond" x1="${xx+w}" y1="${yy+17}" x2="${xx+58}" y2="${yy+17}"/>`});
-   o+=`<path class="s-cond" d="M224 74 V110 H45 V150"/>`+lbl(12,28,"33 kV side")+lbl(20,140,"11 kV side")+lbl(12,214,"+ C&amp;R panel, control cables,")+lbl(12,226,"earth mat, foundations");return svg(o,"0 0 260 240")}
- }
- return svg(s);
-}
+/* ---------- SVG sketches: labelled drawings ----------
+   Drawing lives in x 6..196, labels in a column from LX with dashed leaders.
+   In the quiz modes the labels become numbers so the sketch doesn't give answers away. */
+const SW=374,LX=208;let QUIZ=false,SKN=0;
+function B(gy=300){const o={g:"",co:[],gy};o.add=s=>{o.g+=s;return o};o.c=(p,t,ty)=>{o.co.push({px:p[0],py:p[1],t,ty:ty==null?p[1]:ty});return o};return o}
+function fin(o,H){
+ const lh=13,L=o.co.slice().sort((a,b)=>a.ty-b.ty||a.py-b.py);let y=6;
+ L.forEach(c=>{c.lines=c.t.split("|");c.h=c.lines.length*lh;c.y=Math.max(c.ty-c.h/2,y);y=c.y+c.h+6});
+ let lim=H-4;for(let i=L.length-1;i>=0;i--){const c=L[i];if(c.y+c.h>lim)c.y=lim-c.h;lim=c.y-6}
+ let t="";L.forEach((c,i)=>{const my=c.y+c.h/2;
+  t+=`<path class="s-ld" d="M${c.px} ${c.py} L${LX-14} ${my} H${LX-4}"/><circle class="s-ldot" cx="${c.px}" cy="${c.py}" r="2.3"/>`;
+  if(QUIZ)t+=`<circle class="s-num" cx="${LX+7}" cy="${my}" r="8"/><text class="s-numt" x="${LX+7}" y="${my+3.8}" text-anchor="middle">${i+1}</text>`;
+  else c.lines.forEach((ln,j)=>{const b=ln[0]==="*";t+=`<text class="${b?'s-tb':'s-t'}" x="${LX}" y="${c.y+10+j*lh}">${b?ln.slice(1):ln}</text>`})});
+ return `<svg viewBox="0 0 ${SW} ${H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Labelled structure sketch">${o.g}${t}</svg>`}
+const mid=(a,b,t=.5)=>[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t];
+
+/* ---- parts ---- */
+function gnd(o,x1=4,x2=200){let s=`<line class="s-ground" x1="${x1}" y1="${o.gy}" x2="${x2}" y2="${o.gy}"/>`;for(let x=x1+6;x<x2;x+=11)s+=`<line class="s-hatch" x1="${x}" y1="${o.gy+1.5}" x2="${x-5}" y2="${o.gy+7}"/>`;o.add(s)}
+function pl(o,x,top,kind){const g=o.gy;
+ if(kind==="steel")return o.add(`<rect class="s-steel" x="${x-6}" y="${top}" width="12" height="${g-top}"/><line class="s-web" x1="${x}" y1="${top+2}" x2="${x}" y2="${g-2}"/><rect class="s-bury" x="${x-6}" y="${g}" width="12" height="44"/>`);
+ o.add(`<polygon class="s-pole" points="${x-7},${g} ${x+7},${g} ${x+4},${top} ${x-4},${top}"/><polygon class="s-bury" points="${x-7},${g} ${x+7},${g} ${x+7.5},${g+42} ${x-7.5},${g+42}"/>`)}
+function fdn(o,x,kind){const g=o.gy;let s="";
+ if(kind==="N"){s+=`<rect class="s-pit" x="${x-22}" y="${g}" width="44" height="50"/>`;for(let i=0;i<2;i++)[-16,-11,11,16].forEach(d=>s+=`<circle class="s-boulder" cx="${x+d}" cy="${g+12+i*16}" r="3.4"/>`);s+=`<rect class="s-baseplate" x="${x-16}" y="${g+44}" width="32" height="5"/>`}
+ else{s+=`<rect class="s-conc" x="${x-22}" y="${g}" width="44" height="50"/><rect class="s-conc" x="${x-13}" y="${g-12}" width="26" height="12"/>`;}
+ o.add(s);return kind==="N"?{bould:[x+16,g+14],plate:[x+12,g+46]}:{conc:[x+18,g+30],muff:[x+11,g-6]}}
+function pcl(o,x,y,w=9){o.add(`<rect class="s-clamp" x="${x-w-2}" y="${y-3}" width="${2*w+4}" height="6" rx="1"/><circle class="s-bolt" cx="${x-w-1}" cy="${y}" r="2.3"/><circle class="s-bolt" cx="${x+w+1}" cy="${y}" r="2.3"/>`);return [x+w+1,y]}
+function pin(o,x,y,s=1){const r=(d)=>(7.5-d*.17)*s;o.add(`<line class="s-pinst" x1="${x}" y1="${y}" x2="${x}" y2="${y-5*s}"/><path class="s-ins" d="M${x-3.5*s} ${y-4*s} L${x-2.6*s} ${y-19*s} L${x+2.6*s} ${y-19*s} L${x+3.5*s} ${y-4*s}Z"/>`+[6,11,16].map(d=>`<ellipse class="s-ins" cx="${x}" cy="${y-d*s}" rx="${r(d)}" ry="${1.9*s}"/>`).join("")+`<circle class="s-condpt" cx="${x}" cy="${y-20.5*s}" r="2.3"/>`);return {ins:[x+5*s,y-12*s],pin:[x,y-2],top:[x,y-20.5*s]}}
+function varm(o,x,y,w=58,s=1){o.add(`<path class="s-armV" d="M${x-w} ${y} L${x-7} ${y+22} H${x+7} L${x+w} ${y}"/>`);const cl=pcl(o,x,y+22);const a=pin(o,x-w+5,y-2,s),b=pin(o,x+w-5,y-2,s);return {arm:[x+w*.55,y+11],clamp:cl,pinL:a,pinR:b}}
+function topbr(o,x,y,s=1){o.add(`<rect class="s-armfill" x="${x-2.5}" y="${y}" width="5" height="20"/>`);pcl(o,x,y+15,7);return {br:[x+3,y+8],pin:pin(o,x,y,s)}}
+function chArm(o,x1,x2,y,h=6){o.add(`<rect class="s-armfill" x="${x1}" y="${y}" width="${x2-x1}" height="${h}"/><line class="s-web" x1="${x1+2}" y1="${y+h/2}" x2="${x2-2}" y2="${y+h/2}"/>`);return [x2-14,y+h/2]}
+function dstr(o,x,y,dir,n=1,len=80,sag=8){let s=`<rect class="s-hw" x="${dir>0?x:x-12}" y="${y-2.5}" width="12" height="5" rx="1"/>`;let cx=x+dir*16;const d0=[cx,y];
+ for(let i=0;i<n;i++){s+=`<ellipse class="s-disc" cx="${cx}" cy="${y}" rx="3.2" ry="9"/>`;cx+=dir*7.5}
+ const t0=cx-dir*3;s+=`<rect class="s-tc" x="${dir>0?t0+1:t0-19}" y="${y-4}" width="18" height="8" rx="3"/>`;const cs=t0+dir*19;
+ s+=`<path class="s-cond" d="M${cs} ${y} Q${cs+dir*len*.5} ${y+sag} ${cs+dir*len} ${y+sag*.6}"/>`;o.add(s);
+ return {hw:[x+dir*6,y+2],disc:[d0[0],d0[1]-7],tc:[t0+dir*10,y+4],end:[cs,y],cond:[cs+dir*len*.7,y+sag*.85]}}
+function stay(o,x,y,dir,ax,opt={}){
+ const g=o.gy,x0=x+dir*10,dx=ax-x0,dy=g-y,at=t=>[x0+dx*t,y+dy*t],ang=Math.atan2(dy,dx)*180/Math.PI;
+ const cl=pcl(o,x,y);const it=opt.it??.4,ins=at(it),tb=at(.9),pe=at(1.2);const n=opt.guys||1;
+ const nx=-dy/Math.hypot(dx,dy)*dir,ny=dx/Math.hypot(dx,dy)*dir;
+ let s=`<line class="s-stw" x1="${x0}" y1="${y}" x2="${ins[0]-dx*.035}" y2="${ins[1]-dy*.035}"/>`;
+ const tl=at(.13);s+=`<line class="s-stw" x1="${x0+nx*2.6}" y1="${y+ny*2.6}" x2="${tl[0]+nx*2.6}" y2="${tl[1]+ny*2.6}"/>`;
+ [.035,.07,.105].forEach(t=>{const p=at(t);s+=`<line class="s-bind" x1="${p[0]-nx*1.5}" y1="${p[1]-ny*1.5}" x2="${p[0]+nx*4.3}" y2="${p[1]+ny*4.3}"/>`});
+ const egg=(p)=>`<g transform="translate(${p[0].toFixed(1)} ${p[1].toFixed(1)}) rotate(${(ang-90).toFixed(1)})"><ellipse class="s-guy" rx="6.5" ry="9.5"/><ellipse class="s-loop" cx="-1.6" cy="-4.5" rx="3" ry="6.5"/><ellipse class="s-loop" cx="1.6" cy="4.5" rx="3" ry="6.5"/></g>`;
+ s+=egg(ins);let last=ins;if(n===2){const i2=at(it+.14);s+=`<line class="s-stw" x1="${ins[0]+dx*.035}" y1="${ins[1]+dy*.035}" x2="${i2[0]-dx*.035}" y2="${i2[1]-dy*.035}"/>`+egg(i2);last=i2}
+ s+=`<line class="s-stw" x1="${last[0]+dx*.035}" y1="${last[1]+dy*.035}" x2="${tb[0]-dx*.04}" y2="${tb[1]-dy*.04}"/>`;
+ s+=`<g transform="translate(${tb[0].toFixed(1)} ${tb[1].toFixed(1)}) rotate(${(ang-90).toFixed(1)})"><rect class="s-turn" x="-3.5" y="-9" width="7" height="18" rx="3"/><line class="s-web" x1="0" y1="-7" x2="0" y2="7"/></g>`;
+ s+=`<line class="s-rod" x1="${tb[0]+dx*.04}" y1="${tb[1]+dy*.04}" x2="${pe[0]}" y2="${pe[1]}"/>`;
+ s+=`<rect class="s-pit" x="${pe[0]-15}" y="${pe[1]-15}" width="30" height="30"/><g transform="translate(${pe[0].toFixed(1)} ${pe[1].toFixed(1)}) rotate(${ang.toFixed(1)})"><rect class="s-plate" x="-2.2" y="-11" width="4.4" height="22"/></g>`;
+ o.add(s);return {clamp:cl,bind:at(.07),ins,ins2:n===2?at(it+.14):null,wire:mid(last,tb,.5),tb,rod:at(1.06),plate:pe,pit:[pe[0]+(dir>0?13:-13),pe[1]+8]}}
+function earth(o,x,dir,top,kind="coil"){const g=o.gy,lx=x+dir*7.5,ex=x+dir*30;
+ let s=`<path class="s-earth" d="M${lx} ${top} V${g-14} L${ex} ${g-4} V${g+14}"/>`;
+ for(let yy=top+26;yy<g-30;yy+=46)s+=`<rect class="s-eclip" x="${lx-3}" y="${yy}" width="6" height="3"/>`;
+ if(kind==="pipe"){s+=`<rect class="s-epipe" x="${ex-3.5}" y="${g+12}" width="7" height="46"/><rect class="s-pit" x="${ex-13}" y="${g-1}" width="26" height="14"/>`}
+ else if(kind==="spike"){s+=`<path class="s-epipe" d="M${ex-2.5} ${g+12} V${g+48} L${ex} ${g+56} L${ex+2.5} ${g+48} V${g+12}Z"/>`}
+ else{let p=`M${ex} ${g+14}`;for(let i=0;i<7;i++)p+=` l${i%2?-8:8} 5`;s+=`<path class="s-earth" d="${p}"/>`}
+ o.add(s);return {lead:[lx,top+(g-top)*.45],el:[ex+(kind==="pipe"?3.5:3),g+34],top:[lx,top]}}
+function dplate(o,x,y){o.add(`<rect class="s-dplate" x="${x-9}" y="${y}" width="18" height="13" rx="1.5"/><path class="s-bolt2" d="M${x+2} ${y+2.5} L${x-2} ${y+7} H${x+1.5} L${x-1.5} ${y+11}"/>`);return [x+9,y+6]}
+function acd(o,x,y,h=28){let p=`M${x-11} ${y}`;for(let i=0;i<8;i++)p+=` L${x+(i%2?-11:11)} ${y+(i+1)*h/8}`;let s=`<path class="s-barb" d="${p}"/>`;for(let i=0;i<5;i++){const yy=y+3+i*h/5;s+=`<path class="s-barb" d="M${x+9} ${yy} l4 -3 M${x-9} ${yy+2} l-4 3"/>`}o.add(s);return [x+12,y+h/2]}
+function shk(o,x,y,dir=1,reach=18){const sx=x+dir*reach;o.add(`<path class="s-strap" d="M${x+dir*5} ${y-8} H${sx+dir*8} V${y+8} H${x+dir*5}"/><rect class="s-ins" x="${sx-5.5}" y="${y-7}" width="11" height="14" rx="4"/><line class="s-web" x1="${sx-5.5}" y1="${y}" x2="${sx+5.5}" y2="${y}"/>`);return {shk:[sx+dir*5,y-4],ucl:[sx+dir*8,y+6],pt:[sx,y]}}
+function knob(o,x,y,dir=1){const kx=x+dir*12;o.add(`<line class="s-strapl" x1="${x+dir*5}" y1="${y}" x2="${kx}" y2="${y}"/><rect class="s-knob" x="${kx-4}" y="${y-4}" width="8" height="8" rx="2"/>`);return [kx+dir*4,y]}
+function dtr(o,cx,top,w,h,txt){let s=`<rect class="s-dtr" x="${cx-w/2}" y="${top}" width="${w}" height="${h}" rx="3"/>`;
+ for(let i=0;i<4;i++){s+=`<line class="s-fin" x1="${cx-w/2-4}" y1="${top+8+i*(h-16)/3}" x2="${cx-w/2}" y2="${top+8+i*(h-16)/3}"/><line class="s-fin" x1="${cx+w/2}" y1="${top+8+i*(h-16)/3}" x2="${cx+w/2+4}" y2="${top+8+i*(h-16)/3}"/>`}
+ [-w/3.2,0,w/3.2].forEach(d=>s+=`<rect class="s-ins" x="${cx+d-2.5}" y="${top-13}" width="5" height="13" rx="1.5"/><line class="s-web" x1="${cx+d-4}" y1="${top-5}" x2="${cx+d+4}" y2="${top-5}"/><line class="s-web" x1="${cx+d-4}" y1="${top-9}" x2="${cx+d+4}" y2="${top-9}"/>`);
+ s+=`<text class="s-in" x="${cx}" y="${top+h/2+4}" text-anchor="middle">${txt}</text>`;o.add(s);return {tank:[cx+w/2+4,top+h*.6],ht:[cx+w/3.2+3,top-10],side:[cx-w/2-4,top+h*.4]}}
+function dofuse(o,x,y){o.add(`<rect class="s-ins" x="${x-3}" y="${y}" width="6" height="16" rx="1.5"/><line class="s-web" x1="${x-5}" y1="${y+5}" x2="${x+5}" y2="${y+5}"/><line class="s-web" x1="${x-5}" y1="${y+10}" x2="${x+5}" y2="${y+10}"/><line class="s-tube" x1="${x+7}" y1="${y-6}" x2="${x+2}" y2="${y+22}"/><circle class="s-condpt" cx="${x+7}" cy="${y-7}" r="1.8"/>`);return {tube:[x+6,y+2],top:[x+7,y-7],bot:[x+2,y+22]}}
+function la(o,x,y){o.add(`<rect class="s-la" x="${x-3.5}" y="${y}" width="7" height="18" rx="2"/>`+[4,9,14].map(d=>`<line class="s-web" x1="${x-5.5}" y1="${y+d}" x2="${x+5.5}" y2="${y+d}"/>`).join("")+`<circle class="s-condpt" cx="${x}" cy="${y-2}" r="1.8"/>`);return {la:[x+5,y+8],bot:[x,y+18],top:[x,y-2]}}
+function abs(o,x1,x2,y){let s="";const n=3,st=(x2-x1)/(n-1);for(let i=0;i<n;i++){const px=x1+i*st;s+=`<rect class="s-ins" x="${px-6}" y="${y-14}" width="4.5" height="14" rx="1.2"/><rect class="s-ins" x="${px+2}" y="${y-14}" width="4.5" height="14" rx="1.2"/><line class="s-blade" x1="${px-4}" y1="${y-16}" x2="${px+9}" y2="${y-21}"/>`}o.add(s);return [x2+8,y-12]}
+function abc(o,d,w=4.5){o.add(`<path class="s-abc" style="stroke-width:${w}" d="${d}"/>`)}
+function bushing(o,x,y){o.add(`<rect class="s-ins" x="${x-3}" y="${y}" width="6" height="12" rx="1.5"/><line class="s-web" x1="${x-5}" y1="${y+4}" x2="${x+5}" y2="${y+4}"/><line class="s-web" x1="${x-5}" y1="${y+8}" x2="${x+5}" y2="${y+8}"/>`)}
+function box(o,x,y,w,h,t,cls="s-box"){o.add(`<rect class="${cls}" x="${x}" y="${y}" width="${w}" height="${h}" rx="3"/>`+(t?`<text class="s-in" x="${x+w/2}" y="${y+h/2+4}" text-anchor="middle">${t}</text>`:""));return [x+w,y+h/2]}
+const FIG={
+/* ===== building blocks ===== */
+stay(){const o=B(300);gnd(o);pl(o,46,30);const s=stay(o,46,88,1,150);
+ const id="skc"+(SKN++);
+ o.add(`<circle class="s-zoom" cx="46" cy="88" r="15"/><line class="s-zoomln" x1="58" y1="79" x2="94" y2="68"/>`);
+ o.add(`<defs><clipPath id="${id}"><circle cx="130" cy="56" r="40"/></clipPath></defs><circle class="s-inset" cx="130" cy="56" r="40"/><g clip-path="url(#${id})">
+ <rect class="s-pole" x="98" y="10" width="16" height="96"/><rect class="s-clamp" x="91" y="44" width="32" height="9" rx="1.5"/><rect class="s-clamp" x="122" y="45" width="19" height="7"/>
+ <circle class="s-bolt" cx="95" cy="48.5" r="3.4"/><circle class="s-bolt" cx="119" cy="48.5" r="3.4"/><circle class="s-hole" cx="136" cy="48.5" r="2.3"/>
+ <ellipse class="s-stwz" cx="136" cy="48.5" rx="7" ry="6"/><line class="s-stwz" x1="141" y1="52" x2="165" y2="104"/><line class="s-stwz" x1="143.8" y1="50.8" x2="153" y2="71"/>
+ <line class="s-bind" x1="141.1" y1="58.1" x2="147.4" y2="55.3"/><line class="s-bind" x1="143.6" y1="63.5" x2="149.9" y2="60.7"/><line class="s-bind" x1="146.2" y1="69" x2="152.5" y2="66.2"/></g>`);
+ o.c([119,48.5],"*Pole clamp 830|+ 2 bolts & nuts, 646");
+ o.c([148,62],"Wire looped through|the eye, tail bound|back with GI wire");
+ o.c(s.ins,"*Guy insulator 629|type C, loops interlinked");
+ o.c(s.wire,"*Stay wire 7/3.15, 651|≈10 kg incl. wraps");
+ o.c(s.tb,"Turnbuckle: tension|the wire last");
+ o.c(s.rod,"*Stay set 653: rod,|plate, turnbuckle");
+ o.c(s.pit,"Stay pit in CC 1:2:4|(stay grouting 428)");
+ return fin(o,372)},
+earth(){const o=B(300);gnd(o);pl(o,70,40);varm(o,70,62,48);const e=earth(o,70,1,86,"spike");
+ o.c(e.top,"Lead bonded to the|cross-arm clamp bolt");
+ o.c(e.lead,"*GI wire 8 SWG, 650|clipped down the pole");
+ o.c([e.el[0],e.el[1]+6],"*Spike earth: 20 mm GI|rod 2.5 m, with clamp");
+ o.c([70,320],"Pole earthed at every|support (QAM)");
+ return fin(o,372)},
+strain(){const o=B(400);const y=120;
+ o.add(`<rect class="s-pole" x="18" y="20" width="18" height="200"/><rect class="s-armfill" x="36" y="${y-5}" width="30" height="10"/><line class="s-web" x1="38" y1="${y}" x2="64" y2="${y}"/>`);
+ o.add(`<rect class="s-hw" x="62" y="${y-4}" width="14" height="8" rx="1.5"/><circle class="s-bolt" cx="69" cy="${y}" r="2.3"/><line class="s-rodp" x1="76" y1="${y}" x2="128" y2="${y}"/>`);
+ for(let i=0;i<5;i++)o.add(`<ellipse class="s-ins" cx="${84+i*9}" cy="${y}" rx="3" ry="${i%2?7:9}"/>`);
+ o.add(`<rect class="s-hw" x="127" y="${y-3.5}" width="8" height="7" rx="1.5"/><path class="s-tcb" d="M135 ${y-5} H158 L164 ${y} L158 ${y+5} H135Z"/><circle class="s-bolt" cx="142" cy="${y}" r="1.8"/><circle class="s-bolt" cx="151" cy="${y}" r="1.8"/>`);
+ o.add(`<path class="s-cond" d="M164 ${y} Q180 ${y+4} 196 ${y+8}"/><path class="s-cond" d="M138 ${y+5} Q120 ${y+40} 60 ${y+44} Q30 ${y+46} 24 ${y+40}"/>`);
+ o.c([69,y+4],"*H/W fitting T&C 70 kN|850: strap, bolt, pins");
+ o.c([102,y-9],"*Polymer disc 70 kN, 622|one per phase per side");
+ o.c([158,y-4],"*Tension clamp 834|sized to the conductor");
+ o.c([186,y+6],"Conductor pull",y+40);
+ o.c([80,y+43],"Jumper to the next span|(PG clamps, own kit)");
+ o.c([36,y+2],"Channel cross-arm end",y-40);
+ return fin(o,230)},
+fdnN(){const o=B(240);gnd(o);pl(o,90,30);const f=fdn(o,90,"N");
+ o.add(`<path class="s-dim" d="M50 ${o.gy} V${o.gy+50} M46 ${o.gy} h8 M46 ${o.gy+50} h8"/>`);
+ o.c([93,120],"*PCC/PSC pole 8 m|200 kg working load");
+ o.c([50,o.gy+25],"Pit 0.5 × 0.6 m, 1.5 m|deep (about 1/6 of pole)");
+ o.c(f.bould,"*Boulder 60% + soil 40%|rammed in layers");
+ o.c(f.plate,"*RCC base plate|450 × 450 × 75");
+ return fin(o,312)},
+fdnC(){const o=B(240);gnd(o);pl(o,90,30);const f=fdn(o,90,"C");
+ o.c([93,120],"*Special pole: angle,|dead-end, DT, DP, tap");
+ o.c(f.muff,"Muffing collar sheds|rain off the joint");
+ o.c(f.conc,"*CC 1:2:4 ≈ 0.45 m³|pit 0.5 × 0.6 × 1.5 m");
+ return fin(o,312)},
+polerep(){const o=B(280);gnd(o);
+ o.add(`<g transform="rotate(-8 60 ${o.gy-8})"><rect class="s-broken" x="6" y="${o.gy-14}" width="110" height="11" rx="2"/></g><path class="s-crack" d="M70 ${o.gy-22} l4 7 l-5 4 l4 7"/>`);
+ pl(o,140,40);o.add(`<rect class="s-conc" x="118" y="${o.gy}" width="44" height="46"/>`);
+ o.add(`<rect class="s-armfill" x="116" y="58" width="48" height="5"/>`);pcl(o,140,66,7);const a=pin(o,121,58),b=pin(o,159,58);
+ o.c(a.ins,"*LT pins 630 on|LT GI pins 842");
+ o.c([164,60],"*LT angle arm 500, 645");
+ o.c([148,66],"*Pole clamp 830|+ nuts & bolts 646");
+ o.c([140,170],"*PSC pole 7.5 m, 746");
+ o.c([150,o.gy+30],"*Grouting 425|(1.5 m deep)");
+ o.c([40,o.gy-14],"Broken pole taken out",o.gy-60);
+ return fin(o,340)},
+/* ===== LT ===== */
+abc(){const o=B(300);gnd(o);pl(o,80,56);
+ abc(o,"M4 96 Q52 116 104 102 Q150 114 198 98");
+ const cl=pcl(o,80,86);o.add(`<line class="s-strapl" x1="${cl[0]}" y1="86" x2="98" y2="88"/><circle class="s-hook" cx="101" cy="90" r="3.3"/><rect class="s-tcb" x="96" y="94" width="12" height="13" rx="2"/>`);
+ const d=dplate(o,80,140),a=acd(o,80,170),e=earth(o,80,-1,92,"spike"),f=fdn(o,80,"N");
+ o.c([108,99],"*Suspension clamp 800");
+ o.c([104,88],"*Eye hook 810 on|pole clamp 830");
+ o.c([160,108],"AB cable bundle|(own line item, per m)");
+ o.c(d,"*Danger plate LT, 722");
+ o.c(a,"*Anti-climbing device|+ barbed wire 633");
+ o.c(e.lead,"*Spike earth + 8 SWG|lead 650");
+ o.c(f.plate,"Boulder setting + RCC|base plate (straight run)");
+ return fin(o,362)},
+abcconv(){const o=B(300);gnd(o);pl(o,80,56);
+ o.add(`<g class="s-old"><rect x="52" y="62" width="56" height="5"/><rect x="56" y="48" width="6" height="14"/><rect x="98" y="48" width="6" height="14"/></g>`);
+ abc(o,"M4 100 Q52 120 104 106 Q150 118 198 102");
+ const cl=pcl(o,80,90);o.add(`<line class="s-strapl" x1="${cl[0]}" y1="90" x2="98" y2="92"/><circle class="s-hook" cx="101" cy="94" r="3.3"/><rect class="s-tcb" x="96" y="98" width="12" height="13" rx="2"/>`);
+ o.c([104,56],"Old LT pins & arm come|off (credit / O&M stock)");
+ o.c([108,103],"*Suspension clamp 800");
+ o.c([104,92],"*Eye hook 810 +|pole clamp 830");
+ o.c([160,112],"*AB cable 3C×95+1C×70|(19), one span per pole");
+ o.c([88,92],"Nuts & bolts 646, 0.5 kg",150);
+ o.c([80,230],"Existing pole, earthing|and foundation stay");
+ return fin(o,330)},
+abcend(){const o=B(300);gnd(o);pl(o,60,56);
+ abc(o,"M4 96 Q16 106 30 102");
+ const cl=pcl(o,60,94);o.add(`<line class="s-strapl" x1="49" y1="94" x2="44" y2="98"/><circle class="s-hook" cx="42" cy="100" r="3"/><path class="s-tcb" d="M28 97 L39 99 L39 105 L28 107Z"/>`);
+ abc(o,"M39 104 Q46 120 47 136",3.5);[0,1,2,3].forEach(i=>o.add(`<rect class="s-cap" x="${40+i*3.2}" y="${135+(i%2)*3}" width="3" height="7" rx="1"/>`));
+ const s=stay(o,60,100,1,150,{});const d=dplate(o,60,122),e=earth(o,60,1,156,"spike"),f=fdn(o,60,"C");
+ o.c([33,100],"*Anchor clamp 806",70);
+ o.c([42,103],"*Eye hook 810 +|pole clamps 830",96);
+ o.c([48,141],"*End caps 807 × 4|seal each core");
+ o.c(s.ins,"*LT guy insulator 631");
+ o.c(s.wire,"*Stay wire 7/2.5 (7/12)|≈6 kg");
+ o.c(s.rod,"*LT stay set 657");
+ o.c(s.pit,"Stay grouting");
+ o.c(d,"Danger plate 722, ACD,|barbed wire 633");
+ o.c(e.lead,"*Spike earth + 8 SWG|lead 650");
+ o.c(f.conc,"*CC foundation|(dead-end = special)");
+ return fin(o,372)},
+abctap(){const o=B(300);gnd(o);pl(o,70,56);
+ abc(o,"M4 90 Q50 104 96 96 Q150 106 198 92");
+ const cl=pcl(o,70,82);o.add(`<line class="s-strapl" x1="${cl[0]}" y1="82" x2="88" y2="84"/><circle class="s-hook" cx="91" cy="86" r="3.2"/><rect class="s-tcb" x="86" y="89" width="11" height="12" rx="2"/>`);
+ [0,1,2,3].forEach(i=>o.add(`<rect class="s-ipc" x="${112+i*9}" y="${93+i*.6}" width="6" height="9" rx="1"/><path class="s-jump" d="M${115+i*9} ${102} Q${100+i*4} 128 ${54+i*2} 122"/>`));
+ pcl(o,70,118);o.add(`<circle class="s-hook" cx="52" cy="122" r="3"/><path class="s-tcb" d="M38 120 L49 121 L49 127 L38 128Z"/>`);abc(o,"M38 124 Q20 132 4 128",3.8);
+ const s=stay(o,70,124,1,160);const d=dplate(o,70,150),e=earth(o,70,-1,160,"spike");fdn(o,70,"C");
+ o.c([97,95],"*Suspension clamp 800");
+ o.c([130,97],"*IPC 802 × 4, one per|core, tails to branch");
+ o.c([42,124],"*Anchor clamp 806|holds the branch",150);
+ o.c([91,83],"*Eye hooks 810 +|pole clamps 830");
+ o.c(s.ins,"*LT guy insulator 631");
+ o.c(s.rod,"*LT stay set 657 +|6 kg 7/12 wire");
+ o.c(s.pit,"Stay grouting");
+ o.c(d,"Danger plate 722, ACD,|barbed wire 633");
+ o.c(e.el,"*Spike earth + 8 SWG");
+ o.c([70,o.gy+40],"*CC foundation");
+ return fin(o,372)},
+lt1v(){const o=B(300);gnd(o);[100,130].forEach(y=>o.add(`<line class="s-cond" x1="4" y1="${y}" x2="198" y2="${y}"/>`));pl(o,80,60);
+ o.add(`<rect class="s-armfill" x="86" y="88" width="7" height="56"/>`);const c=pcl(o,80,92,7);pcl(o,80,140,7);const a=shk(o,90,100,1,10),b=shk(o,90,130,1,10);
+ const d=dplate(o,80,160),ac=acd(o,80,186),e=earth(o,80,-1,96,"spike"),f=fdn(o,80,"N");
+ o.c([93,116],"*Channel 75×40, 644|0.55 m, vertical");
+ o.c(a.shk,"*LT shackles 632 × 2|300 mm apart");
+ o.c(b.ucl,"U-clamp 30×6 holds|each shackle");
+ o.c(c,"*Pole clamp 830|+ nuts & bolts 646");
+ o.c(d,"*Danger plate LT, 722");
+ o.c(ac,"*ACD + barbed wire 633");
+ o.c(e.lead,"*Spike earth + 8 SWG|lead 650");
+ o.c(f.plate,"Boulder setting +|base plate");
+ return fin(o,362)},
+lt1vd(){const o=B(300);gnd(o);[100,130].forEach(y=>o.add(`<path class="s-cond" d="M4 ${y+6} Q30 ${y+2} 52 ${y}"/>`));pl(o,80,60);
+ o.add(`<rect class="s-armfill" x="67" y="88" width="7" height="56"/>`);pcl(o,80,92,7);pcl(o,80,140,7);const a=shk(o,70,100,-1,10),b=shk(o,70,130,-1,10);
+ const s=stay(o,80,116,1,165);const d=dplate(o,80,160),e=earth(o,80,-1,150,"spike");fdn(o,80,"C");
+ o.c([a.shk[0]-4,a.shk[1]],"*LT shackles 632 × 2|wire dead-ended round",70);
+ o.c([74,118],"*Channel 75×40, 644|+ pole clamps 830",116);
+ o.c(s.ins,"*LT guy insulator 631");
+ o.c(s.wire,"*Stay wire 7/12, ≈6 kg");
+ o.c(s.rod,"*LT stay set 657");
+ o.c(s.pit,"Stay grouting");
+ o.c(d,"Danger plate 722, ACD,|barbed wire 633");
+ o.c(e.el,"*Spike earth + 8 SWG");
+ o.c([80,o.gy+44],"*CC foundation");
+ return fin(o,372)},
+lt3h(){const o=B(300);gnd(o);pl(o,100,50);const arm=chArm(o,40,160,62);pcl(o,100,68,8);
+ const p=[48,72,152].map(x=>pin(o,x,62));const k=knob(o,100,96,1);o.add(`<circle class="s-condpt" cx="${k[0]+2}" cy="${k[1]}" r="2.3"/>`);
+ const d=dplate(o,100,150),ac=acd(o,100,176),e=earth(o,100,-1,100,"spike"),f=fdn(o,100,"N");
+ o.c(p[2].ins,"*LT pins 630 × 3 on|LT GI pins 842");
+ o.c(p[2].top,"Al binding wire ties|each conductor",28);
+ o.c(arm,"*Channel 75×40, 644|1.2 m cross-arm");
+ o.c(k,"*Earth knob: neutral-|cum-earth wire");
+ o.c([108,68],"Pole clamp 830 + N&B",84);
+ o.c(d,"*Danger plate LT, 722");
+ o.c(ac,"*ACD + barbed wire 633");
+ o.c(e.lead,"*Spike earth + 8 SWG");
+ o.c(f.plate,"*PCC 7.5 m, boulder|setting + base plate");
+ return fin(o,362)},
+lt3v(){const o=B(300);gnd(o);const ys=[84,104,124];ys.forEach(y=>o.add(`<line class="s-cond" x1="4" y1="${y}" x2="198" y2="${y}"/>`));o.add(`<line class="s-cond" x1="4" y1="144" x2="198" y2="144"/>`);pl(o,80,60);
+ const sh=ys.map(y=>shk(o,80,y,1,14));const k=knob(o,80,144,1);
+ ["R","Y","B"].forEach((t,i)=>o.add(`<text class="s-in" x="60" y="${ys[i]-3}">${t}</text>`));o.add(`<text class="s-in" x="60" y="141">N</text>`);
+ const d=dplate(o,80,162),ac=acd(o,80,188),e=earth(o,80,-1,150,"spike"),f=fdn(o,80,"N");
+ o.c(sh[0].shk,"*LT shackles 632 × 3|R, Y, B at 300 c/c");
+ o.c(sh[1].ucl,"*U-clamp 30×6 with|bolt, one per shackle");
+ o.c(k,"*Earth knob: neutral");
+ o.c(d,"*Danger plate LT, 722");
+ o.c(ac,"*ACD + barbed wire 633");
+ o.c(e.lead,"*Spike earth + 8 SWG");
+ o.c(f.plate,"Boulder setting +|base plate");
+ return fin(o,362)},
+lt3vd(){const o=B(300);gnd(o);const ys=[84,104,124,144];ys.forEach(y=>o.add(`<path class="s-cond" d="M4 ${y+6} Q30 ${y+2} 52 ${y}"/>`));pl(o,80,60);
+ const sh=ys.map(y=>shk(o,80,y,-1,18));["R","Y","B","N"].forEach((t,i)=>o.add(`<text class="s-in" x="88" y="${ys[i]+4}">${t}</text>`));
+ const s=stay(o,80,114,1,168);const d=dplate(o,80,160),e=earth(o,80,-1,168,"spike");fdn(o,80,"C");
+ o.c([sh[0].shk[0]-6,sh[0].shk[1]],"*LT shackles 632 × 4|wires dead-ended",60);
+ o.c([sh[3].ucl[0]-4,sh[3].ucl[1]],"*U-clamps 30×6 × 4",112);
+ o.c(s.clamp,"Pole clamp 830 +|nuts & bolts 646");
+ o.c(s.ins,"*LT guy insulator 631");
+ o.c(s.wire,"*Stay wire 7/12, ≈6 kg");
+ o.c(s.rod,"*LT stay set 657");
+ o.c(s.pit,"Stay grouting");
+ o.c(d,"Danger plate 722, ACD,|barbed wire 633");
+ o.c(e.el,"*Spike earth + 8 SWG");
+ return fin(o,372)},
+svc(){const o=B(280);gnd(o);pl(o,26,50);
+ o.add(`<line class="s-cond" x1="4" y1="66" x2="40" y2="66"/><line class="s-cond" x1="4" y1="74" x2="40" y2="74"/>`);
+ o.add(`<rect class="s-house" x="122" y="150" width="70" height="${o.gy-150}"/><path class="s-house" d="M116 152 L157 116 L198 152"/><rect class="s-box" x="132" y="200" width="20" height="40" rx="1"/>`);
+ o.add(`<line class="s-rod" x1="128" y1="150" x2="128" y2="102"/><rect class="s-clamp" x="124" y="128" width="8" height="4"/><rect class="s-clamp" x="124" y="142" width="8" height="4"/>`);
+ o.add(`<path class="s-bear" d="M34 70 Q80 92 128 104"/><path class="s-svc" d="M34 74 Q80 98 128 108 L134 112 V200"/>`);
+ o.add(`<rect class="s-ipc" x="30" y="64" width="7" height="12" rx="1.5"/><rect class="s-meter" x="164" y="200" width="22" height="30" rx="2"/><circle class="s-hole" cx="175" cy="211" r="5"/>`);
+ o.c([37,68],"*Service connector at|the line (Type A/B)",36);
+ o.c([80,88],"*Bearer wire 3.15 mm|carries the cable",60);
+ o.c([96,101],"*Service cable 2-core|≈30 m, span ≤ 35 m");
+ o.c([130,124],"*GI pipe 20 mm on the|wall, 2 flat clamps");
+ o.c([186,214],"*Meter in metal box,|DP MCB, meter board");
+ return fin(o,300)},
+};
+Object.assign(FIG,{
+/* ===== 11 kV ===== */
+varm11(){const o=B(300);gnd(o);pl(o,80,26);const t=topbr(o,80,26),v=varm(o,80,70,56);
+ const d=dplate(o,80,150),ac=acd(o,80,176),e=earth(o,80,-1,96,"spike"),f=fdn(o,80,"N");
+ o.c(v.pinR.top,"Al binding wire ties|each conductor",20);
+ o.c(t.br,"*Top bracket C75×40,|middle phase");
+ o.c(v.pinR.ins,"*11 kV pins 626 × 3|on GI pins 841");
+ o.c(v.arm,"*V cross-arm C75×40,|pins 1070 c/c");
+ o.c(v.clamp,"*Pole clamp 830|+ nuts & bolts 646");
+ o.c(d,"*Danger plate 11 kV, 721");
+ o.c(ac,"*ACD + barbed wire 633");
+ o.c(e.lead,"*Spike earth + 8 SWG|lead 650");
+ o.c(f.plate,"*PCC 8 m, boulder|setting + base plate");
+ return fin(o,362)},
+varm11s(){const o=B(300);gnd(o);pl(o,70,26);const t=topbr(o,70,26),v=varm(o,70,66,52);
+ const s=stay(o,70,104,1,160);const d=dplate(o,70,140),e=earth(o,70,-1,96,"spike");fdn(o,70,"C");
+ o.c(v.pinR.ins,"*11 kV pins 626 × 3|GI pins 841, binding");
+ o.c(v.arm,"*V cross-arm + top|bracket");
+ o.c(v.clamp,"*Pole clamps 830 × 2|+ nuts & bolts 646");
+ o.c(s.ins,"*Guy insulator 629");
+ o.c(s.wire,"*Stay wire 7/3.15, 651|≈10 kg");
+ o.c(s.rod,"*Stay set 653");
+ o.c(s.pit,"Stay grouting 428");
+ o.c(d,"Danger plate 721, ACD,|barbed wire 633");
+ o.c(e.el,"*Spike earth + 8 SWG");
+ o.c([70,o.gy+44],"*CC foundation",340);
+ return fin(o,372)},
+hgt11(){const o=B(300);gnd(o);pl(o,90,22);
+ const ta=chArm(o,50,130,44,6);pcl(o,90,50,7);const pa=pin(o,58,44),pb=pin(o,122,44);topbr(o,90,22);
+ o.add(`<path class="s-jump" d="M122 23 Q150 30 168 46"/><path class="s-jump" d="M58 23 Q30 30 12 46"/>`);
+ chArm(o,26,154,118,7);pcl(o,90,122,7);o.add(`<circle class="s-guardw" cx="30" cy="114" r="3.2"/><circle class="s-guardw" cx="150" cy="114" r="3.2"/><path class="s-lace" d="M30 114 Q90 104 150 114"/>`);
+ o.add(`<path class="s-earth" d="M150 125 V${o.gy-6} H140 V${o.gy+20}"/>`);o.add(`<rect class="s-conc" x="68" y="${o.gy}" width="44" height="52"/>`);
+ o.c(pb.ins,"*T cross-arm 634 with|11 kV pins 626");
+ o.c([162,40],"Raccoon 447 + PG clamps|827 to re-string",18);
+ o.c([150,118],"*Guard arms: channel|2200, 638 × 2");
+ o.c([150,110],"*Guard wires 6 SWG, 649|+ lacing",92);
+ o.c([150,210],"*8 SWG lead 650: guard|to earth");
+ o.c([93,180],"*PSC pole 9.75 m, 748");
+ o.c([108,o.gy+26],"*Grouting 427|(1.8 m deep)");
+ o.c([97,50],"Nuts & bolts 646",70);
+ return fin(o,362)},
+ang(){const o=B(300);gnd(o);pl(o,90,30);const L=[],R=[];
+ [52,74,96].forEach(y=>{L.push(dstr(o,83,y,-1,1,36,4));R.push(dstr(o,97,y,1,1,52,4));o.add(`<path class="s-jump" d="M${L[L.length-1].end[0]} ${y} Q90 ${y+18} ${R[R.length-1].end[0]} ${y}"/>`)});
+ [52,74,96].forEach(y=>pcl(o,90,y+2,7));
+ const s=stay(o,90,112,1,172);const d=dplate(o,90,150),e=earth(o,90,-1,130,"spike");fdn(o,90,"C");
+ o.c(R[0].disc,"*Polymer disc 622 × 6|one each side, each phase");
+ o.c(R[1].tc,"*H/W 850 + tension clamp|834, 6 of each");
+ o.c([90,92+20],"*PG clamps 826 × 6|on the jumpers",120);
+ o.c([99,98],"*Pole clamps 830 × 4|+ nuts & bolts 646",146);
+ o.c(s.ins,"*Guy insulator 629");
+ o.c(s.rod,"*Stay set 653 + ≈10 kg|wire 651");
+ o.c(s.pit,"Stay grouting 428");
+ o.c(d,"Danger plate 721, ACD,|barbed wire 633");
+ o.c(e.el,"*Spike earth + 8 SWG");
+ o.c([90,o.gy+44],"*CC foundation",346);
+ return fin(o,372)},
+dpdead(){const o=B(300);gnd(o);const a=40,b=106;pl(o,a,40);pl(o,b,40);const arm=chArm(o,24,124,52,7);pcl(o,a,56,7);pcl(o,b,56,7);
+ o.add(`<path class="s-belt" d="M${a} 120 H${b} M${a} 120 L${b} 172 M${b} 120 L${a} 172 M${a} 172 H${b}"/>`);
+ const st=dstr(o,24,56,-1,1,4,2);o.add(`<path class="s-cond" d="M${st.end[0]} 56 Q10 58 4 60"/>`);
+ const s1=stay(o,b,64,1,172);const d=dplate(o,a,186),e=earth(o,a,-1,90,"pipe");fdn(o,a,"C");fdn(o,b,"C");
+ o.c(arm,"*Channel arms 2200, 638|× 2, front and back");
+ o.c(st.disc,"*Strain sets × 3: disc|622, H/W 850, clamp 834",20);
+ o.c([b-4,146],"*GI angle 50×50, 637|belting and bracing");
+ o.c([b+8,56],"Pole clamps 830 × 8|+ nuts & bolts 646",86);
+ o.c(s1.ins,"*Guy insulators 629 × 2");
+ o.c(s1.rod,"*Stay sets 653 × 2|+ ≈20 kg wire 651");
+ o.c(s1.pit,"Stay grouting × 2");
+ o.c(d,"Danger plate 721, ACD × 2,|barbed wire 633");
+ o.c(e.el,"*GI earth pipe 473|+ 8 SWG leads 650");
+ o.c([b,o.gy+40],"*CC foundations × 2",o.gy+44);
+ return fin(o,372)},
+dp(){const o=B(300);gnd(o);const a=70,b=130;pl(o,a,40);pl(o,b,40);const arm=chArm(o,50,150,56,7);pcl(o,a,60,7);pcl(o,b,60,7);
+ o.add(`<path class="s-belt" d="M${a} 120 H${b} M${a} 120 L${b} 172 M${b} 120 L${a} 172 M${a} 172 H${b}"/>`);
+ const pn=pin(o,100,56);const l=dstr(o,50,62,-1,1,18,3),r=dstr(o,150,62,1,1,18,3);
+ o.add(`<path class="s-jump" d="M${l.end[0]} 62 Q${l.end[0]-4} 30 100 ${pn.top[1]} Q${r.end[0]+4} 30 ${r.end[0]} 62"/>`);
+ const sl=stay(o,a,72,-1,24),sr=stay(o,b,72,1,178);const d=dplate(o,b,186),e=earth(o,a,1,96,"pipe");fdn(o,a,"C");fdn(o,b,"C");
+ o.c(r.disc,"*Strain sets × 6 (3 a side)|disc 622, H/W 850,|tension clamp 834");
+ o.c(pn.ins,"*Pins 626 on GI pins 841|carry the jumpers");
+ o.c([140,34],"PG clamps 826 × 6|on the jumpers",22);
+ o.c(arm,"*Channel arms 2200 × 2|+ angle 637 belting");
+ o.c([b+8,60],"Pole clamps 830 × 10",96);
+ o.c(sr.ins,"*Stay sets 653 × 4|guy 629, ≈40 kg wire");
+ o.c(sr.pit,"Stay grouting × 4");
+ o.c(d,"Danger plate 721, ACD × 2,|barbed wire 633");
+ o.c(e.el,"*GI earth pipe 473|+ 8 SWG leads");
+ o.c([b,o.gy+40],"*CC foundations × 2",o.gy+48);
+ return fin(o,372)},
+ctpt(){const o=B(300);gnd(o);const a=60,b=140;pl(o,a,30);pl(o,b,30);chArm(o,40,160,44,7);pcl(o,a,48,7);pcl(o,b,48,7);
+ chArm(o,48,152,132,6);chArm(o,48,152,146,6);o.add(`<path class="s-belt" d="M${a} 180 L${b} 220 M${b} 180 L${a} 220"/>`);
+ o.add(`<rect class="s-hw" x="30" y="45" width="10" height="5"/><rect class="s-ins" x="18" y="43" width="12" height="9" rx="3"/><path class="s-mvcc" d="M4 50 Q12 52 18 48"/>`);
+ o.add(`<rect class="s-hw" x="160" y="45" width="10" height="5"/><rect class="s-ins" x="170" y="43" width="12" height="9" rx="3"/><path class="s-mvcc" d="M182 48 Q190 52 198 50"/>`);
+ o.add(`<path class="s-mvcc" d="M24 52 Q30 90 80 100 V108"/><path class="s-mvcc" d="M176 52 Q170 90 120 100 V108"/>`);
+ box(o,72,104,56,28,"CTPT","s-dtr");o.add(`<rect class="s-term" x="77" y="100" width="6" height="8"/><rect class="s-term" x="117" y="100" width="6" height="8"/>`);
+ o.add(`<path class="s-cc" d="M74 130 Q66 160 ${a+8} 196"/>`);box(o,a-26,196,34,40,"","s-box");o.add(`<rect class="s-meter" x="${a-20}" y="204" width="20" height="16" rx="2"/>`);
+ o.add(`<path class="s-earth" d="M128 132 H${b+12} V${o.gy+16}"/><rect class="s-epipe" x="${b+8.5}" y="${o.gy+16}" width="7" height="40"/>`);
+ o.c([12,51],"*11 kV MVCC 1C×70, 459|in and out",20);
+ o.c([176,46],"*Tension insulator 70|+ hardware, × 6 each",42);
+ o.c([120,102],"*Termination kits + lugs|684, × 6",78);
+ o.c([128,118],"*CTPT unit 569 on|channel 638 platform");
+ o.c([66,160],"*Control cable 10C, 37");
+ o.c([a-8,220],"*Metering cabinet 507|+ trivector meter 492");
+ o.c([b+12,250],"*GI strip 476 to CI|earth pipes 474 × 2");
+ o.c([b+4,o.gy+20],"*PSC 9.75 m × 2, 748|grouting 427 × 2",o.gy+28);
+ return fin(o,372)},
+dpsw(){const o=B(300);gnd(o);const a=70,b=130;pl(o,a,30);pl(o,b,30);chArm(o,44,156,46,7);pcl(o,a,50,7);pcl(o,b,50,7);
+ const sw=abs(o,70,126,46);const arm2=chArm(o,44,156,82,7);pcl(o,a,86,7);pcl(o,b,86,7);
+ o.add(`<line class="s-oprod" x1="${b+10}" y1="40" x2="${b+10}" y2="${o.gy-26}"/><rect class="s-clamp" x="${b+5}" y="${o.gy-28}" width="12" height="10" rx="2"/>`);
+ o.add(`<path class="s-belt" d="M${a} 140 H${b} M${a} 140 L${b} 186 M${b} 140 L${a} 186 M${a} 186 H${b}"/>`);
+ const l=dstr(o,44,88,-1,1,20,3),r=dstr(o,156,88,1,1,20,3);
+ o.add(`<path class="s-jump" d="M${l.end[0]} 88 Q${l.end[0]} 40 64 30"/><path class="s-jump" d="M${r.end[0]} 88 Q${r.end[0]} 40 135 26"/>`);
+ const sr=stay(o,b,100,1,180);stay(o,a,100,-1,22);const e=earth(o,a,1,96,"pipe");fdn(o,a,"C");fdn(o,b,"C");
+ o.c(sw,"*AB switch 200 A, 3-pole|gang operated");
+ o.c([b+10,150],"Operating rod 5.5 m to|an earthed handle");
+ o.c(arm2,"*Channel 2800, 639 × 2|+ 75×40 mounting 644");
+ o.c(r.disc,"*Strain sets × 6|622 + 850 + 834");
+ o.c([r.end[0]+2,60],"Pins 626 × 3, PG 826 × 6|on the jumpers",22);
+ o.c(sr.ins,"*Stay sets 653 × 4|guy 629, wire 651");
+ o.c(sr.pit,"Stay grouting × 4");
+ o.c([a,200],"Danger plate, ACD × 2,|barbed wire 633");
+ o.c(e.el,"*GI pipe 473, 8 SWG|leads × 3");
+ o.c([b,o.gy+40],"*CC foundations × 2",o.gy+50);
+ return fin(o,372)},
+tapsp(){const o=B(300);gnd(o);const a=60,b=130;pl(o,a,24);pl(o,b,40);const v=varm(o,a,44,40,.9);topbr(o,a,24,.9);
+ const arm=chArm(o,40,150,84,7);pcl(o,a,88,7);pcl(o,b,88,7);const sw=abs(o,62,122,84);
+ o.add(`<path class="s-jump" d="M24 26 Q30 60 56 70"/><path class="s-jump" d="M96 26 Q100 56 118 66"/>`);
+ chArm(o,40,150,112,6);pcl(o,b,116,7);const r=dstr(o,150,115,1,1,22,3);o.add(`<path class="s-jump" d="M128 70 Q160 80 ${r.end[0]} 115"/>`);
+ o.add(`<path class="s-belt" d="M${a} 150 L${b} 190 M${b} 150 L${a} 190"/>`);
+ const s=stay(o,a,120,-1,16);const e=earth(o,b,1,128,"pipe");fdn(o,a,"C");fdn(o,b,"C");
+ o.c(v.pinR.ins,"Main line on V-arm + top|bracket, pins 626",30);
+ o.c([110,62],"Jumpers + PG clamps 826",54);
+ o.c(sw,"*AB switch 200 A",80);
+ o.c(arm,"*Channels 2800, 639 × 2|+ 75×40, angle 637");
+ o.c(r.disc,"*Strain sets × 3 for the|spur: 622, 850, 834");
+ o.c([190,118],"Spur ≤ 50 m to its|first pole");
+ o.c(s.ins,"*Stay 653, guy 629,|10 kg wire, grouting",200);
+ o.c(e.el,"*GI pipe 473, 8 SWG × 3");
+ o.c([b,200],"Danger plate, ACD × 2,|barbed wire 633",232);
+ o.c([b,o.gy+40],"*CC foundations × 2",o.gy+52);
+ return fin(o,372)},
+comp(){const o=B(300);gnd(o);pl(o,80,26);const t=topbr(o,80,26),v=varm(o,80,64,56);
+ const ys=[122,140,158,176];ys.forEach(y=>o.add(`<line class="s-condlt" x1="4" y1="${y}" x2="198" y2="${y}"/>`));const sh=ys.map(y=>shk(o,80,y,1,14));
+ o.add(`<path class="s-dim" d="M150 86 V122 M146 86 h8 M146 122 h8"/>`);
+ const d=dplate(o,80,198),ac=acd(o,80,222,24),e=earth(o,80,-1,96,"spike");fdn(o,80,"N");
+ o.c(v.pinR.ins,"*11 kV pins 626 × 3|on GI pins 841");
+ o.c(v.arm,"*V cross-arm + top bracket");
+ o.c([150,104],"LT at least 800 mm|below the V-arm");
+ o.c(sh[1].shk,"*LT shackles 632 × 4|on U-clamps (R Y B N)");
+ o.c(d,"*Danger plate 11 kV, 721");
+ o.c(ac,"*ACD + barbed wire 633");
+ o.c(e.lead,"*Spike earth + 8 SWG");
+ o.c([80,o.gy+46],"Boulder setting +|base plate",340);
+ return fin(o,362)},
+tap(){const o=B(300);gnd(o);pl(o,100,30);o.add(`<line class="s-cond" x1="4" y1="34" x2="198" y2="34"/>`);
+ const arm=chArm(o,36,164,96,7);const cl=pcl(o,100,100,8);const D=[48,76,140].map(x=>dofuse(o,x,97));
+ D.forEach(dd=>o.add(`<line class="s-cond" x1="${dd.top[0]}" y1="34" x2="${dd.top[0]}" y2="${dd.top[1]}"/><rect class="s-pg" x="${dd.top[0]-3}" y="31" width="6" height="6" rx="1"/>`));
+ const P=[62,118,156].map(x=>pin(o,x,96,.85));
+ D.forEach((dd,i)=>o.add(`<path class="s-cond" d="M${dd.bot[0]} ${dd.bot[1]} Q${dd.bot[0]+6} ${150+i*8} 198 ${152+i*10}"/>`));
+ const e=earth(o,100,-1,104,"pipe");
+ o.c([D[2].tube[0],D[2].tube[1]],"*DO fuse set 150 A, 513|one fuse per phase");
+ o.c([D[2].top[0]+3,34],"*PG clamps 826 × 6|both ends of droppers",14);
+ o.c(arm,"*Channel 2200, 638|+ pole clamps 830 × 4");
+ o.c(P[2].ins,"*Pins 626 + GI pins 841|for the branch wires",84);
+ o.c([190,166],"Branch to its first pole");
+ o.c(e.el,"*GI pipe 473 + 8 SWG|leads ≈ 2 kg");
+ o.c(cl,"Nuts & bolts 646, 4 kg",124);
+ return fin(o,372)},
+});
+function hg(o,x,y){o.add(`<rect class="s-ins" x="${x-2.5}" y="${y-12}" width="5" height="12" rx="1.2"/><path class="s-horn" d="M${x-7} ${y-26} L${x-1} ${y-13} M${x+7} ${y-26} L${x+1} ${y-13}"/>`);return [x+7,y-22]}
+function pits3(o,xs,top){xs.forEach(x=>o.add(`<path class="s-earth" d="M${x} ${top} V${o.gy+10}"/><rect class="s-epipe" x="${x-3.5}" y="${o.gy+10}" width="7" height="40"/><rect class="s-pit" x="${x-11}" y="${o.gy-1}" width="22" height="12"/>`))}
+Object.assign(FIG,{
+/* ===== distribution transformers ===== */
+dt1p(){const o=B(320);gnd(o);pl(o,80,24);
+ const ta=chArm(o,40,124,40,6);pcl(o,80,44,7);[50,104,116].forEach(x=>la(o,x,21));const st=dstr(o,124,43,1,1,30,4);
+ const da=chArm(o,34,126,74,6);pcl(o,80,78,7);const D=[42,100,116].map(x=>dofuse(o,x,75));
+ o.add(`<rect class="s-armfill" x="86" y="164" width="68" height="6"/>`);pcl(o,80,167,7);const t=dtr(o,122,124,52,40,"25");
+ D.forEach((d,i)=>o.add(`<path class="s-cond" d="M${d.bot[0]} ${d.bot[1]} Q${d.bot[0]+8} 104 ${[106,122,138][i]} 111"/>`));
+ o.add(`<path class="s-cab" d="M148 150 Q170 160 160 196"/>`);box(o,136,196,40,34,"DB");o.add(`<rect class="s-meter" x="140" y="236" width="30" height="16" rx="2"/>`);
+ const s=stay(o,80,48,-1,14);pits3(o,[110,134,158],252);const d=dplate(o,80,200);fdn(o,80,"C");
+ o.c(st.disc,"*Strain set × 3 for the|incoming: 622, 850, 834",20);
+ o.c([116,22],"*LAs 9 kV × 3 on the|top channel",44);
+ o.c(D[2].tube,"*DO fuse set 513",82);
+ o.c([106,111],"Bimetallic connectors|× 3 on HV bushings");
+ o.c(t.tank,"*DT 25 kVA, 771");
+ o.c([152,167],"*Channel 100×50 mounting|3.1 m, angle 637");
+ o.c([176,213],"*LT DB 25 kVA + XLPE|3.5C×35, ≈10 m");
+ o.c([170,244],"*DT meter 0.5S + CTs");
+ o.c([158,o.gy+30],"*3 earth pits: GI pipe 473|+ GI strip 477, 8 SWG");
+ o.c([s.ins[0]+5,s.ins[1]],"*Stay 653, guy 629, wire|651, grouting 428",o.gy-30);
+ o.c(d,"Danger plate 721, ACD,|barbed wire 633",o.gy-62);
+ o.c([80,o.gy+44],"*PCC 8 m in CC",o.gy+62);
+ return fin(o,410)},
+dtr(key){const o=B(330);gnd(o);const a=60,b=140,big=key==="d3",pmt=key==="tmpdt";pl(o,a,26);pl(o,b,26);
+ const st=dstr(o,164,44,1,1,8,2);chArm(o,36,164,40,7);pcl(o,a,44,7);pcl(o,b,44,7);[78,96,114].forEach(x=>la(o,x,21));
+ chArm(o,40,160,78,6);pcl(o,a,81,7);pcl(o,b,81,7);const sw=abs(o,80,120,78);
+ o.add(`<line class="s-oprod" x1="${a-10}" y1="72" x2="${a-10}" y2="${o.gy-24}"/><rect class="s-clamp" x="${a-15}" y="${o.gy-26}" width="10" height="10" rx="2"/>`);
+ chArm(o,40,160,108,6);[80,100,120].forEach(x=>hg(o,x,108));
+ o.add(`<rect class="s-armfill" x="${a-6}" y="190" width="${b-a+12}" height="6"/>`);const t=dtr(o,100,150,60,40,big?"200":"100");
+ [80,100,120].forEach((x,i)=>o.add(`<path class="s-cond" d="M${x} 110 Q${x+4} 124 ${[81,100,119][i]} 137"/>`));
+ o.add(`<path class="s-cab" d="M134 176 Q150 186 158 214"/>`);box(o,148,214,36,30,"DB");o.add(`<rect class="s-meter" x="150" y="250" width="30" height="16" rx="2"/>`);
+ const s=stay(o,a,48,-1,22);pits3(o,[84,108,130],196);const d=dplate(o,b,272);fdn(o,a,"C");fdn(o,b,"C");
+ o.c(st.disc,"*Strain sets × 3 for the|incoming: 622, 850, 834",16);
+ o.c([116,22],"*LAs 9 kV × 3",42);
+ o.c(sw,"*AB switch 200 A",66);
+ o.c([127,86],"*HG fuse set",92);
+ o.c([119,137],"Bimetallic connectors × 3",120);
+ o.c(t.tank,big?"*DT 200 kVA":pmt?"*DT 100 kVA, 774":"*DT 100 kVA, 774|(63 kVA: 772 / 773)");
+ o.c([b+6,193],"*Channels 2800 × 2, 639|75×40 644, angle 637");
+ o.c([184,228],big?"*LT DB 200 kVA + XLPE|3.5C×300 & ×150":"*LT DB + XLPE 3.5C×150|& ×70, lugs, GI risers");
+ o.c([180,258],"*DT meter + CTs");
+ o.c([130,o.gy+34],"*3 earth pits 473: neutral,|LA, body + GI strip 477");
+ o.c([s.ins[0],s.ins[1]],"*Stays 653 × 2, guy 629,|wire 651, grouting",150);
+ o.c(d,"Danger plate 721, ACD × 2,|barbed wire 633");
+ o.c([b,o.gy+44],"*CC foundations × 2",o.gy+66);
+ return fin(o,420)},
+aug(){const o=B(300);gnd(o);const a=40,b=96;pl(o,a,40);pl(o,b,40);chArm(o,24,112,62,6);pcl(o,a,65,7);pcl(o,b,65,7);
+ const D=[54,70,86].map(x=>dofuse(o,x,63));
+ o.add(`<rect class="s-old" x="${a+2}" y="150" width="${b-a-4}" height="34" rx="3"/><text class="s-in" x="${(a+b)/2}" y="171" text-anchor="middle">100</text>`);
+ o.add(`<rect class="s-conc" x="116" y="${o.gy-22}" width="76" height="22"/>`);const t=dtr(o,154,226,60,52,"250");
+ D.forEach((d,i)=>o.add(`<path class="s-cond" d="M${d.bot[0]} ${d.bot[1]} Q${120+i*6} 120 ${135+i*19} 213"/>`));
+ o.add(`<path class="s-cab" d="M128 262 Q110 270 ${b+10} 236 V200"/>`);box(o,b+4,172,24,28,"DB");o.add(`<rect class="s-ct" x="${b+6}" y="164" width="20" height="7" rx="2"/>`);
+ [150,180].forEach(x=>o.add(`<path class="s-earth" d="M${x} ${o.gy} V${o.gy+14}"/><rect class="s-chem" x="${x-4}" y="${o.gy+14}" width="8" height="40" rx="2"/>`));
+ o.c(D[2].tube,"*DO fuse set 200 A, 514");
+ o.c([a+20,152],"Old 100 kVA comes|down (O&M credit)",116);
+ o.c(t.tank,"*DT 250 kVA Cu, 782");
+ o.c([154,o.gy-10],"*DTR plinth 440");
+ o.c([112,252],"*LT cable 1C×120, 71|≈60 m, lugs 686 × 16");
+ o.c([b+26,167],"*LT CTs 597 × 4 for|DT metering",168);
+ o.c([184,o.gy+34],"*Chemical earthing|481 × 2");
+ o.c([b+7,65],"Nuts & bolts 646",88);
+ return fin(o,362)},
+tmpdt(){const o=B(300);gnd(o);const a=60,b=140;pl(o,a,30);pl(o,b,30);
+ o.add(`<g class="s-old"><rect x="40" y="50" width="120" height="6"/><rect x="40" y="86" width="120" height="6"/></g>`);
+ o.add(`<rect class="s-armfill" x="${a-6}" y="190" width="${b-a+12}" height="6"/>`);const t=dtr(o,100,150,60,40,"100");
+ o.add(`<path class="s-cab" d="M134 176 Q150 186 158 214"/>`);box(o,148,214,36,30,"DB");
+ o.add(`<rect class="s-old" x="10" y="${o.gy-30}" width="40" height="30" rx="3"/><text class="s-in" x="30" y="${o.gy-11}" text-anchor="middle">×</text>`);
+ [80,100,120,170,184].forEach(x=>o.add(`<path class="s-earth" d="M${x} ${o.gy-2} V${o.gy+12}"/><rect class="s-epipe" x="${x-3}" y="${o.gy+12}" width="6" height="34"/>`));
+ o.c([100,53],"Existing DP: AB switch,|HG fuse, LAs stay",40);
+ o.c(t.tank,"*DT 100 kVA, 774 from|O&M stock (credit col.)");
+ o.c([a,193],"Nuts & bolts 646, 5 kg",200);
+ o.c([156,200],"*LT cable 1C×120, 71|≈30 m + lugs 686");
+ o.c([44,o.gy-28],"Failed DT goes to the|repair workshop",o.gy-20);
+ o.c([184,o.gy+30],"*CI earth pipes 474 × 6|+ 8 SWG 650, 10 kg");
+ return fin(o,362)},
+dt1ph(){const o=B(300);gnd(o);pl(o,80,26);const t=topbr(o,80,26);o.add(`<rect class="s-hlc" x="84" y="2" width="8" height="6" rx="1.5"/>`);
+ o.add(`<path class="s-cond" d="M88 8 Q110 20 116 50"/>`);chArm(o,84,136,64,5);const dd=dofuse(o,112,64);const l=la(o,128,46);
+ o.add(`<path class="s-cond" d="M${dd.bot[0]} ${dd.bot[1]} Q118 100 116 112"/><rect class="s-armfill" x="86" y="164" width="48" height="5"/>`);pcl(o,80,166,7);
+ o.add(`<rect class="s-dtr" x="94" y="112" width="40" height="52" rx="14"/><text class="s-in" x="114" y="142" text-anchor="middle">16</text>`);
+ const sh=shk(o,80,100,-1,16);o.add(`<path class="s-condlt" d="M4 106 Q30 102 ${sh.pt[0]} 100"/>`);
+ pits3(o,[110,134,158],200);const d=dplate(o,80,190);fdn(o,80,"C");
+ o.c(t.br,"*Pin 626 on top bracket|carries the phase",36);
+ o.c([88,5],"*Hot-line clamp tap",12);
+ o.c(dd.tube,"*DO fuse 513",62);
+ o.c(l.la,"*LA 9 kV × 1",84);
+ o.c([134,138],"*1-ph DT 16 kVA|11/√3 kV – 240 V");
+ o.c([sh.shk[0]-2,sh.shk[1]],"*Shackle 632 + U-clamp|for the neutral",182);
+ o.c([88,166],"Pole clamps 830 × 3|+ nuts & bolts 646",214);
+ o.c(d,"Danger plate 721, ACD,|barbed wire 633",250);
+ o.c([158,o.gy+30],"*GI pipes 473 × 3|+ 8 SWG leads");
+ o.c([80,o.gy+44],"*PCC 8 m in CC",o.gy+60);
+ return fin(o,372)},
+/* ===== 33 kV ===== */
+varm33(){const o=B(300);gnd(o);pl(o,80,22,"steel");const t=topbr(o,80,22,1.2),v=varm(o,80,64,66,1.2);
+ const d=dplate(o,80,150),ac=acd(o,80,176),e=earth(o,80,-1,96,"pipe");const f=fdn(o,80,"C");
+ o.c(t.br,"*Top cleat 647 + pin");
+ o.c(v.pinR.ins,"*33 kV pins 613 × 3|on GI pins 840");
+ o.c(v.arm,"*33 kV V-arm 635|pins 1525 c/c");
+ o.c(v.clamp,"*Pole clamp 830 + N&B 646");
+ o.c(d,"*Danger plate 33 kV, 720");
+ o.c(ac,"*ACD + barbed wire 633");
+ o.c(e.el,"*GI earth pipe 473|+ 8 SWG 650");
+ o.c([86,240],"*SP-76 steel pole 754|14.5 m",250);
+ o.c(f.conc,"*Foundation CC 1:3:6|with muffing");
+ return fin(o,372)},
+rc33(){const o=B(300);gnd(o);const a=46,b=124;pl(o,a,40,"steel");pl(o,b,40,"steel");const v=varm(o,a,70,36,1.1);
+ o.add(`<path class="s-oldc" d="M4 54 Q28 64 ${a-31} 46 M${a+31} 46 Q100 64 ${b-20} 56"/>`);
+ const l=dstr(o,b-6,60,-1,3,0,0),r=dstr(o,b+6,60,1,3,10,3);
+ o.add(`<path class="s-wolf" d="M4 50 Q28 60 ${a-31} 44 M${a+31} 44 Q90 62 ${l.end[0]} 60"/><path class="s-jump" d="M${l.end[0]} 60 Q${b} 82 ${r.end[0]} 60"/>`);
+ o.c([100,60],"*Wolf ACSR 449|3.3 km per route km",36);
+ o.c([16,58],"Old Raccoon comes down|(credit / O&M stock)",100);
+ o.c(v.pinR.ins,"*New 33 kV pins 613|(≈75 per km)",80);
+ o.c(r.disc,"*Disc 90 kN 607 + H/W|844 + clamp 836, ≈38");
+ o.c([b,78],"*PG clamps 828 × 20|on the jumpers",124);
+ o.c([b+6,180],"*Stays 653 × 3 at angle|points + grouting 428");
+ o.c([a+6,220],"Existing SP poles and|foundations stay");
+ o.c([b+6,140],"Nuts & bolts 646",250);
+ return fin(o,330)},
+cut33(){const o=B(300);gnd(o);pl(o,90,22,"steel");topbr(o,90,22,1.15);const v=varm(o,90,54,30,1.1);const L=[],R=[];
+ [92,112,132].forEach(y=>{L.push(dstr(o,84,y,-1,3,18,3));R.push(dstr(o,96,y,1,3,28,3));o.add(`<path class="s-jump" d="M${L[L.length-1].end[0]} ${y} Q90 ${y+18} ${R[R.length-1].end[0]} ${y}"/>`)});
+ [92,112,132].forEach(y=>pcl(o,90,y+2,7));
+ const s=stay(o,90,150,1,164,{guys:2,it:.3});const d=dplate(o,90,188),e=earth(o,90,-1,170,"pipe");fdn(o,90,"C");
+ o.c(v.pinR.ins,"*33 kV V-arm 635 + top|cleat 647",40);
+ o.c(R[0].disc,"*Disc 45 kN B&S × 18|3 per string, 6 strings");
+ o.c(R[0].hw,"*H/W B&S 90 kN, 844 × 6",112);
+ o.c(R[1].tc,"*Tension clamp Wolf 836|× 6",132);
+ o.c([90,128],"*PG clamps Wolf 828 × 6|on the jumpers",160);
+ o.c(s.ins,"*20 mm stay sets × 2|guy 616, 7/8 wire 32 kg");
+ o.c(s.pit,"Stay grouting × 2");
+ o.c(d,"Danger plate 720, ACD,|barbed wire 633");
+ o.c(e.el,"*GI earth pipe 473|+ 8 SWG 650");
+ o.c([90,o.gy+44],"*SP-76, 754 + CC 1:3:6|foundation",o.gy+56);
+ return fin(o,382)},
+dead33(){const o=B(300);gnd(o);pl(o,96,22,"steel");const arm=chArm(o,48,150,40,8);pcl(o,96,45,8);
+ const S=[40,62,84].map(y=>{const q=dstr(o,48,y+4,-1,3,0,0);o.add(`<path class="s-cond" d="M${q.end[0]} ${y+4} Q8 ${y+10} 2 ${y+12}"/>`);return q});
+ o.add(`<path class="s-hwl" d="M48 44 V88"/>`);
+ const s=stay(o,96,52,1,164,{guys:2,it:.28});const d=dplate(o,96,150),e=earth(o,96,-1,120,"pipe");fdn(o,96,"C");
+ o.c(arm,"*Channel 3200, 640|+ pole clamps 830 × 2",30);
+ o.c(S[1].disc,"*Disc 45 kN B&S × 9|3 per string",70);
+ o.c(S[2].hw,"*H/W B&S 90 kN, 844 × 3|+ tension clamp 836 × 3",100);
+ o.c(s.ins,"*20 mm stay set, 2 guy|insulators 616 in series");
+ o.c(s.wire,"*Stay wire 7/4.0 (7/8)|≈16 kg");
+ o.c(s.pit,"Stay grouting");
+ o.c(d,"Danger plate 720, ACD,|barbed wire 633");
+ o.c(e.el,"*GI earth pipe 473|+ 8 SWG 650");
+ o.c([96,o.gy+44],"*SP-76, 754 + CC 1:3:6|foundation",o.gy+60);
+ return fin(o,382)},
+/* ===== crossings ===== */
+guard(){const o=B(300);gnd(o);const a=44,b=156;pl(o,a,40);pl(o,b,40);
+ o.add(`<path class="s-cond" d="M4 56 Q100 76 198 56"/><path class="s-cond" d="M4 66 Q100 86 198 66"/>`);
+ chArm(o,a-22,a+22,104,5);chArm(o,b-22,b+22,104,5);pcl(o,a,107,6);pcl(o,b,107,6);
+ o.add(`<path class="s-guardl" d="M${a-20} 102 Q100 118 ${b-20} 102 M${a+20} 102 Q100 118 ${b+20} 102"/>`);
+ for(let i=1;i<8;i++){const x=a-20+i*(b-a)/8,dy=Math.sin(i/8*Math.PI)*12;o.add(`<path class="s-lace" d="M${x} ${102+dy} L${x+40} ${102+dy}"/>`)}
+ [a-20,a+20,b-20,b+20].forEach(x=>o.add(`<circle class="s-hook" cx="${x}" cy="102" r="2.6"/>`));
+ o.add(`<rect class="s-road" x="64" y="${o.gy-10}" width="72" height="10"/><text class="s-in" x="100" y="${o.gy-1.5}" text-anchor="middle">ROAD</text><path class="s-dim" d="M100 82 V${o.gy-12} M96 ${o.gy-12} h8"/>`);
+ stay(o,a,124,-1,20);const sb=stay(o,b,124,1,180);
+ [a,b].forEach(x=>o.add(`<path class="s-earth" d="M${x+7} 110 V${o.gy+10}"/><rect class="s-epipe" x="${x+3.5}" y="${o.gy+10}" width="7" height="40"/>`));
+ o.c([b+20,104],"*Guard arms channel|75×40, 644 (≈4.4 m)",86);
+ o.c([b+20,102],"*Eye bolts × 6 hold|the guard wires",120);
+ o.c([128,112],"*Guard wires + lacing|8 SWG, 650",150);
+ o.c([100,180],"Clearance over road|≥ 6.1 m",186);
+ o.c(sb.ins,"*Stays 653 × 2, guy 629,|wire 651, grouting",226);
+ o.c([b+10,o.gy+30],"*GI earth pipe 473 × 2|cradle bonded to earth");
+ o.c([b+7,107],"Pole clamps 830 + N&B",60);
+ return fin(o,372)},
+rail(){const o=B(250);gnd(o);const a=30,b=170;pl(o,a,30);pl(o,b,30);
+ o.add(`<line class="s-cond" x1="4" y1="40" x2="${a-6}" y2="40"/><line class="s-cond" x1="${b+6}" y1="40" x2="198" y2="40"/>`);
+ [[a,1],[b,-1]].forEach(([x,d])=>o.add(`<path class="s-term" d="M${x+d*8} 64 l${d*5} -14 l${d*5} 14Z"/><rect class="s-pipe" x="${x+d*8-3}" y="70" width="6" height="${o.gy-70}"/>`));
+ o.add(`<path class="s-xlpe" d="M${a+8} 62 V${o.gy+44} H${b-8} V62"/><rect class="s-trench" x="56" y="${o.gy+32}" width="88" height="24"/>`);
+ for(let i=0;i<4;i++)o.add(`<rect class="s-rail" x="${66+i*20}" y="${o.gy-5}" width="10" height="5"/>`);
+ o.add(`<rect class="s-pipe" x="56" y="${o.gy+40}" width="88" height="8"/>`);[46,154].forEach(x=>o.add(`<rect class="s-marker" x="${x-2}" y="${o.gy-12}" width="4" height="12"/><rect class="s-marker" x="${x-5}" y="${o.gy-16}" width="10" height="5"/>`));
+ o.add(`<text class="s-in" x="100" y="${o.gy-14}" text-anchor="middle">TRACKS</text>`);
+ o.c([a+13,57],"*Termination kits 3C×185|outdoor, × 4",30);
+ o.c([b-13,56],"*Al lugs × 6",56);
+ o.c([b-8,140],"*GI pipe 100 mm: risers|+ sleeve under tracks");
+ o.c([b-8,200],"*11 kV XLPE 3C×185|≈108 m with loops");
+ o.c([140,o.gy+50],"*Trench ≥ 1 m under the|tracks, sand + brick");
+ o.c([154,o.gy-16],"*Route markers × 6",o.gy+6);
+ o.c([a,20],"Left: AB-switch DP; right:|cable-end DP (own kits)",8);
+ return fin(o,320)},
+rail33(){const o=B(250);gnd(o);[[18,34],[166,182]].forEach(p=>p.forEach(x=>pl(o,x,24,"steel")));
+ chArm(o,10,42,36,6);chArm(o,158,190,36,6);
+ [[26,1],[174,-1]].forEach(([x,d])=>{la(o,x+d*14,42);o.add(`<path class="s-term" d="M${x-3} 66 l3 -12 l3 12Z"/><rect class="s-pipe" x="${x-3}" y="70" width="6" height="${o.gy-70}"/>`)});
+ o.add(`<line class="s-cond" x1="0" y1="30" x2="10" y2="30"/><line class="s-cond" x1="190" y1="30" x2="200" y2="30"/>`);
+ o.add(`<path class="s-xlpe" d="M26 62 V${o.gy+20} L60 ${o.gy+50} H140 L174 ${o.gy+20} V62"/>`);
+ o.add(`<rect class="s-spun" x="58" y="${o.gy+44}" width="84" height="12" rx="6"/>`);[80,100,120].forEach(x=>o.add(`<line class="s-web" x1="${x}" y1="${o.gy+44}" x2="${x}" y2="${o.gy+56}"/>`));
+ for(let i=0;i<4;i++)o.add(`<rect class="s-rail" x="${66+i*20}" y="${o.gy-5}" width="10" height="5"/>`);o.add(`<text class="s-in" x="100" y="${o.gy-10}" text-anchor="middle">TRACKS</text>`);
+ o.c([42,39],"*SP-76 DPs × 2, 754|channels 5000, 641",14);
+ o.c([162,48],"*33 kV LA 674 at each|cable end",48);
+ o.c([177,60],"*Termination kits 251|× 12 (1C cables)",84);
+ o.c([174,140],"*33 kV XLPE 1C×400, 46|≈630 m (3 cores)");
+ o.c([30,o.gy+16],"*HDPE pipe 110, 738|from pole to bore pit",o.gy-30);
+ o.c([140,o.gy+50],"*CI spun pipe 300 mm, 655|× 12 + sockets 475");
+ o.c([100,o.gy+60],"*Machine boring 400 mm|at 1.5 m depth, ≈20 m",o.gy+84);
+ o.c([182,180],"Stays 653 × 6, guy 616,|pins 613, discs 607",190);
+ return fin(o,350)},
+/* ===== substations ===== */
+pss(){const o=B(900);const X=70;let s=`<path class="s-sld" d="M${X} 14 V40 M${X} 58 V92 M${X} 104 V122 M${X} 140 V164 M${X} 196 V222 M${X} 240 V258 M20 258 H186"/>`;
+ s+=`<path class="s-sld" d="M${X} 40 L${X+10} 54" /><circle class="s-sldp" cx="${X}" cy="58" r="2"/><circle class="s-sldp" cx="${X}" cy="40" r="2"/>`;
+ s+=`<path class="s-sld" d="M${X} 72 H${X+30} V78"/>`;o.add(s);la(o,X+30,80);o.add(`<path class="s-earth" d="M${X+30} 98 V104 M${X+24} 104 h12 M${X+27} 107 h6"/>`);
+ o.add(`<circle class="s-ct2" cx="${X}" cy="98" r="6"/><rect class="s-cb" x="${X-9}" y="122" width="18" height="18" rx="2"/><circle class="s-tr" cx="${X}" cy="172" r="11"/><circle class="s-tr" cx="${X}" cy="188" r="11"/><rect class="s-cb" x="${X-9}" y="222" width="18" height="18" rx="2"/>`);
+ [40,90,140,180].forEach(x=>o.add(`<path class="s-sld" d="M${x} 258 V272 M${x} 290 V312"/><rect class="s-cb" x="${x-8}" y="272" width="16" height="18" rx="2"/><path class="s-sld" d="M${x-4} 306 l4 8 l4 -8"/>`));
+ o.add(`<circle class="s-tr" cx="20" cy="270" r="6"/><circle class="s-tr" cx="20" cy="280" r="6"/><path class="s-sld" d="M20 258 V264"/>`);
+ o.add(`<rect class="s-box" x="130" y="110" width="40" height="44" rx="3"/><text class="s-in" x="150" y="136" text-anchor="middle">C&amp;R</text><path class="s-ctl" d="M130 132 H${X+9}"/>`);
+ o.add(`<path class="s-batt" d="M136 186 h28 M140 192 h20 M136 198 h28 M140 204 h20"/>`);
+ let m="";for(let i=0;i<6;i++)m+=`M10 ${330+i*6} h60 `;for(let i=0;i<7;i++)m+=`M${10+i*10} 330 v30 `;o.add(`<path class="s-mat" d="${m}"/>`);
+ o.add(`<text class="s-in" x="${X+8}" y="20">33 kV line</text><text class="s-in" x="96" y="252">11 kV bus</text>`);
+ o.c([X+9,48],"*33 kV isolators: 1 with|earth switch + 3 plain");
+ o.c([X+35,88],"*33 kV LAs 672 × 3");
+ o.c([X+6,98],"*33 kV CTs × 6, PTs × 3",104);
+ o.c([X+9,131],"*33 kV VCBs 270 × 2",126);
+ o.c([170,132],"*C&R panel 465",150);
+ o.c([X+11,180],"*PTR 3.15 MVA 33/11 kV|ONAN with OLTC",176);
+ o.c([164,195],"*Battery + charger",206);
+ o.c([X+9,231],"*11 kV incomer panels × 3",232);
+ o.c([188,281],"*11 kV feeder panels × 4|+ capacitor VCB",276);
+ o.c([26,275],"*Station transformer",302);
+ o.c([186,258],"11 kV PTs, LAs 9 kV × 4,|GOS 200 A × 4",256);
+ o.c([70,345],"*Earth mat ≤ 2 Ω",340);
+ return fin(o,372)},
+vcbr(key){const o=B(280);gnd(o);const v33=key!=="vcb11r";
+ o.add(`<rect class="s-conc" x="96" y="${o.gy}" width="70" height="26"/><path class="s-steelL" d="M104 ${o.gy} V170 M158 ${o.gy} V170 M104 230 L158 200 M158 230 L104 200"/>`);
+ box(o,98,120,66,50,"VCB","s-dtr");[110,131,152].forEach(x=>bushing(o,x,96));box(o,140,176,20,20,"","s-box");
+ o.add(`<path class="s-cc" d="M160 186 Q186 200 184 ${o.gy+16} H40"/><rect class="s-pipe" x="34" y="${o.gy+10}" width="150" height="12" rx="2" style="fill:none"/>`);
+ o.add(`<rect class="s-house" x="10" y="${o.gy-70}" width="48" height="70"/><text class="s-in" x="34" y="${o.gy-40}" text-anchor="middle">C&amp;R</text>`);
+ if(v33){o.add(`<path class="s-steelL" d="M30 ${o.gy-70} V120 M54 ${o.gy-70} V120 M24 120 H60"/>`);[34,50].forEach(x=>bushing(o,x,108));o.add(`<path class="s-blade" d="M34 106 L52 98"/><path class="s-cond" d="M50 100 Q80 80 110 96"/>`)}
+ else o.add(`<path class="s-cond" d="M20 70 Q70 70 110 96"/>`);
+ o.add(`<path class="s-cond" d="M152 96 Q170 60 198 60"/>`);
+ o.c([164,140],v33?"*33 kV VCB 800 A with|structure, 270":"*11 kV outdoor VCB 800 A|with structure");
+ if(v33)o.c([52,100],"*33 kV isolator TPGO|(only if it is bad too)",40);
+ o.c([166,o.gy+14],"*VCB foundation 433");
+ o.c([160,190],"Marshalling box",190);
+ o.c([184,240],v33?"*Control cable 10C, 37|≈20 m to the C&R panel":"*Control cable 10C, 37|≈15 m to the C&R panel");
+ o.c([164,104],v33?"Nuts & bolts 646, 10 kg":"Nuts & bolts 646, 8 kg",80);
+ o.c([34,o.gy-40],"Control room (C&R)",o.gy+30);
+ return fin(o,330)},
+ptr(){const o=B(900);const X=60;
+ o.add(`<path class="s-steelL" d="M14 14 V56 M106 14 V56 M10 18 H110"/>`);const st=dstr(o,X-4,22,1,2,0,0);o.add(`<path class="s-wolf" d="M${X-4} 18 V22 M${st.end[0]} 22 Q${st.end[0]+10} 30 ${X} 44 V58"/>`);
+ o.add(`<path class="s-sld" d="M${X} 58 V70 M${X} 86 V108 M${X} 126 V150 M${X} 220 V240 M${X} 258 V278"/><path class="s-sld" d="M${X} 70 L${X+10} 84"/><circle class="s-sldp" cx="${X}" cy="86" r="2"/>`);
+ o.add(`<rect class="s-cb" x="${X-9}" y="108" width="18" height="18" rx="2"/><circle class="s-ct2" cx="${X}" cy="138" r="6"/><path class="s-sld" d="M${X} 144 H${X+30} V150"/>`);la(o,X+30,152);
+ o.add(`<rect class="s-dtr" x="${X-26}" y="160" width="52" height="60" rx="4"/><text class="s-in" x="${X}" y="194" text-anchor="middle">PTR</text>`);for(let i=0;i<5;i++)o.add(`<line class="s-fin" x1="${X+26}" y1="${166+i*11}" x2="${X+34}" y2="${166+i*11}"/>`);
+ la(o,X+46,206);o.add(`<path class="s-sld" d="M${X+26} 204 H${X+46}"/>`);
+ o.add(`<path class="s-xlpe" d="M${X} 240 V300 H160 V260"/><rect class="s-cb" x="151" y="240" width="18" height="18" rx="2"/><rect class="s-trench" x="${X-8}" y="292" width="${168-X}" height="16"/>`);
+ o.add(`<rect class="s-box" x="150" y="150" width="40" height="44" rx="3"/><text class="s-in" x="170" y="176" text-anchor="middle">C&amp;R</text><path class="s-ctl" d="M150 172 Q110 160 ${X+9} 118"/>`);
+ let m="";for(let i=0;i<5;i++)m+=`M10 ${326+i*6} h80 `;for(let i=0;i<9;i++)m+=`M${10+i*10} 326 v24 `;o.add(`<path class="s-mat" d="${m}"/>`);
+ o.c([X+20,22],"*Disc 90 kN 607 + H/W 844|× 6, Wolf 449 + PG 828",12);
+ o.c([X+9,78],"*33 kV isolator|+ foundation 430",62);
+ o.c([X+9,117],"*33 kV VCB 270|+ foundation 433",96);
+ o.c([X+6,138],"*33 kV CT + foundation 429",130);
+ o.c([X+35,160],"*33 kV LA 672|+ foundation 432",160);
+ o.c([X+26,182],"*PTR + its foundation|(from the layout)",196);
+ o.c([X+51,214],"*11 kV LA 677",226);
+ o.c([169,249],"*11 kV VCB + cable 1C×300|58, kits 214 × 6",252);
+ o.c([150,300],"Cable trench ≈ 30 m",288);
+ o.c([190,172],"*C&R panel 465 + control|cables 10C, 4C, 14C",170);
+ o.c([90,338],"*Earthing: GI pipes 473|× 8 + GI strip 477, 80 m",330);
+ o.c([108,16],"Gantry steel, danger|plates 720 × 2, N&B",40);
+ return fin(o,372)},
+});
+const FIGKEY={polerep:"polerep",hgt11:"hgt11",abcconv:"abcconv",aug:"aug",tmpdt:"tmpdt",ctpt:"ctpt",rail33:"rail33",vcb33r:"vcbr",vcb11r:"vcbr",rc33:"rc33"};
+function draw(key,quiz){QUIZ=!!quiz;const f=FIG[FIGKEY[key]||K[key].fig];try{return f?f(key):""}catch(e){console.error(e);return ""}finally{QUIZ=false}}
 
 /* ---------- Structures view ---------- */
 function buildRail(){
@@ -1052,7 +1764,7 @@ function renderKit(){
   <button data-m="study" aria-pressed="${mode==='study'}">Study</button>
   <button data-m="check" aria-pressed="${mode==='check'}">What goes on it?</button>
   ${noqty?"":`<button data-m="qty" aria-pressed="${mode==='qty'}">How many?</button>`}</div></div>
- <div class="body"><div class="figure">${draw(k.fig)}<div class="cap">Sketch, not to scale.</div></div><div id="pane" style="min-width:0"></div></div>
+ <div class="body"><div class="figure">${draw(cur,mode!=="study")}<div class="cap">${mode==="study"?"Sketch, not to scale. Each label names the part and its SoR item.":"Numbered parts: name each one from the list. Labels show in Study."}</div></div><div id="pane" style="min-width:0"></div></div>
  <p class="src"><b>Source</b> ${esc(k.src||"")}${STD==="apdcl"?" · items swapped to APDCL SoR equivalents":""}</p>`;
  $("#kit").innerHTML=h;
  $("#kit").querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{mode=b.dataset.m;renderKit()});
