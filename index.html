@@ -1069,6 +1069,7 @@ function travelLiveGpx(day,pts){
 /* finished days -> archive. Safe to run on several devices at once: the same points give the same GPX, so the same file id. */
 async function travelLiveArchive(){
   var d=await travelLiveApi(''),today=travelToday(),saved=0;
+  if(!Array.isArray(d.days))throw new Error('the Worker has not been updated with live tracking yet');
   (d.days||[]).forEach(function(x){if(x.last)travelLiveLast=Math.max(travelLiveLast,x.last)});
   var old=(d.days||[]).filter(function(x){return x.day<today&&x.n>0}).map(function(x){return x.day}).sort();
   for(var i=0;i<old.length;i++){
