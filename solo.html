@@ -63,6 +63,7 @@ details.primer summary{cursor:pointer;font-weight:650}
 .bar.sel{border-color:var(--acc);background:#fffaf5}.bar.play{box-shadow:0 0 0 3px #fdba74}
 .bar .bh{display:flex;justify-content:space-between;font:700 12px var(--body);padding:0 2px}.bar .bh span{color:var(--muted);font-weight:500}
 .bar svg{width:100%;height:auto;display:block}
+.bar .cn.on{fill:#4f46e5;font-weight:700}.bar .nt.on{fill:#4f46e5}
 .checks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
 .checks li{display:flex;gap:8px;align-items:flex-start;font-size:14px}.checks li b{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px;background:var(--warn-soft);color:var(--warn)}
 .checks li.ok b{background:var(--good-soft);color:var(--good)}.checks li small{display:block;color:var(--muted)}
@@ -399,7 +400,7 @@ function chordTones(c,key){const r=key+MAJ[c],third=key+MAJ[(c+2)%7],fifth=key+M
 /* ===================== Playback ===================== */
 let play=null;
 function stop(){if(play){clearInterval(play.timer);cancelAnimationFrame(play.raf);play=null;save();}nodes.forEach(n=>{try{n.stop();}catch(e){}});nodes=[];
-  document.querySelectorAll(".bar.play").forEach(e=>e.classList.remove("play"));renderTransport();}
+  document.querySelectorAll(".bar.play").forEach(e=>e.classList.remove("play"));paintBeat(null,0);renderTransport();}
 /* climb: the first time round starts 20 bpm under the goal (never below 40) and each time round is 4 bpm faster, up to the goal */
 const loopTempo=(src,i)=>src.climb?Math.min(src.tempo,Math.max(40,src.tempo-20)+4*i):src.tempo;
 function start(a,b,src){stop();audio();if(!src){load();const s=S();src={key:s.key,tempo:s.tempo,ch:C16,bars:s.bars};}const spb=60/loopTempo(src,0),t0=ctx.currentTime+.12+4*spb;
@@ -416,7 +417,8 @@ function start(a,b,src){stop();audio();if(!src){load();const s=S();src={key:s.ke
     if(L){const pos=(now-L.ts)/L.spb;if(pos>=0&&pos<play.len)bar=play.a+Math.floor(pos/4);}
     const tn=document.getElementById("ctNow");if(tn){const tx=L?`Now ♩${L.bpm}`:play.loops[0]?`Count-in · ♩${play.loops[0].bpm}`:"";if(tn.textContent!==tx)tn.textContent=tx;}
     {const bpm=L?L.bpm:play.loops[0]?play.loops[0].bpm:null;if(bpm!=null)document.querySelectorAll(".ctnow").forEach(e=>{const tx=String(bpm);if(e.textContent!==tx)e.textContent=tx;});}
-    document.querySelectorAll(".bar").forEach(e=>e.classList.toggle("play",e.dataset.cb!=null?(e.dataset.cex===play.cex&&+e.dataset.cb===bar):+e.dataset.bar===bar));
+    let pel=null;document.querySelectorAll(".bar").forEach(e=>{const on=e.dataset.cb!=null?(e.dataset.cex===play.cex&&+e.dataset.cb===bar):+e.dataset.bar===bar;e.classList.toggle("play",on);if(on)pel=e;});
+    paintBeat(pel,L&&bar>=0?(now-L.ts)/L.spb-(bar-play.a)*4:0);
     if(view==="jam"){const el=document.getElementById("jamT"),left=Math.max(0,120-Math.max(0,ctx.currentTime-play.t0));if(el)el.textContent=GSPlanMM(left);
       const ce=document.getElementById("jamC");if(ce&&bar>=0)ce.textContent=chordName(play.src.ch[bar],play.src.key);
       if(left<=0){stop();toast("Warm-up done ✓ Now build today's solo.");render();return;}}
@@ -588,14 +590,34 @@ function fretboard(c,o){o=o||{};const [lo,hi]=fretSpan(),f0=lo-1,cols=hi-f0,W=36
   return svg+"</svg>";}
 
 const lbl=n=>(n.ac?">":"")+(n.ap?"‹":"")+(n.sl?"/":"")+(n.h?"h":"")+n.f+(n.b?(n.bt==="r"?"br":n.bt==="p"?"pb":"b"):"")+(n.v?["","~","≈","-~"][n.v]||"~":"")+(n.st?".":"");
-function barBox(b){const s=S(),bar=s.bars[b]||[],W=160,T=8,G=9,H=T+G*5+8,x=p=>6+p/BAR*(W-12);let pos=0,g="";
+/* beat grid under a bar of tab, as in Melodic Lead: the counts (1 & 2 & … / 1 e & a / 1 trip let) and a cursor
+   that steps from count to count while the band plays. The grid follows the bar's rhythm: eighths, 16ths or triplets. */
+function gridSub(bar){let p=0;const st=[];(bar||[]).forEach(n=>{st.push(p);p+=n.d;});for(const s of [2,4,3])if(st.every(x=>x%(12/s)===0))return s;return 4;}
+function beatLayer(bar,W,T,G,x){const sub=gridSub(bar),u=12/sub,syl=sub===2?["","&"]:sub===3?["","trip","let"]:["","e","&","a"],y=T+5*G+13;let bg="",cn="";
+  bg=`<rect class="tk" x="0" y="${T-6}" width="0" height="${5*G+20}" rx="3" fill="#eef0ff" style="display:none"/>`;
+  for(let j=0;j<4*sub;j++){const a=x(j*u),b=x((j+1)*u),on=j%sub===0;
+    cn+=`<text class="cn" data-j="${j}" x="${(a+b)/2}" y="${y}" font-size="${on?8.5:7}" text-anchor="middle" font-family="ui-monospace,Menlo,monospace" font-weight="${on?700:400}" fill="${on?"#8c94a3":"#c4c9d4"}">${on?j/sub+1:syl[j%sub]}</text>`;}
+  return {sub,bg,cn,H:T+5*G+18};}
+/* move the beat cursor: el = the playing bar, at = beats into that bar */
+let beatEl=null,beatKey="";
+function paintBeat(el,at){if(beatEl&&!beatEl.isConnected){beatEl=null;beatKey="";}const svg=el&&el.querySelector("svg"),sub=svg?+svg.dataset.sub||2:2,j=el?Math.floor(at*sub+1e-6):-1,k=el?(el.dataset.bar||el.dataset.cex+"/"+el.dataset.cb)+":"+j:"";
+  if(k===beatKey)return;beatKey=k;
+  if(beatEl&&beatEl!==el){const r=beatEl.querySelector(".tk");if(r)r.style.display="none";}
+  document.querySelectorAll(".cn.on,.nt.on").forEach(t=>t.classList.remove("on"));
+  if(beatEl!==el&&el)followBar(el);beatEl=el;if(!svg||j<0||j>=4*sub)return;
+  const c=svg.querySelector(`.cn[data-j="${j}"]`),r=svg.querySelector(".tk"),W=svg.viewBox.baseVal.width,x=p=>6+p/48*(W-12),u=12/sub;
+  if(c)c.classList.add("on");if(r){r.setAttribute("x",x(j*u)-1);r.setAttribute("width",x((j+1)*u)-x(j*u));r.style.display="";}
+  const p=at*12;svg.querySelectorAll(".nt").forEach(t=>{if(+t.dataset.a<=p+1e-6&&p<+t.dataset.z-1e-6)t.classList.add("on");});}
+function followBar(el){const r=el.getBoundingClientRect(),tr=document.getElementById("transport"),bot=window.innerHeight-(tr&&!tr.hidden?tr.offsetHeight:0)-8;
+  if(r.top<8||r.bottom>bot)window.scrollTo({top:Math.max(0,window.scrollY+r.top-90),behavior:"smooth"});}
+function barBox(b){const s=S(),bar=s.bars[b]||[],W=160,T=8,G=9,x=p=>6+p/BAR*(W-12),bl=beatLayer(bar,W,T,G,x),H=bl.H;let pos=0,g=bl.bg;
   for(let k=1;k<=6;k++)g+=`<line x1="2" x2="${W-2}" y1="${T+(k-1)*G}" y2="${T+(k-1)*G}" stroke="#e2e8f0"/>`;
   [12,24,36].forEach(p=>g+=`<line x1="${x(p)}" x2="${x(p)}" y1="${T}" y2="${T+5*G}" stroke="#f1f5f9"/>`);
   bar.forEach(n=>{if(!n.r){const y=T+(n.s-1)*G,lab=lbl(n);
       (n.tr||[]).forEach(q=>{const yy=T+(q.s-1)*G;g+=`<rect x="${x(pos)-1}" y="${yy-5.5}" width="${String(q.f).length*5.6+2}" height="10" fill="#fff"/><text x="${x(pos)}" y="${yy+3}" font-size="9.5" font-weight="700" font-family="ui-monospace,Menlo,monospace" fill="#7c3aed">${q.f}</text>`;});
-      g+=`<rect x="${x(pos)}" y="${y+3}" width="${Math.max(2,x(pos+n.d)-x(pos)-2)}" height="2" rx="1" fill="#fdba74"/><rect x="${x(pos)-1}" y="${y-5.5}" width="${lab.length*5.6+2}" height="10" fill="#fff"/><text x="${x(pos)}" y="${y+3}" font-size="9.5" font-weight="700" font-family="ui-monospace,Menlo,monospace" fill="#172033">${lab}</text>`;}
-    pos+=n.d;});
-  return `<div class="bar${b===sel?" sel":""}" data-bar="${b}"><div class="bh">${chordName(C16[b],s.key)}<span>${ui.skel&&SK.length?`◎${nn(P[SK[b]].m,s.key)} · `:""}${b+1}</span></div><svg viewBox="0 0 ${W} ${H}">${g}</svg></div>`;}
+      g+=`<rect x="${x(pos)}" y="${y+3}" width="${Math.max(2,x(pos+n.d)-x(pos)-2)}" height="2" rx="1" fill="#fdba74"/><rect x="${x(pos)-1}" y="${y-5.5}" width="${lab.length*5.6+2}" height="10" fill="#fff"/><text class="nt" data-a="${pos}" data-z="${pos+n.d}" x="${x(pos)}" y="${y+3}" font-size="9.5" font-weight="700" font-family="ui-monospace,Menlo,monospace" fill="#172033">${lab}</text>`;}
+    pos+=n.d;});g+=bl.cn;
+  return `<div class="bar${b===sel?" sel":""}" data-bar="${b}"><div class="bh">${chordName(C16[b],s.key)}<span>${ui.skel&&SK.length?`◎${nn(P[SK[b]].m,s.key)} · `:""}${b+1}</span></div><svg viewBox="0 0 ${W} ${H}" data-sub="${bl.sub}">${g}</svg></div>`;}
 
 function renderTransport(){const el=document.getElementById("transport");if(view==="jam"||view==="course"){el.hidden=true;return;}if(view!=="build"||!S()){el.hidden=true;return;}el.hidden=false;const s=S(),ph=Math.floor(sel/4);
   el.innerHTML=`<div class="tin">${play?`<button class="pri" data-stop="1">■ Stop</button>`:`<button class="pri" data-playph="1">▶ Phrase ${ph+1}</button><button data-playall="1">▶ All 16</button>`}
@@ -740,7 +762,7 @@ function syncCard(){const on=!!syncCode();return `<section class="card"><div cla
 render();setSync(syncCode()?"busy":"off");cloudSync().then(ch=>{if(ch&&!play)render();});
 </script>
 <script src="triad-course.js?v=20261020d"></script>
-<script src="soloing-course.js?v=20261021b"></script>
+<script src="soloing-course.js?v=20261025"></script>
 <script>render();</script>
 <script src="plan.js?v=20261020d"></script><script>GSPlan.watch("sc",{live:()=>0,playing:()=>!!play,stop:()=>{stop();render();}});
 setInterval(()=>{const el=document.getElementById("hToday");if(!el)return;const k=dkey(new Date());el.textContent=Math.floor(GSPlan.today().reduce((a,r)=>a+r.sec,0)/60);},2000);</script>

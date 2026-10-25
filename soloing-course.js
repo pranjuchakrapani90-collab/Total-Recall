@@ -290,11 +290,11 @@ function miniFret(ex){const ns=[];ex.bars.forEach(b=>b.forEach(n=>{if(!n.r){ns.p
     g+=`<circle cx="${L+(n.f-lo0-.5)*cw}" cy="${Tp+(n.s-1)*G}" r="8" fill="${col}" stroke="${r>=0?col:"#94a3b8"}"/><text x="${L+(n.f-lo0-.5)*cw}" y="${Tp+(n.s-1)*G+3}" font-size="8" font-weight="700" text-anchor="middle" fill="${tc}">${nn(OPEN[n.s]+n.f,ex.key)}</text>`;});
   return g+`</svg><p class="small muted" style="margin:0">Notes in this example. Over the first chord: <b style="color:#172033">root</b> · <b style="color:#059669">3rd</b> · <b style="color:#2563eb">5th</b> · white = other notes.</p>`;}
 function exTab(ex,id){const lab=n=>(n.ac?">":"")+(n.sl?"/":"")+(n.h?"h":"")+n.f+(n.b?(n.bt==="r"?"br":n.bt==="p"?"pb":"b"):"")+(n.v?["","~","≈","-~"][n.v]:"")+(n.st?".":"");
-  return `<div class="bars">${ex.bars.map((br,b)=>{const Wd=160,Tp=8,G=9,Hh=Tp+G*5+8,x=p=>6+p/48*(Wd-12);let pos=0,g="";
+  return `<div class="bars">${ex.bars.map((br,b)=>{const Wd=160,Tp=8,G=9,x=p=>6+p/48*(Wd-12),bl=beatLayer(br,Wd,Tp,G,x),Hh=bl.H;let pos=0,g=bl.bg;
     for(let s=1;s<=6;s++)g+=`<line x1="2" x2="${Wd-2}" y1="${Tp+(s-1)*G}" y2="${Tp+(s-1)*G}" stroke="#e2e8f0"/>`;
     br.forEach(n=>{if(!n.r){const y=Tp+(n.s-1)*G,l=lab(n);(n.tr||[]).forEach(q=>{const yy=Tp+(q.s-1)*G;g+=`<rect x="${x(pos)-1}" y="${yy-5.5}" width="${String(q.f).length*5.6+2}" height="10" fill="#fff"/><text x="${x(pos)}" y="${yy+3}" font-size="9.5" font-weight="700" font-family="ui-monospace,Menlo,monospace" fill="#7c3aed">${q.f}</text>`;});
-      g+=`<rect x="${x(pos)}" y="${y+3}" width="${Math.max(2,x(pos+n.d)-x(pos)-2)}" height="2" rx="1" fill="#fdba74"/><rect x="${x(pos)-1}" y="${y-5.5}" width="${l.length*5.6+2}" height="10" fill="#fff"/><text x="${x(pos)}" y="${y+3}" font-size="9.5" font-weight="700" font-family="ui-monospace,Menlo,monospace" fill="#172033">${l}</text>`;}pos+=n.d;});
-    return `<div class="bar" data-cb="${b}" data-cex="${id}"><div class="bh">${chordName(ex.ch[b],ex.key)}<span>${b+1}</span></div><svg viewBox="0 0 ${Wd} ${Hh}">${g}</svg></div>`;}).join("")}</div>`;}
+      g+=`<rect x="${x(pos)}" y="${y+3}" width="${Math.max(2,x(pos+n.d)-x(pos)-2)}" height="2" rx="1" fill="#fdba74"/><rect x="${x(pos)-1}" y="${y-5.5}" width="${l.length*5.6+2}" height="10" fill="#fff"/><text class="nt" data-a="${pos}" data-z="${pos+n.d}" x="${x(pos)}" y="${y+3}" font-size="9.5" font-weight="700" font-family="ui-monospace,Menlo,monospace" fill="#172033">${l}</text>`;}pos+=n.d;});g+=bl.cn;
+    return `<div class="bar" data-cb="${b}" data-cex="${id}"><div class="bh">${chordName(ex.ch[b],ex.key)}<span>${b+1}</span></div><svg viewBox="0 0 ${Wd} ${Hh}" data-sub="${bl.sub}">${g}</svg></div>`;}).join("")}</div>`;}
 const ctempo=()=>{st.course=st.course||{done:{}};return st.course.tempo||66;};
 
 function renderSyllabus(){const D=done(),A=allEx(),tot=A.length,n=A.filter(x=>D[x.id]).length,nx=nextLesson(),nL=C.reduce((a,m)=>a+m.lessons.length,0);
