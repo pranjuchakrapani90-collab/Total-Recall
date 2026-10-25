@@ -665,6 +665,7 @@ async function travelSyncPendingFiles(code){
   var uploaded=0;
   for(var i=0;i<metas.length;i++){
     var f=metas[i];
+    if(f.cloudUploaded)continue; // already in the cloud: re-sending every GPX on every sync made syncs very slow
     var text=await travelDbGet(f.id);
     if(text===null)continue;
     try{
@@ -675,7 +676,7 @@ async function travelSyncPendingFiles(code){
       console.warn('Travel file sync failed for '+f.name,e);
     }
   }
-  localStorage.setItem(KEY,JSON.stringify(db));
+  if(uploaded)localStorage.setItem(KEY,JSON.stringify(db));
   travelRenderFileList();
   return uploaded
 }
