@@ -629,6 +629,8 @@ function travelRefreshDatesAfterSync(before){
   var prevNewest=(before||'').split(',')[0],cur=sel.value,onNewest=!cur||cur===prevNewest||sel.disabled;
   var dates=travelDates(),target=onNewest?dates[0]:cur;
   travelPopulateDates(target);
+  /* live tracking switched on from another device: start following it here too */
+  if(travelLiveToken()&&!travelLiveTimer&&!$('travelSession').classList.contains('hidden'))travelLiveStart();else travelLiveBadge();
   if(target&&target!==cur&&typeof travelLoadSelectedDate==='function'){Promise.resolve().then(travelLoadSelectedDate).catch(function(e){console.warn('Travel reload after sync failed',e)})}
 }
 function travelPopulateDates(preferred){
@@ -1145,7 +1147,7 @@ $('travelCameraOverview').addEventListener('click',function(){
 });
 $('travelSyncBtn').addEventListener('click',async function(){
   $('travelSyncStatus').textContent='☁ Syncing people data and travel files…';
-  try{await cloudSync(true);travelPopulateDates($('travelDate').value);if(travelDates().length)await travelLoadSelectedDate();$('travelSyncStatus').textContent='☁ Synced '+new Date().toLocaleTimeString()}catch(e){$('travelSyncStatus').textContent='☁ Sync unavailable: '+e.message}
+  try{await cloudSync(true);travelPopulateDates($('travelDate').value);if(travelLiveToken()&&!travelLiveTimer)travelLiveStart();if(travelDates().length)await travelLoadSelectedDate();$('travelSyncStatus').textContent='☁ Synced '+new Date().toLocaleTimeString()}catch(e){$('travelSyncStatus').textContent='☁ Sync unavailable: '+e.message}
 });
 travelPopulateDates();
 window.TotalRecallBridge={periodRange:periodRange,esc:esc,tickContentHtml:tickContentHtml,save:save,tickUrl:function(){return TICK_URL},getDb:function(){return db},suppressed:function(){return COMPLETED_SUPPRESS}};
