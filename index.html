@@ -757,10 +757,12 @@ function travelDetectStops(segments){
     if(maxDist<=radius)stops.push({startTime:first.time,endTime:last.time,duration:duration,lat:lat,lng:lng,points:run.length});
     run=[];
   }
+  /* A stop is a run of points within 60 m of where it began, lasting over 5 minutes. A gap in recording does not end it:
+     with GPSLogger's distance filter nothing is logged while you sit still, so a long gap followed by a point at the
+     same spot means you stayed there. */
   pts.forEach(function(p){
     if(!run.length){run=[p];return}
-    var prev=run[run.length-1];
-    if(p.ms-prev.ms>120000||travelHaversine({lat:prev.lat,lng:prev.lng},p)>radius){finish();run=[p]}else run.push(p);
+    if(travelHaversine({lat:run[0].lat,lng:run[0].lng},p)>radius){finish();run=[p]}else run.push(p);
   });
   finish();
   return stops;
