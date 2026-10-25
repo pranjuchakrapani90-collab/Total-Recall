@@ -194,7 +194,15 @@ function bookedC(M){
   const mm={};M.T.filter(x=>x.type==="sell").forEach(x=>{const k=x.date.slice(0,7);mm[k]=(mm[k]||0)+x.profit;});
   const months=Object.keys(mm).sort();if(!months.length)return `<p class="nothing">No profit booked yet.</p>`;const mx=Math.max(...months.map(k=>Math.abs(mm[k])),1);
   return `<p class="line">Booked <b class="up">${inr(M.booked)}</b> · ${pct(M.abs)} of base</p>
-   <div class="bars">${months.map(k=>`<div title="${k}: ${inr(mm[k])}"><i style="height:${(Math.abs(mm[k])/mx*80).toFixed(0)}%"></i><span>${new Date(k+"-01T00:00:00").toLocaleDateString("en-IN",{month:"short",year:"2-digit"})}</span></div>`).join("")}</div>`;}
+   <div class="bars">${months.map(k=>`<div title="${k}: ${inr(mm[k])}"><i style="height:${(Math.abs(mm[k])/mx*80).toFixed(0)}%"></i><span>${new Date(k+"-01T00:00:00").toLocaleDateString("en-IN",{month:"short",year:"2-digit"})}</span></div>`).join("")}</div>
+   ${bookedList(M)}`;}
+/* every sale, newest first, like History: tap one to correct or delete it */
+let bAll=false;
+function bookedList(M){const L=M.T.filter(x=>x.type==="sell").reverse(),show=bAll?L:L.slice(0,12);
+  return `<div class="rows" style="margin-top:12px">${show.map(x=>`<button class="rowbtn" type="button" data-tx="${esc(x.id)}"><span><b>${esc(dshort(x.date))}</b> <span class="tag ok">${x.reason&&x.reason!=="system"?"own call":"booked"}</span>
+     <div class="sub">${x.units} × ${price(x.price)} = ${inr(x.units*x.price)}</div></span>
+     <span class="r"><span class="${tone(x.profit)}">${signInr(x.profit)}</span><div class="sub">profit</div></span></button>`).join("")}</div>
+   ${L.length>12?`<button class="more" id="bAll" type="button">${bAll?"Show fewer":"Show all "+L.length}</button>`:""}`;}
 let all=false;
 function ledger(M){
   const L=M.T.slice().reverse(),show=all?L:L.slice(0,12);
@@ -226,7 +234,7 @@ function draw(){
   on("kFund",()=>I.fundForm(draw));
   on("aBuy",()=>buyForm({price:ok(M.cmp)?M.cmp:"",units:M.sipQty||""}));
   document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{tab=b.dataset.tab;I.saveTab(KEY,tab);draw();});
-  on("lAll",()=>{all=!all;draw();});on("ladAll",()=>{ladAll=!ladAll;draw();});on("eSet",()=>settingsForm(M.S));
+  on("lAll",()=>{all=!all;draw();});on("bAll",()=>{bAll=!bAll;draw();});on("ladAll",()=>{ladAll=!ladAll;draw();});on("eSet",()=>settingsForm(M.S));
   on("dImp",()=>I.pickImport((e,done)=>{if(e){showErr(e.message);return;}showErr("");$("st").textContent="Imported "+done.join(" and ").toUpperCase()+" records.";draw();refresh();}));
   on("dExp",()=>I.exportData());on("dSync",()=>syncNow(true));
   document.querySelectorAll("[data-tx]").forEach(r=>r.onclick=()=>{const x=I.load(KEY).tx[r.dataset.tx];if(!x)return;(x.type==="sell"?sellForm:buyForm)({id:r.dataset.tx,...x});});
