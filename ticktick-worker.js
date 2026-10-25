@@ -11,8 +11,8 @@ function corsHeaders(origin) {
   const allowed=origin===ALLOWED_ORIGIN;
   return {
     'Access-Control-Allow-Origin': allowed?origin:ALLOWED_ORIGIN,
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, X-Total-Recall-Sync',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, X-Total-Recall-Sync, X-Live-Token',
     'Access-Control-Max-Age': '86400',
     'Vary': 'Origin, Access-Control-Request-Method, Access-Control-Request-Headers',
     'Cache-Control': 'no-store'
@@ -83,6 +83,69 @@ async function handleTravelFile(request,env){
     return new Response(JSON.stringify({ok:true}),{status:200,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
   }
   return new Response(JSON.stringify({error:'Method not allowed'}),{status:405,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
+}
+
+/* Travel Trace live tracking.
+   GPSLogger (mendhak) on the phone calls, for every recorded point:
+     GET or POST ?mode=live-log&k=<live token>&lat=%LAT&lon=%LON&ts=%TIMESTAMP&time=%TIME&acc=%ACC&spd=%SPD&alt=%ALT
+   (query values win; a form or JSON body fills anything missing). Pranju OS reads with header X-Live-Token:
+     GET ?mode=live                      -> {days:[{day,n,last}]}
+     GET ?mode=live&day=YYYY-MM-DD&since=<ms> -> {points:[[ms,lat,lon,acc,spd,alt],...]}
+     DELETE ?mode=live&day=YYYY-MM-DD&upto=<ms> (after the day is saved as GPX in the encrypted archive)
+   Days are India (IST) calendar days. Points sit here, unencrypted, only until a finished day is archived. */
+const LIVE_IST_MS=19800000;
+const liveDay=ms=>new Date(ms+LIVE_IST_MS).toISOString().slice(0,10);
+export class LiveTrack{
+  constructor(state){
+    this.sql=state.storage.sql;
+    this.sql.exec('CREATE TABLE IF NOT EXISTS pts(ms INTEGER PRIMARY KEY, day TEXT NOT NULL, lat REAL NOT NULL, lon REAL NOT NULL, acc REAL, spd REAL, alt REAL)');
+    this.sql.exec('CREATE INDEX IF NOT EXISTS pts_day ON pts(day, ms)');
+  }
+  async fetch(request){
+    const u=new URL(request.url),op=u.searchParams.get('op'),day=u.searchParams.get('day')||'';
+    if(op==='add'){const p=await request.json();
+      this.sql.exec('INSERT OR REPLACE INTO pts(ms,day,lat,lon,acc,spd,alt) VALUES(?,?,?,?,?,?,?)',p.ms,p.day,p.lat,p.lon,p.acc,p.spd,p.alt);
+      return Response.json({ok:true});}
+    if(op==='days')return Response.json({days:this.sql.exec('SELECT day, COUNT(*) AS n, MAX(ms) AS last FROM pts GROUP BY day ORDER BY day').toArray()});
+    if(op==='get'){const since=Number(u.searchParams.get('since'))||0;
+      return Response.json({points:[...this.sql.exec('SELECT ms,lat,lon,acc,spd,alt FROM pts WHERE day=? AND ms>? ORDER BY ms',day,since).raw()]});}
+    if(op==='del'){const upto=Number(u.searchParams.get('upto'))||0;
+      this.sql.exec('DELETE FROM pts WHERE day=? AND ms<=?',day,upto);
+      return Response.json({ok:true});}
+    return Response.json({error:'Unknown operation'},{status:400});
+  }
+}
+async function handleLive(request,env,origin){
+  const url=new URL(request.url),q=url.searchParams,mode=q.get('mode');
+  const json=(o,s)=>new Response(JSON.stringify(o),{status:s||200,headers:{...corsHeaders(origin),'Content-Type':'application/json'}});
+  if(!env.LIVE_TRACK)return json({error:'Live tracking is not set up on the Worker yet (LIVE_TRACK binding is missing).'},503);
+  const token=String((mode==='live-log'?q.get('k'):request.headers.get('X-Live-Token'))||'').trim();
+  if(!/^[A-Za-z0-9_-]{20,80}$/.test(token))return json({error:'Missing or invalid live token.'},400);
+  const h=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('live:'+token));
+  const stub=env.LIVE_TRACK.get(env.LIVE_TRACK.idFromName(Array.from(new Uint8Array(h)).map(b=>b.toString(16).padStart(2,'0')).join('')));
+  const call=(op,params,body)=>stub.fetch('https://live/?op='+op+(params||''),body?{method:'POST',body:JSON.stringify(body)}:{}).then(r=>r.json());
+  if(mode==='live-log'){
+    const v={};
+    if(request.method==='POST'){
+      const ct=request.headers.get('Content-Type')||'',raw=await request.text();
+      try{if(ct.includes('json')||raw.trim().startsWith('{'))Object.assign(v,JSON.parse(raw));else new URLSearchParams(raw).forEach((val,k)=>{v[k]=val;});}catch(e){}
+    }
+    q.forEach((val,k)=>{v[k]=val;});
+    const num=x=>{const n=Number(x);return x===undefined||x===null||String(x).trim()===''||!isFinite(n)?null:n;};
+    const lat=num(v.lat??v.latitude),lon=num(v.lon??v.lng??v.longitude);
+    if(lat===null||lon===null||Math.abs(lat)>90||Math.abs(lon)>180||(lat===0&&lon===0))return json({error:'lat and lon are required.'},400);
+    let ms=num(v.ts??v.timestamp);if(ms!==null&&ms<1e12)ms*=1000;
+    if(ms===null&&v.time){const d=Date.parse(v.time);if(isFinite(d))ms=d;}
+    const now=Date.now();if(ms===null||ms>now+600000||ms<now-60*86400000)ms=now;
+    ms=Math.round(ms);
+    await call('add','',{ms,day:liveDay(ms),lat,lon,acc:num(v.acc??v.accuracy),spd:num(v.spd??v.speed),alt:num(v.alt??v.altitude)});
+    return new Response('OK',{status:200,headers:{'Content-Type':'text/plain','Cache-Control':'no-store'}});
+  }
+  const day=q.get('day')||'';
+  if(day&&!/^\d{4}-\d{2}-\d{2}$/.test(day))return json({error:'Invalid day.'},400);
+  if(request.method==='GET')return json(day?await call('get','&day='+day+'&since='+(Number(q.get('since'))||0)):{...await call('days'),today:liveDay(Date.now())});
+  if(request.method==='DELETE'&&day)return json(await call('del','&day='+day+'&upto='+(Number(q.get('upto'))||0)));
+  return json({error:'Method not allowed'},405);
 }
 
 /* Live NSE prices for the Investments pages (ETF Shop, JuniorBees PKP).
@@ -189,6 +252,7 @@ export default {async fetch(request,env){const origin=request.headers.get('Origi
  if(url.searchParams.get('mode')==='nav'){try{return await handleNav(request)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.searchParams.get('mode')==='quotes'||url.pathname==='/quotes'){try{return await handleQuotes(request)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.searchParams.get('mode')==='wa-review'||url.pathname==='/wa-review'){try{return await handleWaReview(request,env,origin)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
+ if(url.searchParams.get('mode')==='live'||url.searchParams.get('mode')==='live-log'){try{return await handleLive(request,env,origin)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.searchParams.get('mode')==='travel-file'){try{return await handleTravelFile(request,env)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(request.method!=='GET')return new Response('Method not allowed',{status:405,headers:corsHeaders(origin)});
  if(url.pathname!=='/'&&url.pathname!=='/responsibility-tasks'&&url.pathname!=='/completed-tasks'&&url.pathname!=='/task-detail')return new Response('Not found',{status:404,headers:corsHeaders(origin)});

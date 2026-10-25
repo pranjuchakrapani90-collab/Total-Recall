@@ -38,6 +38,13 @@ a.app span{font:550 12.5px/1.25 system-ui,-apple-system,"Segoe UI",sans-serif;te
 .tvadd input{position:absolute;inset:0;opacity:0;cursor:pointer}
 .tvstatus{margin:-4px 0 0;font-size:12.5px;color:var(--tr-muted)}.tvstatus span:empty{display:none}
 .tvkey summary{cursor:pointer;font-size:12.5px;color:var(--tr-muted)}.tvkey input{margin-top:6px}
+.tvlive{border:1px solid var(--tr-line,#e5e7eb);border-radius:12px;padding:10px 12px;background:var(--tr-soft)}
+.tvlive summary{cursor:pointer;font:650 13.5px system-ui,sans-serif;display:flex;align-items:center;gap:8px;list-style:none}.tvlive summary::-webkit-details-marker{display:none}
+.tvlive .ldot{width:9px;height:9px;border-radius:50%;background:#9ca3af;flex:none}.tvlive.on .ldot{background:#16a34a;box-shadow:0 0 0 3px rgba(22,163,74,.2)}.tvlive.stale .ldot{background:#d97706}
+.tvlive summary small{margin-left:auto;font-weight:500;color:var(--tr-muted);font-size:12px}
+.tvlive ol{margin:10px 0 4px;padding-left:20px;font-size:13px;line-height:1.5}.tvlive ol li{margin:3px 0}
+.tvlive textarea{width:100%;box-sizing:border-box;font:12px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;padding:8px;border-radius:8px;resize:none;margin:8px 0 6px;word-break:break-all}
+.tvlive .row{display:flex;gap:8px;flex-wrap:wrap}
 .tvstats{grid-template-columns:repeat(4,minmax(0,1fr))!important;margin:0!important;gap:6px!important}
 .tvstats .travelStat{border:0!important;padding:8px 10px!important;border-radius:10px}
 .tvstats .travelStat b{font:700 15px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace!important;white-space:nowrap}
@@ -156,6 +163,14 @@ a.app.folder i{background:linear-gradient(150deg,#6d6af0 0%,#4f46e5 48%,#3c32c4 
 </div>
 <p class="tvstatus"><span id="travelStatus">No travel traces saved yet.</span> <span id="travelSyncStatus"></span></p>
 <details class="tvkey" id="travelKeyBox"><summary>Map key</summary><input id="travelMapsKey" type="password" placeholder="Google Maps API key"></details>
+<details class="tvlive" id="travelLiveBox"><summary><span class="ldot"></span><span>Live tracking</span><small id="travelLiveState">Off</small></summary>
+<div id="travelLiveOff"><p class="muted" style="margin:10px 0">GPSLogger on your phone sends every point here, so today's route builds up on its own. Each finished day is saved as a GPX automatically.</p><button id="travelLiveOn" type="button">Turn on live tracking</button></div>
+<div id="travelLiveSetup" hidden>
+<textarea id="travelLiveUrl" rows="5" readonly aria-label="GPSLogger custom URL"></textarea>
+<div class="row"><button id="travelLiveCopy" type="button" class="small">Copy URL</button></div>
+<ol><li>In GPSLogger: ☰ → <b>Logging details</b> → turn on <b>Log to custom URL</b>, open it, and paste this into <b>URL</b>. Leave the method as it is.</li><li>☰ → <b>General options</b> → turn on <b>Start on bootup</b> and <b>Start on app launch</b>.</li><li>Tap <b>Start logging</b>. The dot above turns green when the first point arrives.</li></ol>
+<p class="muted" style="margin:6px 0 0;font-size:12px">Keep this URL private: anyone with it can add points to your map. Today's points are held unencrypted on your Worker until the day is archived.</p>
+</div></details>
 <div class="travelStats tvstats"><div class="travelStat"><b id="travelDistance">0 km</b><span>distance</span></div><div class="travelStat"><b id="travelDuration">—</b><span>span</span></div><div class="travelStat"><b id="travelPointCount">0</b><span>points</span></div><div class="travelStat"><b id="travelSegments">0</b><span>segments</span></div></div>
 <div id="travelMap" class="travelMap"></div>
 <div class="travelPlayback">
@@ -176,7 +191,7 @@ a.app.folder i{background:linear-gradient(150deg,#6d6af0 0%,#4f46e5 48%,#3c32c4 
 window.addEventListener('error',function(e){var b=document.getElementById('bootError');if(b){b.textContent='Pranju OS JavaScript error:\n'+(e.message||e.error||'Unknown error');b.classList.remove('hidden')}});
 if('serviceWorker' in navigator)window.addEventListener('load',function(){navigator.serviceWorker.getRegistrations().then(function(rs){return Promise.all(rs.map(function(r){return r.unregister()}))}).catch(function(){})});
 var COMPLETED_SUPPRESS_KEY='totalRecallCompletedSuppressions_v1',COMPLETED_SUPPRESS=JSON.parse(localStorage.getItem(COMPLETED_SUPPRESS_KEY)||'{}'),KEY='totalRecallPWA_v2',SYNC_KEY='totalRecallSyncCode_v1',TRAVEL_PURGE_KEY='totalRecallTravelPurge_20260930_v1',TRAVEL_PURGE_DATE='2026-09-30',TICK_URL=window.TOTAL_RECALL_TICKTICK_URL||localStorage.getItem('totalRecallTickTickUrl')||'https://total-recall-ticktick.pranjuchakrapani90.workers.dev',RESP=['SDE-TECH','SDE-REV','SDE-ESTT','HOME-MANAGER','BROTHER','SON'],db={people:{},responsibilities:{},responsibilityTasks:{},travelFiles:{}};try{db=JSON.parse(localStorage.getItem(KEY))||db}catch(e){}db.people=db.people||{};db.responsibilities=db.responsibilities||{};db.responsibilityTasks=db.responsibilityTasks||{};db.travelFiles=db.travelFiles||{};db.travelNotes=db.travelNotes||{};RESP.forEach(function(k){if(!db.responsibilities[k])db.responsibilities[k]={name:k,history:[]}});
-function $(id){return document.getElementById(id)}function save(){localStorage.setItem(KEY,JSON.stringify(db));queueCloudSync()}function mergeHist(a,b){var out=[],seen={};[a,b].forEach(function(arr){(Array.isArray(arr)?arr:[]).forEach(function(x){var k=String(x&&x.date||'')+'|'+String(x&&x.note||'');if(!seen[k]){seen[k]=1;out.push(x)}})});out.sort(function(x,y){return String(x&&x.date||'').localeCompare(String(y&&y.date||''))});return out}function travelDeletionTombstones(){try{return JSON.parse(localStorage.getItem(TRAVEL_PURGE_KEY)||'[]')}catch(e){return[]}}function mergeDb(local,remote){var out=local||{people:{},responsibilities:{},responsibilityTasks:{},referenceItems:{}};remote=remote||{};var tomb=travelDeletionTombstones();['people','responsibilities','responsibilityTasks','referenceItems','travelFiles'].forEach(function(group){out[group]=out[group]||{};var rm=remote[group]||{};Object.keys(rm).forEach(function(k){if(group==='travelFiles'&&tomb.indexOf(k)>=0)return;if(!out[group][k])out[group][k]=JSON.parse(JSON.stringify(rm[k]));else{var a=out[group][k],b=rm[k];if(b.name&&!a.name)a.name=b.name;if(Array.isArray(b.sources)){a.sources=a.sources||[];b.sources.forEach(function(s){if(a.sources.indexOf(s)<0)a.sources.push(s)})}a.history=mergeHist(a.history,b.history);if(String(b.groupsAt||'')>String(a.groupsAt||'')){a.groups=b.groups;a.groupsAt=b.groupsAt}if(String(b.noteAt||'')>String(a.noteAt||'')){a.note=b.note;a.noteAt=b.noteAt}if(b.addedAt&&!a.addedAt)a.addedAt=b.addedAt}})});out.deletedPeople=out.deletedPeople||{};var rdp=remote.deletedPeople||{};Object.keys(rdp).forEach(function(k){if(!out.deletedPeople[k]||String(rdp[k])>String(out.deletedPeople[k]))out.deletedPeople[k]=rdp[k]});Object.keys(out.deletedPeople).forEach(function(k){var p=out.people[k],ts=String(out.deletedPeople[k]);if(!p)return;var lastH=hist(p).length?String(hist(p)[hist(p).length-1].date||''):'';if(String(p.addedAt||'')>ts||lastH>ts){delete out.deletedPeople[k]}else delete out.people[k]});out.travelNotes=out.travelNotes||{};Object.keys(remote.travelNotes||{}).forEach(function(id){var a=out.travelNotes[id],b=remote.travelNotes[id];if(!a||String(b.updatedAt||'')>String(a.updatedAt||''))out.travelNotes[id]=b});return out}function b64(buf){var bytes=new Uint8Array(buf),out='',step=0x8000;for(var i=0;i<bytes.length;i+=step)out+=String.fromCharCode.apply(null,bytes.subarray(i,i+step));return btoa(out)}function unb64(s){var raw=atob(s),bytes=new Uint8Array(raw.length);for(var i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);return bytes}async function syncKey(code){var hash=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(code));return crypto.subtle.importKey('raw',hash,{name:'AES-GCM'},false,['encrypt','decrypt'])}async function encryptSync(state,code){var iv=crypto.getRandomValues(new Uint8Array(12)),key=await syncKey(code),plain=new TextEncoder().encode(JSON.stringify(state)),cipher=await crypto.subtle.encrypt({name:'AES-GCM',iv:iv},key,plain);return JSON.stringify({v:1,iv:b64(iv),data:b64(cipher)})}async function decryptSync(blob,code){var x=JSON.parse(blob||'{}'),key=await syncKey(code),plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(x.iv)},key,unb64(x.data));return JSON.parse(new TextDecoder().decode(plain))}var cloudSyncTimer=0,cloudSyncBusy=false,cloudSyncAgain=false;async function cloudSync(force){var code=localStorage.getItem(SYNC_KEY);if(!code){if(force){code=prompt('Enter your Pranju OS sync code. Use the same code on every device.\n\nLeave blank to cancel.');if(!code)return;code=code.trim();if(code.length<8){alert('Use a sync code of at least 8 characters.');return}localStorage.setItem(SYNC_KEY,code)}else return}if(!TICK_URL)return;try{cloudSyncBusy=true;if($('syncStatus'))$('syncStatus').textContent='☁ Syncing…';var headers={'Content-Type':'application/json','X-Total-Recall-Sync':code};var r=await fetch(TICK_URL+(TICK_URL.indexOf('?')>=0?'&':'?')+'mode=sync',{method:'POST',headers:headers,body:JSON.stringify({state:db}),cache:'no-store'});if(!r.ok)throw new Error('Sync bridge returned HTTP '+r.status);var data=await r.json();if(data.error)throw new Error(data.error);if(data.blob){var remote=await decryptSync(data.blob,code);var travelBefore=typeof travelDates==='function'?travelDates().join(','):'';db=mergeDb(db,remote);db.people=db.people||{};db.responsibilities=db.responsibilities||{};db.responsibilityTasks=db.responsibilityTasks||{};db.referenceItems=db.referenceItems||{};db.travelFiles=db.travelFiles||{};RESP.forEach(function(k){if(!db.responsibilities[k])db.responsibilities[k]={name:k,history:[]}});localStorage.setItem(KEY,JSON.stringify(db));render();if(typeof travelRenderNotes==='function')travelRenderNotes();if(typeof travelDates==='function'&&travelDates().join(',')!==travelBefore)travelRefreshDatesAfterSync(travelBefore)}if(typeof travelSyncPendingFiles==='function'){try{await travelSyncPendingFiles(code)}catch(e){console.warn('Travel file sync failed',e)}}var payload=await encryptSync(db,code);var r2=await fetch(TICK_URL+(TICK_URL.indexOf('?')>=0?'&':'?')+'mode=sync',{method:'PUT',headers:headers,body:payload,cache:'no-store'});if(!r2.ok)throw new Error('Sync save returned HTTP '+r2.status);var d2=await r2.json();if(d2.error)throw new Error(d2.error);if($('syncStatus'))$('syncStatus').textContent='☁ Synced '+new Date().toLocaleTimeString();}catch(e){if($('syncStatus'))$('syncStatus').textContent='☁ Sync unavailable: '+e.message}finally{cloudSyncBusy=false;if(cloudSyncAgain){cloudSyncAgain=false;cloudSync(false)}}}function queueCloudSync(){if(!localStorage.getItem(SYNC_KEY))return;if(cloudSyncBusy){cloudSyncAgain=true;return}clearTimeout(cloudSyncTimer);cloudSyncTimer=setTimeout(function(){cloudSync(false)},300)}function hist(p){return p&&Array.isArray(p.history)?p.history:[]}function markPersonDeleted(k){db.deletedPeople=db.deletedPeople||{};db.deletedPeople[k]=new Date().toISOString();delete db.people[k]}function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}function show(id){$(id).classList.remove('hidden')}function hide(id){$(id).classList.add('hidden')}function shuffle(a){for(var j=a.length-1;j>0;j--){var k=Math.floor(Math.random()*(j+1)),t=a[j];a[j]=a[k];a[k]=t}return a}
+function $(id){return document.getElementById(id)}function save(){localStorage.setItem(KEY,JSON.stringify(db));queueCloudSync()}function mergeHist(a,b){var out=[],seen={};[a,b].forEach(function(arr){(Array.isArray(arr)?arr:[]).forEach(function(x){var k=String(x&&x.date||'')+'|'+String(x&&x.note||'');if(!seen[k]){seen[k]=1;out.push(x)}})});out.sort(function(x,y){return String(x&&x.date||'').localeCompare(String(y&&y.date||''))});return out}function travelDeletionTombstones(){try{return JSON.parse(localStorage.getItem(TRAVEL_PURGE_KEY)||'[]')}catch(e){return[]}}function mergeDb(local,remote){var out=local||{people:{},responsibilities:{},responsibilityTasks:{},referenceItems:{}};remote=remote||{};var tomb=travelDeletionTombstones();['people','responsibilities','responsibilityTasks','referenceItems','travelFiles'].forEach(function(group){out[group]=out[group]||{};var rm=remote[group]||{};Object.keys(rm).forEach(function(k){if(group==='travelFiles'&&tomb.indexOf(k)>=0)return;if(!out[group][k])out[group][k]=JSON.parse(JSON.stringify(rm[k]));else{var a=out[group][k],b=rm[k];if(b.name&&!a.name)a.name=b.name;if(Array.isArray(b.sources)){a.sources=a.sources||[];b.sources.forEach(function(s){if(a.sources.indexOf(s)<0)a.sources.push(s)})}a.history=mergeHist(a.history,b.history);if(String(b.groupsAt||'')>String(a.groupsAt||'')){a.groups=b.groups;a.groupsAt=b.groupsAt}if(String(b.noteAt||'')>String(a.noteAt||'')){a.note=b.note;a.noteAt=b.noteAt}if(b.addedAt&&!a.addedAt)a.addedAt=b.addedAt}})});out.deletedPeople=out.deletedPeople||{};var rdp=remote.deletedPeople||{};Object.keys(rdp).forEach(function(k){if(!out.deletedPeople[k]||String(rdp[k])>String(out.deletedPeople[k]))out.deletedPeople[k]=rdp[k]});Object.keys(out.deletedPeople).forEach(function(k){var p=out.people[k],ts=String(out.deletedPeople[k]);if(!p)return;var lastH=hist(p).length?String(hist(p)[hist(p).length-1].date||''):'';if(String(p.addedAt||'')>ts||lastH>ts){delete out.deletedPeople[k]}else delete out.people[k]});if(!(out.travelLive&&out.travelLive.token)&&remote.travelLive&&remote.travelLive.token)out.travelLive=remote.travelLive;out.travelNotes=out.travelNotes||{};Object.keys(remote.travelNotes||{}).forEach(function(id){var a=out.travelNotes[id],b=remote.travelNotes[id];if(!a||String(b.updatedAt||'')>String(a.updatedAt||''))out.travelNotes[id]=b});return out}function b64(buf){var bytes=new Uint8Array(buf),out='',step=0x8000;for(var i=0;i<bytes.length;i+=step)out+=String.fromCharCode.apply(null,bytes.subarray(i,i+step));return btoa(out)}function unb64(s){var raw=atob(s),bytes=new Uint8Array(raw.length);for(var i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);return bytes}async function syncKey(code){var hash=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(code));return crypto.subtle.importKey('raw',hash,{name:'AES-GCM'},false,['encrypt','decrypt'])}async function encryptSync(state,code){var iv=crypto.getRandomValues(new Uint8Array(12)),key=await syncKey(code),plain=new TextEncoder().encode(JSON.stringify(state)),cipher=await crypto.subtle.encrypt({name:'AES-GCM',iv:iv},key,plain);return JSON.stringify({v:1,iv:b64(iv),data:b64(cipher)})}async function decryptSync(blob,code){var x=JSON.parse(blob||'{}'),key=await syncKey(code),plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(x.iv)},key,unb64(x.data));return JSON.parse(new TextDecoder().decode(plain))}var cloudSyncTimer=0,cloudSyncBusy=false,cloudSyncAgain=false;async function cloudSync(force){var code=localStorage.getItem(SYNC_KEY);if(!code){if(force){code=prompt('Enter your Pranju OS sync code. Use the same code on every device.\n\nLeave blank to cancel.');if(!code)return;code=code.trim();if(code.length<8){alert('Use a sync code of at least 8 characters.');return}localStorage.setItem(SYNC_KEY,code)}else return}if(!TICK_URL)return;try{cloudSyncBusy=true;if($('syncStatus'))$('syncStatus').textContent='☁ Syncing…';var headers={'Content-Type':'application/json','X-Total-Recall-Sync':code};var r=await fetch(TICK_URL+(TICK_URL.indexOf('?')>=0?'&':'?')+'mode=sync',{method:'POST',headers:headers,body:JSON.stringify({state:db}),cache:'no-store'});if(!r.ok)throw new Error('Sync bridge returned HTTP '+r.status);var data=await r.json();if(data.error)throw new Error(data.error);if(data.blob){var remote=await decryptSync(data.blob,code);var travelBefore=typeof travelDates==='function'?travelDates().join(','):'';db=mergeDb(db,remote);db.people=db.people||{};db.responsibilities=db.responsibilities||{};db.responsibilityTasks=db.responsibilityTasks||{};db.referenceItems=db.referenceItems||{};db.travelFiles=db.travelFiles||{};RESP.forEach(function(k){if(!db.responsibilities[k])db.responsibilities[k]={name:k,history:[]}});localStorage.setItem(KEY,JSON.stringify(db));render();if(typeof travelRenderNotes==='function')travelRenderNotes();if(typeof travelDates==='function'&&travelDates().join(',')!==travelBefore)travelRefreshDatesAfterSync(travelBefore)}if(typeof travelSyncPendingFiles==='function'){try{await travelSyncPendingFiles(code)}catch(e){console.warn('Travel file sync failed',e)}}var payload=await encryptSync(db,code);var r2=await fetch(TICK_URL+(TICK_URL.indexOf('?')>=0?'&':'?')+'mode=sync',{method:'PUT',headers:headers,body:payload,cache:'no-store'});if(!r2.ok)throw new Error('Sync save returned HTTP '+r2.status);var d2=await r2.json();if(d2.error)throw new Error(d2.error);if($('syncStatus'))$('syncStatus').textContent='☁ Synced '+new Date().toLocaleTimeString();}catch(e){if($('syncStatus'))$('syncStatus').textContent='☁ Sync unavailable: '+e.message}finally{cloudSyncBusy=false;if(cloudSyncAgain){cloudSyncAgain=false;cloudSync(false)}}}function queueCloudSync(){if(!localStorage.getItem(SYNC_KEY))return;if(cloudSyncBusy){cloudSyncAgain=true;return}clearTimeout(cloudSyncTimer);cloudSyncTimer=setTimeout(function(){cloudSync(false)},300)}function hist(p){return p&&Array.isArray(p.history)?p.history:[]}function markPersonDeleted(k){db.deletedPeople=db.deletedPeople||{};db.deletedPeople[k]=new Date().toISOString();delete db.people[k]}function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}function show(id){$(id).classList.remove('hidden')}function hide(id){$(id).classList.add('hidden')}function shuffle(a){for(var j=a.length-1;j>0;j--){var k=Math.floor(Math.random()*(j+1)),t=a[j];a[j]=a[k];a[k]=t}return a}
 function add(names,source){source=source||'Pasted names';names.forEach(function(x){x=String(x||'').trim().replace(/\s+/g,' ');if(!x||/^\d+$/.test(x))return;var k=x.toLowerCase();if(!db.people[k]){db.people[k]={name:x,history:[],sources:[],addedAt:new Date().toISOString()};if(db.deletedPeople)delete db.deletedPeople[k]}db.people[k].sources=db.people[k].sources||[];if(db.people[k].sources.indexOf(source)<0)db.people[k].sources.push(source)});save();render()}
 function interval(p){return [1,3,7,14,30,60,120,180][Math.min(Math.max(hist(p).length-1,0),7)]}function due(p){var h=hist(p);return h.length&&((Date.now()-new Date(h[h.length-1].date).getTime())/86400000>=interval(p))}
 function render(){var a=Object.values(db.people),rec=a.filter(function(p){return hist(p).length}).length,rem=a.length-rec;$('total').textContent=a.length;$('recalled').textContent=rec;$('remaining').textContent=rem;$('roundPlan').textContent=!a.length?'Import your names.':rem?'First-pass completion: '+Math.ceil(rem/20)+' more session'+(Math.ceil(rem/20)==1?'':'s')+' of 20 names needed for '+rem+' unrecalled names.':'🎉 First pass complete. Smart re-recall is now active.';var d=a.filter(due).length;$('smartPlan').textContent=d?'Smart re-recall: '+d+' name'+(d==1?' is':'s are')+' due now. New names still get priority.':'Smart re-recall: no names are due. Intervals grow: 1, 3, 7, 14, 30, 60, 120, 180 days.';var list=a.slice().sort(function(x,y){return x.name.localeCompare(y.name)});$('peopleList').innerHTML=list.map(function(p){return '<div class="person"><span>'+esc(p.name)+'</span><button class="danger small" data-del="'+encodeURIComponent(p.name.toLowerCase())+'">Delete</button></div>'}).join('');if(window.peopleRenderExtras)peopleRenderExtras()}
@@ -603,6 +618,7 @@ function travelMeta(){return Object.values(db.travelFiles||{}).sort(function(a,b
 function travelDates(){
   var out={};
   travelMeta().forEach(function(f){(f.dates||[]).forEach(function(d){out[d]=1})});
+  if(travelLiveToken())out[travelToday()]=1;
   return Object.keys(out).sort().reverse()
 }
 function travelFilesForDate(date){return travelMeta().filter(function(f){return Array.isArray(f.dates)&&f.dates.indexOf(date)>=0})}
@@ -617,7 +633,7 @@ function travelRefreshDatesAfterSync(before){
 }
 function travelPopulateDates(preferred){
   var dates=travelDates(),sel=$('travelDate');
-  sel.innerHTML=dates.length?dates.map(function(d){return '<option value="'+esc(d)+'">'+esc(d)+'</option>'}).join(''):'<option>No saved dates</option>';
+  sel.innerHTML=dates.length?dates.map(function(d){return '<option value="'+esc(d)+'">'+esc(d)+(d===travelToday()&&travelLiveToken()?' · live':'')+'</option>'}).join(''):'<option>No saved dates</option>';
   sel.disabled=!dates.length;
   if(dates.length){var target=preferred&&dates.indexOf(preferred)>=0?preferred:dates[0];sel.value=target}
   travelRenderFileList()
@@ -699,10 +715,11 @@ function travelAggregateForDate(date,items){
   return all
 }
 async function travelLoadSelectedDate(){
-  var date=$('travelDate').value,items=travelFilesForDate(date);
+  var date=$('travelDate').value,items=travelFilesForDate(date),live=travelIsLiveDate(date);
   travelRenderFileList();
-  if(!date||!items.length){travelData=null;travelResetView();return}
-  $('travelStatus').textContent='Loading '+items.length+' GPX file'+(items.length===1?'':'s')+' for '+date+'…';
+  if(live){try{await travelLiveFetch()}catch(e){$('travelStatus').textContent='Live points could not be loaded: '+e.message}}
+  if(!date||(!items.length&&!(live&&travelLivePts.length))){travelData=null;travelResetView();if(live)$('travelStatus').textContent='Live tracking is on. Waiting for the first point from GPSLogger today.';return}
+  $('travelStatus').textContent='Loading '+(items.length?items.length+' GPX file'+(items.length===1?'':'s'):'live points')+' for '+date+'…';
   for(var i=0;i<items.length;i++){
     try{
       var text=await travelEnsureLocalFile(items[i]);
@@ -717,6 +734,7 @@ async function travelLoadSelectedDate(){
     }
   }
   travelData=travelAggregateForDate(date,items);
+  if(live)travelLiveMerge(travelData,date);
   $('travelFit').disabled=false;$('travelIdentify').disabled=false;$('travelClear').disabled=false;
   await travelRender()
 }
@@ -811,7 +829,7 @@ function travelResetView(){
   travelClearNoteEditor();travelRenderNotes();
   travelPlaybackStop();travelClearMap();$('travelPointCount').textContent='0';$('travelDistance').textContent='0 km';$('travelDuration').textContent='—';$('travelSegments').textContent='0';$('travelGapNote').classList.add('hidden');$('travelJourneyList').innerHTML='<div class="journeyEmpty">Select a saved travel date.</div>';travelPlaybackPoints=[];$('travelPlaybackSeek').max=0;$('travelPlaybackSeek').value=0;$('travelPlaybackSeek').disabled=true;$('travelPlay').disabled=true;$('travelReset').disabled=true
 }
-function travelDraw(segments){
+function travelDraw(segments,keepView){
   if(!travelMap||!window.google||!google.maps)return;
   travelClearMap();
   var bounds=new google.maps.LatLngBounds(),distance=0,minMs=Infinity,maxMs=0;
@@ -824,7 +842,7 @@ function travelDraw(segments){
       poly.setMap(travelMap);travelPolylines.push(poly)
     }
   });
-  if(!bounds.isEmpty())travelMap.fitBounds(bounds);
+  if(!bounds.isEmpty()&&!keepView)travelMap.fitBounds(bounds);
   $('travelPointCount').textContent=segments.reduce(function(n,s){return n+s.length},0).toLocaleString();
   $('travelDistance').textContent=(distance/1000).toFixed(distance<10000?2:1)+' km';
   $('travelSegments').textContent=segments.filter(function(s){return s.length>1}).length;
@@ -950,27 +968,33 @@ async function travelRender(){
   await travelEnsureMap();
   var segments=travelSelectedSegments();
   travelStops=travelDetectStops(segments);
-  travelDraw(segments);travelDrawEvidence(segments);travelRenderStops();travelRenderJourney();travelPlaybackBuild();travelClearNoteEditor();travelRenderNotes();
-  $('travelStatus').textContent='Showing '+travelFilesForDate($('travelDate').value).length+' saved GPX file'+(travelFilesForDate($('travelDate').value).length===1?'':'s')+' for '+$('travelDate').value+'.'
+  travelDraw(segments);travelDrawEvidence(segments);travelRenderStops();travelRenderJourney();travelPlaybackBuild();travelClearNoteEditor();travelRenderNotes();travelLiveDot();
+  var nFiles=travelFilesForDate($('travelDate').value).length;
+  $('travelStatus').textContent=travelIsLiveDate($('travelDate').value)?travelLiveStatusText(nFiles):'Showing '+nFiles+' saved GPX file'+(nFiles===1?'':'s')+' for '+$('travelDate').value+'.'
+}
+/* save one GPX (an uploaded file or a finished live day) into the date archive: this device, then the encrypted cloud copy */
+async function travelStoreGpx(text,name,size){
+  var parsed=await travelParseAsync(text);
+  var fileDate=travelFileDateFromName(name)||Object.keys(parsed.byDay||{})[0];
+  if(!fileDate||!parsed.segments.length)throw new Error('No dated GPS points were found in this GPX file.');
+  parsed=travelIndexParsedForDate(parsed,fileDate);
+  parsed.__travelIndexedDate=true;
+  var dates=[fileDate];
+  var id=await travelFileId(text);
+  await travelDbPut(id,text);
+  var code=localStorage.getItem(SYNC_KEY),cloudUploaded=false;
+  if(code){
+    $('travelStatus').textContent='Saving '+name+' to device sync…';
+    try{await travelCloudPut(id,text,code);cloudUploaded=true}catch(e){$('travelStatus').textContent='Saved locally; cloud sync will retry: '+e.message}
+  }
+  db.travelFiles=db.travelFiles||{};
+  db.travelFiles[id]={id:id,name:name,dates:dates.sort(),startTime:parsed.segments.flat()[0]&&parsed.segments.flat()[0].time||null,endTime:parsed.segments.flat().slice(-1)[0]&&parsed.segments.flat().slice(-1)[0].time||null,pointCount:parsed.segments.reduce(function(n,x){return n+x.length},0),size:size||text.length,uploadedAt:new Date().toISOString(),cloudUploaded:cloudUploaded};
+  travelParsedCache[id]=parsed;localStorage.setItem(KEY,JSON.stringify(db));queueCloudSync();
+  return dates
 }
 async function travelReadFile(file){
   try{
-    var text=await file.text();
-    var parsed=await travelParseAsync(text);
-    var fileDate=travelFileDateFromName(file.name)||Object.keys(parsed.byDay||{})[0];
-    if(!fileDate||!parsed.segments.length)throw new Error('No dated GPS points were found in this GPX file.');
-    parsed=travelIndexParsedForDate(parsed,fileDate);
-    parsed.__travelIndexedDate=true;
-    var dates=[fileDate];
-    var id=await travelFileId(text);
-    await travelDbPut(id,text);
-    var code=localStorage.getItem(SYNC_KEY),cloudUploaded=false;
-    if(code){
-      $('travelStatus').textContent='Saving '+file.name+' to device sync…';
-      try{await travelCloudPut(id,text,code);cloudUploaded=true}catch(e){$('travelStatus').textContent='Saved locally; cloud sync will retry: '+e.message}
-    }
-    db.travelFiles[id]={id:id,name:file.name,dates:dates.sort(),startTime:parsed.segments.flat()[0]&&parsed.segments.flat()[0].time||null,endTime:parsed.segments.flat().slice(-1)[0]&&parsed.segments.flat().slice(-1)[0].time||null,pointCount:parsed.segments.reduce(function(n,x){return n+x.length},0),size:file.size||text.length,uploadedAt:new Date().toISOString(),cloudUploaded:cloudUploaded};
-    travelParsedCache[id]=parsed;localStorage.setItem(KEY,JSON.stringify(db));queueCloudSync();
+    var dates=await travelStoreGpx(await file.text(),file.name,file.size);
     var targetDate=dates.slice().sort().reverse()[0];
     travelPopulateDates(targetDate);
     $('travelDate').value=targetDate;
@@ -982,6 +1006,132 @@ async function travelReadFile(file){
     }
   }catch(e){$('travelStatus').textContent='Could not save GPX file: '+e.message}
 }
+/* ---------- Travel Trace: live tracking ----------
+   GPSLogger on the phone sends every point to the Worker (?mode=live-log). While Travel Trace is open, today's points
+   are fetched every minute and drawn without moving the map. A finished day still on the Worker is saved as an ordinary
+   GPX in the archive (named live-YYYYMMDD.gpx so it files under its date) and then removed from the Worker.
+   The live token sits in db.travelLive, so every synced device can read the same track. Days are IST days. */
+var travelLivePts=[],travelLiveDay='',travelLiveTimer=0,travelLiveBusy=false,travelLiveLast=0,travelLiveArchivedAt=0;
+function travelLiveToken(){return typeof db!=='undefined'&&db&&db.travelLive&&db.travelLive.token||''}
+function travelToday(){return new Date(Date.now()+19800000).toISOString().slice(0,10)}
+function travelIsLiveDate(d){return !!(d&&travelLiveToken()&&d===travelToday())}
+function travelLiveUrl(){return TICK_URL+(TICK_URL.indexOf('?')>=0?'&':'?')+'mode=live-log&k='+travelLiveToken()+'&lat=%LAT&lon=%LON&ts=%TIMESTAMP&time=%TIME&acc=%ACC&spd=%SPD&alt=%ALT'}
+async function travelLiveApi(params,method){
+  if(!TICK_URL)throw new Error('the Worker URL is not set');
+  var r=await fetch(TICK_URL+(TICK_URL.indexOf('?')>=0?'&':'?')+'mode=live'+(params||''),{method:method||'GET',headers:{'X-Live-Token':travelLiveToken()},cache:'no-store'});
+  var d={};try{d=await r.json()}catch(e){}
+  if(!r.ok||d.error)throw new Error(d.error||'the Worker answered HTTP '+r.status);
+  return d
+}
+async function travelLiveFetch(){
+  var day=travelToday();
+  if(day!==travelLiveDay){travelLiveDay=day;travelLivePts=[]}
+  var since=travelLivePts.length?travelLivePts[travelLivePts.length-1][0]:0;
+  var d=await travelLiveApi('&day='+day+'&since='+since);
+  var add=(d.points||[]).filter(function(p){return p[0]>since});
+  if(add.length){travelLivePts=travelLivePts.concat(add);travelLiveLast=Math.max(travelLiveLast,add[add.length-1][0])}
+  travelLiveBadge();
+  return add.length
+}
+function travelLivePoint(p){return {lat:p[1],lng:p[2],time:new Date(p[0]).toISOString(),ms:p[0]}}
+function travelLiveMerge(data,date){
+  var pts=travelLivePts.map(travelLivePoint),cur=[];
+  pts.forEach(function(p){if(cur.length&&p.ms-cur[cur.length-1].ms>15*60000){data.segments.push(cur);cur=[]}cur.push(p)});
+  if(cur.length)data.segments.push(cur);
+  if(pts.length>1)data.journey.push({type:'Travel',start:pts[0],end:pts[pts.length-1],startTime:pts[0].time,endTime:pts[pts.length-1].time,label:'Live GPS path'});
+  data.journey.sort(function(a,b){return String(a.startTime||'').localeCompare(String(b.startTime||''))});
+  data.byDay[date]=data.segments;data.journeyByDay[date]=data.journey
+}
+function travelLiveDot(){
+  if(!travelMap||!window.google||!travelIsLiveDate($('travelDate').value)||!travelLivePts.length)return;
+  var p=travelLivePts[travelLivePts.length-1];
+  travelGpsMarkers.push(new google.maps.Marker({map:travelMap,position:{lat:p[1],lng:p[2]},title:'Latest live point · '+travelFormatClock(p[0]),zIndex:999,
+    icon:{path:google.maps.SymbolPath.CIRCLE,scale:8,fillColor:'#2563eb',fillOpacity:1,strokeColor:'#fff',strokeWeight:3}}))
+}
+function travelLiveAgo(ms){var m=Math.round((Date.now()-ms)/60000);return m<1?'just now':m<60?m+' min ago':Math.floor(m/60)+'h '+(m%60)+'m ago'}
+function travelLiveStatusText(nFiles){
+  var n=travelLivePts.length,last=n?travelLivePts[n-1][0]:0;
+  return 'Live today · '+n.toLocaleString()+' point'+(n===1?'':'s')+(last?' · last at '+travelFormatClock(last)+' ('+travelLiveAgo(last)+')':'')+(nFiles?' · plus '+nFiles+' saved GPX':'')+'.'
+}
+function travelLiveBadge(){
+  var box=$('travelLiveBox');if(!box)return;
+  var on=!!travelLiveToken(),stale=on&&travelLiveLast&&Date.now()-travelLiveLast>30*60000;
+  box.classList.toggle('on',on&&!!travelLiveLast&&!stale);box.classList.toggle('stale',!!stale);
+  $('travelLiveOff').hidden=on;$('travelLiveSetup').hidden=!on;
+  if(on)$('travelLiveUrl').value=travelLiveUrl();
+  $('travelLiveState').textContent=!on?'Off':travelLiveLast?'Last point '+travelLiveAgo(travelLiveLast):'Waiting for first point'
+}
+function travelLiveGpx(day,pts){
+  return '<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Pranju OS live tracking" xmlns="http://www.topografix.com/GPX/1/1">\n<trk><name>Live '+day+'</name><trkseg>\n'+
+    pts.map(function(p){return '<trkpt lat="'+p[1]+'" lon="'+p[2]+'">'+(p[5]!==null&&p[5]!==undefined?'<ele>'+p[5]+'</ele>':'')+'<time>'+new Date(p[0]).toISOString()+'</time></trkpt>'}).join('\n')+
+    '\n</trkseg></trk>\n</gpx>\n'
+}
+/* finished days -> archive. Safe to run on several devices at once: the same points give the same GPX, so the same file id. */
+async function travelLiveArchive(){
+  var d=await travelLiveApi(''),today=travelToday(),saved=0;
+  (d.days||[]).forEach(function(x){if(x.last)travelLiveLast=Math.max(travelLiveLast,x.last)});
+  var old=(d.days||[]).filter(function(x){return x.day<today&&x.n>0}).map(function(x){return x.day}).sort();
+  for(var i=0;i<old.length;i++){
+    var pts=(await travelLiveApi('&day='+old[i])).points||[];
+    if(!pts.length)continue;
+    await travelStoreGpx(travelLiveGpx(old[i],pts),'live-'+old[i].replace(/-/g,'')+'.gpx');
+    await travelLiveApi('&day='+old[i]+'&upto='+pts[pts.length-1][0],'DELETE');
+    saved++
+  }
+  travelLiveArchivedAt=Date.now();travelLiveBadge();
+  if(saved){var keep=$('travelDate').value;travelPopulateDates(keep);$('travelSyncStatus').textContent='Saved '+saved+' finished live day'+(saved===1?'':'s')+' to your archive.'}
+  return saved
+}
+async function travelLiveRefresh(){
+  if(!travelLiveToken()||travelLiveBusy||$('travelSession').classList.contains('hidden')||document.visibilityState==='hidden')return;
+  travelLiveBusy=true;
+  try{
+    if(travelLiveDay&&travelLiveDay!==travelToday()||Date.now()-travelLiveArchivedAt>10*60000){
+      var dayChanged=travelLiveDay&&travelLiveDay!==travelToday();
+      await travelLiveArchive();
+      if(dayChanged){travelPopulateDates(travelToday());await travelLoadSelectedDate();return}
+    }
+    var date=$('travelDate').value;
+    if(!travelIsLiveDate(date))return;
+    var hadData=!!travelData,added=await travelLiveFetch();
+    if(!added){if(travelData)$('travelStatus').textContent=travelLiveStatusText(travelFilesForDate(date).length);return}
+    if(!hadData||!travelMap){await travelLoadSelectedDate();return}
+    travelData=travelAggregateForDate(date,travelFilesForDate(date));travelLiveMerge(travelData,date);
+    var segs=travelSelectedSegments();
+    travelDraw(segs,true);travelDrawEvidence(segs);travelStops=travelDetectStops(segs);travelRenderStops();travelRenderJourney();travelRenderNotes();travelLiveDot();
+    if(!travelPlaybackRunning){
+      var pts=[];segs.forEach(function(seg){seg.forEach(function(p){if(p&&p.time&&isFinite(p.ms))pts.push(p)})});pts.sort(function(a,b){return a.ms-b.ms});
+      travelPlaybackPoints=pts;$('travelPlaybackSeek').max=Math.max(0,pts.length-1);$('travelPlay').disabled=pts.length<2;$('travelReset').disabled=!pts.length;$('travelPlaybackSeek').disabled=!pts.length
+    }
+    $('travelStatus').textContent=travelLiveStatusText(travelFilesForDate(date).length)
+  }catch(e){$('travelLiveState').textContent='Live: '+e.message}
+  finally{travelLiveBusy=false}
+}
+function travelLiveStart(){
+  travelLiveBadge();
+  clearInterval(travelLiveTimer);travelLiveTimer=0;
+  if(!travelLiveToken())return;
+  travelLiveArchive().then(function(n){if(n&&travelIsLiveDate($('travelDate').value))return travelLoadSelectedDate()}).catch(function(e){$('travelLiveState').textContent='Live: '+e.message});
+  travelLiveTimer=setInterval(travelLiveRefresh,60000)
+}
+function travelLiveStop(){clearInterval(travelLiveTimer);travelLiveTimer=0}
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')travelLiveRefresh()});
+$('travelLiveOn').addEventListener('click',function(){
+  if(!TICK_URL){alert('The Worker URL is not set, so live tracking cannot be turned on.');return}
+  var b=new Uint8Array(24);crypto.getRandomValues(b);
+  var tok=btoa(String.fromCharCode.apply(null,b)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  db.travelLive={token:tok,createdAt:new Date().toISOString()};save();
+  $('travelLiveBox').open=true;
+  travelPopulateDates(travelToday());
+  travelLoadSelectedDate().catch(function(e){$('travelStatus').textContent=e.message});
+  travelLiveStart()
+});
+$('travelLiveCopy').addEventListener('click',function(){
+  var t=$('travelLiveUrl'),btn=this;
+  function done(){btn.textContent='Copied ✓';setTimeout(function(){btn.textContent='Copy URL'},2000)}
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t.value).then(done,function(){t.select();document.execCommand('copy');done()});
+  else{t.select();document.execCommand('copy');done()}
+});
 function travelClearData(){travelData=null;travelResetView();$('travelStatus').textContent='View cleared. Your saved GPX files remain available by date.'}
 $('startTravelTrace').addEventListener('click',async function(){
   hide('home');hide('session');hide('completedSession');hide('done');show('travelSession');
@@ -989,9 +1139,10 @@ $('startTravelTrace').addEventListener('click',async function(){
   db.travelFiles=db.travelFiles||{};
   try{var removed=await travelPurgeSep30Once();if(removed){travelPopulateDates();$('travelStatus').textContent='Removed all old 30 Sep 2026 travel files. Ready for a fresh GPX upload.'}}catch(e){console.warn('30 Sep travel purge failed',e)}
   travelPopulateDates($('travelDate').value);
-  if(travelDates().length)travelLoadSelectedDate().catch(function(e){$('travelStatus').textContent=e.message})
+  if(travelDates().length)travelLoadSelectedDate().catch(function(e){$('travelStatus').textContent=e.message});
+  travelLiveStart()
 });
-$('travelHomeBtn').addEventListener('click',function(){hide('travelSession');show('home')});
+$('travelHomeBtn').addEventListener('click',function(){travelLiveStop();hide('travelSession');show('home')});
 $('travelFile').addEventListener('change',function(e){var f=e.target.files[0];if(f)travelReadFile(f);e.target.value=''});
 $('travelLoadMap').addEventListener('click',function(){travelEnsureMap().then(function(){if(travelData)travelRender()}).catch(function(e){$('travelStatus').textContent=e.message})});
 $('travelDate').addEventListener('change',function(){travelLoadSelectedDate().catch(function(e){$('travelStatus').textContent=e.message})});

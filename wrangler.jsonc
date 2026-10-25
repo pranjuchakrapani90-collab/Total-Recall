@@ -5,5 +5,15 @@
   "compatibility_date": "2026-09-06",
   "kv_namespaces": [
     { "binding": "SYNC_KV" }
+  ],
+  // Travel Trace live tracking: one SQLite Durable Object per live token holds the points GPSLogger sends
+  // (KV's free plan allows only 1,000 writes a day, too few for a point every 30 seconds).
+  "durable_objects": {
+    "bindings": [
+      { "name": "LIVE_TRACK", "class_name": "LiveTrack" }
+    ]
+  },
+  "migrations": [
+    { "tag": "v1-live-track", "new_sqlite_classes": ["LiveTrack"] }
   ]
 }
