@@ -73,6 +73,7 @@
 <script src="gsync.js?v=20261020"></script>
 <script src="invest.js?v=20261025"></script>
 <script src="money.js?v=20261025"></script>
+<script src="officecrypt.js?v=20261025"></script>
 <script>
 "use strict";
 const I=Invest,M=Money,{esc,inr,ok,r2}=I,KEY=M.KEY,$=id=>document.getElementById(id);
@@ -184,9 +185,34 @@ function balForm(acct){const N=M.names(),b=M.balance(acct),n=M.now();
 
 /* ---------- YONO statement ---------- */
 function loadXlsx(){return window.XLSX?Promise.resolve():new Promise((res,rej)=>{const s=document.createElement("script");s.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";s.onload=res;s.onerror=()=>rej(new Error("couldn't load the spreadsheet reader (are you online?)"));document.head.appendChild(s);});}
+const PW_KEY="money-yono-pw";
+const savedPw=()=>{try{return localStorage.getItem(PW_KEY)||"";}catch(e){return "";}};
+/* the encrypted file's two inner streams, or null if the file isn't password-protected */
+function encStreams(buf){if(!(buf[0]===0xd0&&buf[1]===0xcf&&buf[2]===0x11&&buf[3]===0xe0))return null;
+  try{const c=XLSX.CFB.read(buf,{type:"array"}),info=XLSX.CFB.find(c,"EncryptionInfo"),pkg=XLSX.CFB.find(c,"EncryptedPackage");
+    return info&&pkg?{info:info.content,pkg:pkg.content}:null;}catch(e){return null;}}
+function askPw(name,wrong){return new Promise(res=>{let done=false;const fin=v=>{if(!done){done=true;res(v);}};
+  I.form({title:"Statement password",note:(wrong?"That password didn't open it. ":"")+name+" is locked with a password (SBI sets this; it's usually given in the SMS or e-mail that came with the statement). It's used only on this phone to open the file.",
+    fields:[{k:"pw",label:"Password",type:"password",value:""},{k:"keep",label:"Remember on this phone",type:"select",value:savedPw()?"y":"n",options:[["y","Yes, don't ask again"],["n","No, ask every time"]]}],ok:"Open",
+    onSubmit:v=>{if(!v.pw)return "Enter the password.";fin(v);}});
+  const d=$("invForm");if(d){d.addEventListener("close",()=>setTimeout(()=>fin(null),0));d.addEventListener("cancel",()=>setTimeout(()=>fin(null),0));}});}
+async function openWorkbook(f){const buf=new Uint8Array(await f.arrayBuffer());
+  if(buf[0]===0x25&&buf[1]===0x50&&buf[2]===0x44&&buf[3]===0x46)throw new Error("this is a PDF. In YONO, download the statement as Excel instead.");
+  const enc=encStreams(buf);
+  if(!enc){try{return XLSX.read(buf,{type:"array",cellDates:true});}
+    catch(e){if(!/password|encrypt/i.test(e.message))throw e;}}
+  /* password-protected: try the remembered password first, then ask */
+  let pw=savedPw(),wrong=false;
+  for(;;){let keep=null;if(!pw){const a=await askPw(f.name,wrong);if(!a)throw new Error("not opened (no password given).");pw=a.pw;keep=a.keep;}
+    $("st").textContent="Unlocking "+f.name+"… (a few seconds)";await new Promise(r=>setTimeout(r,30));
+    try{const wb=enc?XLSX.read(await OfficeDecrypt.decrypt(enc.info,enc.pkg,pw),{type:"array",cellDates:true}):XLSX.read(buf,{type:"array",cellDates:true,password:pw});
+      try{if(keep==="y")localStorage.setItem(PW_KEY,pw);else if(keep==="n")localStorage.removeItem(PW_KEY);}catch(e){}
+      return wb;}
+    catch(e){if(!/wrong password|password|encrypt|decrypt|operation/i.test(e.message+" "+e.name))throw e;
+      if(pw===savedPw())try{localStorage.removeItem(PW_KEY);}catch(x){}pw="";wrong=true;}}}
 function pickYono(){const i=document.createElement("input");i.type="file";i.accept=".xls,.xlsx,.csv,.txt,.htm,.html,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv";
   i.onchange=async()=>{const f=i.files&&i.files[0];if(!f)return;$("st").textContent="Reading "+f.name+"…";
-    try{await loadXlsx();const wb=XLSX.read(new Uint8Array(await f.arrayBuffer()),{type:"array",cellDates:true});
+    try{await loadXlsx();const wb=await openWorkbook(f);$("st").textContent="Reading "+f.name+"…";
       let rows=null,lastErr=null;for(const n of wb.SheetNames){try{rows=M.readStatement(XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:true,defval:""}));break;}catch(e){lastErr=e;}}
       if(!rows)throw lastErr||new Error("No sheet in the file.");
       const r=M.importRows(rows);showErr("");draw();
