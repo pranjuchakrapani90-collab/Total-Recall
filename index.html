@@ -1052,6 +1052,8 @@ async function travelLiveRefresh(){
     if(travelLiveDay&&travelLiveDay!==travelToday()||Date.now()-travelLiveArchivedAt>10*60000){
       var dayChanged=travelLiveDay&&travelLiveDay!==travelToday();
       await travelLiveArchive();
+      /* the other phone may have archived a finished day first: pull its saved days in */
+      try{await cloudSync(false)}catch(e){}
       if(dayChanged){travelPopulateDates(travelToday());await travelLoadSelectedDate();return}
     }
     var date=$('travelDate').value;
@@ -1074,11 +1076,11 @@ function travelLiveStart(){
   travelLiveBadge();
   clearInterval(travelLiveTimer);travelLiveTimer=0;
   if(!travelLiveToken())return;
-  travelLiveArchive().then(function(n){if(n&&travelIsLiveDate($('travelDate').value))return travelLoadSelectedDate()}).catch(function(e){$('travelLiveState').textContent='Live: '+e.message});
+  travelLiveArchive().then(function(n){return Promise.resolve(cloudSync(false)).catch(function(){}).then(function(){if(n&&travelIsLiveDate($('travelDate').value))return travelLoadSelectedDate()})}).catch(function(e){$('travelLiveState').textContent='Live: '+e.message});
   travelLiveTimer=setInterval(travelLiveRefresh,60000)
 }
 function travelLiveStop(){clearInterval(travelLiveTimer);travelLiveTimer=0}
-document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')travelLiveRefresh()});
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'){if(Date.now()-travelLiveArchivedAt>2*60000)travelLiveArchivedAt=0;travelLiveRefresh()}});
 $('travelLiveOn').addEventListener('click',function(){
   if(!TICK_URL){alert('The Worker URL is not set, so live tracking cannot be turned on.');return}
   var b=new Uint8Array(24);crypto.getRandomValues(b);
