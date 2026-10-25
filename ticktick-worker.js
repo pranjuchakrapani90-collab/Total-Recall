@@ -246,11 +246,44 @@ async function handleWaReview(request,env,origin){
   return json({ok:true,created:{id:created.id,projectId:created.projectId}});
 }
 
+/* Money from WhatsApp: Claude drafts money notes from the self-chat into the TickTick project "MONEY REVIEW",
+   one task per amount, last line '[money] status=draft kind=in|out amt=.. acct=wallet|bank date=YYYY-MM-DD time=HH:MM cat=.. book=personal|apdcl'.
+   Money Book (Pranju OS) lists drafts (GET ?mode=money-review) and, on approval, POSTs action=approve with the final values:
+   book=apdcl -> the task stays in MONEY REVIEW with status=approved (the nightly review then writes it into the FINANCE sheet);
+   book=personal, or action=discard -> the task is deleted. Only tasks inside MONEY REVIEW are ever touched. */
+const MONEY_PROJECT='money review';
+function moneyMeta(content){const s=String(content||'');const line=(s.match(/\[money\][^\n]*$/i)||[''])[0];const o={};line.replace(/([a-z]+)=([^\s]*)/gi,(m,k,v)=>{try{o[k.toLowerCase()]=decodeURIComponent(v)}catch(_){o[k.toLowerCase()]=v}return m});o.notes=s.replace(/\n?\[money\][^\n]*$/i,'').trim();return o;}
+function moneyLine(o){const enc=v=>encodeURIComponent(String(v==null?'':v));return '[money] status='+enc(o.status)+' kind='+enc(o.kind)+' amt='+enc(o.amt)+' acct='+enc(o.acct)+' date='+enc(o.date)+' time='+enc(o.time)+' cat='+enc(o.cat)+' book='+enc(o.book);}
+async function handleMoneyReview(request,env,origin){
+  const json=(o,st)=>new Response(JSON.stringify(o),{status:st||200,headers:{...corsHeaders(origin),'Content-Type':'application/json'}});
+  const token=env.TICKTICK_ACCESS_TOKEN;if(!token)return json({error:'TICKTICK_ACCESS_TOKEN secret is not configured'},500);
+  const projects=await tick('/project',token);const list=Array.isArray(projects)?projects:((projects&&projects.projects)||[]);
+  const proj=list.find(p=>String(p.name||'').trim().toLowerCase()===MONEY_PROJECT);
+  if(!proj)return json({items:[]});
+  const data=await tick('/project/'+encodeURIComponent(proj.id)+'/data',token);
+  const tasks=unwrapTasks(data&&data.tasks?data.tasks:data).filter(t=>!t.status);
+  if(request.method==='GET'){
+    const items=tasks.map(t=>({t,m:moneyMeta(t.content||t.desc)})).filter(x=>(x.m.status||'draft')==='draft'&&+x.m.amt>0).map(({t,m})=>({id:t.id,note:t.title||'',raw:m.notes,kind:m.kind==='in'?'in':'out',amt:+m.amt,acct:m.acct==='bank'?'bank':'wallet',date:/^\d{4}-\d{2}-\d{2}$/.test(m.date||'')?m.date:'',time:/^\d{2}:\d{2}$/.test(m.time||'')?m.time:'',cat:m.cat||'',book:m.book==='apdcl'?'apdcl':'personal'}));
+    return json({items});}
+  if(request.method!=='POST')return json({error:'Method not allowed'},405);
+  let body={};try{body=await request.json()}catch(_){return json({error:'Invalid JSON'},400)}
+  const task=tasks.find(t=>t.id===body.id);if(!task)return json({ok:true,gone:true});
+  const del=()=>fetch(API+'/project/'+encodeURIComponent(proj.id)+'/task/'+encodeURIComponent(task.id),{method:'DELETE',headers:{Authorization:'Bearer '+token}});
+  if(body.action==='discard'||(body.action==='approve'&&body.book!=='apdcl')){await del();return json({ok:true});}
+  if(body.action!=='approve')return json({error:'Unknown action'},400);
+  const m=moneyMeta(task.content||task.desc);
+  const o={status:'approved',kind:body.kind==='in'?'in':'out',amt:+body.amt>0?+body.amt:+m.amt,acct:body.acct==='bank'?'bank':'wallet',date:/^\d{4}-\d{2}-\d{2}$/.test(body.date||'')?body.date:(m.date||''),time:/^\d{2}:\d{2}$/.test(body.time||'')?body.time:(m.time||''),cat:String(body.cat||m.cat||'').slice(0,40),book:'apdcl'};
+  const title=String(body.note||task.title||'').slice(0,200);
+  await tick('/task/'+encodeURIComponent(task.id),token,{method:'POST',body:{id:task.id,projectId:proj.id,title,content:(m.notes?m.notes+'\n':'')+moneyLine(o)}});
+  return json({ok:true,kept:'apdcl'});
+}
+
 export default {async fetch(request,env){const origin=request.headers.get('Origin')||'';if(request.method==='OPTIONS'){const h=corsHeaders(origin);const requested=request.headers.get('Access-Control-Request-Headers');if(requested)h['Access-Control-Allow-Headers']=requested;return new Response(null,{status:204,headers:h});}const url=new URL(request.url);
  if(url.pathname==='/memory-extract'){if(request.method!=='POST')return new Response('Method not allowed',{status:405,headers:corsHeaders(origin)});try{return await memoryExtract(request,env)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.pathname==='/sync'||url.searchParams.get('mode')==='sync'){try{return await handleSync(request,env)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.searchParams.get('mode')==='nav'){try{return await handleNav(request)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.searchParams.get('mode')==='quotes'||url.pathname==='/quotes'){try{return await handleQuotes(request)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
+ if(url.searchParams.get('mode')==='money-review'||url.pathname==='/money-review'){try{return await handleMoneyReview(request,env,origin)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.searchParams.get('mode')==='wa-review'||url.pathname==='/wa-review'){try{return await handleWaReview(request,env,origin)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.searchParams.get('mode')==='live'||url.searchParams.get('mode')==='live-log'){try{return await handleLive(request,env,origin)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.searchParams.get('mode')==='travel-file'){try{return await handleTravelFile(request,env)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}

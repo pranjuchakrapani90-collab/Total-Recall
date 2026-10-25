@@ -4,6 +4,8 @@
      pend  — rows read from a YONO statement, waiting for Pranju's approval (same shape + draft remark)
      bal   — balance checks {acct, amt, date, time}: the real figure on a date; only newer entries move it
      learn — what he approved last time for a payee, so the next draft for that payee is already right
+   WhatsApp drafts (src "wa"): money notes from his self-chat, read by the nightly review into TickTick MONEY REVIEW,
+   arrive in pend with waId and book (personal | apdcl); APDCL ones also go into the FINANCE sheet after approval.
    Spending = "out" entries. Wallet↔bank moves (ATM, cash deposit) are not spending, and nor are the
    categories in NOT_SPEND (money put into investments or sent to his own accounts). */
 (function(){
@@ -119,8 +121,13 @@ function approve(id,edit){const s=I.load(KEY),p=s.pend[id];if(!p)return;const r=
   const twin=handTwin(r);
   if(twin){const {id:tid,...tw}=twin;delete tw.t;I.upsert(KEY,"tx",tid,{...tw,ref:r.ref,raw:r.raw,src:"yono"});}
   else I.upsert(KEY,"tx",null,r);
-  if(r.kind!=="move")I.upsert(KEY,"learn",learnKey(r.raw),{kind:r.kind,cat:r.cat,note:r.note});
+  if(r.kind!=="move"&&r.src!=="wa")I.upsert(KEY,"learn",learnKey(r.raw),{kind:r.kind,cat:r.cat,note:r.note});
   I.remove(KEY,"pend",id);return twin?"linked":"added";}
 function discard(id){I.remove(KEY,"pend",id);}
-window.Money={counts,KEY,ACCTS,OUT_CATS,IN_CATS,NOT_SPEND,now,ord,isSpend,list,entries,effect,balance,summary,names,readStatement,payee,draft,importRows,approve,discard,handTwin};
+/* WhatsApp money drafts from the bridge -> review list (skips ones already waiting or already approved) */
+function addWa(items){const s=I.load(KEY),seen=new Set();[...Object.values(s.tx),...Object.values(s.pend)].forEach(x=>{if(x&&x.waId)seen.add(x.waId);});
+  const base=Date.now();let n=0;(items||[]).forEach((x,i)=>{if(!x||!x.id||seen.has(x.id)||!ok(x.amt))return;
+    s.pend[I.uid()+i]={src:"wa",waId:x.id,kind:x.kind==="in"?"in":"out",acct:x.acct==="bank"?"bank":"wallet",amt:x.amt,date:x.date||now().date,time:x.time||"",cat:x.cat||"",note:x.note||"",raw:x.raw||x.note||"",book:x.book==="apdcl"?"apdcl":"personal",t:base+i};n++;});
+  if(n)I.save(KEY,s);return n;}
+window.Money={counts,KEY,ACCTS,OUT_CATS,IN_CATS,NOT_SPEND,now,ord,isSpend,list,entries,effect,balance,summary,names,readStatement,payee,draft,importRows,approve,discard,handTwin,addWa};
 })();

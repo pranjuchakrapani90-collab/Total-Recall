@@ -72,7 +72,7 @@
 </main>
 <script src="gsync.js?v=20261020"></script>
 <script src="invest.js?v=20261025"></script>
-<script src="money.js?v=20261025b"></script>
+<script src="money.js?v=20261025c"></script>
 <script src="officecrypt.js?v=20261025"></script>
 <script>
 "use strict";
@@ -107,12 +107,12 @@ function todayCard(m){return `<section class="card"><div class="today">
   <div><span>This month</span><b>${inr(m.mSpent)}</b><small>${inr(m.avg)} a day</small></div>
   <div><span>Received</span><b class="${m.mIn?"up":""}">${inr(m.mIn)}</b><small>${m.mInv?"invested "+inr(m.mInv):"this month"}</small></div></div></section>`;}
 function reviewCard(m){if(!m.pend.length)return "";const n=m.pend.length,amt=m.pend.reduce((a,x)=>a+(x.kind==="in"?x.amt:-x.amt),0);
-  return `<section class="card review"><h2>${n} from YONO to approve <small>${I.dshort(m.pend[0].date)}${m.pend[n-1].date!==m.pend[0].date?" – "+I.dshort(m.pend[n-1].date):""}</small></h2>
-  <p class="small">Remarks are drafted from the statement and from what you approved before. Check each one, or take them as drafted.</p>
+  return `<section class="card review"><h2>${n} to approve${(()=>{const w=m.pend.filter(x=>x.src==="wa").length,y=n-w;return w&&y?` <small>${w} from WhatsApp · ${y} from YONO</small>`:w?" from WhatsApp":" from YONO";})()} <small>${I.dshort(m.pend[0].date)}${m.pend[n-1].date!==m.pend[0].date?" – "+I.dshort(m.pend[n-1].date):""}</small></h2>
+  <p class="small">Remarks are drafted from the statement, your WhatsApp notes and what you approved before. Check each one (WhatsApp ones: Personal or APDCL), or take them as drafted.</p>
   <div class="acts"><button type="button" id="rvOne">Review one by one</button><button type="button" class="ghost" id="rvAll">Approve all ${n}</button></div></section>`;}
 function entRow(x,N){const acc=x.kind==="move"?(x.to==="wallet"?N.bank+" → "+N.wallet:N.wallet+" → "+N.bank):(x.acct==="bank"?N.bank:N.wallet);
   const cls=x.kind==="in"?"in":x.kind==="move"?"mv":x.cat==="Investment"?"inv":"",sign=x.kind==="in"?"+":x.kind==="move"?"":"−";
-  const sub=[x.time,x.cat,acc,x.src==="yono"?"YONO":""].filter(Boolean).join(" · ");
+  const sub=[x.time,x.cat,acc,x.src==="yono"?"YONO":"",x.book==="apdcl"?"APDCL":""].filter(Boolean).join(" · ");
   return `<button type="button" class="ent" data-tx="${esc(x.id)}"><span style="min-width:0"><div class="n">${esc(x.note||x.cat||(x.kind==="move"?"Transfer":"—"))}</div><div class="s">${esc(sub)}</div></span><span class="a ${cls}">${sign}${inr(x.amt,x.amt%1?2:0)}</span></button>`;}
 function listCard(m){if(!m.T.length)return `<section class="card empty"><b>No entries yet</b><p class="small muted">Set your wallet and bank balances above, then log cash spends with + Log and bring in online ones with a YONO statement file.</p></section>`;
   const byDay={};m.T.forEach(x=>(byDay[x.date]=byDay[x.date]||[]).push(x));const ds=Object.keys(byDay).sort().reverse(),shown=ds.slice(0,showDays);
@@ -222,10 +222,15 @@ function pickYono(){const i=document.createElement("input");i.type="file";i.acce
   i.click();}
 /* one statement row at a time, like WhatsApp Review: edit the draft, then approve, discard or skip */
 function review(at){const P=M.list("pend").sort((a,b)=>M.ord(a)<M.ord(b)?-1:1);if(!P.length){const d=$("mSheet");if(d){d.close();d.remove();}draw();return;}
-  const i=Math.max(0,Math.min(at,P.length-1)),p=P[i],N=M.names();let k=kindOf(p),cat=p.cat||"";const twin=M.handTwin(p);
-  const d=sheet(`<div class="wah" style="display:flex;justify-content:space-between;align-items:baseline"><h3>YONO review</h3><span class="small muted">${i+1} of ${P.length}</span></div>
+  const i=Math.max(0,Math.min(at,P.length-1)),p=P[i],N=M.names(),wa=p.src==="wa";let k=kindOf(p),cat=p.cat||"",acct=p.acct||"wallet",book=p.book||"personal";const twin=wa&&p.acct!=="bank"?null:M.handTwin(p);
+  const d=sheet(`<div class="wah" style="display:flex;justify-content:space-between;align-items:baseline"><h3>${wa?"WhatsApp money note":"YONO review"}</h3><span class="small muted">${i+1} of ${P.length}</span></div>
     <div><span class="big ${p.kind==="in"?"in":p.kind==="out"?"out":""}">${p.kind==="in"?"+":p.kind==="out"?"−":""}${inr(p.amt,p.amt%1?2:0)}</span>${p.learned?`<span class="tag">as last time</span>`:""}<div class="small muted">${esc(dayName(p.date))}${p.ref?" · ref "+esc(p.ref):""}</div></div>
     <div class="raw">${esc(p.raw)}</div>
+    ${wa?`<div class="seg" id="sB"><button type="button" data-v="personal" class="${book!=="apdcl"?"on":""}">Personal</button><button type="button" data-v="apdcl" class="${book==="apdcl"?"on":""}">APDCL</button></div>
+    <div class="seg" id="sA">${M.ACCTS.map(([v])=>`<button type="button" data-v="${v}" class="${v===acct?"on":""}">${esc(N[v])}</button>`).join("")}</div>
+    <label class="fld"><span>Amount ₹</span><input id="eAmt" inputmode="decimal" autocomplete="off" value="${ok(p.amt)?p.amt:""}"></label>
+    <label class="fld"><span>Date</span><input id="eDate" type="date" value="${esc(p.date||"")}"></label>
+    <p class="small muted" id="bNote">${book==="apdcl"?"APDCL: also goes into your FINANCE sheet (IMPREST) on the next nightly review.":"Personal: stays in the Money Book only."}</p>`:""}
     ${twin?`<p class="twin">You logged this by hand already (“${esc(twin.note||twin.cat)}”). Approving links the two; it won't be counted twice.</p>`:""}
     <div class="seg k" id="sK">${KINDS.map(([v,l])=>`<button type="button" data-v="${v}" class="${v===k?"on":""}">${l}</button>`).join("")}</div>
     <div class="chips" id="eCat"></div>
@@ -236,15 +241,19 @@ function review(at){const P=M.list("pend").sort((a,b)=>M.ord(a)<M.ord(b)?-1:1);i
   const showCats=()=>{$("eCat").innerHTML=chipsHtml(k,cat);$("eCat").hidden=k==="atm"||k==="dep";
     $("eCat").querySelectorAll("button").forEach(b=>b.onclick=e=>{e.preventDefault();cat=cat===b.dataset.c?"":b.dataset.c;showCats();});};
   segWire(d,"#sK",v=>{if((v==="in")!==(k==="in"))cat="";k=v;showCats();});showCats();
+  if(wa){segWire(d,"#sB",v=>{book=v;$("bNote").textContent=v==="apdcl"?"APDCL: also goes into your FINANCE sheet (IMPREST) on the next nightly review.":"Personal: stays in the Money Book only.";});segWire(d,"#sA",v=>{acct=v;});}
   const close=()=>{d.close();d.remove();draw();};
-  d.querySelector("form").onsubmit=e=>{e.preventDefault();const mv=fromKind(k,"bank"),r=M.approve(p.id,{...mv,cat:k==="atm"||k==="dep"?"":(cat||"Other"),note:$("eNote").value.trim()||p.note,time:$("eTime").value||""});
+  d.querySelector("form").onsubmit=e=>{e.preventDefault();const extra={};if(wa){const a=parseFloat(String($("eAmt").value).replace(/[,₹\s]/g,""));if(!(a>0)){const fe=d.querySelector(".ferr");fe.hidden=false;fe.textContent="Enter the amount.";return;}extra.amt=a;extra.book=book;if($("eDate").value)extra.date=$("eDate").value;}
+    const mv=fromKind(k,wa?acct:"bank"),final={...mv,...extra,cat:k==="atm"||k==="dep"?"":(cat||"Other"),note:$("eNote").value.trim()||p.note,time:$("eTime").value||""},r=M.approve(p.id,final);
+    if(wa)waTell({action:"approve",id:p.waId,book:final.book,kind:final.kind,amt:final.amt,acct:final.acct,date:final.date||p.date,time:final.time,cat:final.cat,note:final.note});
     if(r==="linked")toast("Linked to your hand entry");d.remove();review(i);};
-  $("rDel").onclick=()=>{M.discard(p.id);d.remove();review(i);};
+  $("rDel").onclick=()=>{if(wa)waTell({action:"discard",id:p.waId});M.discard(p.id);d.remove();review(i);};
   $("rSkip").onclick=()=>{d.remove();if(i+1<P.length)review(i+1);else{draw();toast("Skipped ones stay waiting.");}};
   $("eX").onclick=close;d.showModal();}
 function approveAll(){const P=M.list("pend");if(!P.length)return;
   if(!confirm(`Approve all ${P.length} as drafted? Ones without a category go in as Other. You can still edit any entry later.`))return;
-  let linked=0;P.sort((a,b)=>M.ord(a)<M.ord(b)?-1:1).forEach(p=>{if(M.approve(p.id,{cat:p.kind==="move"?"":(p.cat||"Other")})==="linked")linked++;});
+  let linked=0;P.sort((a,b)=>M.ord(a)<M.ord(b)?-1:1).forEach(p=>{const c=p.kind==="move"?"":(p.cat||"Other");if(M.approve(p.id,{cat:c})==="linked")linked++;
+    if(p.src==="wa")waTell({action:"approve",id:p.waId,book:p.book||"personal",kind:p.kind,amt:p.amt,acct:p.acct,date:p.date,time:p.time||"",cat:c,note:p.note});});
   draw();toast(`Approved ${P.length}${linked?` · ${linked} linked to hand entries`:""}`);}
 
 /* ---------- home-screen icon ---------- */
@@ -254,13 +263,18 @@ async function install(){if(deferredInstall){deferredInstall.prompt();try{await 
   I.form({title:"Money Log on the home screen",note:(inApp?"Open this page in the Chrome browser (not inside the Pranju OS app): "+url+" . Then ":"In Chrome, ")+"open the ⋮ menu (top right) and tap “Add to Home screen” → “Install”. The new Money Log icon opens straight into a new entry. Do the same on your other phone.",
     fields:[],ok:"OK",onSubmit:()=>{},extra:navigator.clipboard?[{label:"Copy link",run:()=>{navigator.clipboard.writeText(url).then(()=>toast("Link copied"),()=>{});}}]:null});}
 
+/* ---------- WhatsApp money notes (drafted by the nightly review into TickTick MONEY REVIEW) ---------- */
+function waUrl(){let u=null;try{u=localStorage.getItem("totalRecallTickTickUrl");}catch(e){}return (u||"https://total-recall-ticktick.pranjuchakrapani90.workers.dev").replace(/[?#].*$/,"").replace(/\/$/,"")+"/?mode=money-review";}
+function waTell(body){fetch(waUrl(),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body),cache:"no-store"}).then(r=>{if(!r.ok)throw new Error("HTTP "+r.status);}).catch(e=>toast("Saved here; couldn't update TickTick ("+e.message+")"));}
+async function waFetch(){try{const r=await fetch(waUrl(),{cache:"no-store"});if(!r.ok)return;const d=await r.json();const n=M.addWa(d.items||[]);if(n){draw();toast(n+" money note"+(n>1?"s":"")+" from WhatsApp to approve");}}catch(e){}}
+
 /* ---------- sync ---------- */
 function showErr(m){$("err").hidden=!m;$("err").textContent=m||"";}
 async function syncNow(loud){try{const r=await I.sync(KEY);if(r.ok&&r.changed)draw();if(loud){$("st").textContent=r.ok?"Synced.":r.msg;}}catch(e){if(loud)showErr("Sync failed: "+e.message);}}
 $("qAdd").onclick=()=>entry();$("qYono").onclick=pickYono;$("sync").onclick=()=>syncNow(true);
 draw();
 if(/[?&]add/.test(location.search)){entry();history.replaceState(null,"",location.pathname);}
-syncNow(false);
+syncNow(false).then(waFetch,waFetch);
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")syncNow(false);});
 </script>
 </body></html>
