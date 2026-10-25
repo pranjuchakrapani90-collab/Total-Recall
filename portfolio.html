@@ -20,7 +20,7 @@ a.rowbtn{color:inherit;text-decoration:none}
 </style>
 </head><body class="tr-inv">
 <header><div class="hin">
-  <a class="backlink" href="./#f-invest">← Investments</a>
+  <a class="backlink" href="./#f-invest2">← Investments</a>
   <div class="ttl"><h1>Portfolio</h1><span class="pill" id="mkt"><i></i><span>NSE</span></span></div>
 </div></header>
 <main class="wrap">
@@ -72,8 +72,10 @@ function model(){
   if(F.A){lines.push({grp:"cash",name:"Kite cash",inv:F.cash,val:F.cash,href:"#kite",sub:"for BIDs and ETF buys"});
     lines.push({grp:"cash",name:"LiquidBees",inv:liqV,val:liqV,href:"#kite",sub:`${F.liqUnits} units${ok(F.liqPrice)?" × "+price(F.liqPrice):""}`});}
   /* wallet and bank as the Money Book keeps them */
-  if(window.Money){const C=Money.summary(),N=Money.names();
-    [["bank",C.bank],["wallet",C.wallet]].forEach(([k,b])=>{if(b.set)lines.push({grp:"cash",name:N[k],inv:b.val,val:b.val,href:"money.html",sub:"Money Book"+(b.cp?" · checked "+dshort(b.cp.date):"")});});}
+  let apdclVal=0;
+  if(window.Money){const C=Money.summary(),N=Money.names();if(C.bank.set||C.wallet.set)apdclVal=C.apdcl.val;
+    [["bank",C.bank],["wallet",C.wallet]].forEach(([k,b])=>{if(b.set)lines.push({grp:"cash",name:N[k],inv:b.val,val:b.val,href:"money.html",sub:"Money Book"+(b.cp?" · checked "+dshort(b.cp.date):"")});});
+    if(C.apdcl.set&&(C.bank.set||C.wallet.set))lines.push({grp:"cash",name:"of which APDCL",inv:0,val:0,href:"apdcl.html",note:true,sub:C.apdcl.val<0?`${inr(-C.apdcl.val)} spent from your own money (due from APDCL)`:`${inr(C.apdcl.val)} of APDCL money in hand`,show:C.apdcl.val});}
   /* once the Money Book keeps the bank balance, bank accounts entered here would count the same money twice */
   const mbBank=!!(window.Money&&Money.summary().bank.set);
   A.forEach(a=>{if(mbBank&&a.type==="bank")return;lines.push({grp:a.grp,name:a.name,inv:a.inv,val:a.val,id:a.id,a,sub:sub(a)});});
@@ -82,7 +84,7 @@ function model(){
   const byG=GROUPS.map(([k,n,c])=>({k,n,c,val:lines.filter(l=>l.grp===k).reduce((x,l)=>x+l.val,0)}));
   const sip=A.filter(a=>ok(a.sip)&&a.sip>0).reduce((x,a)=>x+a.sip,0);
   try{localStorage.setItem("inv-summary",JSON.stringify({val,inv,pl,at:Date.now()}));}catch(e){}
-  return {dupBanks,A,E,P,F,lines,val,inv,pl,booked,byG,sip,empty:!lines.length};}
+  return {apdclVal,dupBanks,A,E,P,F,lines,val,inv,pl,booked,byG,sip,empty:!lines.length};}
 function sub(a){const b=[TN[a.type]||"Other"];
   if(a.type==="mf"&&ok(a.units))b.push(`${a.units} units${a.nav?" · NAV "+price(a.nav.nav)+" ("+a.nav.date+")":""}`);
   if(ok(a.sip)&&a.sip>0)b.push(`SIP ${inr(a.sip)}${a.sipDay?" on the "+a.sipDay+ord(a.sipDay):""}`);
@@ -125,12 +127,13 @@ function sipDone(a){const n=a.code&&NAV[a.code]?NAV[a.code].nav:NaN;
 function hero(M){const plp=M.inv?M.pl/M.inv*100:NaN;
   return `<section class="card hero"><div class="when">Net worth${M.sip?" · SIPs "+inr(M.sip)+" a month":""}</div>
    <div class="tot">${inr(M.val)}</div>
+   ${M.apdclVal?`<div class="line2">Personal ${inr(M.val-M.apdclVal)} · <a href="apdcl.html" style="color:inherit">APDCL <span class="${M.apdclVal<0?"dn":""}">${inr(M.apdclVal)}</span></a></div>`:""}
    <div class="line2">Invested ${inr(M.inv)} · <span class="${tone(M.pl)}">${signInr(M.pl)} (${pct(plp,1)})</span>${M.booked?` · booked <span class="up">${inr(M.booked)}</span>`:""}</div>
    <div class="alloc">${M.byG.filter(g=>g.val>0).map(g=>`<i style="width:${(g.val/M.val*100).toFixed(2)}%;background:${g.c}" title="${esc(g.n)}"></i>`).join("")}</div>
    <div class="legend">${M.byG.filter(g=>g.val>0).map(g=>`<span><i style="background:${g.c}"></i>${esc(g.n)} ${Math.round(g.val/M.val*100)}%</span>`).join("")}</div></section>`;}
 function groups(M){return GROUPS.map(([k,n])=>{const L=M.lines.filter(l=>l.grp===k);if(!L.length)return "";const tot=L.reduce((x,l)=>x+l.val,0);
   return `<section class="card"><div class="grp"><h2>${esc(n)}</h2><b>${inr(tot)}</b></div><div class="rows">${L.map(row).join("")}</div></section>`;}).join("");}
-function row(l){const pl=l.val-l.inv,tag=l.href?"a":"div",at=l.href?`href="${l.href}"`:`role="button" tabindex="0" data-a="${esc(l.id)}"`;
+function row(l){if(l.note)return `<a class="rowbtn" href="${l.href}"><span><span class="nm" style="font-weight:500;color:var(--muted)">${esc(l.name)}</span><div class="sub">${esc(l.sub)}</div></span><span class="r ${l.show<0?"dn":""}">${inr(l.show)}</span></a>`;const pl=l.val-l.inv,tag=l.href?"a":"div",at=l.href?`href="${l.href}"`:`role="button" tabindex="0" data-a="${esc(l.id)}"`;
   const sipBtn=l.a&&ok(l.a.sip)&&l.a.sip>0?`<button type="button" class="sipb" data-sip="${esc(l.id)}">SIP done</button>`:"";
   return `<${tag} class="rowbtn" ${at}><span><span class="nm">${esc(l.name)}</span>${sipBtn}<div class="sub">${esc(l.sub||"")}</div></span>
    <span class="r">${inr(l.val)}${Math.abs(pl)>=1?`<div class="sub ${tone(pl)}">${signInr(pl)}</div>`:""}</span></${tag}>`;}

@@ -1,20 +1,23 @@
-/* Money Book engine (Investments › Money Book), shared by money.html and the Portfolio page.
+/* Money Book engine (Money Trace › Money Book and APDCL Expenditure), shared by those pages and Portfolio.
    Records live in the Invest store under "cash" (encrypted sync slot "#inv-cash"), never in this repo:
      tx    — approved entries {date, time, kind: out|in|move, acct: bank|wallet, to (move only), amt, cat, note, src: hand|yono, ref, raw}
      pend  — rows read from a YONO statement, waiting for Pranju's approval (same shape + draft remark)
      bal   — balance checks {acct, amt, date, time}: the real figure on a date; only newer entries move it
      learn — what he approved last time for a payee, so the next draft for that payee is already right
    WhatsApp drafts (src "wa"): money notes from his self-chat, read by the nightly review into TickTick MONEY REVIEW,
-   arrive in pend with waId and book (personal | apdcl); APDCL ones also go into the FINANCE sheet after approval.
+   arrive in pend with waId and book (personal | apdcl).
+   Every entry is Personal or APDCL (book). APDCL entries are imprest money: they move the wallet or bank like any other
+   (so Money now includes what APDCL gives and what's spent for APDCL) and also make up the APDCL ledger, whose
+   balance (received − spent) is the APDCL part of Money now; the rest is personal. FINANCE sheet history sits on
+   accounts of its own (old, imprest, imprest-bil) and never moves the wallet or bank.
    Spending = "out" entries. Wallet↔bank moves (ATM, cash deposit) are not spending, and nor are the
    categories in NOT_SPEND (money put into investments or sent to his own accounts). */
 (function(){
 "use strict";
 const I=window.Invest,{ok}=I,KEY="cash";
-const ACCTS=[["wallet","Wallet"],["bank","Bank"],["imprest","Imprest"]];
-/* accounts that hold money now; the rest are ledgers of their own:
-     imprest      APDCL imprest at Samaguri (money received from APDCL, spent on office work); its balance is its own
-     imprest-bil  the Bilasipara imprest (closed), and old: the personal FINANCE sheet 2021–22 — history only */
+const ACCTS=[["wallet","Wallet"],["bank","Bank"]];
+/* history accounts from the FINANCE sheet: imprest (Samaguri imprest up to Oct 2026), imprest-bil (Bilasipara, closed),
+   old (personal ledger 2021–22) */
 const OWN=new Set(["wallet","bank"]),IMP=new Set(["imprest","imprest-bil"]);
 const IMP_CATS=["Fuel","Labour","Vehicle hire","Drives & DC","Food & tea","Office","Materials","Events","Other"];
 const IMP_IN_CATS=["Imprest received","Other"];
@@ -26,7 +29,10 @@ const pad=n=>String(n).padStart(2,"0");
 function now(){const t=I.ist();return {date:t.iso,time:pad(Math.floor(t.mins/60))+":"+pad(t.mins%60)};}
 /* order of an entry or a balance check within the records */
 const ord=x=>(x.date||"")+" "+(x.time||"00:00")+" "+String(x.seq||0).padStart(5,"0")+" "+String(x.t||0).padStart(14,"0");
-const isSpend=x=>x.kind==="out"&&!NOT_SPEND.has(x.cat)&&!IMP.has(x.acct);
+/* APDCL money: marked APDCL, or imprest history */
+const isApdcl=x=>x.book==="apdcl"||IMP.has(x.acct);
+/* personal spending (APDCL spending is counted on its own) */
+const isSpend=x=>x.kind==="out"&&!NOT_SPEND.has(x.cat)&&!isApdcl(x);
 function list(coll){const s=I.load(KEY);return Object.entries(s[coll]).filter(([,x])=>x).map(([id,x])=>({id,...x}));}
 function entries(){return list("tx").filter(x=>ok(x.amt)).sort((a,b)=>ord(a)<ord(b)?-1:ord(a)>ord(b)?1:0);}
 /* what an entry does to one account */
@@ -41,14 +47,20 @@ function effect(x,acct){if(x.kind==="move")return x.acct===acct?-x.amt:x.to===ac
 function counts(x,cp){
   if(x.src==="sheet")return x.date>cp.date;
   if(x.src==="yono")return x.date>cp.date||(x.date===cp.date&&cp.src!=="yono"&&!!x.time&&x.time>(cp.time||""));
-  return (x.t||0)>(cp.t||0);}
+  return (x.at||x.t||0)>(cp.t||0);}
 /* balance of one account: its latest check, then every entry that came after it */
 function balance(acct,T){T=T||entries();
   const cps=list("bal").filter(b=>b.acct===acct&&ok(b.amt)).sort((a,b)=>ord(a)<ord(b)?-1:1),cp=cps[cps.length-1]||null;
   const after=T.filter(x=>!cp||counts(x,cp));
   return {acct,cp,val:(cp?cp.amt:0)+after.reduce((a,x)=>a+effect(x,acct),0),set:!!cp||T.some(x=>effect(x,acct))};}
-function summary(){const T=entries(),b=balance("bank",T),w=balance("wallet",T),im=balance("imprest",T);return {T,bank:b,wallet:w,imprest:im,total:b.val+w.val,any:b.set||w.set};}
-function names(){const s=(I.load(KEY).settings)||{};return {bank:s.bankName||"Bank",wallet:s.walletName||"Wallet",imprest:"Imprest","imprest-bil":"Bilasipara imprest",old:"FINANCE sheet"};}
+/* the APDCL ledger at Samaguri (Bilasipara's closed imprest stays out): received − spent */
+function apdcl(T){T=(T||entries()).filter(x=>isApdcl(x)&&x.acct!=="imprest-bil"&&x.kind!=="move");
+  const inn=T.filter(x=>x.kind==="in").reduce((a,x)=>a+x.amt,0),out=T.filter(x=>x.kind==="out").reduce((a,x)=>a+x.amt,0);
+  return {T,received:inn,spent:out,val:inn-out,set:T.length>0};}
+/* Money now = wallet + bank; of which APDCL = the APDCL ledger's balance (negative: spent from your own money, due from APDCL) */
+function summary(){const T=entries(),b=balance("bank",T),w=balance("wallet",T),ap=apdcl(T),total=b.val+w.val;
+  return {T,bank:b,wallet:w,apdcl:ap,total,personal:total-ap.val,any:b.set||w.set};}
+function names(){const s=(I.load(KEY).settings)||{};return {bank:s.bankName||"Bank",wallet:s.walletName||"Wallet",imprest:"Imprest (sheet)","imprest-bil":"Bilasipara imprest",old:"FINANCE sheet"};}
 function archive(){return list("arch").filter(a=>a.rows).sort((a,b)=>(a.n||0)-(b.n||0));}
 
 /* ---------- YONO statement ---------- */
@@ -98,7 +110,7 @@ function draft(x){const s=x.raw.toUpperCase(),L=I.load(KEY).learn[learnKey(x.raw
   const d={date:x.date,time:"",acct:"bank",amt:x.amt,raw:x.raw,ref:x.ref,seq:x.seq,src:"yono",bal:x.bal};
   if(x.dir==="dr"&&/ATM|ATW|CASH\s*W|CSH\s*W|CASH WDL|NFS\/|WDL\s*TFR/.test(s))return {...d,kind:"move",to:"wallet",cat:"",note:"ATM withdrawal"};
   if(x.dir==="cr"&&/CASH\s*DEP|CSH\s*DEP|BY CASH|CDM/.test(s))return {...d,kind:"move",acct:"wallet",to:"bank",cat:"",note:"Cash deposit"};
-  if(L&&L.kind===(x.dir==="dr"?"out":"in"))return {...d,kind:L.kind,cat:L.cat||"",note:L.note||p,learned:true};
+  if(L&&L.kind===(x.dir==="dr"?"out":"in"))return {...d,kind:L.kind,cat:L.cat||"",note:L.note||p,book:L.book||"personal",learned:true};
   if(x.dir==="cr"){if(/SAL|SALARY|APDCL|ASSAM POWER/.test(s))return {...d,kind:"in",cat:"Salary",note:"Salary"};
     if(/INT\.?\s*PD|INTEREST|CREDIT INT/.test(s))return {...d,kind:"in",cat:"Interest",note:"Bank interest"};
     if(/REFUND|REVERSAL|REV\b|CASHBACK/.test(s))return {...d,kind:"in",cat:"Refund",note:"Refund · "+p};
@@ -127,23 +139,27 @@ function handTwin(p){const same=x=>x.kind==="move"?p.kind==="move"&&x.to===p.to:
   return list("tx").find(x=>x.src==="hand"&&!x.ref&&x.date===p.date&&x.amt===p.amt&&same(x));}
 function approve(id,edit){const s=I.load(KEY),p=s.pend[id];if(!p)return;const r={...p,...edit};delete r.learned;delete r.bal;delete r.t;
   const twin=handTwin(r);
-  if(twin){const {id:tid,...tw}=twin;delete tw.t;I.upsert(KEY,"tx",tid,{...tw,ref:r.ref,raw:r.raw,src:"yono"});}
+  if(twin){const {id:tid,...tw}=twin;delete tw.t;I.upsert(KEY,"tx",tid,{...tw,ref:r.ref,raw:r.raw,src:"yono",book:r.book||tw.book||"personal"});}
   else I.upsert(KEY,"tx",null,r);
-  if(r.kind!=="move"&&r.src!=="wa")I.upsert(KEY,"learn",learnKey(r.raw),{kind:r.kind,cat:r.cat,note:r.note});
+  if(r.kind!=="move"&&r.src!=="wa")I.upsert(KEY,"learn",learnKey(r.raw),{kind:r.kind,cat:r.cat,note:r.note,book:r.book||"personal"});
   I.remove(KEY,"pend",id);return twin?"linked":"added";}
 function discard(id){I.remove(KEY,"pend",id);}
 /* WhatsApp money drafts from the bridge -> review list (skips ones already waiting or already approved).
    APDCL ones are imprest money: they are drafted on the Imprest account. */
 function addWa(items){const s=I.load(KEY),seen=new Set();[...Object.values(s.tx),...Object.values(s.pend)].forEach(x=>{if(x&&x.waId)seen.add(x.waId);});
-  const base=Date.now();let n=0;(items||[]).forEach((x,i)=>{if(!x||!x.id||seen.has(x.id)||!ok(x.amt))return;const apdcl=x.book==="apdcl";
-    s.pend[I.uid()+i]={src:"wa",waId:x.id,kind:x.kind==="in"?"in":"out",acct:apdcl?"imprest":x.acct==="bank"?"bank":"wallet",amt:x.amt,date:x.date||now().date,time:x.time||"",cat:apdcl?impCat(x.cat,x.note):x.cat||"",note:x.note||"",raw:x.raw||x.note||"",book:apdcl?"apdcl":"personal",t:base+i};n++;});
+  const base=Date.now();let n=0;(items||[]).forEach((x,i)=>{if(!x||!x.id||seen.has(x.id)||!ok(x.amt))return;const ap=x.book==="apdcl";
+    s.pend[I.uid()+i]={src:"wa",waId:x.id,kind:x.kind==="in"?"in":"out",acct:x.acct==="bank"?"bank":"wallet",amt:x.amt,date:x.date||now().date,time:x.time||"",cat:ap?(x.kind==="in"?"Imprest received":impCat(x.cat,x.note)):x.cat||"",note:x.note||"",raw:x.raw||x.note||"",book:ap?"apdcl":"personal",t:base+i};n++;});
   if(n)I.save(KEY,s);return n;}
-/* an imprest category from a WhatsApp draft's category or remark */
-function impCat(cat,note){const s=(String(cat||"")+" "+String(note||"")).toUpperCase();
+/* an APDCL category from a draft's category or remark */
+function impCat(cat,note){if(IMP_CATS.includes(cat))return cat;const s=(String(cat||"")+" "+String(note||"")).toUpperCase();
   if(/HIRING|HIRED|CRANE/.test(s))return "Vehicle hire";if(/FUEL|PETROL|DIESEL|BOLERO|ALTO|WAGON/.test(s))return "Fuel";if(/LABOUR|WAGES/.test(s))return "Labour";
   if(/DRIVE|POLICE|THEFT|VIGILANCE|\bDC\b/.test(s))return "Drives & DC";if(/FOOD|TEA|HOTEL|LUNCH/.test(s))return "Food & tea";
-  if(/OFFICE|PAPER|STATION|REGISTER|RECHARGE/.test(s))return "Office";return IMP_CATS.includes(cat)?cat:"Other";}
-/* entries approved as APDCL before the Imprest account existed belong to it */
-function migrateApdcl(){const s=I.load(KEY);let n=0;Object.entries(s.tx).forEach(([id,x])=>{if(x&&x.book==="apdcl"&&OWN.has(x.acct)){s.tx[id]={...x,acct:"imprest",cat:x.kind==="in"?"Imprest received":impCat(x.cat,x.note),t:Date.now()};n++;}});if(n)I.save(KEY,s);return n;}
-window.Money={OWN,IMP,IMP_CATS,IMP_IN_CATS,archive,impCat,migrateApdcl,counts,KEY,ACCTS,OUT_CATS,IN_CATS,NOT_SPEND,now,ord,isSpend,list,entries,effect,balance,summary,names,readStatement,payee,draft,importRows,approve,discard,handTwin,addWa};
+  if(/OFFICE|PAPER|STATION|REGISTER|RECHARGE/.test(s))return "Office";return "Other";}
+/* entries put on the short-lived "imprest" account by the app (not sheet history) go back to wallet/bank, marked APDCL,
+   keeping when they were logged so balance checks treat them as before */
+function migrateApdcl(){const s=I.load(KEY);let n=0;
+  Object.entries(s.tx).forEach(([id,x])=>{if(x&&x.acct==="imprest"&&x.src!=="sheet"){s.tx[id]={...x,acct:x.src==="yono"?"bank":"wallet",book:"apdcl",at:x.at||x.t,t:Date.now()};n++;}});
+  Object.entries(s.pend).forEach(([id,x])=>{if(x&&x.acct==="imprest"){s.pend[id]={...x,acct:"wallet",book:"apdcl",t:Date.now()};n++;}});
+  if(n)I.save(KEY,s);return n;}
+window.Money={isApdcl,apdcl,OWN,IMP,IMP_CATS,IMP_IN_CATS,archive,impCat,migrateApdcl,counts,KEY,ACCTS,OUT_CATS,IN_CATS,NOT_SPEND,now,ord,isSpend,list,entries,effect,balance,summary,names,readStatement,payee,draft,importRows,approve,discard,handTwin,addWa};
 })();
