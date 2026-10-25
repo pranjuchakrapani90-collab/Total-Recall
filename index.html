@@ -572,7 +572,9 @@ function travelParseGPXWorker(text){
     var tm=(pm[2].match(/<time\b[^>]*>([\s\S]*?)<\/time>/i)||[])[1];
     var time=tm?travelTime(tm.replace(/<[^>]+>/g,'').trim()):null;
     if(!time)continue;
-    pts.push({lat:lat,lng:lng,time:time,ms:new Date(time).getTime()});
+    var accM=pm[2].match(/<(?:\w+:)?acc(?:uracy)?\b[^>]*>\s*([\d.]+)/i),hdM=pm[2].match(/<hdop\b[^>]*>\s*([\d.]+)/i);
+    var acc=accM?Number(accM[1]):hdM?Number(hdM[1])*5:null;
+    pts.push({lat:lat,lng:lng,time:time,ms:new Date(time).getTime(),acc:isFinite(acc)?acc:null});
   }
   if(!pts.length)throw new Error('No dated GPX track points were found.');
   pts.sort(function(a,b){return a.ms-b.ms});
@@ -742,7 +744,43 @@ async function travelLoadSelectedDate(){
   $('travelFit').disabled=false;$('travelIdentify').disabled=false;$('travelClear').disabled=false;
   await travelRender()
 }
-function travelSelectedSegments(){var d=$('travelDate').value;return travelData&&travelData.byDay&&travelData.byDay[d]?travelData.byDay[d]:[]}
+/* GPS indoors wanders: fixes drift tens of metres while you sit still, and the odd poor fix lands across the road.
+   The map, distance and playback use a cleaned track; the saved GPX keeps every raw point.
+   1. drop fixes whose reported accuracy is worse than 30 m
+   2. drop one-off jumps: a point far from both neighbours while the neighbours are close to each other
+   3. a stretch of 2+ minutes that stays within 40 m of its own centre is one place: drawn as that centre
+      (kept at its start and end time, so time spent there still counts), adding no distance
+   4. while moving, keep a point every 8 m or more */
+function travelCleanSegment(seg){
+  var R=40,pts=seg.filter(function(p){return !(p.acc!=null&&p.acc>30)});
+  for(var pass=0;pass<2;pass++)pts=pts.filter(function(p,i,a){
+    if(i===0||i===a.length-1)return true;
+    var a1=travelHaversine(a[i-1],p),a2=travelHaversine(p,a[i+1]),b=travelHaversine(a[i-1],a[i+1]);
+    return !(a1>R&&a2>R&&b<Math.min(a1,a2)/2)
+  });
+  var runs=[],run=null;
+  pts.forEach(function(p){
+    if(run&&travelHaversine(run.c,p)<=R){run.pts.push(p);var n=run.pts.length;run.c={lat:run.c.lat+(p.lat-run.c.lat)/n,lng:run.c.lng+(p.lng-run.c.lng)/n};return}
+    run={pts:[p],c:{lat:p.lat,lng:p.lng}};runs.push(run)
+  });
+  var out=[];
+  function put(p){var l=out[out.length-1];if(!l||p.stay||l.stay||travelHaversine(l,p)>=8)out.push(p)}
+  runs.forEach(function(r){
+    var f=r.pts[0],e=r.pts[r.pts.length-1];
+    if(r.pts.length>1&&e.ms-f.ms>=120000){
+      out.push({lat:r.c.lat,lng:r.c.lng,time:f.time,ms:f.ms,stay:1});
+      out.push({lat:r.c.lat,lng:r.c.lng,time:e.time,ms:e.ms,stay:1});
+    }else r.pts.forEach(put)
+  });
+  return out
+}
+var travelCleanCache={src:null,n:-1,out:[]};
+function travelSelectedSegments(){
+  var d=$('travelDate').value,raw=travelData&&travelData.byDay&&travelData.byDay[d]?travelData.byDay[d]:[];
+  var n=raw.reduce(function(a,s){return a+s.length},0);
+  if(travelCleanCache.src!==raw||travelCleanCache.n!==n)travelCleanCache={src:raw,n:n,out:raw.map(travelCleanSegment).filter(function(s){return s.length})};
+  return travelCleanCache.out
+}
 function travelSelectedJourney(){var d=$('travelDate').value;return travelData&&travelData.journeyByDay&&travelData.journeyByDay[d]?travelData.journeyByDay[d]:[]}
 
 function travelPlaybackBuild(){
@@ -997,7 +1035,7 @@ async function travelLiveFetch(){
   travelLiveBadge();
   return add.length
 }
-function travelLivePoint(p){return {lat:p[1],lng:p[2],time:new Date(p[0]).toISOString(),ms:p[0]}}
+function travelLivePoint(p){return {lat:p[1],lng:p[2],time:new Date(p[0]).toISOString(),ms:p[0],acc:p[3]}}
 function travelLiveMerge(data,date){
   var pts=travelLivePts.map(travelLivePoint),cur=[];
   pts.forEach(function(p){if(cur.length&&p.ms-cur[cur.length-1].ms>15*60000){data.segments.push(cur);cur=[]}cur.push(p)});
@@ -1027,7 +1065,7 @@ function travelLiveBadge(){
 }
 function travelLiveGpx(day,pts){
   return '<?xml version="1.0" encoding="UTF-8"?>\n<gpx version="1.1" creator="Pranju OS live tracking" xmlns="http://www.topografix.com/GPX/1/1">\n<trk><name>Live '+day+'</name><trkseg>\n'+
-    pts.map(function(p){return '<trkpt lat="'+p[1]+'" lon="'+p[2]+'">'+(p[5]!==null&&p[5]!==undefined?'<ele>'+p[5]+'</ele>':'')+'<time>'+new Date(p[0]).toISOString()+'</time></trkpt>'}).join('\n')+
+    pts.map(function(p){return '<trkpt lat="'+p[1]+'" lon="'+p[2]+'">'+(p[5]!==null&&p[5]!==undefined?'<ele>'+p[5]+'</ele>':'')+'<time>'+new Date(p[0]).toISOString()+'</time>'+(p[3]!==null&&p[3]!==undefined?'<extensions><acc>'+p[3]+'</acc></extensions>':'')+'</trkpt>'}).join('\n')+
     '\n</trkseg></trk>\n</gpx>\n'
 }
 /* finished days -> archive. Safe to run on several devices at once: the same points give the same GPX, so the same file id. */
