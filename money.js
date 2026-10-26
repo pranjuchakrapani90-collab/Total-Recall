@@ -107,7 +107,7 @@ function payee(raw){const s=String(raw||"").toUpperCase();let m;
 const learnKey=raw=>payee(raw).replace(/[^A-Z0-9]/g,"").slice(0,24);
 /* a draft for one statement row: learned answer first, then SBI's usual wording */
 function draft(x){const s=x.raw.toUpperCase(),L=I.load(KEY).learn[learnKey(x.raw)],p=title(payee(x.raw));
-  const d={date:x.date,time:"",acct:"bank",amt:x.amt,raw:x.raw,ref:x.ref,seq:x.seq,src:"yono",bal:x.bal};
+  const d={date:x.date,time:"",acct:"bank",amt:x.amt,raw:x.raw,ref:x.ref,dir:x.dir,seq:x.seq,src:"yono",bal:x.bal};
   if(x.dir==="dr"&&/ATM|ATW|CASH\s*W|CSH\s*W|CASH WDL|NFS\/|WDL\s*TFR/.test(s))return {...d,kind:"move",to:"wallet",cat:"",note:"ATM withdrawal"};
   if(x.dir==="cr"&&/CASH\s*DEP|CSH\s*DEP|BY CASH|CDM/.test(s))return {...d,kind:"move",acct:"wallet",to:"bank",cat:"",note:"Cash deposit"};
   if(L&&L.kind===(x.dir==="dr"?"out":"in"))return {...d,kind:L.kind,cat:L.cat||"",note:L.note||p,book:L.book||"personal",learned:true};
@@ -125,9 +125,15 @@ function draft(x){const s=x.raw.toUpperCase(),L=I.load(KEY).learn[learnKey(x.raw
   if(/CHARGE|FEE|SMS ALERT|GST/.test(s))return {...d,kind:"out",cat:"Bills",note:"Bank charges"};
   return {...d,kind:"out",cat:"",note:p};}
 /* add a statement's rows to the review list, skipping rows already logged or waiting; returns counts */
-function importRows(rows){const s=I.load(KEY),seen=new Set();
-  [...Object.values(s.tx),...Object.values(s.pend)].forEach(x=>{if(x&&x.src==="yono")seen.add(x.date+"|"+x.amt+"|"+(x.ref||x.raw));});
-  const fresh=rows.filter(x=>!seen.has(x.date+"|"+x.amt+"|"+(x.ref||x.raw)));
+/* a statement row's identity: day, amount, direction, SBI's description and reference (the description carries the UPI number) */
+const dirOf=x=>x.dir||(x.kind==="in"||(x.kind==="move"&&x.to==="bank")?"cr":"dr");
+const rowKey=x=>[x.date,x.amt,dirOf(x),String(x.raw||"").replace(/\s+/g," ").trim().toUpperCase(),String(x.ref||"").trim().toUpperCase()].join("|");
+/* add a statement's rows to the review list. Statements may overlap (yesterday + today uploaded again at night): a row is new
+   only if the file has more copies of it than are already logged, waiting or discarded, so overlapping ranges add nothing
+   twice while two genuinely identical payments on one day both come in. Returns counts. */
+function importRows(rows){const s=I.load(KEY),have={};
+  [...Object.values(s.tx),...Object.values(s.pend),...Object.values(s.skip)].forEach(x=>{if(x&&(x.src==="yono"||x.skipKey)){const k=x.skipKey||rowKey(x);have[k]=(have[k]||0)+1;}});
+  const fileN={},fresh=rows.filter(x=>{const k=rowKey(x);fileN[k]=(fileN[k]||0)+1;return fileN[k]>(have[k]||0);});
   const base=Date.now();fresh.forEach((x,i)=>{s.pend[I.uid()+i]={...draft(x),t:base+i};});
   /* the statement's last balance is the bank's real balance on that day */
   const last=rows[rows.length-1];let cp=null;
@@ -139,11 +145,12 @@ function handTwin(p){const same=x=>x.kind==="move"?p.kind==="move"&&x.to===p.to:
   return list("tx").find(x=>x.src==="hand"&&!x.ref&&x.date===p.date&&x.amt===p.amt&&same(x));}
 function approve(id,edit){const s=I.load(KEY),p=s.pend[id];if(!p)return;const r={...p,...edit};delete r.learned;delete r.bal;delete r.t;
   const twin=handTwin(r);
-  if(twin){const {id:tid,...tw}=twin;delete tw.t;I.upsert(KEY,"tx",tid,{...tw,ref:r.ref,raw:r.raw,src:"yono",book:r.book||tw.book||"personal"});}
+  if(twin){const {id:tid,...tw}=twin;delete tw.t;I.upsert(KEY,"tx",tid,{...tw,ref:r.ref,raw:r.raw,dir:r.dir,src:"yono",book:r.book||tw.book||"personal"});}
   else I.upsert(KEY,"tx",null,r);
   if(r.kind!=="move"&&r.src!=="wa")I.upsert(KEY,"learn",learnKey(r.raw),{kind:r.kind,cat:r.cat,note:r.note,book:r.book||"personal"});
   I.remove(KEY,"pend",id);return twin?"linked":"added";}
-function discard(id){I.remove(KEY,"pend",id);}
+/* a discarded statement row is remembered, so uploading an overlapping statement doesn't bring it back */
+function discard(id){const p=I.load(KEY).pend[id];if(p&&p.src==="yono")I.upsert(KEY,"skip",null,{skipKey:rowKey(p),date:p.date});I.remove(KEY,"pend",id);}
 /* WhatsApp money drafts from the bridge -> review list (skips ones already waiting or already approved).
    APDCL ones are imprest money: they are drafted on the Imprest account. */
 function addWa(items){const s=I.load(KEY),seen=new Set();[...Object.values(s.tx),...Object.values(s.pend)].forEach(x=>{if(x&&x.waId)seen.add(x.waId);});
