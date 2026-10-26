@@ -404,7 +404,7 @@ function stop(){if(play){clearInterval(play.timer);cancelAnimationFrame(play.raf
   document.querySelectorAll(".bar.play").forEach(e=>e.classList.remove("play"));paintBeat(null,0);renderTransport();}
 /* climb: the first time round starts 20 bpm under the goal (never below 40) and each time round is 4 bpm faster, up to the goal */
 const loopTempo=(src,i)=>src.climb?Math.min(src.tempo,Math.max(40,src.tempo-20)+4*i):src.tempo;
-function start(a,b,src){stop();audio();if(!src){load();const s=S();src={key:s.key,tempo:s.tempo,ch:C16,bars:s.bars};}const spb=60/loopTempo(src,0),t0=ctx.currentTime+.12+4*spb;
+function start(a,b,src){stop();if(window.GSMetro)GSMetro.stop();audio();if(!src){load();const s=S();src={key:s.key,tempo:s.tempo,ch:C16,bars:s.bars};}const spb=60/loopTempo(src,0),t0=ctx.currentTime+.12+4*spb;
   for(let k=0;k<4;k++)hat(ctx.currentTime+.12+k*spb,k===0); // count-in: four hi-hat clicks
   play={a,b,t0,spb,src,len:(b-a+1)*4,it:-1,timer:0,raf:0,last:ctx.currentTime,nextTs:t0,loops:[]};
   const sched=()=>{if(!play)return;const now=ctx.currentTime;
@@ -770,6 +770,8 @@ render();setSync(syncCode()?"busy":"off");cloudSync().then(ch=>{if(ch&&!play)ren
 <script src="triad-course.js?v=20261020d"></script>
 <script src="soloing-course.js?v=20261025"></script>
 <script>render();</script>
-<script src="plan.js?v=20261025"></script><script>GSPlan.watch("sc",{live:()=>play&&play.sv&&ctx?ctx.currentTime-play.sv:0,playing:()=>!!play,stop:()=>{stop();render();}});
+<script src="metro.js?v=20261026"></script><script>GSMetro.mount({here:"sc",name:"Soloing Course",bar:"#transport",into:".tin",after:".pri",meter:"4",bpm:70,
+  credit:(s,fin)=>{const k=dkey(new Date());st.days[k]=(st.days[k]||0)+s;save(!fin);},stopPage:()=>{if(play){stop();render();}}});</script>
+<script src="plan.js?v=20261025"></script><script>GSPlan.watch("sc",{live:()=>(play&&play.sv&&ctx?ctx.currentTime-play.sv:0)+GSMetro.live(),playing:()=>!!play||GSMetro.isOn(),stop:()=>{stop();GSMetro.stop();render();}});
 setInterval(()=>{const el=document.getElementById("hToday");if(!el)return;const k=dkey(new Date());el.textContent=Math.floor(GSPlan.today().reduce((a,r)=>a+r.sec,0)/60);},2000);</script>
 </body></html>

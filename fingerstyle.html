@@ -351,7 +351,7 @@ const spb=()=>60/play.tempo;
 function slice(E){if(!sel)return E;const s=sel.a*E.meter,en=Math.min((sel.b+1)*E.meter,E.total);
   return {...E,ev:E.ev.map((e,k)=>({...e,k})).filter(e=>e.b>=s-1e-6&&e.b<en-1e-6).map(e=>({...e,b:e.b-s})),total:en-s,off:s};}
 function start(){
-  const L=byId(view.id);if(!L||L.task)return;audio();stop();
+  const L=byId(view.id);if(!L||L.task)return;audio();stop();if(window.GSMetro)GSMetro.stop();
   const E0=eventsOf(L);E0.ev.forEach((e,k)=>e.k=k);const E=slice(E0),ci=st.set.countin?E.meter:0;
   play={L,E,tempo:tempoOf(L),t0:ctx.currentTime+.12,ci,i:0,cyc:0,cb:-ci,vis:[],lf:performance.now(),off:E.off||0};
   play.timer=setInterval(sched,25);sched();play.raf=requestAnimationFrame(draw);setBar();
@@ -399,7 +399,7 @@ function flush(){if(!play)return;const now=performance.now();let s=Math.min(90,(
 const mmss=s=>{s=Math.floor(s);return Math.floor(s/60)+":"+pad(s%60);};
 let toastDay=null;
 setInterval(()=>{if(play&&performance.now()-play.lf>15000)flush();paintGoal();},1000);
-function paintGoal(){const k=dkey(new Date()),g=goalMin()*60;let s=daySec(k);if(play)s+=Math.min(90,(performance.now()-play.lf)/1000);const met=s>=g;
+function paintGoal(){const k=dkey(new Date()),g=goalMin()*60;let s=daySec(k);if(play)s+=Math.min(90,(performance.now()-play.lf)/1000);if(window.GSMetro)s+=GSMetro.live();const met=s>=g;
   const nb=document.getElementById("nbGoal");if(!window.GSP_NB){nb.textContent=met?`✓ ${mmss(s)} played`:`⏱ ${mmss(s)} / ${mmss(g)}`;nb.classList.toggle("met",met);}
   document.getElementById("hToday").textContent=`${Math.floor(s/60)}/${goalMin()}`;document.getElementById("hTodayS").classList.toggle("met",met);
   const gb=document.getElementById("goalBar");if(gb)gb.style.width=Math.min(100,s/g*100)+"%";
@@ -570,5 +570,7 @@ if(q&&byId(q))view={k:"lesson",id:q};
 render();
 cloudSync();
 </script>
-<script src="plan.js?v=20261025"></script><script>GSPlan.watch("fs",{live:()=>play?(performance.now()-play.lf)/1000:0,playing:()=>!!play,stop:()=>stop()});</script>
+<script src="metro.js?v=20261026"></script><script>GSMetro.mount({here:"fs",name:"Fingerstyle Solo",bar:"#nowbar",after:"#nbPlay",meter:"6",bpm:60,
+  credit:(s,fin)=>{const k=dkey(new Date());st.days[k]=Math.round(((st.days[k]||0)+s)*10)/10;save(!fin);},stopPage:()=>{if(play)stop();}});</script>
+<script src="plan.js?v=20261025"></script><script>GSPlan.watch("fs",{live:()=>(play?(performance.now()-play.lf)/1000:0)+GSMetro.live(),playing:()=>!!play||GSMetro.isOn(),stop:()=>{stop();GSMetro.stop();}});</script>
 </body></html>

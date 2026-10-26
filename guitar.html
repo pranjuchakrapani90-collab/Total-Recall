@@ -2204,7 +2204,7 @@ const goalSec=()=>(S.goalMin||45)*60;
 const fsSec=k=>(k>="2026-10-18"?["fs-v1"]:localStorage.getItem("leadpath-v1")?["fs-v1","leadpath-v1"]:["fs-v1","caged-v1","lead-v1"]).reduce((t,key)=>{try{const f=JSON.parse(localStorage.getItem(key)||"null");if(!f)return t;return t+((f.days&&f.days[k])||0)+Object.values(f.odays||{}).reduce((x,d)=>x+(d[k]||0),0);}catch(e){return t;}},0); // fingerstyle trainer minutes
 const scSec=k=>{try{const f=JSON.parse(localStorage.getItem("solo-v1")||"null");if(!f)return 0;return ((f.days&&f.days[k])||0)+Object.values(f.odays||{}).reduce((x,d)=>x+((d&&d[k])||0),0);}catch(e){return 0;}}; // Soloing Course minutes
 function todaySec(){const day=dkey(new Date());let s=Object.values(sessions).reduce((a,x)=>a+((x.days&&x.days[day])||0),0)+fsSec(day)+scSec(day);
-  if(play)s+=Math.min(90,(performance.now()-(play.lf||play.t0))/1000);return s;}
+  if(play)s+=Math.min(90,(performance.now()-(play.lf||play.t0))/1000);if(window.GSMetro)s+=GSMetro.live();return s;}
 const mmss=s=>{s=Math.floor(s);return Math.floor(s/60)+":"+String(s%60).padStart(2,"0");};
 let goalToastDay=null;
 function paintGoal(){
@@ -2244,7 +2244,7 @@ function pausePlay(){
   stop();paused={id,bar:sel?null:bar};setNowbar();
 }
 function start(id,ro,test,fromBar){
-  stop();audioCtx();
+  stop();if(window.GSMetro)GSMetro.stop();audioCtx();
   paused=null;
   let E=eventsFor(id,ro,test),after=null;
   if(fromBar>0&&!ro&&!test&&!barSel[selKey(id)]){const last=Math.ceil(E.total/E.bpb-1e-6)-1;
@@ -2852,5 +2852,7 @@ function restartInNewFormat(old){
 })();
 </script>
 
-<script src="plan.js?v=20261025"></script><script>GSPlan.watch("ml",{live:()=>play?(performance.now()-(play.lf||play.t0))/1000:0,playing:()=>!!play,stop:()=>stop()});</script>
+<script src="metro.js?v=20261026"></script><script>GSMetro.mount({here:"ml",name:"Melodic Lead",bar:"#nowbar",after:"#nbPlay",meter:"4",bpm:60,
+  credit:(s,fin)=>{if(!today)return;GSync.addMinutes(today,dkey(new Date()),s);persistDay(!fin);},stopPage:()=>{if(play)stop();}});</script>
+<script src="plan.js?v=20261025"></script><script>GSPlan.watch("ml",{live:()=>(play?(performance.now()-(play.lf||play.t0))/1000:0)+GSMetro.live(),playing:()=>!!play||GSMetro.isOn(),stop:()=>{stop();GSMetro.stop();}});</script>
 </body></html>
