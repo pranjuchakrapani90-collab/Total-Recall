@@ -177,8 +177,14 @@ function entry(pre,again){pre=pre||{};const N=M.names(),n=M.now(),edit=!!pre.id;
   d.showModal();setTimeout(()=>{if(!edit)$("eAmt").focus();},60);}
 
 /* ---------- balance check ---------- */
-function balForm(acct){const N=M.names(),b=M.balance(acct),n=M.now();
-  I.form({title:N[acct]+" balance",note:b.set?`The book says ${inr(b.val,2)}. Enter what you actually have (count the cash, or the balance YONO shows). From now on, entries move it.`:`Enter what you have now. From then on, every entry moves it.`,
+/* the entries that moved an account since its last balance check, newest first */
+function movedSince(acct){const b=M.balance(acct);return M.entries().filter(x=>M.effect(x,acct)&&(!b.cp||M.counts(x,b.cp))).reverse();}
+function balForm(acct){const N=M.names(),b=M.balance(acct),n=M.now(),L=movedSince(acct);
+  const how=b.set?(b.cp?`Checked ${inr(b.cp.amt)} on ${I.dshort(b.cp.date)}`:"Started at ₹0")+(L.length?", then "+L.slice(0,6).map(x=>`${M.effect(x,acct)>0?"+":"−"}${inr(Math.abs(M.effect(x,acct)))} ${x.note||x.cat||""}`).join(", ")+(L.length>6?` and ${L.length-6} more`:""):"")+` = ${inr(b.val,2)}. `:"";
+  I.form({title:N[acct]+" balance",note:b.set?`${how}If an entry is on the wrong account, tap “Fix an entry”. Otherwise enter what you actually have (count the cash, or the balance YONO shows); from now on, entries move it.`:`Enter what you have now. From then on, every entry moves it.`,
+    extra:L.length?[{label:"Fix an entry",run:()=>{setTimeout(()=>I.form({title:"Which entry?",note:`These moved your ${N[acct].toLowerCase()} since the last check. Pick one to change its account, amount or kind.`,ok:"Open",
+      fields:[{k:"id",label:"Entry",type:"select",value:L[0].id,options:L.slice(0,40).map(x=>[x.id,`${I.dshort(x.date)} ${x.time||""} · ${M.effect(x,acct)>0?"+":"−"}${inr(Math.abs(M.effect(x,acct)))} · ${x.note||x.cat||"—"}`])}],
+      onSubmit:v=>{const x=I.load(KEY).tx[v.id];if(x)setTimeout(()=>entry({id:v.id,...x}),0);}}),0);}}]:null,
     fields:[{k:"amt",label:acct==="wallet"?"Cash in hand (₹)":"Balance (₹)",type:"number",value:b.set?r2(b.val):""},
       ...(b.set?[{k:"gap",label:"If it differs from the book",type:"select",value:"fix",options:[["fix","Just correct the balance"],["log","Log the difference as unaccounted"]]}]:[]),
       {k:"name",label:"Name shown",value:N[acct],req:false,hint:acct==="bank"?"e.g. SBI":"e.g. Wallet"},
