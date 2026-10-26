@@ -168,5 +168,22 @@ function migrateApdcl(){const s=I.load(KEY);let n=0;
   Object.entries(s.tx).forEach(([id,x])=>{if(x&&x.acct==="imprest"&&x.src!=="sheet"){s.tx[id]={...x,acct:x.src==="yono"?"bank":"wallet",book:"apdcl",at:x.at||x.t,t:Date.now()};n++;}});
   Object.entries(s.pend).forEach(([id,x])=>{if(x&&x.acct==="imprest"){s.pend[id]={...x,acct:"wallet",book:"apdcl",t:Date.now()};n++;}});
   if(n)I.save(KEY,s);return n;}
-window.Money={isApdcl,apdcl,OWN,IMP,IMP_CATS,IMP_IN_CATS,archive,impCat,migrateApdcl,counts,KEY,ACCTS,OUT_CATS,IN_CATS,NOT_SPEND,now,ord,isSpend,list,entries,effect,balance,summary,names,readStatement,payee,draft,importRows,approve,discard,handTwin,addWa};
+/* ---------- Zerodha top-ups feed the Kite fund ----------
+   An Invest entry whose remark mentions Zerodha or Kite is money sent to the Kite account: it is mirrored as Kite fund
+   "money in" (ETF Shop's cap records), so ETF Shop and Portfolio show it. If ETF Shop already has a money-in of the same
+   amount on the same day, that record is used instead of adding another. Zerodha takes no cash, so such an entry
+   logged on the wallet is moved to the bank. The mirror follows edits and deletions of the entry. */
+const isKite=x=>x&&x.kind==="out"&&x.cat==="Investment"&&!isApdcl(x)&&/zerodha|kite/i.test((x.note||"")+" "+(x.raw||""));
+function linkKite(){const s=I.load(KEY),e=I.load("etf");let n=0;
+  const used=new Set(Object.values(s.tx).map(x=>x&&x.kiteId).filter(Boolean));
+  Object.entries(s.tx).forEach(([id,x])=>{if(!x)return;
+    if(isKite(x)){let r=x,ch=false;
+      if(r.acct==="wallet"&&r.src!=="sheet"){r={...r,acct:"bank",at:r.at||r.t};ch=true;}
+      let cid=r.kiteId;
+      if(!cid){cid=Object.entries(e.cap).find(([cid2,c])=>c&&!used.has(cid2)&&c.date===r.date&&Math.abs((c.amount||0)-r.amt)<0.5)?.[0]||"mb-"+id;used.add(cid);r={...r,kiteId:cid,at:r.at||r.t};ch=true;}
+      const c=e.cap[cid];if(!c||c.date!==r.date||Math.abs((c.amount||0)-r.amt)>=0.5)I.upsert("etf","cap",cid,{...(c||{}),date:r.date,amount:r.amt,note:(c&&c.note)||"From Money Book: "+(r.note||"Zerodha")});
+      if(ch){delete r.t;I.upsert(KEY,"tx",id,r);n++;}}
+    else if(x.kiteId){I.remove("etf","cap",x.kiteId);const r={...x,at:x.at||x.t};delete r.kiteId;delete r.t;I.upsert(KEY,"tx",id,r);n++;}});
+  return n;}
+window.Money={isKite,linkKite,isApdcl,apdcl,OWN,IMP,IMP_CATS,IMP_IN_CATS,archive,impCat,migrateApdcl,counts,KEY,ACCTS,OUT_CATS,IN_CATS,NOT_SPEND,now,ord,isSpend,list,entries,effect,balance,summary,names,readStatement,payee,draft,importRows,approve,discard,handTwin,addWa};
 })();

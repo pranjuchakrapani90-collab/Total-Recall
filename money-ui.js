@@ -138,7 +138,7 @@ function entry(pre,again){pre=pre||{};const N=M.names(),n=M.now(),edit=!!pre.id;
     <div class="chips" id="eCat"></div>
     <label class="fld"><span>Remark</span><input id="eNote" list="eNotes" autocomplete="off" value="${esc(pre.note||"")}"><datalist id="eNotes">${recentNotes().map(x=>`<option value="${esc(x)}">`).join("")}</datalist></label>
     <div class="two"><label class="fld"><span>Date</span><input id="eDate" type="date" value="${pre.date||n.date}"></label><label class="fld"><span>Time</span><input id="eTime" type="time" value="${pre.time!=null&&edit?pre.time:n.time}"></label></div>
-    <label class="kchk" id="kWrap" hidden><input type="checkbox" id="eKite" ${pre.kiteId||!edit?"checked":""}> Money added to Zerodha (Kite): also add it to the Kite fund, so ETF Shop and Portfolio show it</label>
+    <p class="kchk" id="kWrap" hidden>A remark with “Zerodha” or “Kite” puts this into your Kite fund too (ETF Shop and Portfolio), from the bank.</p>
     ${pre.raw?`<div class="raw">${esc(pre.raw)}</div>`:""}
     <p class="ferr" hidden></p>
     <div class="fbtns">${edit?`<button type="button" class="danger" id="eDel">Delete</button>`:`<button type="button" class="ghost" id="eNext">Save + next</button>`}<span></span><button type="button" class="ghost" id="eX">Cancel</button><button type="submit">Save</button></div>`);
@@ -157,7 +157,7 @@ function entry(pre,again){pre=pre||{};const N=M.names(),n=M.now(),edit=!!pre.id;
   let walletOk=false;
   const save=()=>{const amt=parseFloat(String($("eAmt").value).replace(/[,₹\s]/g,""));if(!(amt>0)){err.hidden=false;err.textContent="Enter the amount.";return false;}
     /* a spend that would take the wallet below zero was most likely paid from the bank: ask once */
-    if(!walletOk&&!fixedAcct&&(k==="out"||k==="inv")&&acct==="wallet"){const w=M.balance("wallet"),was=edit&&pre.acct==="wallet"&&pre.kind==="out"?pre.amt:0,after=w.val+was-amt;
+    if(!walletOk&&!fixedAcct&&(k==="out"||k==="inv")&&acct==="wallet"&&!(k==="inv"&&/zerodha|kite/i.test($("eNote").value))){const w=M.balance("wallet"),was=edit&&pre.acct==="wallet"&&pre.kind==="out"?pre.amt:0,after=w.val+was-amt;
       if(w.set&&after<0){err.hidden=false;err.innerHTML=`Your wallet has ${inr(w.val+was)}, so this would take it to ${inr(after)}. Was it paid from the bank?<span class="fixb"><button type="button" id="fxB">Paid from Bank</button><button type="button" class="ghost" id="fxW">No, from Wallet</button></span>`;
         $("fxB").onclick=()=>{acct="bank";d.querySelectorAll("#sA button").forEach(x=>x.classList.toggle("on",x.dataset.v==="bank"));err.hidden=true;if(save())close();};
         $("fxW").onclick=()=>{walletOk=true;err.hidden=true;if(save())close();};return false;}}
@@ -169,10 +169,7 @@ function entry(pre,again){pre=pre||{};const N=M.names(),n=M.now(),edit=!!pre.id;
     r.at=pre.at||pre.t||Date.now();
     delete r.id;delete r.t;if(r.to===undefined)delete r.to;if(!mv)setLastAcct(acct);
     /* money sent to Zerodha: mirror it as Kite fund "money in" (ETF Shop), linked so edits and deletes follow */
-    const toKite=!$("kWrap").hidden&&$("eKite").checked;
-    if(toKite)r.kiteId=I.upsert("etf","cap",pre.kiteId||null,{date:r.date,amount:r.amt,note:"From Money Book: "+(r.note||"Investment")});
-    else if(pre.kiteId){I.remove("etf","cap",pre.kiteId);delete r.kiteId;}
-    I.upsert(KEY,"tx",pre.id,r);draw();
+    const tid=I.upsert(KEY,"tx",pre.id,r);M.linkKite();draw();const toKite=!!(I.load(KEY).tx[tid]||{}).kiteId;
     if(!edit){const m=model();toast(r.book==="apdcl"?`Saved ${inr(r.amt,r.amt%1?2:0)} · APDCL ${inr(m.apdcl.val)}`:`Saved ${inr(r.amt,r.amt%1?2:0)}${toKite?" · added to Kite fund":` · spent today ${inr(m.tSpent)}`}`);}return true;};
   d.querySelector("form").onsubmit=e=>{e.preventDefault();if(save())close();};
   $("eX").onclick=close;
@@ -294,7 +291,7 @@ async function waFetch(){try{const r=await fetch(waUrl(),{cache:"no-store"});if(
 function showErr(m){$("err").hidden=!m;$("err").textContent=m||"";}
 async function syncNow(loud){try{const r=await I.sync(KEY);if(r.ok&&r.changed)draw();if(loud){$("st").textContent=r.ok?"Synced.":r.msg;}}catch(e){if(loud)showErr("Sync failed: "+e.message);}}
 $("qAdd").onclick=()=>entry();if($("qYono"))$("qYono").onclick=pickYono;$("sync").onclick=()=>syncNow(true);
-M.migrateApdcl();
+M.migrateApdcl();M.linkKite();
 draw();
 if(/[?&]add/.test(location.search)){entry();history.replaceState(null,"",location.pathname);}
 syncNow(false).then(waFetch,waFetch);
