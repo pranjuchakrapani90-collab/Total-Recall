@@ -255,7 +255,13 @@ async function handleSync(request,env){
    Writes only ever touch tasks that are inside the WA REVIEW project. */
 const WA_PROJECT='wa review';
 const WA_TARGETS=['inbox','reference','schedule','projects','checklists'];
-function waMeta(content){const s=String(content||'');const line=(s.match(/\[wa\][^\n]*$/i)||[''])[0];const t=line.match(/target=([a-z]+)/i),r=line.match(/repeat=([a-z]+)/i);return {target:t?t[1].toLowerCase():'inbox',repeat:r?r[1].toLowerCase():'none',notes:s.replace(/\n?\[wa\][^\n]*$/i,'').trim()};}
+function waMeta(content){const s=String(content||'');const line=(s.match(/\[wa\][^\n]*$/i)||[''])[0];const g=k=>{const m=line.match(new RegExp('(?:^|\\s)'+k+'=([^\\s]+)','i'));if(!m)return '';try{return decodeURIComponent(m[1])}catch(_){return m[1]}};const t=g('target'),r=g('repeat');
+  return {target:t?t.toLowerCase():'inbox',repeat:r?r.toLowerCase():'none',update:g('update'),uproject:g('uproject'),utitle:g('utitle'),queued:g('approved')==='update',line,notes:s.replace(/\n?\[wa\][^\n]*$/i,'').trim()};}
+/* 'update' drafts: news on a task he already has. Approving adds a dated comment to that task instead of creating a new one. */
+function waDateLabel(){const p=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Kolkata',day:'numeric',month:'short',year:'numeric'}).format(new Date());return p;}
+async function addComment(token,projectId,taskId,text){
+  for(const path of ['/comment','/comments']){try{const r=await fetch(API+'/project/'+encodeURIComponent(projectId)+'/task/'+encodeURIComponent(taskId)+path,{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({title:text})});if(r.ok)return true;}catch(_){}}
+  return false;}
 async function waProjects(token){const projects=await tick('/project',token);const list=Array.isArray(projects)?projects:((projects&&projects.projects)||[]);return list;}
 async function handleWaReview(request,env,origin){
   const json=(o,st)=>new Response(JSON.stringify(o),{status:st||200,headers:{...corsHeaders(origin),'Content-Type':'application/json'}});
@@ -265,7 +271,7 @@ async function handleWaReview(request,env,origin){
   const data=await tick('/project/'+encodeURIComponent(review.id)+'/data',token);
   const tasks=unwrapTasks(data&&data.tasks?data.tasks:data).filter(t=>!t.status);
   if(request.method==='GET'){
-    const items=tasks.map(t=>{const m=waMeta(t.content||t.desc);return {id:t.id,title:t.title||'',notes:m.notes,target:m.target,repeat:m.repeat,tags:Array.isArray(t.tags)?t.tags:[],due:String(t.dueDate||'').slice(0,10),priority:t.priority||0,created:t.createdTime||''}});
+    const items=tasks.map(t=>({t,m:waMeta(t.content||t.desc)})).filter(x=>!x.m.queued).map(({t,m})=>({id:t.id,title:t.title||'',notes:m.notes,target:m.target,repeat:m.repeat,update:m.update?{id:m.update,project:m.uproject,title:m.utitle}:null,tags:Array.isArray(t.tags)?t.tags:[],due:String(t.dueDate||'').slice(0,10),priority:t.priority||0,created:t.createdTime||''}));
     items.sort((a,b)=>String(a.created).localeCompare(String(b.created)));
     return json({projectId:review.id,items});
   }
@@ -274,6 +280,14 @@ async function handleWaReview(request,env,origin){
   const task=tasks.find(t=>t.id===body.id);if(!task)return json({error:'That item is no longer in WA REVIEW.'},404);
   if(body.action==='discard'){await fetch(API+'/project/'+encodeURIComponent(review.id)+'/task/'+encodeURIComponent(task.id),{method:'DELETE',headers:{Authorization:'Bearer '+token}});return json({ok:true,discarded:task.id});}
   if(body.action!=='approve')return json({error:'Unknown action'},400);
+  const wm=waMeta(task.content||task.desc);
+  if(body.mode==='update'&&wm.update&&wm.uproject){
+    const text=(waDateLabel()+': '+String(body.notes||wm.notes||'')).slice(0,1020);
+    const dropDraft=()=>fetch(API+'/project/'+encodeURIComponent(review.id)+'/task/'+encodeURIComponent(task.id),{method:'DELETE',headers:{Authorization:'Bearer '+token}});
+    if(await addComment(token,wm.uproject,wm.update,text)){await dropDraft();return json({ok:true,commented:wm.update});}
+    /* comment API refused: keep the draft, marked approved; the nightly review adds the comment */
+    await tick('/task/'+encodeURIComponent(task.id),token,{method:'POST',body:{id:task.id,projectId:review.id,title:task.title,content:String(body.notes||wm.notes||'')+'\n'+wm.line.replace(/\s*approved=\S+/,'')+' approved=update'}});
+    return json({ok:true,queued:true});}
   const target=String(body.target||'inbox').toLowerCase();if(WA_TARGETS.indexOf(target)<0)return json({error:'Unknown destination'},400);
   let projectId='inbox';if(target!=='inbox'){const p=list.find(x=>String(x.name||'').trim().toLowerCase()===target);if(!p)return json({error:'TickTick project '+target.toUpperCase()+' not found'},404);projectId=p.id;}
   const tags=(Array.isArray(body.tags)?body.tags:[]).map(t=>String(t).trim().toLowerCase().replace(/^#/,'').replace(/\s+/g,'-')).filter(Boolean).slice(0,10);

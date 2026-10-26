@@ -30,16 +30,20 @@ var css=document.createElement("style");css.textContent=
 ".wat{display:flex;flex-wrap:wrap;gap:6px}.wat button{padding:6px 10px;font-size:12.5px;border-radius:999px;background:var(--tr-soft,#f0eee8);color:var(--tr-ink,#1c1b19);font-weight:600;border:1px solid transparent}"+
 ".wat button.on{background:var(--tr-acc,#4f46e5);color:#fff}.wat button.mo{font-weight:500}"+
 ".wab{display:flex;gap:8px;flex-wrap:wrap}.wab button{flex:1 1 auto}.wab .ghost{background:transparent;color:var(--tr-muted,#6b6a64);flex:0 0 auto}"+
-".waerr{color:#991b1b;font-size:13px}";
+".waerr{color:#991b1b;font-size:13px}"+
+".waup{display:flex;flex-direction:column;gap:5px;background:#fbf7ec;border:1px solid #f1e3bf;border-radius:12px;padding:10px 12px;font-size:13.5px}.waup[hidden]{display:none}.waup b{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:#713f12}.waup span{font-weight:650}.waup small{color:var(--tr-muted,#6b6a64)}"+
+".was label.wach{flex-direction:row;align-items:center;gap:8px;text-transform:none;letter-spacing:0;font:500 13.5px system-ui,sans-serif;color:var(--tr-ink,#1c1b19)}.was label.wach input{width:auto;padding:0}"+
+".wad.upd{background:#fbf7ec;color:#713f12}";
 document.head.appendChild(css);
 
 /* the editor sheet, shared by the startup popup and the list */
 var modal=document.createElement("div");modal.className="wam";modal.hidden=true;modal.setAttribute("role","dialog");modal.setAttribute("aria-label","WhatsApp Review");
 modal.innerHTML='<div class="was"><div class="wah"><h3>WhatsApp Review</h3><span id="waPos"></span></div>'+
-'<label>Title<input id="waTitle" autocomplete="off"></label>'+
+'<div class="waup" id="waUp" hidden><b>Update to an existing task</b><span id="waUpT"></span><small>Approve adds the notes below to that task as a dated comment. No new task is made.</small><label class="wach"><input type="checkbox" id="waNew"> Create a new task instead</label></div>'+
+'<div id="waTaskF"><label>Title<input id="waTitle" autocomplete="off"></label>'+
 '<label>Tags<div class="wat" id="waTags"></div></label>'+
 '<div class="wa2"><label>Goes to<select id="waDest"></select></label><label>Due<input id="waDue" type="date"></label></div>'+
-'<div class="wa2"><label>Priority<select id="waPri"></select></label><label>Repeat<select id="waRep"><option value="daily">Daily</option><option value="none">Does not repeat</option></select></label></div>'+
+'<div class="wa2"><label>Priority<select id="waPri"></select></label><label>Repeat<select id="waRep"><option value="daily">Daily</option><option value="none">Does not repeat</option></select></label></div></div>'+
 '<label>Notes<textarea id="waNotes"></textarea></label>'+
 '<div class="waerr" id="waErr"></div>'+
 '<div class="wab"><button id="waOk">Approve ✓</button><button id="waDel" class="danger">Discard</button></div>'+
@@ -57,10 +61,11 @@ function tagsHtml(sel){var s={};(sel||[]).forEach(function(t){s[String(t).toLowe
 function open(i){if(!items.length){close();return}cur=Math.max(0,Math.min(i,items.length-1));var it=items[cur];
   $("waPos").textContent=(cur+1)+" of "+items.length;$("waTitle").value=it.title;$("waTags").innerHTML=tagsHtml(it.tags);
   $("waDest").value=it.target||"inbox";$("waDue").value=it.due||"";$("waPri").value=String(it.priority||0);$("waRep").value=it.repeat==="daily"?"daily":"none";$("waNotes").value=it.notes||"";$("waErr").textContent="";
+  $("waUp").hidden=!it.update;$("waNew").checked=false;$("waTaskF").hidden=!!it.update;if(it.update)$("waUpT").textContent=it.update.title||"(existing task)";
   modal.hidden=false;}
 function close(){modal.hidden=true;cur=-1;}
 function current(){var it=items[cur];return {id:it.id,title:($("waTitle").value.trim()||it.title).toUpperCase(),tags:[].map.call($("waTags").querySelectorAll("button.on"),function(b){return b.dataset.t}),
-  target:$("waDest").value,due:$("waDue").value,priority:+$("waPri").value,repeat:$("waRep").value,notes:$("waNotes").value.trim()};}
+  target:$("waDest").value,due:$("waDue").value,priority:+$("waPri").value,repeat:$("waRep").value,notes:$("waNotes").value.trim(),mode:it.update&&!$("waNew").checked?"update":"new"};}
 async function post(body){var r=await fetch(URLB(),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body),cache:"no-store"});
   var d={};try{d=await r.json()}catch(e){}if(!r.ok||d.error)throw new Error(d.error||("HTTP "+r.status));return d;}
 async function act(kind){if(busy||cur<0)return;busy=true;$("waErr").textContent="";var b=kind==="approve"?$("waOk"):$("waDel"),t=b.textContent;b.textContent="…";
@@ -69,6 +74,7 @@ async function act(kind){if(busy||cur<0)return;busy=true;$("waErr").textContent=
   catch(e){$("waErr").textContent="Could not "+kind+": "+e.message}
   finally{b.textContent=t;busy=false;}}
 $("waOk").addEventListener("click",function(){act("approve")});
+$("waNew").addEventListener("change",function(){$("waTaskF").hidden=!this.checked;});
 $("waDel").addEventListener("click",function(){act("discard")});
 $("waSkip").addEventListener("click",function(){if(cur<items.length-1)open(cur+1);else close()});
 $("waLater").addEventListener("click",close);
@@ -79,6 +85,7 @@ function paint(){var n=items.length,b=$("bWa");if(b){b.hidden=!n;b.textContent=n
   var l=$("waList");if(!l)return;$("waStatus").textContent=n?n+" item"+(n>1?"s":"")+" waiting. Tap one to edit, retag and approve.":"Nothing waiting. New WhatsApp items appear here after Claude's review.";
   $("waAll").hidden=!n;$("waOne").hidden=!n;
   l.innerHTML=items.map(function(it,i){var dest=(DEST.filter(function(d){return d[0]===it.target})[0]||DEST[0])[1].replace(" (task)","");
+    if(it.update)return '<button type="button" class="wai" data-i="'+i+'"><span class="wad upd">Update</span><span><b>'+esc(it.update.title||it.title)+'</b><small>adds a dated comment</small></span></button>';
     return '<button type="button" class="wai" data-i="'+i+'"><span class="wad'+(it.target==="reference"?" ref":"")+'">'+esc(dest)+'</span><span><b>'+esc(it.title)+'</b><small>'+
       esc((it.tags||[]).join(" · ").toUpperCase())+(it.repeat==="daily"?" · daily":"")+(it.due?" · from "+esc(it.due):"")+'</small></span></button>'}).join("");}
 async function load(){try{var r=await fetch(URLB(),{cache:"no-store"});var d=await r.json();if(d.error)throw new Error(d.error);items=d.items||[];paint();return true}
@@ -87,7 +94,7 @@ document.addEventListener("click",function(e){var b=e.target.closest&&e.target.c
 if($("waRefresh"))$("waRefresh").addEventListener("click",function(){$("waStatus").textContent="Loading…";load()});
 if($("waOne"))$("waOne").addEventListener("click",function(){open(0)});
 if($("waAll"))$("waAll").addEventListener("click",async function(){if(busy||!items.length)return;if(!confirmAll())return;busy=true;var btn=this,left=[];btn.textContent="Approving…";
-  for(var i=0;i<items.length;i++){var it=items[i];try{await post({action:"approve",id:it.id,title:String(it.title).toUpperCase(),tags:it.tags,target:it.target,due:it.due,priority:it.priority,repeat:it.repeat,notes:it.notes})}catch(e){left.push(it)}}
+  for(var i=0;i<items.length;i++){var it=items[i];try{await post({action:"approve",id:it.id,title:String(it.title).toUpperCase(),tags:it.tags,target:it.target,due:it.due,priority:it.priority,repeat:it.repeat,notes:it.notes,mode:it.update?"update":"new"})}catch(e){left.push(it)}}
   items=left;paint();btn.textContent="Approve all as drafted";busy=false;if(left.length)$("waStatus").textContent=left.length+" could not be approved. Try them one by one.";});
 function confirmAll(){return window.confirm("Approve all "+items.length+" items exactly as drafted?")}
 
