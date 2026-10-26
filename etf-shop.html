@@ -75,24 +75,81 @@ function model(){
      the next order goes into, uses up that day's slot */
   const sess=I.orderSession(),usedBy=k=>amo.some(a=>a.kind===k&&a.session>=sess)||open.some(l=>!l.dbuy&&l.date>=sess&&(k==="avg")===!!(by[l.code]&&by[l.code].length>1));
   const buyDone=usedBy("buy"),avgDone=usedBy("avg");
-  let avg=null,avgMsg="";
-  const avgC=held.filter(h=>h.status==="AVERAGE"&&!amoCodes.has(h.code)).sort((a,b)=>a.fallLast-b.fallLast);
-  if(avail<tranche)avgMsg=useF?"Kite fund (with LiquidBees) is below one tranche":"Cash is below one tranche";
-  else if(avgDone)avgMsg="Today's average is already placed";
-  else if(avgC[0]){const h=avgC[0],lim=r2(h.close*(1+S.buffer));avg={h,lim,qty:Math.round(tranche/lim)};}
-  /* new-buy candidates from the universe */
-  const heldGroups=new Set(held.map(h=>h.group));
+  /* one purchase a day: a new ETF or an average, never both. A new ETF from an index group you don't hold
+     comes first; averaging only when no such ETF qualifies. A pending AMO or a rule buy already recorded for
+     the session the next order goes into uses up the day. */
+  const dayDone=buyDone||avgDone;
+  /* new-buy candidates from the universe: only "unique" ones, i.e. an index group not held and not on order */
+  const heldGroups=new Set([...held.map(h=>h.group),...amo.filter(a=>a.buy).map(a=>U[a.code]&&U[a.code].group).filter(Boolean)]);
   const cands=(S.universe||[]).map(u=>{const q=qOf(u.code);if(!q)return null;const h52=I.high52(q),fall=q.price/h52-1;
     const st=u.mode!=="buy"?"":heldGroups.has(u.group)?"Group held":!(fall<=S.minFall)?"":!(q.chg>0)?"Wait for green":fall<=S.check?"Check price":"BUY";
     return {...u,close:q.price,chg:q.chg,fall,h52,status:st};}).filter(Boolean);
   cands.filter(c=>c.status==="Check price").forEach(c=>checks.push(c));
-  const buyC=cands.filter(c=>c.status==="BUY"&&!amoCodes.has(c.code)).sort((a,b)=>a.fall-b.fall),free=Math.max(0,avail-(avg?avg.qty*avg.lim:0)-S.reserve*capital);
-  const n=buyDone||!buyC.length||free<tranche?0:1;
+  const buyC=cands.filter(c=>c.status==="BUY"&&!amoCodes.has(c.code)).sort((a,b)=>a.fall-b.fall),free=Math.max(0,avail-S.reserve*capital);
+  const n=dayDone||!buyC.length||free<tranche?0:1;
   const buys=[];buyC.forEach(c=>{if(buys.length<n&&!buys.some(b=>b.c.group===c.group)){const lim=r2(c.close*(1+S.buffer));buys.push({c,lim,qty:Math.round(tranche/lim)});}});
-  const buyMsg=buyDone?"today's buy is already placed":!buyC.length?"no ETF qualifies":free<tranche?"cash would dip into the "+Math.round(S.reserve*100)+"% reserve":"";
+  const buyMsg=dayDone?"today's purchase is already placed":!buyC.length?"no new ETF from an index you don't hold qualifies":free<tranche?"cash would dip into the "+Math.round(S.reserve*100)+"% reserve":"";
+  let avg=null,avgMsg="";
+  const avgC=held.filter(h=>h.status==="AVERAGE"&&!amoCodes.has(h.code)).sort((a,b)=>a.fallLast-b.fallLast);
+  if(dayDone)avgMsg="Today's purchase is already placed";
+  else if(buys.length){if(avgC[0])avgMsg=`${avgC[0].code} could be averaged, but a new ETF comes first`;}
+  else if(avail<tranche)avgMsg=useF?"Kite fund (with LiquidBees) is below one tranche":"Cash is below one tranche";
+  else if(avgC[0]){const h=avgC[0],lim=r2(h.close*(1+S.buffer));avg={h,lim,qty:Math.round(tranche/lim)};}
   /* LiquidBees to sell when tonight's buys need more than the cash in Kite */
   const need=(avg?avg.qty*avg.lim:0)+buys.reduce((a,b)=>a+b.qty*b.lim,0),gap=useF&&need>0?need+amoCost-F.cash:0,liqSell=gap>0?I.liqToSell(gap):0;
   return {amo,F,useF,avail,need,gap,liqSell,s,S,U,open,sold,cap,added,withdrawn,growth,capital,invested,cash,tranche,free,sells,trailing,gtts,held,avg,avgMsg,buys,buyMsg,checks,cands};}
+
+/* ---------- unique ETFs ----------
+   One ETF per underlying index, so the universe never holds two ETFs that track the same thing. Any index
+   here that the universe doesn't cover yet (none of its codes present) is added once, as "buy". The other
+   codes are ETFs tracking the same index, kept only to recognise what's already in the universe. */
+const CATALOG=[
+  ["NIFTYBEES","Nifty 50",["SETFNIF50","NIFTYIETF","UTINIFTETF","HDFCNIFETF","NIFTY1"]],
+  ["SENSEXIETF","Sensex",["HDFCSENSEX","UTISENSETF","SENSEXETF"]],
+  ["JUNIORBEES","Nifty Next 50",["NEXT50IETF","SETFNN50","UTINEXT50","NEXT50"]],
+  ["MONIFTY500","Nifty 500",["BSE500IETF"]],
+  ["MID150BEES","Nifty Midcap 150",["MIDCAPETF","MIDCAPIETF","MIDCAP"]],
+  ["HDFCSML250","Nifty Smallcap 250",["SMALLCAP","SML250"]],
+  ["BANKBEES","Nifty Bank",["SETFNIFBK","BANKIETF","BANKNIFTY1"]],
+  ["PSUBNKBEES","Nifty PSU Bank",["PSUBANK","PSUBNKIETF"]],
+  ["PVTBANIETF","Nifty Private Bank",["PVTBANKADD"]],
+  ["FINIETF","Nifty Financial Services",["BFSI"]],
+  ["ITBEES","Nifty IT",["ITIETF","NIFTYIT","SETFNIFIT"]],
+  ["PHARMABEES","Nifty Pharma",[]],
+  ["HEALTHIETF","Nifty Healthcare",["HEALTHY"]],
+  ["AUTOIETF","Nifty Auto",["AUTOBEES"]],
+  ["FMCGIETF","Nifty FMCG",[]],
+  ["CONSUMBEES","Nifty India Consumption",["CONSUMIETF"]],
+  ["METALIETF","Nifty Metal",[]],
+  ["COMMOIETF","Nifty Commodities",[]],
+  ["OILIETF","Nifty Oil & Gas",[]],
+  ["INFRAIETF","Nifty Infrastructure",["INFRABEES"]],
+  ["CPSEETF","Nifty CPSE",[]],
+  ["MOREALTY","Nifty Realty",[]],
+  ["MODEFENCE","Nifty India Defence",[]],
+  ["EVINDIA","Nifty EV & New Age Automotive",[]],
+  ["MAKEINDIA","Nifty India Manufacturing",[]],
+  ["DIVOPPBEES","Nifty Dividend Opportunities 50",[]],
+  ["SHARIABEES","Nifty Shariah 25",[]],
+  ["NV20IETF","Nifty50 Value 20",["NV20BEES","NV20"]],
+  ["QUAL30IETF","Nifty 200 Quality 30",["NIFTYQLITY","HDFCQUAL"]],
+  ["LOWVOLIETF","Nifty 100 Low Volatility 30",["LOWVOL1"]],
+  ["MOM30IETF","Nifty 200 Momentum 30",["MOMENTUM"]],
+  ["ALPL30IETF","Nifty Alpha Low-Volatility 30",[]],
+  ["ALPHAETF","Nifty Alpha 50",["ALPHA"]],
+  ["GOLDBEES","Gold",["GOLDIETF","SETFGOLD","HDFCGOLD","GOLD1"]],
+  ["SILVERBEES","Silver",["SILVERIETF","HDFCSILVER"]],
+  ["MON100","Nasdaq 100",["N100"]],
+  ["MASPTOP50","S&P 500 Top 50",[]],
+  ["HNGSNGBEES","Hang Seng",[]]];
+const CAT_VER=1;
+/* adds the indexes the universe is missing; returns the codes added */
+function addUnique(){const s=I.load(KEY),S={...DEF,...(s.settings||{})};
+  /* only on a phone that already has your universe, so a fresh phone never overwrites the synced one */
+  if((S.catVer||0)>=CAT_VER||!(S.universe||[]).length)return [];
+  const have=new Set((S.universe||[]).map(u=>u.code)),groups=new Set((S.universe||[]).map(u=>String(u.group).toLowerCase()));
+  const add=CATALOG.filter(([c,g,alt])=>![c,...alt].some(x=>have.has(x))&&!groups.has(g.toLowerCase())).map(([c,g])=>({code:c,group:g,mode:"buy"}));
+  I.setSettings(KEY,{universe:[...(S.universe||[]),...add],catVer:CAT_VER});return add.map(u=>u.code);}
 
 /* ---------- entry forms ---------- */
 const codes=()=>{const s=I.load(KEY);return [...new Set([...((s.settings&&s.settings.universe)||[]).map(u=>u.code),...Object.values(s.lots).map(l=>l.code)])].sort();};
@@ -201,7 +258,8 @@ function tonight(M){
     ...(M.avg?[M.avg]:[]).map(o=>I.todo("avg","Average",esc(o.h.code),`${o.qty} × ${price(o.lim)}`,`${pct(o.h.fallLast*100)} from last buy · ${o.h.L.length} lot${o.h.L.length>1?"s":""}`,inr(o.qty*o.lim),fill("avg",o.h.code,o.qty,o.lim))),
     ...M.buys.map(o=>I.todo("buy","Buy",esc(o.c.code),`${o.qty} × ${price(o.lim)}`,`${pct(o.c.fall*100)} from 52W high · ${esc(o.c.group)}`,inr(o.qty*o.lim),fill("buy",o.c.code,o.qty,o.lim))),
     ...gt.map(x=>{const l=x.l,s=x.sug;return I.todo("gt "+x.st,"GTT",esc(l.code),s?price(s.trig):"",esc(!x.g&&s?"not placed yet":x.msg),s?`limit ${price(s.lim)} · ${s.qty}`:"",[x.g?"Update":"Placed",`data-gtt="${esc(l.id)}"`]);})];
-  const why=[];if(!M.sells.length&&!M.avg&&!M.buys.length&&!M.amo.length){if(M.buyMsg)why.push("No new buy: "+M.buyMsg);else if(M.avgMsg)why.push(M.avgMsg);}
+  const why=[];if(!M.sells.length&&!M.avg&&!M.buys.length&&!M.amo.length){if(M.buyMsg)why.push("No new buy: "+M.buyMsg);if(M.avgMsg)why.push("No average: "+M.avgMsg);}
+  if(M.buys.length&&M.avgMsg)why.push(M.avgMsg);
   if(M.checks.length)why.push(`Check price first: ${M.checks.map(c=>esc(c.code)+" "+pct((ok(c.fall52)?c.fall52:c.fall)*100)).join(", ")} looks too deep`);
   if(t.open&&tot)why.push("Final after the 3:30 PM close.");
   return `<section class="card hero"><div class="when">${esc(when)}</div><div class="big">${esc(big)}</div>
@@ -223,9 +281,10 @@ function holdings(M){
        <p class="small muted" style="margin:-4px 0 10px">Trailing starts at ${price(x.last.tgt)} · ${pct(x.fall52*100,1)} from 52W high · tap a lot to edit or sell.</p></details>`;}).join("");}
 let showAll=false;
 function watch(M){
-  const L=M.cands.filter(c=>ok(c.fall)).sort((a,b)=>a.fall-b.fall),show=showAll?L:L.slice(0,10);
+  /* unique only: indexes you don't hold yet, one ETF per index (the most fallen) */
+  const seen=new Set(),L=M.cands.filter(c=>ok(c.fall)&&c.status!=="Group held").sort((a,b)=>a.fall-b.fall).filter(c=>{const g=String(c.group).toLowerCase();if(seen.has(g))return false;seen.add(g);return true;}),show=showAll?L:L.slice(0,10);
   if(!L.length)return `<p class="nothing">Waiting for live prices.</p>`;
-  return `<p class="line">Fall from the 52-week-high close · buy zone below <b>${pct(M.S.minFall*100)}</b></p>
+  return `<p class="line">Indexes you don't hold · fall from the 52-week-high close · buy zone below <b>${pct(M.S.minFall*100)}</b></p>
    <div class="rows">${show.map(c=>{const zone=c.fall<=M.S.minFall;
      return `<div class="row"><span><b>${esc(c.code)}</b> ${c.status==="BUY"?`<span class="tag ok">buy</span>`:c.mode!=="buy"?`<span class="tag">hold</span>`:zone&&c.status==="Group held"?`<span class="tag">group held</span>`:""}
        <div class="sub">${esc(c.group)}</div></span>
@@ -255,8 +314,9 @@ function setup(M){const S=M.S;
     <li>Check once a day after 4 PM on closing prices; place AMO limit orders.</li>
     <li>Capital split into ${S.parts} parts: one buy or one averaging = one tranche (${inr(M.tranche)}); profits compound into it.</li>
     <li>Sell: once a lot's highest close since buying is ${pct(S.target*100)} above cost, trail ${pct(S.trail*100)} below that high; sell the whole lot when the close reaches the stop. LIFO, no daily limit.</li>
-    <li>Average: at most one a day, the ETF most fallen ≥ ${pct(-S.avgFall*100)} below its last buy and closing green; not above ${S.maxLots} lots per index group, not for hold-only ETFs, not with cash below a tranche.</li>
-    <li>New buy: ≥ ${pct(-S.minFall*100)} below the 52-week-high close, closing green, index group not held. One new ETF a day, the most fallen. Keep ${pct(S.reserve*100)} of capital as reserve.</li>
+    <li>One purchase a day: a new ETF if one qualifies, otherwise an average.</li>
+    <li>Average: only when no new ETF qualifies, the ETF most fallen ≥ ${pct(-S.avgFall*100)} below its last buy and closing green; not above ${S.maxLots} lots per index group, not for hold-only ETFs, not with cash below a tranche.</li>
+    <li>New buy: ≥ ${pct(-S.minFall*100)} below the 52-week-high close, closing green, index group not held (unique), the most fallen first. Keep ${pct(S.reserve*100)} of capital as reserve.</li>
     <li>GTT: while a lot's stop is on, keep a GTT sell in the broker app at trigger = the stop, limit ${pct(S.buffer*100)} below, for the lot's units. Raise it when the stop rises; never lower it.</li>
     <li>Discretionary buys and sells are allowed but tagged, so booked profit shows how they compare with rule exits.</li>
     <li>Limit prices ${pct(S.buffer*100)} from the close. Falls deeper than ${pct(-S.check*100)} are flagged for a price check.</li>
@@ -311,7 +371,7 @@ async function refresh(){
   finally{$("refresh").disabled=false;}}
 $("refresh").onclick=refresh;
 draw();
-(async()=>{await syncNow(false);refresh();})();
+(async()=>{await syncNow(false);const nu=addUnique();if(nu.length){draw();showErr("");}refresh().then(()=>{if(nu.length)$("st").textContent=`Added ${nu.length} ETF${nu.length>1?"s":""} for indexes your universe didn't cover: ${nu.join(", ")}`;});})();
 setInterval(()=>{if(document.visibilityState==="visible"&&I.ist().open)refresh();},60000);
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&Date.now()-qAt>60000)refresh();});
 </script>
