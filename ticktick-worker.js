@@ -270,6 +270,15 @@ async function handleWaReview(request,env,origin){
   if(!review)return json({items:[],note:'No TickTick project named WA REVIEW yet.'});
   const data=await tick('/project/'+encodeURIComponent(review.id)+'/data',token);
   const tasks=unwrapTasks(data&&data.tasks?data.tasks:data).filter(t=>!t.status);
+  if(request.method==='GET'&&new URL(request.url).searchParams.get('list')==='tasks'){
+    /* open tasks he can attach an update to: Inbox and his main lists; daily-repeat copies collapse to the newest */
+    const want=['schedule','projects','reference','checklists'],out=[],seen=new Map();
+    const srcs=[{id:'inbox',name:'Inbox'}].concat(list.filter(p=>want.indexOf(String(p.name||'').trim().toLowerCase())>=0));
+    for(const p of srcs){let d;try{d=await tick('/project/'+encodeURIComponent(p.id)+'/data',token)}catch(_){continue}
+      for(const t of unwrapTasks(d&&d.tasks?d.tasks:d)){if(t.status||!t.title)continue;const key=p.id+'|'+String(t.title).trim().toLowerCase();const o={id:t.id,projectId:t.projectId||p.id,project:p.name,title:t.title,tags:Array.isArray(t.tags)?t.tags:[],m:t.modifiedTime||t.createdTime||''};
+        const prev=seen.get(key);if(!prev||String(o.m)>String(prev.m))seen.set(key,o);}}
+    for(const o of seen.values())out.push(o);out.sort((a,b)=>String(b.m).localeCompare(String(a.m)));
+    return json({tasks:out.slice(0,1500)});}
   if(request.method==='GET'){
     const items=tasks.map(t=>({t,m:waMeta(t.content||t.desc)})).filter(x=>!x.m.queued).map(({t,m})=>({id:t.id,title:t.title||'',notes:m.notes,target:m.target,repeat:m.repeat,update:m.update?{id:m.update,project:m.uproject,title:m.utitle}:null,tags:Array.isArray(t.tags)?t.tags:[],due:String(t.dueDate||'').slice(0,10),priority:t.priority||0,created:t.createdTime||''}));
     items.sort((a,b)=>String(a.created).localeCompare(String(b.created)));
@@ -281,6 +290,7 @@ async function handleWaReview(request,env,origin){
   if(body.action==='discard'){await fetch(API+'/project/'+encodeURIComponent(review.id)+'/task/'+encodeURIComponent(task.id),{method:'DELETE',headers:{Authorization:'Bearer '+token}});return json({ok:true,discarded:task.id});}
   if(body.action!=='approve')return json({error:'Unknown action'},400);
   const wm=waMeta(task.content||task.desc);
+  if(body.mode==='update'&&body.update&&body.uproject){if(!(body.uproject==='inbox'||/^inbox/.test(body.uproject)||list.some(p=>p.id===body.uproject)))return json({error:'Unknown project for that task'},400);wm.update=String(body.update);wm.uproject=String(body.uproject);wm.line=wm.line.replace(/\s*(update|uproject|utitle)=\S+/g,'')+' update='+encodeURIComponent(wm.update)+' uproject='+encodeURIComponent(wm.uproject)+' utitle='+encodeURIComponent(String(body.utitle||''));}
   if(body.mode==='update'&&wm.update&&wm.uproject){
     const text=(waDateLabel()+': '+String(body.notes||wm.notes||'')).slice(0,1020);
     const dropDraft=()=>fetch(API+'/project/'+encodeURIComponent(review.id)+'/task/'+encodeURIComponent(task.id),{method:'DELETE',headers:{Authorization:'Bearer '+token}});
