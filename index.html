@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#1c1b19"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="icon" href="icon-192.png" sizes="192x192"><link rel="apple-touch-icon" href="apple-touch-icon.png"><title>Pranju OS</title><!-- TR_BUILD_2026-09-22_FORMAT_DEPLOY --><style>
+<html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="drive.js?v=20261027"></script><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#1c1b19"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="icon" href="icon-192.png" sizes="192x192"><link rel="apple-touch-icon" href="apple-touch-icon.png"><title>Pranju OS</title><!-- TR_BUILD_2026-09-22_FORMAT_DEPLOY --><style>
 :root{--bg:#f4f7fb;--text:#172033;--muted:#697386;--accent:#4f46e5;--border:#e5e7eb}*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--text)}header{background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;padding:22px 18px}.container{max-width:1000px;margin:24px auto;padding:0 15px}.systems{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:stretch}.dashboard-card{min-width:0}.panel{background:#fff;border:1px solid var(--border);border-radius:18px;padding:20px;margin-bottom:16px;box-shadow:0 5px 18px #141e3710}.hidden{display:none!important}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}button{border:0;border-radius:10px;padding:11px 15px;background:var(--accent);color:#fff;font:inherit;font-weight:650;cursor:pointer}.secondary{background:#eef0ff;color:#3730a3}.danger{background:#fee2e2;color:#991b1b}.small{padding:7px 10px;font-size:13px}input,textarea,select{width:100%;padding:12px;border:1px solid var(--border);border-radius:10px;font:inherit}textarea{min-height:120px}.muted,.hint{color:var(--muted);font-size:14px}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px}.stat,.smart{padding:14px;border:1px solid var(--border);border-radius:12px;background:#fafaff}.stat b{display:block;font-size:25px}.stat span{font-size:12px;color:var(--muted)}.smart{margin-top:10px;background:#f5f3ff;color:#4c1d95;font-size:13px}.flash{height:min(400px,calc(100vh - 160px));min-height:320px;border:2px solid #e1e0ff;border-radius:20px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:25px;background:#fcfcff;cursor:pointer;position:relative;perspective:1200px;overflow:visible;box-sizing:border-box}.flashInner{width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform .5s ease}.flash.flipped .flashInner{transform:rotateY(180deg)}.flashFace{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;border-radius:16px;overflow:hidden}.flashBack{transform:rotateY(180deg);background:#fff;text-align:left;align-items:stretch;justify-content:flex-start;overflow:hidden;padding:0}.flashBack .taskReveal{width:100%;height:calc(100% - 36px);margin:0;border:0;box-shadow:none;border-radius:0;overflow:auto}.flashBack .taskReveal .taskBody{padding:14px 16px}.flashBackHint{font-size:12px;color:var(--muted);padding:10px 14px;border-top:1px solid #eceef1;background:#fafbfc;text-align:center;flex:0 0 36px;box-sizing:border-box}.flashBack .taskReveal.hidden{display:block!important;min-height:100%;visibility:hidden}.name{font-size:clamp(30px,8vw,58px);font-weight:750}.counter{font-size:13px;color:var(--muted);margin-bottom:14px}.source{position:absolute;top:12px;right:12px;max-width:48%;font-size:11px;color:#3730a3;background:#eef0ff;border:1px solid #d9d8ff;border-radius:999px;padding:5px 9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.history{border-left:3px solid var(--accent);padding:10px 13px;margin:9px 0;background:#fafaff}.notice{padding:10px 13px;background:#ecfdf5;color:#065f46;border-radius:9px;margin-top:12px}.warning{padding:12px 14px;background:#fff7ed;color:#9a3412;border-radius:10px;margin-top:12px}.person{padding:10px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;gap:10px}.completedItem{padding:12px 0;border-bottom:1px solid var(--border)}.completedItem:last-child{border-bottom:0}.completedMeta{color:var(--muted);font-size:13px;margin-top:4px}.taskReveal{margin-top:12px;padding:0;border:1px solid #dfe3e8;border-radius:16px;background:#fff;overflow:hidden;box-shadow:0 2px 10px #141e3708}.taskHead{padding:16px 16px 12px;border-bottom:1px solid #eceef1}.taskHead h4{margin:0 0 7px;font-size:18px;line-height:1.35}.taskOpenLink{display:inline-flex;align-items:center;padding:6px 9px;border:1px solid #c7d2fe;border-radius:8px;background:#eef2ff;color:#3730a3;text-decoration:none;font-size:12px;font-weight:700;white-space:nowrap}.taskOpenLink:hover{background:#e0e7ff}.taskMeta{display:flex;flex-wrap:wrap;gap:6px;font-size:12px;color:var(--muted)}.taskPill{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;background:#f1f3f5}.taskBody{padding:14px 16px}.taskContent{line-height:1.55;font-size:15px}.taskContent p{margin:0 0 18px}.taskContent p:last-child{margin-bottom:0}.taskContent ul{margin:0 0 18px;padding-left:24px}.taskContent li{margin:0 0 12px;padding-left:2px}.taskContent .tickList{margin:0 0 14px;padding-left:24px}.taskContent .tickList li{margin:0 0 10px}.taskContent li:last-child{margin-bottom:0}.taskContent hr{border:0;border-top:2px solid #e5e7eb;margin:18px 0}.taskContent blockquote{margin:12px 0 18px;padding:8px 12px;border-left:3px solid #c7d2fe;background:#f8f8ff}.taskContent .contentAttachment{margin:10px 0 18px}.taskContent a{color:#4f46e5;text-decoration:none}.taskContent a:hover{text-decoration:underline}.taskContent img{max-width:100%;height:auto;border-radius:10px}.taskSection{padding:0 16px 14px}.taskSectionTitle{font-size:13px;font-weight:700;color:#4b5563;margin-bottom:7px}.taskSubtask,.taskAttachment,.taskComment{padding:10px 11px;border:1px solid #eceef1;border-radius:10px;margin-top:7px;font-size:14px;background:#fafbfc}.taskSubtask.done{text-decoration:line-through;color:#8a929e;background:#f6f7f8}.taskAttachment{display:flex;align-items:center;gap:10px;background:#eef8f0;border-color:#d9eedc}.taskAttachmentIcon{width:32px;height:32px;border-radius:7px;background:#43a047;color:#fff;display:grid;place-items:center;font-weight:800;font-size:16px;flex:0 0 auto}.taskAttachmentName{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.taskAttachmentSize{font-size:12px;color:#8a929e;margin-top:2px}.taskComment{background:#fff}.taskComment small{color:var(--muted);display:block;margin-top:4px}.taskEmpty{color:var(--muted);font-size:13px;padding:2px 0}.taskFooter{padding:10px 16px;border-top:1px solid #eceef1;background:#fafbfc;font-size:12px;color:var(--muted)}.error{position:fixed;inset:0;background:#fff;padding:30px;z-index:9999;color:#991b1b;font-family:monospace;white-space:pre-wrap}.manage{margin-top:15px}@media(max-width:700px){.systems{grid-template-columns:1fr}.stats{grid-template-columns:1fr}}
 .travelMap{height:62vh;min-height:420px;border:1px solid #dfe3e8;border-radius:16px;overflow:hidden;background:#eef2f7}.travelControls{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:end}.travelControl label{display:block;font-size:12px;font-weight:700;color:#4b5563;margin-bottom:5px}.travelStats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0}.travelStat{padding:10px 12px;border:1px solid #e5e7eb;border-radius:12px;background:#fafbff}.travelStat b{display:block;font-size:18px}.travelStat span{font-size:11px;color:var(--muted)}.travelNote{padding:10px 12px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;font-size:12px;color:#64748b;margin-top:10px}.travelJourney{margin-top:14px;border:1px solid #e5e7eb;border-radius:16px;background:#fff;overflow:hidden}.travelJourneyHead{padding:14px 16px;border-bottom:1px solid #eceef1}.travelJourneyHead h3{margin:0 0 4px;font-size:17px}.travelJourneyList{padding:6px 10px}.journeyItem{display:grid;grid-template-columns:82px 1fr auto;gap:10px;align-items:start;padding:12px 8px;border-bottom:1px solid #eef0f2}.journeyItem:last-child{border-bottom:0}.journeyTime{font-size:12px;font-weight:750;color:#3730a3;line-height:1.35}.journeyDot{width:9px;height:9px;border-radius:50%;background:#4f46e5;display:inline-block;margin-right:6px}.journeyType{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#64748b;font-weight:700;margin-bottom:3px}.journeyPlace{font-weight:700;line-height:1.35}.journeyMeta{font-size:12px;color:#64748b;margin-top:3px;line-height:1.4}.journeyActions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}.journeyActions button,.journeyActions a{padding:6px 8px;border:1px solid #c7d2fe;border-radius:8px;background:#eef2ff;color:#3730a3;text-decoration:none;font:inherit;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap}.journeyEmpty{padding:16px;color:#64748b;font-size:13px}.travelGapNote{padding:10px 12px;margin:10px 0;border:1px solid #f1d8a8;border-radius:10px;background:#fffaf0;color:#7c5a16;font-size:12px}.travelLegend{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;font-size:12px;color:#64748b}.travelLegend span{display:inline-flex;align-items:center;gap:6px}.legendStop{width:10px;height:10px;border-radius:50%;display:inline-block;border:2px solid #fff;box-shadow:0 0 0 2px #059669;background:#10b981}.legendDot{width:8px;height:8px;border-radius:50%;display:inline-block}.legendLine{width:22px;height:2px;display:inline-block;background:#4f46e5}.legendGap{width:22px;height:0;border-top:2px dashed #d97706}@media(max-width:700px){.journeyItem{grid-template-columns:64px 1fr}.journeyActions{grid-column:2;justify-content:flex-start}}@media(max-width:700px){.travelControls{grid-template-columns:1fr 1fr}.travelStats{grid-template-columns:1fr 1fr}.travelMap{height:55vh;min-height:360px}}.travelPlayback{margin:12px 0;padding:12px;border:1px solid #e5e7eb;border-radius:14px;background:#fafbff}.travelPlaybackRow{display:flex;gap:9px;align-items:center;flex-wrap:wrap}.travelPlaybackRow button{min-width:82px}.travelPlaybackTime{font-weight:750;color:#3730a3;min-width:150px}.travelPlayback input[type=range]{flex:1;min-width:180px}.travelPlayback select{width:auto;min-width:80px}.travelCameraControls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:9px}.travelCameraControls button{font-size:12px}.travelCameraStatus{font-size:12px;color:#64748b}.travelPlaybackHint{font-size:12px;color:#64748b;margin-top:7px}.travelSyncBox{display:flex;align-items:center;gap:8px;min-height:44px}.travelSyncBox .muted{font-size:11px}.travelFilesForDate{margin-top:10px;padding:10px 12px;border:1px solid #e5e7eb;border-radius:12px;background:#fafbff}.travelFileItem{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:8px 2px;border-bottom:1px solid #eceef1;font-size:13px}.travelFileItem:last-child{border-bottom:0}.travelFileMeta{color:#64748b;font-size:11px;margin-top:2px}.travelFileBadge{font-size:10px;font-weight:700;padding:4px 7px;border-radius:999px;background:#ecfdf5;color:#047857;white-space:nowrap}.travelFileBadge.local{background:#fff7ed;color:#9a3412}.travelReplayMarker{font-size:12px}</style><link rel="stylesheet" href="tr-theme.css?v=20261020">
 <style>
@@ -57,7 +57,18 @@ a.app span{font:550 12.5px/1.25 system-ui,-apple-system,"Segoe UI",sans-serif;te
 .tvnotes textarea{min-height:0}
 .tvpanel .travelPlaybackRow{flex-wrap:wrap;gap:6px}
 .tvpanel #travelCameraFollow,.tvpanel #travelCameraOverview{font-size:12.5px;padding:8px 10px}
-.tvnotes:has(#travelNoteSave:disabled) textarea,.tvnotes:has(#travelNoteSave:disabled) .row{display:none}
+.tvnotes:has(#travelNoteSave:disabled) textarea,.tvnotes:has(#travelNoteSave:disabled) .row,.tvnotes:has(#travelNoteSave:disabled) .tvphotoedit{display:none}
+.tvphotoedit{display:flex;flex-direction:column;gap:6px}
+.tvphotos{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.tvph{position:relative;width:64px;height:64px;padding:0!important;margin:0!important;border-radius:10px!important;overflow:hidden;background:var(--tr-soft)!important;border:1px solid var(--tr-line)!important;cursor:pointer}
+.tvph img{width:100%;height:100%;object-fit:cover;display:block}.tvph img[hidden]{display:none}
+.tvph.wait::after{content:"☁";position:absolute;inset:0;display:grid;place-items:center;color:var(--tr-muted);font-size:20px}
+.tvphx{position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;background:#000b;color:#fff;font:700 14px/20px system-ui,sans-serif;text-align:center}
+.tvaddph{align-self:flex-start;height:36px;font-size:13px;background:var(--tr-soft);color:var(--tr-ink);border:1px solid var(--tr-line)}
+.tvviewer{position:fixed;inset:0;z-index:9999;background:#000e;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:16px}
+.tvviewer img{max-width:100%;max-height:80vh;object-fit:contain;border-radius:6px}
+.tvviewer .row{display:flex;gap:16px;align-items:center}
+.tvviewer a,.tvviewer span{color:#fff;font:600 14px system-ui,sans-serif}
 .tvnotes #travelNoteList:empty{display:none}
 
 /* folders */
@@ -171,6 +182,7 @@ a.app.folder i{background:linear-gradient(150deg,#6d6af0 0%,#4f46e5 48%,#3c32c4 
 <ol><li>In GPSLogger: ☰ → <b>Logging details</b> → turn on <b>Log to custom URL</b>, open it, and paste this into <b>URL</b>. Leave the method as it is.</li><li>☰ → <b>General options</b> → turn on <b>Start on bootup</b> and <b>Start on app launch</b>.</li><li>Tap <b>Start logging</b>. The dot above turns green when the first point arrives.</li></ol>
 <p class="muted" style="margin:6px 0 0;font-size:12px">Keep this URL private: anyone with it can add points to your map. Today's points are held unencrypted on your Worker until the day is archived.</p>
 </div></details>
+<details class="tvlive tvdrive" id="travelDriveBox"><summary><span class="ldot"></span><span>Google Drive</span><small id="travelDriveState">…</small></summary><div id="travelDriveBody"></div></details>
 <div class="travelStats tvstats"><div class="travelStat"><b id="travelDistance">0 km</b><span>distance</span></div><div class="travelStat"><b id="travelDuration">—</b><span>span</span></div><div class="travelStat"><b id="travelPointCount">0</b><span>points</span></div><div class="travelStat"><b id="travelSegments">0</b><span>segments</span></div></div>
 <div id="travelMap" class="travelMap"></div>
 <div class="travelPlayback">
@@ -181,6 +193,7 @@ a.app.folder i{background:linear-gradient(150deg,#6d6af0 0%,#4f46e5 48%,#3c32c4 
 <div class="travelNoteEditor tvnotes"><b>📍 Memories</b>
 <div id="travelNoteLocation" class="muted">Tap the map to pin one.</div>
 <textarea id="travelNoteText" rows="2" placeholder="What do you remember about this place?"></textarea>
+<div class="tvphotoedit"><div id="travelNotePhotoBox"></div><label class="tvadd tvaddph">📷 Add photos<input id="travelPhotoFile" type="file" accept="image/*" multiple></label></div>
 <div class="row"><button id="travelNoteSave" type="button" disabled>Save</button><button id="travelNoteCancel" type="button" class="secondary">Cancel</button></div>
 <div id="travelNoteList"></div></div>
 <div hidden><div id="travelJourney"><div id="travelJourneyList"></div></div><div id="travelFilesForDate"></div><div id="travelKeyHint"></div><div id="travelGapNote" class="hidden"></div><span id="travelCameraStatus"></span><div id="travelPlaybackHint"></div><button id="travelLoadMap"></button><button id="travelFit"></button><button id="travelIdentify"></button><button id="travelClear"></button></div>
@@ -191,7 +204,7 @@ a.app.folder i{background:linear-gradient(150deg,#6d6af0 0%,#4f46e5 48%,#3c32c4 
 window.addEventListener('error',function(e){var b=document.getElementById('bootError');if(b){b.textContent='Pranju OS JavaScript error:\n'+(e.message||e.error||'Unknown error');b.classList.remove('hidden')}});
 if('serviceWorker' in navigator)window.addEventListener('load',function(){navigator.serviceWorker.getRegistrations().then(function(rs){return Promise.all(rs.map(function(r){return r.unregister()}))}).catch(function(){})});
 var COMPLETED_SUPPRESS_KEY='totalRecallCompletedSuppressions_v1',COMPLETED_SUPPRESS=JSON.parse(localStorage.getItem(COMPLETED_SUPPRESS_KEY)||'{}'),KEY='totalRecallPWA_v2',SYNC_KEY='totalRecallSyncCode_v1',TRAVEL_PURGE_KEY='totalRecallTravelPurge_20260930_v1',TRAVEL_PURGE_DATE='2026-09-30',TICK_URL=window.TOTAL_RECALL_TICKTICK_URL||localStorage.getItem('totalRecallTickTickUrl')||'https://total-recall-ticktick.pranjuchakrapani90.workers.dev',RESP=['SDE-TECH','SDE-REV','SDE-ESTT','HOME-MANAGER','BROTHER','SON'],db={people:{},responsibilities:{},responsibilityTasks:{},travelFiles:{}};try{db=JSON.parse(localStorage.getItem(KEY))||db}catch(e){}db.people=db.people||{};db.responsibilities=db.responsibilities||{};db.responsibilityTasks=db.responsibilityTasks||{};db.travelFiles=db.travelFiles||{};db.travelNotes=db.travelNotes||{};RESP.forEach(function(k){if(!db.responsibilities[k])db.responsibilities[k]={name:k,history:[]}});
-function $(id){return document.getElementById(id)}function save(){localStorage.setItem(KEY,JSON.stringify(db));queueCloudSync()}function mergeHist(a,b){var out=[],seen={};[a,b].forEach(function(arr){(Array.isArray(arr)?arr:[]).forEach(function(x){var k=String(x&&x.date||'')+'|'+String(x&&x.note||'');if(!seen[k]){seen[k]=1;out.push(x)}})});out.sort(function(x,y){return String(x&&x.date||'').localeCompare(String(y&&y.date||''))});return out}function travelDeletionTombstones(){try{return JSON.parse(localStorage.getItem(TRAVEL_PURGE_KEY)||'[]')}catch(e){return[]}}function mergeDb(local,remote){var out=local||{people:{},responsibilities:{},responsibilityTasks:{},referenceItems:{}};remote=remote||{};var tomb=travelDeletionTombstones();['people','responsibilities','responsibilityTasks','referenceItems','travelFiles'].forEach(function(group){out[group]=out[group]||{};var rm=remote[group]||{};Object.keys(rm).forEach(function(k){if(group==='travelFiles'&&tomb.indexOf(k)>=0)return;if(!out[group][k])out[group][k]=JSON.parse(JSON.stringify(rm[k]));else{var a=out[group][k],b=rm[k];if(b.name&&!a.name)a.name=b.name;if(Array.isArray(b.sources)){a.sources=a.sources||[];b.sources.forEach(function(s){if(a.sources.indexOf(s)<0)a.sources.push(s)})}a.history=mergeHist(a.history,b.history);if(String(b.groupsAt||'')>String(a.groupsAt||'')){a.groups=b.groups;a.groupsAt=b.groupsAt}if(String(b.noteAt||'')>String(a.noteAt||'')){a.note=b.note;a.noteAt=b.noteAt}if(b.addedAt&&!a.addedAt)a.addedAt=b.addedAt}})});out.deletedPeople=out.deletedPeople||{};var rdp=remote.deletedPeople||{};Object.keys(rdp).forEach(function(k){if(!out.deletedPeople[k]||String(rdp[k])>String(out.deletedPeople[k]))out.deletedPeople[k]=rdp[k]});Object.keys(out.deletedPeople).forEach(function(k){var p=out.people[k],ts=String(out.deletedPeople[k]);if(!p)return;var lastH=hist(p).length?String(hist(p)[hist(p).length-1].date||''):'';if(String(p.addedAt||'')>ts||lastH>ts){delete out.deletedPeople[k]}else delete out.people[k]});var tlL=out.travelLive,tlR=remote.travelLive;if(tlR&&tlR.token&&(!tlL||!tlL.token||(tlR.token!==tlL.token&&String(tlR.createdAt||'')<String(tlL.createdAt||''))))out.travelLive=tlR;out.travelNotes=out.travelNotes||{};Object.keys(remote.travelNotes||{}).forEach(function(id){var a=out.travelNotes[id],b=remote.travelNotes[id];if(!a||String(b.updatedAt||'')>String(a.updatedAt||''))out.travelNotes[id]=b});return out}function b64(buf){var bytes=new Uint8Array(buf),out='',step=0x8000;for(var i=0;i<bytes.length;i+=step)out+=String.fromCharCode.apply(null,bytes.subarray(i,i+step));return btoa(out)}function unb64(s){var raw=atob(s),bytes=new Uint8Array(raw.length);for(var i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);return bytes}async function syncKey(code){var hash=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(code));return crypto.subtle.importKey('raw',hash,{name:'AES-GCM'},false,['encrypt','decrypt'])}async function encryptSync(state,code){var iv=crypto.getRandomValues(new Uint8Array(12)),key=await syncKey(code),plain=new TextEncoder().encode(JSON.stringify(state)),cipher=await crypto.subtle.encrypt({name:'AES-GCM',iv:iv},key,plain);return JSON.stringify({v:1,iv:b64(iv),data:b64(cipher)})}async function decryptSync(blob,code){var x=JSON.parse(blob||'{}'),key=await syncKey(code),plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(x.iv)},key,unb64(x.data));return JSON.parse(new TextDecoder().decode(plain))}var cloudSyncTimer=0,cloudSyncBusy=false,cloudSyncAgain=false;async function cloudSync(force){var code=localStorage.getItem(SYNC_KEY);if(!code){if(force){code=prompt('Enter your Pranju OS sync code. Use the same code on every device.\n\nLeave blank to cancel.');if(!code)return;code=code.trim();if(code.length<8){alert('Use a sync code of at least 8 characters.');return}localStorage.setItem(SYNC_KEY,code)}else return}if(!TICK_URL)return;try{cloudSyncBusy=true;if($('syncStatus'))$('syncStatus').textContent='☁ Syncing…';var headers={'Content-Type':'application/json','X-Total-Recall-Sync':code};var r=await fetch(TICK_URL+(TICK_URL.indexOf('?')>=0?'&':'?')+'mode=sync',{method:'POST',headers:headers,body:JSON.stringify({state:db}),cache:'no-store'});if(!r.ok)throw new Error('Sync bridge returned HTTP '+r.status);var data=await r.json();if(data.error)throw new Error(data.error);if(data.blob){var remote=await decryptSync(data.blob,code);var travelBefore=typeof travelDates==='function'?travelDates().join(','):'';db=mergeDb(db,remote);db.people=db.people||{};db.responsibilities=db.responsibilities||{};db.responsibilityTasks=db.responsibilityTasks||{};db.referenceItems=db.referenceItems||{};db.travelFiles=db.travelFiles||{};RESP.forEach(function(k){if(!db.responsibilities[k])db.responsibilities[k]={name:k,history:[]}});localStorage.setItem(KEY,JSON.stringify(db));render();if(typeof travelRenderNotes==='function')travelRenderNotes();if(typeof travelDates==='function'&&(travelDates().join(',')!==travelBefore||(travelLiveTokenUsed&&travelLiveToken()!==travelLiveTokenUsed)))travelRefreshDatesAfterSync(travelBefore)}if(typeof travelSyncPendingFiles==='function'){try{await travelSyncPendingFiles(code)}catch(e){console.warn('Travel file sync failed',e)}}var payload=await encryptSync(db,code);var r2=await fetch(TICK_URL+(TICK_URL.indexOf('?')>=0?'&':'?')+'mode=sync',{method:'PUT',headers:headers,body:payload,cache:'no-store'});if(!r2.ok)throw new Error('Sync save returned HTTP '+r2.status);var d2=await r2.json();if(d2.error)throw new Error(d2.error);if($('syncStatus'))$('syncStatus').textContent='☁ Synced '+new Date().toLocaleTimeString();}catch(e){if($('syncStatus'))$('syncStatus').textContent='☁ Sync unavailable: '+e.message}finally{cloudSyncBusy=false;if(cloudSyncAgain){cloudSyncAgain=false;cloudSync(false)}}}function queueCloudSync(){if(!localStorage.getItem(SYNC_KEY))return;if(cloudSyncBusy){cloudSyncAgain=true;return}clearTimeout(cloudSyncTimer);cloudSyncTimer=setTimeout(function(){cloudSync(false)},300)}function hist(p){return p&&Array.isArray(p.history)?p.history:[]}function markPersonDeleted(k){db.deletedPeople=db.deletedPeople||{};db.deletedPeople[k]=new Date().toISOString();delete db.people[k]}function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}function show(id){$(id).classList.remove('hidden')}function hide(id){$(id).classList.add('hidden')}function shuffle(a){for(var j=a.length-1;j>0;j--){var k=Math.floor(Math.random()*(j+1)),t=a[j];a[j]=a[k];a[k]=t}return a}
+function $(id){return document.getElementById(id)}function save(){localStorage.setItem(KEY,JSON.stringify(db));queueCloudSync()}function mergeHist(a,b){var out=[],seen={};[a,b].forEach(function(arr){(Array.isArray(arr)?arr:[]).forEach(function(x){var k=String(x&&x.date||'')+'|'+String(x&&x.note||'');if(!seen[k]){seen[k]=1;out.push(x)}})});out.sort(function(x,y){return String(x&&x.date||'').localeCompare(String(y&&y.date||''))});return out}function travelDeletionTombstones(){try{return JSON.parse(localStorage.getItem(TRAVEL_PURGE_KEY)||'[]')}catch(e){return[]}}function mergeDb(local,remote){var out=local||{people:{},responsibilities:{},responsibilityTasks:{},referenceItems:{}};remote=remote||{};var tomb=travelDeletionTombstones();['people','responsibilities','responsibilityTasks','referenceItems','travelFiles'].forEach(function(group){out[group]=out[group]||{};var rm=remote[group]||{};Object.keys(rm).forEach(function(k){if(group==='travelFiles'&&tomb.indexOf(k)>=0)return;if(!out[group][k])out[group][k]=JSON.parse(JSON.stringify(rm[k]));else{var a=out[group][k],b=rm[k];if(b.name&&!a.name)a.name=b.name;if(Array.isArray(b.sources)){a.sources=a.sources||[];b.sources.forEach(function(s){if(a.sources.indexOf(s)<0)a.sources.push(s)})}a.history=mergeHist(a.history,b.history);if(String(b.groupsAt||'')>String(a.groupsAt||'')){a.groups=b.groups;a.groupsAt=b.groupsAt}if(String(b.noteAt||'')>String(a.noteAt||'')){a.note=b.note;a.noteAt=b.noteAt}if(b.addedAt&&!a.addedAt)a.addedAt=b.addedAt;if(group==='travelFiles'&&b.driveId&&!a.driveId){a.driveId=b.driveId;if(!b.cloudUploaded)a.cloudUploaded=false}}})});out.deletedPeople=out.deletedPeople||{};var rdp=remote.deletedPeople||{};Object.keys(rdp).forEach(function(k){if(!out.deletedPeople[k]||String(rdp[k])>String(out.deletedPeople[k]))out.deletedPeople[k]=rdp[k]});Object.keys(out.deletedPeople).forEach(function(k){var p=out.people[k],ts=String(out.deletedPeople[k]);if(!p)return;var lastH=hist(p).length?String(hist(p)[hist(p).length-1].date||''):'';if(String(p.addedAt||'')>ts||lastH>ts){delete out.deletedPeople[k]}else delete out.people[k]});var tlL=out.travelLive,tlR=remote.travelLive;if(tlR&&tlR.token&&(!tlL||!tlL.token||(tlR.token!==tlL.token&&String(tlR.createdAt||'')<String(tlL.createdAt||''))))out.travelLive=tlR;out.travelNotes=out.travelNotes||{};Object.keys(remote.travelNotes||{}).forEach(function(id){var a=out.travelNotes[id],b=remote.travelNotes[id];if(!a||String(b.updatedAt||'')>String(a.updatedAt||''))out.travelNotes[id]=b});return out}function b64(buf){var bytes=new Uint8Array(buf),out='',step=0x8000;for(var i=0;i<bytes.length;i+=step)out+=String.fromCharCode.apply(null,bytes.subarray(i,i+step));return btoa(out)}function unb64(s){var raw=atob(s),bytes=new Uint8Array(raw.length);for(var i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);return bytes}async function syncKey(code){var hash=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(code));return crypto.subtle.importKey('raw',hash,{name:'AES-GCM'},false,['encrypt','decrypt'])}async function encryptSync(state,code){var iv=crypto.getRandomValues(new Uint8Array(12)),key=await syncKey(code),plain=new TextEncoder().encode(JSON.stringify(state)),cipher=await crypto.subtle.encrypt({name:'AES-GCM',iv:iv},key,plain);return JSON.stringify({v:1,iv:b64(iv),data:b64(cipher)})}async function decryptSync(blob,code){var x=JSON.parse(blob||'{}'),key=await syncKey(code),plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(x.iv)},key,unb64(x.data));return JSON.parse(new TextDecoder().decode(plain))}var cloudSyncTimer=0,cloudSyncBusy=false,cloudSyncAgain=false;async function cloudSync(force){var code=localStorage.getItem(SYNC_KEY);if(!code){if(force){code=prompt('Enter your Pranju OS sync code. Use the same code on every device.\n\nLeave blank to cancel.');if(!code)return;code=code.trim();if(code.length<8){alert('Use a sync code of at least 8 characters.');return}localStorage.setItem(SYNC_KEY,code)}else return}if(!TICK_URL)return;try{cloudSyncBusy=true;if($('syncStatus'))$('syncStatus').textContent='☁ Syncing…';var headers={'Content-Type':'application/json','X-Total-Recall-Sync':code};var r=await fetch(TICK_URL+(TICK_URL.indexOf('?')>=0?'&':'?')+'mode=sync',{method:'POST',headers:headers,body:JSON.stringify({state:db}),cache:'no-store'});if(!r.ok)throw new Error('Sync bridge returned HTTP '+r.status);var data=await r.json();if(data.error)throw new Error(data.error);if(data.blob){var remote=await decryptSync(data.blob,code);var travelBefore=typeof travelDates==='function'?travelDates().join(','):'';db=mergeDb(db,remote);db.people=db.people||{};db.responsibilities=db.responsibilities||{};db.responsibilityTasks=db.responsibilityTasks||{};db.referenceItems=db.referenceItems||{};db.travelFiles=db.travelFiles||{};RESP.forEach(function(k){if(!db.responsibilities[k])db.responsibilities[k]={name:k,history:[]}});localStorage.setItem(KEY,JSON.stringify(db));render();if(typeof travelRenderNotes==='function')travelRenderNotes();if(typeof travelDates==='function'&&(travelDates().join(',')!==travelBefore||(travelLiveTokenUsed&&travelLiveToken()!==travelLiveTokenUsed)))travelRefreshDatesAfterSync(travelBefore)}if(typeof travelSyncPendingFiles==='function'){try{await travelSyncPendingFiles(code)}catch(e){console.warn('Travel file sync failed',e)}}var payload=await encryptSync(db,code);var r2=await fetch(TICK_URL+(TICK_URL.indexOf('?')>=0?'&':'?')+'mode=sync',{method:'PUT',headers:headers,body:payload,cache:'no-store'});if(!r2.ok)throw new Error('Sync save returned HTTP '+r2.status);var d2=await r2.json();if(d2.error)throw new Error(d2.error);if($('syncStatus'))$('syncStatus').textContent='☁ Synced '+new Date().toLocaleTimeString();}catch(e){if($('syncStatus'))$('syncStatus').textContent='☁ Sync unavailable: '+e.message}finally{cloudSyncBusy=false;if(cloudSyncAgain){cloudSyncAgain=false;cloudSync(false)}}}function queueCloudSync(){if(!localStorage.getItem(SYNC_KEY))return;if(cloudSyncBusy){cloudSyncAgain=true;return}clearTimeout(cloudSyncTimer);cloudSyncTimer=setTimeout(function(){cloudSync(false)},300)}function hist(p){return p&&Array.isArray(p.history)?p.history:[]}function markPersonDeleted(k){db.deletedPeople=db.deletedPeople||{};db.deletedPeople[k]=new Date().toISOString();delete db.people[k]}function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}function show(id){$(id).classList.remove('hidden')}function hide(id){$(id).classList.add('hidden')}function shuffle(a){for(var j=a.length-1;j>0;j--){var k=Math.floor(Math.random()*(j+1)),t=a[j];a[j]=a[k];a[k]=t}return a}
 function add(names,source){source=source||'Pasted names';names.forEach(function(x){x=String(x||'').trim().replace(/\s+/g,' ');if(!x||/^\d+$/.test(x))return;var k=x.toLowerCase();if(!db.people[k]){db.people[k]={name:x,history:[],sources:[],addedAt:new Date().toISOString()};if(db.deletedPeople)delete db.deletedPeople[k]}db.people[k].sources=db.people[k].sources||[];if(db.people[k].sources.indexOf(source)<0)db.people[k].sources.push(source)});save();render()}
 function interval(p){return [1,3,7,14,30,60,120,180][Math.min(Math.max(hist(p).length-1,0),7)]}function due(p){var h=hist(p);return h.length&&((Date.now()-new Date(h[h.length-1].date).getTime())/86400000>=interval(p))}
 function render(){var a=Object.values(db.people),rec=a.filter(function(p){return hist(p).length}).length,rem=a.length-rec;$('total').textContent=a.length;$('recalled').textContent=rec;$('remaining').textContent=rem;$('roundPlan').textContent=!a.length?'Import your names.':rem?'First-pass completion: '+Math.ceil(rem/20)+' more session'+(Math.ceil(rem/20)==1?'':'s')+' of 20 names needed for '+rem+' unrecalled names.':'🎉 First pass complete. Smart re-recall is now active.';var d=a.filter(due).length;$('smartPlan').textContent=d?'Smart re-recall: '+d+' name'+(d==1?' is':'s are')+' due now. New names still get priority.':'Smart re-recall: no names are due. Intervals grow: 1, 3, 7, 14, 30, 60, 120, 180 days.';var list=a.slice().sort(function(x,y){return x.name.localeCompare(y.name)});$('peopleList').innerHTML=list.map(function(p){return '<div class="person"><span>'+esc(p.name)+'</span><button class="danger small" data-del="'+encodeURIComponent(p.name.toLowerCase())+'">Delete</button></div>'}).join('');if(window.peopleRenderExtras)peopleRenderExtras()}
@@ -497,6 +510,113 @@ function travelDbDelete(id){
     tx.oncomplete=function(){resolve()};tx.onerror=function(){reject(tx.error||new Error('Could not delete local GPX.'))}
   })})
 }
+/* ---------- Travel Trace: Google Drive storage (27 Oct 2026) ----------
+   Finished GPS days and memory photos go to the owner's Google Drive (Pranju OS / Travel Trace) through drive.js.
+   Days that were in the Worker's KV are copied to Drive on the next sync and their KV copies removed, so the 25 MB
+   KV limit stops mattering. Photos: the original goes to Drive; a 1600 px copy stays on this device for quick viewing. */
+function travelDriveOn(){return !!(window.PosDrive&&PosDrive.connected())}
+function travelDriveState(){try{return JSON.parse(localStorage.getItem('posDriveState')||'null')}catch(e){return null}}
+async function travelDrivePutGpx(id,text,name){
+  var found=await PosDrive.find({ttGpx:id});if(found.length)return found[0].id;
+  return (await PosDrive.upload('gps',name,new Blob([text],{type:'application/gpx+xml'}),{ttGpx:id})).id
+}
+function travelKvDelete(id,code){var u=TICK_URL+(TICK_URL.indexOf('?')>=0?'&':'?')+'mode=travel-file&fileId='+encodeURIComponent(id);return fetch(u,{method:'DELETE',headers:{'X-Total-Recall-Sync':code},cache:'no-store'})}
+var TP_DB='TotalRecallTravelPhotos_v1',tpDbPromise=null,tpUrls={},tpBusy=false,travelNotePhotos=[];
+function tpOpen(){
+  if(tpDbPromise)return tpDbPromise;
+  tpDbPromise=new Promise(function(res,rej){var q=indexedDB.open(TP_DB,1);q.onupgradeneeded=function(){if(!q.result.objectStoreNames.contains('photos'))q.result.createObjectStore('photos',{keyPath:'pid'})};q.onsuccess=function(){res(q.result)};q.onerror=function(){rej(q.error||new Error('Could not open photo storage.'))}});
+  return tpDbPromise
+}
+function tpTx(mode,fn){return tpOpen().then(function(d){return new Promise(function(res,rej){var tx=d.transaction('photos',mode),req=fn(tx.objectStore('photos')),out;if(req)req.onsuccess=function(){out=req.result};tx.oncomplete=function(){res(out)};tx.onerror=function(){rej(tx.error)}})})}
+function tpGet(pid){return tpTx('readonly',function(st){return st.get(pid)})}
+function tpPut(rec){return tpTx('readwrite',function(st){st.put(rec)})}
+function tpDel(pid){if(tpUrls[pid]){URL.revokeObjectURL(tpUrls[pid]);delete tpUrls[pid]}return tpTx('readwrite',function(st){st.delete(pid)})}
+function tpAll(){return tpTx('readonly',function(st){return st.getAll()}).then(function(x){return x||[]})}
+async function tpResize(blob,max){
+  var img;
+  try{img=await createImageBitmap(blob,{imageOrientation:'from-image'})}
+  catch(e){img=await new Promise(function(res,rej){var u=URL.createObjectURL(blob),im=new Image();im.onload=function(){URL.revokeObjectURL(u);res(im)};im.onerror=function(){URL.revokeObjectURL(u);rej(new Error('This browser cannot read that picture.'))};im.src=u})}
+  var w=img.width,h=img.height,k=Math.min(1,max/Math.max(w,h)),c=document.createElement('canvas');
+  c.width=Math.max(1,Math.round(w*k));c.height=Math.max(1,Math.round(h*k));c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+  if(img.close)img.close();
+  return new Promise(function(res){c.toBlob(function(b){res(b||blob)},'image/jpeg',0.82)})
+}
+/* a picture for a photo ref: this device's copy, else downloaded from Drive (and kept) */
+async function tpUrl(ph){
+  if(tpUrls[ph.pid])return tpUrls[ph.pid];
+  var rec=null;try{rec=await tpGet(ph.pid)}catch(e){}
+  if(!(rec&&rec.disp)){
+    if(!ph.driveId||!travelDriveOn())return null;
+    var b=await PosDrive.download(ph.driveId),disp=b;try{disp=await tpResize(b,1600)}catch(e){}
+    rec=Object.assign(rec||{pid:ph.pid},{disp:disp,driveId:ph.driveId});await tpPut(rec)
+  }
+  return tpUrls[ph.pid]=URL.createObjectURL(rec.disp)
+}
+function tpThumbs(list,editing){
+  return '<div class="tvphotos">'+list.map(function(p){return '<span class="tvph" role="button" tabindex="0" data-ph="'+esc(p.pid)+'"><img alt="Memory photo" hidden>'+(editing?'<span class="tvphx" data-ph-remove="'+esc(p.pid)+'" aria-label="Remove photo">×</span>':'')+'</span>'}).join('')+'</div>'
+}
+function tpFill(box,list){
+  var by={};list.forEach(function(p){by[p.pid]=p});
+  box.querySelectorAll('[data-ph]').forEach(function(el){
+    var p=by[el.dataset.ph];if(!p)return;
+    tpUrl(p).then(function(u){var img=el.querySelector('img');if(u){img.src=u;img.hidden=false}else{el.classList.add('wait');el.title=p.driveId?'Connect Google Drive to see this photo':'Waiting for the other device to upload it'}}).catch(function(e){el.classList.add('wait');el.title=e.message})
+  })
+}
+function tpFind(pid){
+  var hit=null;travelNotePhotos.forEach(function(p){if(p.pid===pid)hit=p});
+  Object.keys(db.travelNotes||{}).forEach(function(k){(db.travelNotes[k].photos||[]).forEach(function(p){if(!hit&&p.pid===pid)hit=p})});
+  return hit
+}
+function tpView(pid){
+  var ph=tpFind(pid);if(!ph)return;
+  var ov=document.createElement('div');ov.className='tvviewer';
+  ov.innerHTML='<img alt="Memory photo"><div class="row">'+(ph.driveId?'<a href="'+esc(PosDrive.viewUrl(ph.driveId))+'" target="_blank" rel="noopener">Original in Drive ↗</a>':'<span>Not in Drive yet</span>')+'<button type="button" class="secondary small">Close</button></div>';
+  document.body.appendChild(ov);
+  ov.addEventListener('click',function(e){if(!(e.target.closest&&e.target.closest('a')))ov.remove()});
+  tpUrl(ph).then(function(u){if(u)ov.querySelector('img').src=u}).catch(function(){})
+}
+function tpForget(p){tpDel(p.pid).catch(function(){});if(p.driveId&&travelDriveOn())PosDrive.trash(p.driveId).catch(function(e){console.warn('Could not remove photo from Drive',e)})}
+function tpRenderEditor(){var box=$('travelNotePhotoBox');if(!box)return;box.innerHTML=travelNotePhotos.length?tpThumbs(travelNotePhotos,true):'';tpFill(box,travelNotePhotos)}
+/* originals waiting on this device go to Drive; the memory then records the Drive file id (synced to other devices) */
+async function tpUpload(){
+  if(tpBusy||!travelDriveOn())return;
+  tpBusy=true;var changed=false;
+  try{
+    var recs=await tpAll();
+    for(var i=0;i<recs.length;i++){
+      var r=recs[i];if(!r.orig||r.driveId||!r.noteId)continue;
+      var n=db.travelNotes&&db.travelNotes[r.noteId],ph=n&&!n.deleted?(n.photos||[]).filter(function(p){return p.pid===r.pid})[0]:null;
+      if(!ph){await tpDel(r.pid);continue}
+      var ext=(String(r.name||'').match(/\.[a-z0-9]{2,5}$/i)||['.jpg'])[0].toLowerCase(),found=await PosDrive.find({ttPhoto:r.pid});
+      var body=r.orig.type?r.orig:new Blob([r.orig],{type:r.type||'image/jpeg'});
+      var fid=found.length?found[0].id:(await PosDrive.upload('photos',n.date+'_'+r.pid+ext,body,{ttPhoto:r.pid,ttNote:r.noteId})).id;
+      r.driveId=fid;delete r.orig;await tpPut(r);
+      ph.driveId=fid;n.updatedAt=new Date().toISOString();changed=true
+    }
+  }catch(e){console.warn('Photo upload to Drive failed',e);if($('travelSyncStatus'))$('travelSyncStatus').textContent='Photos waiting for Google Drive: '+e.message}
+  finally{tpBusy=false;if(changed){save();travelRenderNotes()}travelDriveBadge()}
+}
+/* unsaved picks older than a day, and copies of photos whose memory was deleted */
+function tpCleanup(){tpAll().then(function(recs){var dayAgo=Date.now()-86400000;recs.forEach(function(r){var n=r.noteId&&db.travelNotes&&db.travelNotes[r.noteId];if(r.noteId?(!n||n.deleted):(r.orig&&new Date(r.addedAt||0).getTime()<dayAgo))tpDel(r.pid)})}).catch(function(){})}
+async function travelDriveBadge(){
+  var box=$('travelDriveBox');if(!box)return;
+  var s=travelDriveState()||{},metas=travelMeta(),inDrive=metas.filter(function(f){return f.driveId}).length,pend=0;
+  try{pend=(await tpAll()).filter(function(r){return r.orig&&!r.driveId&&r.noteId}).length}catch(e){}
+  box.classList.toggle('on',!!s.connected);
+  $('travelDriveState').textContent=!window.PosDrive?'Unavailable':s.connected?'Connected':s.configured===false?'Not set up':'Not connected';
+  var b=$('travelDriveBody');
+  if(s.connected)b.innerHTML='<p class="muted" style="margin:10px 0">Saving to <b>'+esc(s.email||'your Google Drive')+'</b> → Pranju OS › Travel Trace. '+inDrive+' of '+metas.length+' GPS day'+(metas.length===1?'':'s')+' in Drive'+(pend?' · '+pend+' photo'+(pend===1?'':'s')+' waiting to upload':'')+'.</p><div class="row"><button type="button" class="secondary small" id="travelDriveNow">Upload now</button><button type="button" class="secondary small" id="travelDriveOff">Disconnect</button></div>';
+  else if(s.configured===false)b.innerHTML='<p class="muted" style="margin:10px 0">Needs a one-time setup first: a Google Cloud sign-in client, with its ID and secret added to the Worker as GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.</p>';
+  else b.innerHTML='<p class="muted" style="margin:10px 0">Keep finished GPS days and memory photos in your own Google Drive instead of the Worker’s small cloud store. Connect once and every device uses it.</p><button type="button" id="travelDriveConnect">Connect Google Drive</button>';
+}
+async function travelDriveRefresh(){if(!window.PosDrive)return;try{await PosDrive.status()}catch(e){$('travelDriveState').textContent='Check failed';return}await travelDriveBadge()}
+async function travelDriveWork(){
+  if(!travelDriveOn())return;
+  await tpUpload();
+  var code=localStorage.getItem(SYNC_KEY),left=travelMeta().filter(function(f){return !f.driveId}).length;
+  if(code&&left){try{await cloudSync(false)}catch(e){}}
+  await travelDriveBadge()
+}
 function travelHex(buf){var a=new Uint8Array(buf),s='';for(var i=0;i<a.length;i++)s+=(a[i]<16?'0':'')+a[i].toString(16);return s}
 async function travelFileId(text){return 'gpx-'+travelHex(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text)))}
 function travelPointFromString(v){
@@ -647,7 +767,7 @@ function travelRenderFileList(){
   var box=$('travelFilesForDate'),date=$('travelDate').value,files=travelFilesForDate(date);
   if(!files.length){box.innerHTML='<div class="muted">No GPX files saved for this date.</div>';return}
   box.innerHTML='<div class="muted" style="margin-bottom:5px"><b>'+files.length+'</b> GPX file'+(files.length===1?'':'s')+' contribute to <b>'+esc(date)+'</b>. They are combined in the map and playback.</div>'+
-    files.map(function(f){return '<div class="travelFileItem"><div><b>'+esc(f.name||'Unnamed GPX')+'</b><div class="travelFileMeta">'+(f.pointCount||0).toLocaleString()+' points · '+(f.dates||[]).length+' date'+((f.dates||[]).length===1?'':'s')+' · uploaded '+esc(travelFormatDateTime(f.uploadedAt))+'</div></div><span class="travelFileBadge '+(f.cloudUploaded?'':'local')+'">'+(f.cloudUploaded?'☁ Synced':'Local only')+'</span></div>'}).join('')
+    files.map(function(f){return '<div class="travelFileItem"><div><b>'+esc(f.name||'Unnamed GPX')+'</b><div class="travelFileMeta">'+(f.pointCount||0).toLocaleString()+' points · '+(f.dates||[]).length+' date'+((f.dates||[]).length===1?'':'s')+' · uploaded '+esc(travelFormatDateTime(f.uploadedAt))+'</div></div><span class="travelFileBadge '+(f.cloudUploaded||f.driveId?'':'local')+'">'+(f.driveId?'☁ Drive':f.cloudUploaded?'☁ Synced':'Local only')+'</span></div>'}).join('')
 }
 function travelFormatDateTime(v){if(!v)return 'unknown';var d=new Date(v);return isNaN(d.getTime())?'unknown':d.toLocaleString([],{year:'numeric',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}
 async function travelCloudPut(id,text,code){
@@ -665,10 +785,22 @@ async function travelCloudGet(id,code){
 }
 async function travelSyncPendingFiles(code){
   var metas=travelMeta();
-  var uploaded=0;
+  var uploaded=0,driveOn=travelDriveOn(),moved=0;
   for(var i=0;i<metas.length;i++){
     var f=metas[i];
-    if(f.cloudUploaded)continue; // already in the cloud: re-sending every GPX on every sync made syncs very slow
+    if(driveOn&&!f.driveId){
+      try{
+        var t=await travelDbGet(f.id);
+        if(t===null&&f.cloudUploaded){var got=await travelCloudGet(f.id,code);t=got&&got.gpx||null;if(t!==null)await travelDbPut(f.id,t)}
+        if(t!==null){
+          if($('travelSyncStatus'))$('travelSyncStatus').textContent='☁ Moving GPS days to Google Drive… '+(moved+1);
+          f.driveId=await travelDrivePutGpx(f.id,t,((f.dates&&f.dates[0])||'')+'_'+(f.name||'trace.gpx'));moved++;uploaded++;
+          if(f.cloudUploaded){try{var dr=await travelKvDelete(f.id,code);if(dr.ok)f.cloudUploaded=false}catch(_){}}
+        }
+      }catch(e){console.warn('Moving '+f.name+' to Drive failed',e);if(e&&e.code==='not_connected')driveOn=false}
+      continue
+    }
+    if(f.cloudUploaded||f.driveId)continue; // already stored: re-sending every GPX on every sync made syncs very slow
     var text=await travelDbGet(f.id);
     if(text===null)continue;
     try{
@@ -680,12 +812,18 @@ async function travelSyncPendingFiles(code){
     }
   }
   if(uploaded)localStorage.setItem(KEY,JSON.stringify(db));
+  if(moved&&$('travelSyncStatus'))$('travelSyncStatus').textContent='☁ Moved '+moved+' GPS day'+(moved===1?'':'s')+' to Google Drive.';
   travelRenderFileList();
+  if(driveOn)tpUpload();
   return uploaded
 }
 async function travelEnsureLocalFile(meta){
   var local=await travelDbGet(meta.id);
   if(local!==null)return local;
+  if(meta.driveId){
+    try{var dt=await (await PosDrive.download(meta.driveId)).text();await travelDbPut(meta.id,dt);return dt}
+    catch(e){if(!meta.cloudUploaded)throw new Error(travelDriveOn()?'Could not fetch this day from Google Drive: '+e.message:'This day is stored in Google Drive. Connect Google Drive in Travel Trace to open it here.')}
+  }
   var code=localStorage.getItem(SYNC_KEY);
   if(!code)throw new Error('This GPX file is synced to another device. Enable Device Sync using the same sync code to download it.');
   var result=await travelCloudGet(meta.id,code);
@@ -918,6 +1056,10 @@ function travelNotesForDate(){
   return Object.keys(db.travelNotes||{}).map(function(id){return db.travelNotes[id]}).filter(function(n){return n&&!n.deleted&&n.date===d}).sort(function(a,b){return String(a.createdAt||'').localeCompare(String(b.createdAt||''))})
 }
 function travelChooseNotePoint(p,id){
+  var wasEditing=travelNoteEditing;
+  if(id)travelNotePhotos=(db.travelNotes[id]&&db.travelNotes[id].photos||[]).map(function(x){return Object.assign({},x)});
+  else if(wasEditing)travelNotePhotos=[];
+  tpRenderEditor();
   travelNotePoint={lat:Number(p.lat),lng:Number(p.lng)};
   travelShowNoteDraftMarker(travelNotePoint);
   travelNoteEditing=id||null;
@@ -927,18 +1069,19 @@ function travelChooseNotePoint(p,id){
 }
 function travelClearNoteEditor(){
   travelClearNoteDraftMarker();
-  travelNotePoint=null;travelNoteEditing=null;
+  travelNotePoint=null;travelNoteEditing=null;travelNotePhotos=[];tpRenderEditor();
   $('travelNoteText').value='';$('travelNoteLocation').textContent='Tap the map to choose a location.';
   $('travelNoteSave').disabled=true;$('travelNoteSave').textContent='Save memory'
 }
 function travelRenderNotes(){
   var notes=travelNotesForDate(),box=$('travelNoteList');if(!box)return;
   box.innerHTML=notes.length?notes.map(function(n){
-    return '<div style="padding:10px 0;border-top:1px solid #e5e7eb"><div style="white-space:pre-wrap;overflow-wrap:anywhere">'+esc(n.text)+'</div><div class="muted" style="margin:5px 0">'+esc(n.lat.toFixed(6)+', '+n.lng.toFixed(6))+'</div><div class="row"><button type="button" class="secondary small" data-note-show="'+esc(n.id)+'">Show on map</button><button type="button" class="secondary small" data-note-edit="'+esc(n.id)+'">Edit</button><button type="button" class="secondary small" data-note-delete="'+esc(n.id)+'">Delete</button></div></div>'
+    return '<div style="padding:10px 0;border-top:1px solid #e5e7eb"><div style="white-space:pre-wrap;overflow-wrap:anywhere">'+esc(n.text)+'</div>'+(n.photos&&n.photos.length?tpThumbs(n.photos,false):'')+'<div class="muted" style="margin:5px 0">'+esc(n.lat.toFixed(6)+', '+n.lng.toFixed(6))+'</div><div class="row"><button type="button" class="secondary small" data-note-show="'+esc(n.id)+'">Show on map</button><button type="button" class="secondary small" data-note-edit="'+esc(n.id)+'">Edit</button><button type="button" class="secondary small" data-note-delete="'+esc(n.id)+'">Delete</button></div></div>'
   }).join(''):'<div class="muted">No memories for this date yet.</div>';
+  var allPh=[];notes.forEach(function(n){(n.photos||[]).forEach(function(x){allPh.push(x)})});if(allPh.length)tpFill(box,allPh);
   travelNoteMarkers.forEach(function(m){m.setMap(null)});travelNoteMarkers=[];
   if(travelMap&&window.google&&google.maps)notes.forEach(function(n){
-    var marker=new google.maps.Marker({map:travelMap,position:{lat:n.lat,lng:n.lng},title:n.text.slice(0,100),label:{text:'✎',color:'#fff',fontWeight:'700'},icon:{path:google.maps.SymbolPath.CIRCLE,scale:12,fillColor:'#7c3aed',fillOpacity:1,strokeColor:'#fff',strokeWeight:2}});
+    var marker=new google.maps.Marker({map:travelMap,position:{lat:n.lat,lng:n.lng},title:n.text.slice(0,100),label:{text:n.photos&&n.photos.length?'📷':'✎',color:'#fff',fontWeight:'700'},icon:{path:google.maps.SymbolPath.CIRCLE,scale:12,fillColor:'#7c3aed',fillOpacity:1,strokeColor:'#fff',strokeWeight:2}});
     marker.addListener('click',function(){travelChooseNotePoint(n,n.id);$('travelNoteText').focus()});
     travelNoteMarkers.push(marker)
   })
@@ -984,13 +1127,17 @@ async function travelStoreGpx(text,name,size){
   var dates=[fileDate];
   var id=await travelFileId(text);
   await travelDbPut(id,text);
-  var code=localStorage.getItem(SYNC_KEY),cloudUploaded=false;
-  if(code){
+  var code=localStorage.getItem(SYNC_KEY),cloudUploaded=false,driveId=db.travelFiles&&db.travelFiles[id]&&db.travelFiles[id].driveId||null;
+  if(!driveId&&travelDriveOn()){
+    $('travelStatus').textContent='Saving '+name+' to Google Drive…';
+    try{driveId=await travelDrivePutGpx(id,text,fileDate+'_'+name)}catch(e){console.warn('Drive save failed, using Worker sync',e)}
+  }
+  if(code&&!driveId){
     $('travelStatus').textContent='Saving '+name+' to device sync…';
     try{await travelCloudPut(id,text,code);cloudUploaded=true}catch(e){$('travelStatus').textContent='Saved locally; cloud sync will retry: '+e.message}
   }
   db.travelFiles=db.travelFiles||{};
-  db.travelFiles[id]={id:id,name:name,dates:dates.sort(),startTime:parsed.segments.flat()[0]&&parsed.segments.flat()[0].time||null,endTime:parsed.segments.flat().slice(-1)[0]&&parsed.segments.flat().slice(-1)[0].time||null,pointCount:parsed.segments.reduce(function(n,x){return n+x.length},0),size:size||text.length,uploadedAt:new Date().toISOString(),cloudUploaded:cloudUploaded};
+  db.travelFiles[id]={id:id,name:name,dates:dates.sort(),startTime:parsed.segments.flat()[0]&&parsed.segments.flat()[0].time||null,endTime:parsed.segments.flat().slice(-1)[0]&&parsed.segments.flat().slice(-1)[0].time||null,pointCount:parsed.segments.reduce(function(n,x){return n+x.length},0),size:size||text.length,uploadedAt:new Date().toISOString(),cloudUploaded:cloudUploaded,driveId:driveId};
   travelParsedCache[id]=parsed;localStorage.setItem(KEY,JSON.stringify(db));queueCloudSync();
   return dates
 }
@@ -1147,7 +1294,13 @@ $('startTravelTrace').addEventListener('click',async function(){
   try{var removed=await travelPurgeSep30Once();if(removed){travelPopulateDates();$('travelStatus').textContent='Removed all old 30 Sep 2026 travel files. Ready for a fresh GPX upload.'}}catch(e){console.warn('30 Sep travel purge failed',e)}
   travelPopulateDates($('travelDate').value);
   if(travelDates().length)travelLoadSelectedDate().catch(function(e){$('travelStatus').textContent=e.message});
-  travelLiveStart()
+  travelLiveStart();
+  var dr=window.PosDrive?PosDrive.result:'';
+  if(dr==='ok'){$('travelDriveBox').open=true;$('travelSyncStatus').textContent='Google Drive connected. Moving your GPS days and photos…'}
+  else if(dr==='denied')$('travelSyncStatus').textContent='Google Drive was not connected: permission was declined.';
+  else if(dr==='error')$('travelSyncStatus').textContent='Google Drive sign-in did not finish. Tap Connect to try again.';
+  travelDriveBadge();tpCleanup();
+  travelDriveRefresh().then(travelDriveWork).catch(function(e){console.warn('Drive check failed',e)})
 });
 $('travelHomeBtn').addEventListener('click',function(){travelLiveStop();hide('travelSession');show('home')});
 $('travelFile').addEventListener('change',function(e){var f=e.target.files[0];if(f)travelReadFile(f);e.target.value=''});
@@ -1158,17 +1311,44 @@ $('travelIdentify').addEventListener('click',function(){travelIdentifyPlaces().c
 $('travelJourneyList').addEventListener('click',function(e){var i=e.target&&e.target.dataset?e.target.dataset.journeyIndex:null;if(i!==null&&i!==undefined)travelShowJourneyIndex(i)});
 $('travelNoteSave').addEventListener('click',function(){
   if(!travelNotePoint||!travelData)return;
-  var value=$('travelNoteText').value.trim();if(!value){alert('Write a memory first.');return}
+  var value=$('travelNoteText').value.trim();if(!value&&!travelNotePhotos.length){alert('Write a memory or add a photo first.');return}
   var now=new Date().toISOString(),id=travelNoteEditing||'note-'+Date.now()+'-'+Math.random().toString(36).slice(2,9);
   db.travelNotes=db.travelNotes||{};
-  db.travelNotes[id]={id:id,date:$('travelDate').value,lat:travelNotePoint.lat,lng:travelNotePoint.lng,text:value,createdAt:db.travelNotes[id]&&db.travelNotes[id].createdAt||now,updatedAt:now};
+  var keep={},photos=travelNotePhotos.map(function(x){keep[x.pid]=1;return {pid:x.pid,driveId:x.driveId||null,name:x.name,addedAt:x.addedAt}});
+  (db.travelNotes[id]&&db.travelNotes[id].photos||[]).forEach(function(x){if(!keep[x.pid])tpForget(x)});
+  var fresh=travelNotePhotos.filter(function(x){return x.isNew});
+  db.travelNotes[id]={id:id,date:$('travelDate').value,lat:travelNotePoint.lat,lng:travelNotePoint.lng,text:value,photos:photos,createdAt:db.travelNotes[id]&&db.travelNotes[id].createdAt||now,updatedAt:now};
   save();travelClearNoteEditor();travelRenderNotes();
+  Promise.all(fresh.map(function(x){return tpGet(x.pid).then(function(r){if(r){r.noteId=id;return tpPut(r)}})})).then(tpUpload).catch(function(e){console.warn('Photo save failed',e)});
 });
-$('travelNoteCancel').addEventListener('click',travelClearNoteEditor);
+$('travelNoteCancel').addEventListener('click',function(){travelNotePhotos.forEach(function(x){if(x.isNew)tpDel(x.pid).catch(function(){})});travelClearNoteEditor()});
+$('travelPhotoFile').addEventListener('change',async function(e){
+  var files=Array.from(e.target.files||[]);e.target.value='';
+  for(var i=0;i<files.length;i++){
+    var f=files[i],pid='ph-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8),disp=null,at=new Date().toISOString();
+    try{disp=await tpResize(f,1600)}catch(err){}
+    try{await tpPut({pid:pid,noteId:null,disp:disp,orig:f,type:f.type||'image/jpeg',name:f.name||'photo.jpg',addedAt:at})}catch(err){alert('Could not keep that photo on this device: '+err.message);continue}
+    travelNotePhotos.push({pid:pid,name:f.name||'photo.jpg',addedAt:at,driveId:null,isNew:true})
+  }
+  tpRenderEditor();
+  if(files.length&&!travelDriveOn())$('travelNoteLocation').textContent+=' · photos stay on this phone until Google Drive is connected';
+});
+$('travelNotePhotoBox').addEventListener('click',function(e){
+  var rm=e.target.closest&&e.target.closest('[data-ph-remove]');
+  if(rm){e.stopPropagation();var pid=rm.dataset.phRemove;travelNotePhotos=travelNotePhotos.filter(function(x){if(x.pid===pid&&x.isNew)tpDel(pid).catch(function(){});return x.pid!==pid});tpRenderEditor();return}
+  var ph=e.target.closest&&e.target.closest('[data-ph]');if(ph)tpView(ph.dataset.ph)
+});
+$('travelDriveBox').addEventListener('click',async function(e){
+  var t=e.target;if(!t||!t.id)return;
+  if(t.id==='travelDriveConnect'){t.disabled=true;t.textContent='Opening Google…';try{await PosDrive.connect()}catch(err){t.disabled=false;t.textContent='Connect Google Drive';alert('Could not start Google sign-in: '+err.message)}}
+  if(t.id==='travelDriveOff'){if(!confirm('Disconnect Google Drive? Your files stay in Drive. New GPS days go back to the Worker store until you connect again.'))return;try{await PosDrive.disconnect()}catch(err){alert(err.message)}travelDriveBadge()}
+  if(t.id==='travelDriveNow'){t.disabled=true;t.textContent='Uploading…';await travelDriveWork()}
+});
 $('travelNoteList').addEventListener('click',function(e){
+  var phEl=e.target.closest&&e.target.closest('[data-ph]');if(phEl){tpView(phEl.dataset.ph);return}
   var t=e.target&&e.target.dataset;if(!t)return;
   var id=t.noteShow||t.noteEdit||t.noteDelete,n=db.travelNotes&&db.travelNotes[id];if(!n)return;
-  if(t.noteDelete){if(confirm('Delete this travel memory?')){n.deleted=true;n.updatedAt=new Date().toISOString();save();travelClearNoteEditor();travelRenderNotes()}return}
+  if(t.noteDelete){if(confirm('Delete this travel memory'+(n.photos&&n.photos.length?' and its photos (they go to Drive\'s bin)':'')+'?')){(n.photos||[]).forEach(tpForget);n.photos=[];n.deleted=true;n.updatedAt=new Date().toISOString();save();travelClearNoteEditor();travelRenderNotes()}return}
   if(travelMap){travelMap.panTo({lat:n.lat,lng:n.lng});travelMap.setZoom(Math.max(travelMap.getZoom()||14,16))}
   if(t.noteEdit){travelChooseNotePoint(n,n.id);$('travelNoteText').focus()}
 });

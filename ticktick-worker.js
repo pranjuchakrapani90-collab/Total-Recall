@@ -1,5 +1,6 @@
 // Cloudflare Worker bridge for Total Recall.
-// Secrets: TICKTICK_ACCESS_TOKEN for TickTick and OPENAI_API_KEY for Memory Lane AI.
+// Secrets: TICKTICK_ACCESS_TOKEN for TickTick, OPENAI_API_KEY for Memory Lane AI,
+// GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET for Travel Trace's Google Drive storage.
 // Never put either token in index.html or this repository.
 
 const ALLOWED_ORIGIN = 'https://pranjuchakrapani90-collab.github.io';
@@ -121,6 +122,10 @@ async function handleTravelFile(request,env){
     await env.SYNC_KV.put(key,blob);await env.SYNC_KV.delete(oldKey);
     return new Response(JSON.stringify({ok:true}),{status:200,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
   }
+  if(request.method==='DELETE'){ // the day now lives in Google Drive (or was purged): free the KV space
+    await env.SYNC_KV.delete(key);await env.SYNC_KV.delete(oldKey);
+    return new Response(JSON.stringify({ok:true}),{status:200,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
+  }
   return new Response(JSON.stringify({error:'Method not allowed'}),{status:405,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
 }
 
@@ -186,6 +191,96 @@ async function handleLive(request,env,origin){
   if(request.method==='DELETE'&&day)return json(await call('del','&day='+day+'&upto='+(Number(q.get('upto'))||0)));
   return json({error:'Method not allowed'},405);
 }
+
+/* ---------- Google Drive storage (27 Oct 2026) ----------
+   Travel Trace keeps finished GPS days and memory photos in the owner's own Google Drive, in
+   "Pranju OS / Travel Trace / GPS archive" and ".../Memory photos". The Worker holds the Google connection
+   (a refresh token in KV) so no phone ever sees a sign-in popup; pages ask it for a short-lived access token and
+   then talk to Google Drive directly. Scope is drive.file: the app sees only the files it created itself.
+   Worker secrets: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET (OAuth client of type "Web application" whose
+   redirect URI is <this Worker's URL>/drive-callback).
+     GET ?mode=drive&op=status             -> {configured, connected, email}
+     GET ?mode=drive&op=start&back=<url>   -> {url}  Google consent page; it returns to /drive-callback
+     GET /drive-callback                   (Google redirects here; no owner header, checked by a one-time state)
+     GET ?mode=drive&op=token[&fresh=1]    -> {token, expiresIn, folders:{root,travel,gps,photos}}
+     POST ?mode=drive&op=disconnect        -> revokes the connection (files stay in Drive) */
+const GD_SCOPE='https://www.googleapis.com/auth/drive.file';
+const GD_API='https://www.googleapis.com/drive/v3';
+const GD_FOLDERS=[['root','Pranju OS',null],['travel','Travel Trace','root'],['gps','GPS archive','travel'],['photos','Memory photos','travel']];
+let gdAccess=null;
+const gdRedirect=request=>new URL(request.url).origin+'/drive-callback';
+async function gdRefresh(env){const raw=await env.SYNC_KV.get('drive:refresh');return raw?JSON.parse(raw):null;}
+async function gdAccessToken(env){
+  if(gdAccess&&gdAccess.exp>Date.now()+120000)return gdAccess;
+  const kv=await env.SYNC_KV.get('drive:access');if(kv){const a=JSON.parse(kv);if(a.exp>Date.now()+120000)return gdAccess=a;}
+  const rt=await gdRefresh(env);if(!rt)throw Object.assign(new Error('Google Drive is not connected.'),{code:'not_connected'});
+  const r=await fetch('https://oauth2.googleapis.com/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body:new URLSearchParams({client_id:env.GOOGLE_CLIENT_ID,client_secret:env.GOOGLE_CLIENT_SECRET,refresh_token:rt.rt,grant_type:'refresh_token'})});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok||!d.access_token){
+    if(d.error==='invalid_grant'){await env.SYNC_KV.delete('drive:refresh');await env.SYNC_KV.delete('drive:access');gdAccess=null;
+      throw Object.assign(new Error('Google Drive access was withdrawn or expired. Connect it again in Travel Trace.'),{code:'not_connected'});}
+    throw new Error('Google token refresh failed: '+(d.error_description||d.error||'HTTP '+r.status));}
+  gdAccess={token:d.access_token,exp:Date.now()+(d.expires_in||3600)*1000};
+  await env.SYNC_KV.put('drive:access',JSON.stringify(gdAccess),{expirationTtl:Math.max(120,(d.expires_in||3600)-60)});
+  return gdAccess;}
+async function gdCall(token,path,init){const r=await fetch(GD_API+path,{...(init||{}),headers:{Authorization:'Bearer '+token,...((init&&init.body)?{'Content-Type':'application/json'}:{})}});
+  const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error('Google Drive HTTP '+r.status+': '+((d.error&&d.error.message)||''));return d;}
+/* the app's folders, created once and remembered; fresh=1 re-checks they still exist (e.g. after being deleted in Drive) */
+async function gdFolders(env,token,fresh){
+  let f={};try{f=JSON.parse(await env.SYNC_KV.get('drive:folders')||'{}')}catch(_){}
+  let changed=false;
+  for(const [key,name,parent] of GD_FOLDERS){
+    if(f[key]&&fresh){try{const m=await gdCall(token,'/files/'+f[key]+'?fields=id,trashed');if(m.trashed)f[key]=null;}catch(_){f[key]=null;}}
+    if(f[key])continue;
+    const q="mimeType='application/vnd.google-apps.folder' and trashed=false and appProperties has { key='pos' and value='"+key+"' }";
+    const found=await gdCall(token,'/files?spaces=drive&fields=files(id)&q='+encodeURIComponent(q));
+    if(found.files&&found.files.length)f[key]=found.files[0].id;
+    else f[key]=(await gdCall(token,'/files?fields=id',{method:'POST',body:JSON.stringify({name,mimeType:'application/vnd.google-apps.folder',appProperties:{pos:key},...(parent?{parents:[f[parent]]}:{})})})).id;
+    changed=true;}
+  if(changed)await env.SYNC_KV.put('drive:folders',JSON.stringify(f));
+  return f;}
+async function handleDrive(request,env,origin){
+  const json=(o,st)=>new Response(JSON.stringify(o),{status:st||200,headers:{...corsHeaders(origin),'Content-Type':'application/json'}});
+  if(!env.SYNC_KV)return json({error:'SYNC_KV binding is missing on the Worker.'},503);
+  const q=new URL(request.url).searchParams,op=q.get('op')||'status',configured=!!(env.GOOGLE_CLIENT_ID&&env.GOOGLE_CLIENT_SECRET);
+  if(op==='status'){const rt=await gdRefresh(env);return json({configured,connected:configured&&!!rt,email:rt&&rt.email||''});}
+  if(!configured)return json({error:'Google Drive is not set up on the Worker yet (GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET secrets).',code:'not_configured'},503);
+  if(op==='start'){
+    const back=String(q.get('back')||'');if(back.indexOf(ALLOWED_ORIGIN+'/')!==0)return json({error:'Invalid return address.'},400);
+    const b=new Uint8Array(18);crypto.getRandomValues(b);const state=hex(b);
+    await env.SYNC_KV.put('drive:state:'+state,back,{expirationTtl:900});
+    const u=new URL('https://accounts.google.com/o/oauth2/v2/auth');
+    u.search=new URLSearchParams({client_id:env.GOOGLE_CLIENT_ID,redirect_uri:gdRedirect(request),response_type:'code',scope:GD_SCOPE,access_type:'offline',prompt:'consent',include_granted_scopes:'true',state}).toString();
+    return json({url:u.toString()});}
+  if(op==='token'){
+    try{const a=await gdAccessToken(env);const folders=await gdFolders(env,a.token,q.get('fresh')==='1');
+      return json({token:a.token,expiresIn:Math.floor((a.exp-Date.now())/1000),folders});}
+    catch(e){return json({error:String(e&&e.message||e),code:e&&e.code||''},e&&e.code==='not_connected'?409:502);}}
+  if(op==='disconnect'&&request.method==='POST'){
+    const rt=await gdRefresh(env);
+    if(rt){try{await fetch('https://oauth2.googleapis.com/revoke',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({token:rt.rt})})}catch(_){}}
+    await env.SYNC_KV.delete('drive:refresh');await env.SYNC_KV.delete('drive:access');gdAccess=null;
+    return json({ok:true});}
+  return json({error:'Unknown Drive operation'},400);}
+async function handleDriveCallback(request,env){
+  const q=new URL(request.url).searchParams,state=String(q.get('state')||'');
+  const page=(msg)=>new Response('<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><p style="font:16px system-ui;padding:24px">'+msg+'</p>',{status:400,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'}});
+  if(!/^[a-f0-9]{36}$/.test(state)||!env.SYNC_KV)return page('This sign-in link is not valid. Go back to Pranju OS and tap Connect again.');
+  const back=await env.SYNC_KV.get('drive:state:'+state);
+  if(!back)return page('This sign-in link has expired. Go back to Pranju OS and tap Connect again.');
+  await env.SYNC_KV.delete('drive:state:'+state);
+  const go=res=>{const u=new URL(back);u.searchParams.set('drive',res);return Response.redirect(u.toString(),302);};
+  if(q.get('error')||!q.get('code'))return go(q.get('error')==='access_denied'?'denied':'error');
+  const r=await fetch('https://oauth2.googleapis.com/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body:new URLSearchParams({code:q.get('code'),client_id:env.GOOGLE_CLIENT_ID,client_secret:env.GOOGLE_CLIENT_SECRET,redirect_uri:gdRedirect(request),grant_type:'authorization_code'})});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok||!d.refresh_token)return go('error');
+  let email='';try{email=(await gdCall(d.access_token,'/about?fields=user(emailAddress)')).user.emailAddress||''}catch(_){}
+  await env.SYNC_KV.put('drive:refresh',JSON.stringify({rt:d.refresh_token,email,at:new Date().toISOString()}));
+  gdAccess={token:d.access_token,exp:Date.now()+(d.expires_in||3600)*1000};
+  await env.SYNC_KV.put('drive:access',JSON.stringify(gdAccess),{expirationTtl:Math.max(120,(d.expires_in||3600)-60)});
+  return go('ok');}
 
 /* Live NSE prices for the Investments pages (ETF Shop, JuniorBees PKP).
    GET ?mode=quotes&s=ITBEES,GOLDBEES  (up to 40 symbols, NSE codes without "NSE:")
@@ -344,6 +439,7 @@ async function handleMoneyReview(request,env,origin){
 }
 
 export default {async fetch(request,env){const origin=request.headers.get('Origin')||'';if(request.method==='OPTIONS'){const h=corsHeaders(origin);const requested=request.headers.get('Access-Control-Request-Headers');if(requested)h['Access-Control-Allow-Headers']=requested;return new Response(null,{status:204,headers:h});}const url=new URL(request.url);
+ if(url.pathname==='/drive-callback'){try{return await handleDriveCallback(request,env)}catch(e){return new Response('Google Drive sign-in failed: '+String(e&&e.message||e),{status:502,headers:{'Content-Type':'text/plain'}})}}
  if(url.searchParams.get('mode')!=='live-log'){try{const denied=await requireOwner(request,env,origin);if(denied)return denied;}catch(e){return new Response(JSON.stringify({error:'Auth check failed'}),{status:503,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.pathname==='/memory-extract'){if(request.method!=='POST')return new Response('Method not allowed',{status:405,headers:corsHeaders(origin)});try{return await memoryExtract(request,env)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.pathname==='/sync'||url.searchParams.get('mode')==='sync'){try{return await handleSync(request,env)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
@@ -352,6 +448,7 @@ export default {async fetch(request,env){const origin=request.headers.get('Origi
  if(url.searchParams.get('mode')==='money-review'||url.pathname==='/money-review'){try{return await handleMoneyReview(request,env,origin)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.searchParams.get('mode')==='wa-review'||url.pathname==='/wa-review'){try{return await handleWaReview(request,env,origin)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.searchParams.get('mode')==='live'||url.searchParams.get('mode')==='live-log'){try{return await handleLive(request,env,origin)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
+ if(url.searchParams.get('mode')==='drive'){try{return await handleDrive(request,env,origin)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.searchParams.get('mode')==='travel-file'){try{return await handleTravelFile(request,env)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(request.method!=='GET')return new Response('Method not allowed',{status:405,headers:corsHeaders(origin)});
  if(url.pathname!=='/'&&url.pathname!=='/responsibility-tasks'&&url.pathname!=='/completed-tasks'&&url.pathname!=='/task-detail')return new Response('Not found',{status:404,headers:corsHeaders(origin)});
