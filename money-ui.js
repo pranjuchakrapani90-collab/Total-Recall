@@ -4,14 +4,15 @@
 "use strict";
 const I=Invest,M=Money,{esc,inr,ok,r2}=I,KEY=M.KEY,$=id=>document.getElementById(id);
 const AP=document.body.dataset.mode==="apdcl";/* true on the APDCL Expenditure page */
-const KINDS=[["out","Spent"],["in","Received"],["atm","ATM ↓"],["dep","Deposit ↑"]];
+/* Invest = money moved into investments (Zerodha, SIPs): it leaves the wallet or bank but isn't spending */
+const KINDS=[["out","Spent"],["in","Received"],["inv","Invest"],["atm","ATM ↓"],["dep","Deposit ↑"]];
 const BOOKS=[["personal","Personal"],["apdcl","APDCL"]];
 let showDays=10,deferredInstall=null,view=AP?"apdcl":"all",query="";
 /* which entries a list shows: all, personal, apdcl (Samaguri) or bil (Bilasipara imprest, closed) */
 const inView=x=>view==="all"?true:view==="personal"?!M.isApdcl(x):view==="apdcl"?M.isApdcl(x)&&x.acct!=="imprest-bil":x.acct==="imprest-bil";
 const matches=x=>{if(!query)return true;const q=query.toLowerCase();return [x.note,x.cat,x.date,String(x.amt),x.raw].some(v=>v&&String(v).toLowerCase().includes(q));};
-const kindOf=x=>x.kind==="move"?(x.to==="wallet"?"atm":"dep"):x.kind;
-const fromKind=(k,acct)=>k==="atm"?{kind:"move",acct:"bank",to:"wallet"}:k==="dep"?{kind:"move",acct:"wallet",to:"bank"}:{kind:k,acct,to:undefined};
+const kindOf=x=>x.kind==="move"?(x.to==="wallet"?"atm":"dep"):x.kind==="out"&&x.cat==="Investment"?"inv":x.kind;
+const fromKind=(k,acct)=>k==="atm"?{kind:"move",acct:"bank",to:"wallet"}:k==="dep"?{kind:"move",acct:"wallet",to:"bank"}:{kind:k==="inv"?"out":k,acct,to:undefined};
 const dayName=iso=>{const t=M.now().date,y=new Date(new Date(t+"T00:00:00")-864e5),yi=y.getFullYear()+"-"+String(y.getMonth()+1).padStart(2,"0")+"-"+String(y.getDate()).padStart(2,"0");
   const d=new Date(iso+"T00:00:00"),s=d.toLocaleDateString("en-IN",{weekday:"short",day:"numeric",month:"short"});return iso===t?"Today · "+s:iso===yi?"Yesterday · "+s:s;};
 function toast(m){const o=document.querySelector(".toast");if(o)o.remove();const t=document.createElement("div");t.className="toast";t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),2600);}
@@ -61,7 +62,7 @@ function reviewCard(m){if(!m.pend.length)return "";const n=m.pend.length;
   <p class="small">Remarks are drafted from the statement, your WhatsApp notes and what you approved before. Mark each Personal or APDCL, or take them as drafted.</p>
   <div class="acts"><button type="button" id="rvOne">Review one by one</button><button type="button" class="ghost" id="rvAll">Approve all ${n}</button></div></section>`;}
 function entRow(x,N){const ap=M.isApdcl(x),acc=x.kind==="move"?(x.to==="wallet"?N.bank+" → "+N.wallet:N.wallet+" → "+N.bank):(N[x.acct]||x.acct);
-  const cls=x.kind==="in"?"in":x.kind==="move"?"mv":x.cat==="Investment"?"inv":"",sign=x.kind==="in"?"+":x.kind==="move"?"":"−";
+  const iv=x.kind==="out"&&x.cat==="Investment",cls=x.kind==="in"?"in":x.kind==="move"?"mv":iv?"inv":"",sign=x.kind==="in"?"+":x.kind==="move"?"":iv?"→ ":"−";
   const sub=[x.time,x.cat,acc,x.src==="yono"?"YONO":""].filter(Boolean).join(" · ");
   return `<button type="button" class="ent" data-tx="${esc(x.id)}"><span style="min-width:0"><div class="n">${ap&&!AP?`<em class="apt">APDCL</em>`:""}${esc(x.note||x.cat||(x.kind==="move"?"Transfer":"—"))}</div><div class="s">${esc(sub)}</div></span><span class="a ${cls}">${sign}${inr(x.amt,x.amt%1?2:0)}</span></button>`;}
 function listCard(m){const any=AP?m.T.some(M.isApdcl):m.T.length;
@@ -141,23 +142,26 @@ function entry(pre,again){pre=pre||{};const N=M.names(),n=M.now(),edit=!!pre.id;
     ${pre.raw?`<div class="raw">${esc(pre.raw)}</div>`:""}
     <p class="ferr" hidden></p>
     <div class="fbtns">${edit?`<button type="button" class="danger" id="eDel">Delete</button>`:`<button type="button" class="ghost" id="eNext">Save + next</button>`}<span></span><button type="button" class="ghost" id="eX">Cancel</button><button type="submit">Save</button></div>`);
-  const showCats=()=>{const ap=book==="apdcl"||M.isApdcl({acct}),mv=k==="atm"||k==="dep";$("eCat").innerHTML=chipsHtml(k,cat,ap?"apdcl":"personal");$("eCat").hidden=mv;$("sA").hidden=mv||fixedAcct;
+  const showCats=()=>{const ap=book==="apdcl"||M.isApdcl({acct}),mv=k==="atm"||k==="dep";$("eCat").innerHTML=chipsHtml(k,cat,ap?"apdcl":"personal");$("eCat").hidden=mv||k==="inv";$("sA").hidden=mv||fixedAcct;
+    d.querySelectorAll('#sK button[data-v="inv"]').forEach(b=>b.hidden=ap||fixedAcct);
     d.querySelectorAll('#sK button[data-v="atm"],#sK button[data-v="dep"]').forEach(b=>b.hidden=ap||fixedAcct);
-    $("kWrap").hidden=!(k==="out"&&cat==="Investment"&&!ap&&!fixedAcct);
-    $("eNote").placeholder=ap?"e.g. Wagon R fuel · Nitul, Labour · Bichitra":"e.g. Mess lunch, Sethia Brothers";
+    $("kWrap").hidden=!(k==="inv"&&!ap&&!fixedAcct);
+    $("eNote").placeholder=ap?"e.g. Wagon R fuel · Nitul, Labour · Bichitra":k==="inv"?"e.g. Zerodha (Kite), Parag Parikh SIP":"e.g. Mess lunch, Sethia Brothers";
     $("eCat").querySelectorAll("button").forEach(b=>b.onclick=e=>{e.preventDefault();cat=cat===b.dataset.c?"":b.dataset.c;showCats();});};
   const setK=v=>{k=v;d.querySelectorAll("#sK button").forEach(x=>x.classList.toggle("on",x.dataset.v===v));};
-  segWire(d,"#sK",v=>{if((v==="in")!==(k==="in"))cat="";k=v;showCats();});
-  segWire(d,"#sB",v=>{if(v!==book)cat="";book=v;if(v==="apdcl"&&(k==="atm"||k==="dep"))setK("out");showCats();});
+  segWire(d,"#sK",v=>{if((v==="in")!==(k==="in")||k==="inv"||v==="inv")cat="";k=v;
+    if(v==="inv"&&acct==="wallet"&&!edit){acct="bank";d.querySelectorAll("#sA button").forEach(x=>x.classList.toggle("on",x.dataset.v==="bank"));}showCats();});
+  segWire(d,"#sB",v=>{if(v!==book)cat="";book=v;if(v==="apdcl"&&(k==="atm"||k==="dep"||k==="inv"))setK("out");showCats();});
   segWire(d,"#sA",v=>{acct=v;});showCats();
   const err=d.querySelector(".ferr"),close=()=>{d.close();d.remove();};
   let walletOk=false;
   const save=()=>{const amt=parseFloat(String($("eAmt").value).replace(/[,₹\s]/g,""));if(!(amt>0)){err.hidden=false;err.textContent="Enter the amount.";return false;}
     /* a spend that would take the wallet below zero was most likely paid from the bank: ask once */
-    if(!walletOk&&!fixedAcct&&k==="out"&&acct==="wallet"){const w=M.balance("wallet"),was=edit&&pre.acct==="wallet"&&pre.kind==="out"?pre.amt:0,after=w.val+was-amt;
+    if(!walletOk&&!fixedAcct&&(k==="out"||k==="inv")&&acct==="wallet"){const w=M.balance("wallet"),was=edit&&pre.acct==="wallet"&&pre.kind==="out"?pre.amt:0,after=w.val+was-amt;
       if(w.set&&after<0){err.hidden=false;err.innerHTML=`Your wallet has ${inr(w.val+was)}, so this would take it to ${inr(after)}. Was it paid from the bank?<span class="fixb"><button type="button" id="fxB">Paid from Bank</button><button type="button" class="ghost" id="fxW">No, from Wallet</button></span>`;
         $("fxB").onclick=()=>{acct="bank";d.querySelectorAll("#sA button").forEach(x=>x.classList.toggle("on",x.dataset.v==="bank"));err.hidden=true;if(save())close();};
         $("fxW").onclick=()=>{walletOk=true;err.hidden=true;if(save())close();};return false;}}
+    if(k==="inv")cat="Investment";
     const mv=k==="atm"||k==="dep",note=$("eNote").value.trim();if(!note&&!cat&&!mv){err.hidden=false;err.textContent="Add a remark or pick a category.";return false;}
     const r={...pre,...fromKind(k,acct),amt:r2(amt),cat:mv?"":cat,note:note||(k==="atm"?"ATM withdrawal":k==="dep"?"Cash deposit":""),date:$("eDate").value||n.date,time:$("eTime").value||"",src:pre.src||"hand"};
     if(!fixedAcct)r.book=mv?"personal":book;
@@ -251,7 +255,7 @@ function review(at){const P=M.list("pend").sort((a,b)=>M.ord(a)<M.ord(b)?-1:1);i
     <p class="ferr" hidden></p>
     <div class="rbtns"><button type="submit" class="ok">Approve ✓</button><button type="button" class="danger" id="rDel">Discard</button><button type="button" class="ghost" id="rSkip">Skip</button><button type="button" class="ghost" id="eX">Close</button></div>`);
   const showCats=()=>{$("eCat").innerHTML=chipsHtml(k,cat,book);$("eCat").hidden=k==="atm"||k==="dep";
-    d.querySelectorAll('#sK button[data-v="atm"],#sK button[data-v="dep"]').forEach(b=>b.hidden=book==="apdcl");
+    d.querySelectorAll('#sK button[data-v="atm"],#sK button[data-v="dep"],#sK button[data-v="inv"]').forEach(b=>b.hidden=book==="apdcl");$("eCat").hidden=k==="atm"||k==="dep"||k==="inv";
     $("eCat").querySelectorAll("button").forEach(b=>b.onclick=e=>{e.preventDefault();cat=cat===b.dataset.c?"":b.dataset.c;showCats();});};
   segWire(d,"#sK",v=>{if((v==="in")!==(k==="in"))cat="";k=v;showCats();});
   segWire(d,"#sB",v=>{if(v!==book)cat=v==="apdcl"?M.impCat("",$("eNote").value):"";book=v;$("bNote").textContent=bnote(v);
@@ -260,7 +264,7 @@ function review(at){const P=M.list("pend").sort((a,b)=>M.ord(a)<M.ord(b)?-1:1);i
   const close=()=>{d.close();d.remove();draw();};
   d.querySelector("form").onsubmit=e=>{e.preventDefault();const extra={book:k==="atm"||k==="dep"?"personal":book};
     if(wa){const a=parseFloat(String($("eAmt").value).replace(/[,₹\s]/g,""));if(!(a>0)){const fe=d.querySelector(".ferr");fe.hidden=false;fe.textContent="Enter the amount.";return;}extra.amt=a;if($("eDate").value)extra.date=$("eDate").value;}
-    const mv=fromKind(k,acct),final={...mv,...extra,cat:k==="atm"||k==="dep"?"":(cat||(book==="apdcl"&&k==="in"?"Imprest received":"Other")),note:$("eNote").value.trim()||p.note,time:$("eTime").value||""},r=M.approve(p.id,final);
+    const mv=fromKind(k,acct),final={...mv,...extra,cat:k==="atm"||k==="dep"?"":k==="inv"?"Investment":(cat||(book==="apdcl"&&k==="in"?"Imprest received":"Other")),note:$("eNote").value.trim()||p.note,time:$("eTime").value||""},r=M.approve(p.id,final);
     if(wa)waTell({action:"approve",id:p.waId,book:final.book,kind:final.kind,amt:final.amt,acct:final.acct,date:final.date||p.date,time:final.time,cat:final.cat,note:final.note});
     if(r==="linked")toast("Linked to your hand entry");d.remove();review(i);};
   $("rDel").onclick=()=>{if(wa)waTell({action:"discard",id:p.waId});M.discard(p.id);d.remove();review(i);};

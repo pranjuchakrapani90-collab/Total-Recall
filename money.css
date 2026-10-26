@@ -79,3 +79,6 @@ table.arch th{position:sticky;top:0;background:var(--soft);font-weight:650}
 .kchk{display:flex;gap:8px;align-items:flex-start;font-size:13px;color:var(--ink);background:var(--acc-soft);border-radius:10px;padding:9px 10px}
 .kchk input{margin-top:2px;width:18px;height:18px;flex:0 0 auto}
 .fixb{display:flex;gap:8px;margin-top:8px}.fixb button{flex:1;padding:8px}
+
+.seg.k button{padding-left:2px;padding-right:2px;font-size:13px}
+.ent .a.inv{color:#4a6fa5}
