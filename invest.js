@@ -202,10 +202,10 @@ function liqForm(after,pre){pre=pre||{};const F=kiteFund(),held=F.liqUnits+(pre.
     onSubmit:v=>{const n=Math.round(v.units);if(!(n>0)||!(v.price>0))return "Enter units and price.";if(n>held)return `You hold ${held} units.`;
       upsert("pkp","liq",pre.id,{date:v.date,units:n,price:v.price});if(after)after();},
     onDelete:pre.id?()=>{remove("pkp","liq",pre.id);if(after)after();}:null});}
-/* LiquidBees units to sell to raise `gap` rupees of cash. Kite may make only part of a sale's value usable for
-   buying on the same day, so this sizes for 80% of the proceeds. */
-const LIQ_SAME_DAY=0.8;
-function liqToSell(gap){const F=kiteFund();if(!(gap>0)||!ok(F.liqPrice))return 0;return Math.min(F.liqUnits,Math.ceil(gap/(F.liqPrice*LIQ_SAME_DAY)));}
+/* LiquidBees units to sell to raise `gap` rupees of cash. Zerodha makes 100% of a sale from holdings usable the
+   same day (since Oct 2024); one rupee per ₹1,000 plus the DP charge covers price moves and charges. */
+const LIQ_SAME_DAY=1;
+function liqToSell(gap){const F=kiteFund();if(!(gap>0)||!ok(F.liqPrice))return 0;return Math.min(F.liqUnits,Math.ceil((gap*1.001+CHG.dpLiq+1)/(F.liqPrice*LIQ_SAME_DAY)));}
 /* need = money the next BID or ETF buy takes */
 function fundBar(need){const F=kiteFund();let note="";
   if(ok(need)&&need>F.cash){const gap=need-F.cash;
