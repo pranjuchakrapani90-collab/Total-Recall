@@ -137,11 +137,13 @@ function entry(pre,again){pre=pre||{};const N=M.names(),n=M.now(),edit=!!pre.id;
     <div class="chips" id="eCat"></div>
     <label class="fld"><span>Remark</span><input id="eNote" list="eNotes" autocomplete="off" value="${esc(pre.note||"")}"><datalist id="eNotes">${recentNotes().map(x=>`<option value="${esc(x)}">`).join("")}</datalist></label>
     <div class="two"><label class="fld"><span>Date</span><input id="eDate" type="date" value="${pre.date||n.date}"></label><label class="fld"><span>Time</span><input id="eTime" type="time" value="${pre.time!=null&&edit?pre.time:n.time}"></label></div>
+    <label class="kchk" id="kWrap" hidden><input type="checkbox" id="eKite" ${pre.kiteId||!edit?"checked":""}> Money added to Zerodha (Kite): also add it to the Kite fund, so ETF Shop and Portfolio show it</label>
     ${pre.raw?`<div class="raw">${esc(pre.raw)}</div>`:""}
     <p class="ferr" hidden></p>
     <div class="fbtns">${edit?`<button type="button" class="danger" id="eDel">Delete</button>`:`<button type="button" class="ghost" id="eNext">Save + next</button>`}<span></span><button type="button" class="ghost" id="eX">Cancel</button><button type="submit">Save</button></div>`);
   const showCats=()=>{const ap=book==="apdcl"||M.isApdcl({acct}),mv=k==="atm"||k==="dep";$("eCat").innerHTML=chipsHtml(k,cat,ap?"apdcl":"personal");$("eCat").hidden=mv;$("sA").hidden=mv||fixedAcct;
     d.querySelectorAll('#sK button[data-v="atm"],#sK button[data-v="dep"]').forEach(b=>b.hidden=ap||fixedAcct);
+    $("kWrap").hidden=!(k==="out"&&cat==="Investment"&&!ap&&!fixedAcct);
     $("eNote").placeholder=ap?"e.g. Wagon R fuel · Nitul, Labour · Bichitra":"e.g. Mess lunch, Sethia Brothers";
     $("eCat").querySelectorAll("button").forEach(b=>b.onclick=e=>{e.preventDefault();cat=cat===b.dataset.c?"":b.dataset.c;showCats();});};
   const setK=v=>{k=v;d.querySelectorAll("#sK button").forEach(x=>x.classList.toggle("on",x.dataset.v===v));};
@@ -149,19 +151,29 @@ function entry(pre,again){pre=pre||{};const N=M.names(),n=M.now(),edit=!!pre.id;
   segWire(d,"#sB",v=>{if(v!==book)cat="";book=v;if(v==="apdcl"&&(k==="atm"||k==="dep"))setK("out");showCats();});
   segWire(d,"#sA",v=>{acct=v;});showCats();
   const err=d.querySelector(".ferr"),close=()=>{d.close();d.remove();};
+  let walletOk=false;
   const save=()=>{const amt=parseFloat(String($("eAmt").value).replace(/[,₹\s]/g,""));if(!(amt>0)){err.hidden=false;err.textContent="Enter the amount.";return false;}
+    /* a spend that would take the wallet below zero was most likely paid from the bank: ask once */
+    if(!walletOk&&!fixedAcct&&k==="out"&&acct==="wallet"){const w=M.balance("wallet"),was=edit&&pre.acct==="wallet"&&pre.kind==="out"?pre.amt:0,after=w.val+was-amt;
+      if(w.set&&after<0){err.hidden=false;err.innerHTML=`Your wallet has ${inr(w.val+was)}, so this would take it to ${inr(after)}. Was it paid from the bank?<span class="fixb"><button type="button" id="fxB">Paid from Bank</button><button type="button" class="ghost" id="fxW">No, from Wallet</button></span>`;
+        $("fxB").onclick=()=>{acct="bank";d.querySelectorAll("#sA button").forEach(x=>x.classList.toggle("on",x.dataset.v==="bank"));err.hidden=true;if(save())close();};
+        $("fxW").onclick=()=>{walletOk=true;err.hidden=true;if(save())close();};return false;}}
     const mv=k==="atm"||k==="dep",note=$("eNote").value.trim();if(!note&&!cat&&!mv){err.hidden=false;err.textContent="Add a remark or pick a category.";return false;}
     const r={...pre,...fromKind(k,acct),amt:r2(amt),cat:mv?"":cat,note:note||(k==="atm"?"ATM withdrawal":k==="dep"?"Cash deposit":""),date:$("eDate").value||n.date,time:$("eTime").value||"",src:pre.src||"hand"};
     if(!fixedAcct)r.book=mv?"personal":book;
     /* when it was logged (balance checks compare against this; editing an entry later doesn't change it) */
     r.at=pre.at||pre.t||Date.now();
     delete r.id;delete r.t;if(r.to===undefined)delete r.to;if(!mv)setLastAcct(acct);
+    /* money sent to Zerodha: mirror it as Kite fund "money in" (ETF Shop), linked so edits and deletes follow */
+    const toKite=!$("kWrap").hidden&&$("eKite").checked;
+    if(toKite)r.kiteId=I.upsert("etf","cap",pre.kiteId||null,{date:r.date,amount:r.amt,note:"From Money Book: "+(r.note||"Investment")});
+    else if(pre.kiteId){I.remove("etf","cap",pre.kiteId);delete r.kiteId;}
     I.upsert(KEY,"tx",pre.id,r);draw();
-    if(!edit){const m=model();toast(r.book==="apdcl"?`Saved ${inr(r.amt,r.amt%1?2:0)} · APDCL ${inr(m.apdcl.val)}`:`Saved ${inr(r.amt,r.amt%1?2:0)} · spent today ${inr(m.tSpent)}`);}return true;};
+    if(!edit){const m=model();toast(r.book==="apdcl"?`Saved ${inr(r.amt,r.amt%1?2:0)} · APDCL ${inr(m.apdcl.val)}`:`Saved ${inr(r.amt,r.amt%1?2:0)}${toKite?" · added to Kite fund":` · spent today ${inr(m.tSpent)}`}`);}return true;};
   d.querySelector("form").onsubmit=e=>{e.preventDefault();if(save())close();};
   $("eX").onclick=close;
   if($("eNext"))$("eNext").onclick=()=>{if(save()){close();setTimeout(()=>entry({book},true),50);}};
-  if($("eDel"))$("eDel").onclick=()=>{if(confirm("Delete this entry?")){I.remove(KEY,"tx",pre.id);close();draw();}};
+  if($("eDel"))$("eDel").onclick=()=>{if(confirm("Delete this entry?"+(pre.kiteId?" Its Kite fund money-in goes too.":""))){if(pre.kiteId)I.remove("etf","cap",pre.kiteId);I.remove(KEY,"tx",pre.id);close();draw();}};
   d.showModal();setTimeout(()=>{if(!edit)$("eAmt").focus();},60);}
 
 /* ---------- balance check ---------- */
