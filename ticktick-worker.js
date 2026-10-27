@@ -139,22 +139,59 @@ async function handleTravelFile(request,env){
    Days are India (IST) calendar days. Points sit here, unencrypted, only until a finished day is archived. */
 const LIVE_IST_MS=19800000;
 const liveDay=ms=>new Date(ms+LIVE_IST_MS).toISOString().slice(0,10);
+/* Storage is batched to stay inside Cloudflare's free Durable Objects quota (100,000 rows written a day):
+   GPSLogger may send a point every 2 seconds (43,200 a day). Points wait in memory and are written as one row
+   per ~20 seconds ("chunks"), so a full day is ~4,500 rows, plus ~4,500 to clear it after archiving.
+   A 10-second alarm writes out whatever is waiting when the phone goes quiet. Reads include the waiting points.
+   The first version stored one row per point (+ an index row) in table pts; it is still read until archived. */
+const LIVE_FLUSH_MS=20000;
+const liveDayStart=d=>Date.parse(d+'T00:00:00+05:30');
 export class LiveTrack{
   constructor(state){
-    this.sql=state.storage.sql;
-    this.sql.exec('CREATE TABLE IF NOT EXISTS pts(ms INTEGER PRIMARY KEY, day TEXT NOT NULL, lat REAL NOT NULL, lon REAL NOT NULL, acc REAL, spd REAL, alt REAL)');
-    this.sql.exec('CREATE INDEX IF NOT EXISTS pts_day ON pts(day, ms)');
+    this.state=state;this.sql=state.storage.sql;this.buf=[];this.bufAt=0;
+    this.sql.exec('CREATE TABLE IF NOT EXISTS chunks(ms INTEGER PRIMARY KEY, last INTEGER NOT NULL, n INTEGER NOT NULL, pts TEXT NOT NULL)');
+    this.oldTable=this.sql.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='pts'").toArray().length>0;
+    if(this.oldTable)this.sql.exec('CREATE TABLE IF NOT EXISTS old_done(day TEXT PRIMARY KEY)');
+  }
+  flush(){
+    if(!this.buf.length)return;
+    const b=this.buf;this.buf=[];this.bufAt=0;
+    // one row per chunk; a chunk never spans two IST days
+    let i=0;while(i<b.length){const d=liveDay(b[i][0]);let j=i;while(j<b.length&&liveDay(b[j][0])===d)j++;
+      const part=b.slice(i,j);
+      this.sql.exec('INSERT OR REPLACE INTO chunks(ms,last,n,pts) VALUES(?,?,?,?)',part[0][0],part[part.length-1][0],part.length,JSON.stringify(part));i=j;}
+  }
+  async alarm(){this.flush();}
+  pointsOf(day,since){
+    const a=liveDayStart(day),z=a+86400000,lo=Math.max(a,since+1),out=new Map();
+    if(this.oldTable&&!this.sql.exec('SELECT 1 FROM old_done WHERE day=?',day).toArray().length)for(const r of this.sql.exec('SELECT ms,lat,lon,acc,spd,alt FROM pts WHERE day=? AND ms>? ORDER BY ms',day,since).raw())out.set(r[0],r);
+    // a chunk starting up to a minute before "since" can still hold newer points
+    for(const r of this.sql.exec('SELECT pts FROM chunks WHERE ms>=? AND ms<? ORDER BY ms',Math.max(a,lo-60000),z).raw())
+      for(const p of JSON.parse(r[0]))if(p[0]>=lo)out.set(p[0],p);
+    for(const p of this.buf)if(p[0]>=lo&&p[0]<z)out.set(p[0],p);
+    return [...out.values()].sort((x,y)=>x[0]-y[0]);
   }
   async fetch(request){
     const u=new URL(request.url),op=u.searchParams.get('op'),day=u.searchParams.get('day')||'';
     if(op==='add'){const p=await request.json();
-      this.sql.exec('INSERT OR REPLACE INTO pts(ms,day,lat,lon,acc,spd,alt) VALUES(?,?,?,?,?,?,?)',p.ms,p.day,p.lat,p.lon,p.acc,p.spd,p.alt);
+      if(!this.buf.length){this.bufAt=Date.now();await this.state.storage.setAlarm(Date.now()+10000);}
+      this.buf.push([p.ms,p.lat,p.lon,p.acc,p.spd,p.alt]);
+      if(Date.now()-this.bufAt>=LIVE_FLUSH_MS||this.buf.length>=200)this.flush();
       return Response.json({ok:true});}
-    if(op==='days')return Response.json({days:this.sql.exec('SELECT day, COUNT(*) AS n, MAX(ms) AS last FROM pts GROUP BY day ORDER BY day').toArray()});
-    if(op==='get'){const since=Number(u.searchParams.get('since'))||0;
-      return Response.json({points:[...this.sql.exec('SELECT ms,lat,lon,acc,spd,alt FROM pts WHERE day=? AND ms>? ORDER BY ms',day,since).raw()]});}
-    if(op==='del'){const upto=Number(u.searchParams.get('upto'))||0;
-      this.sql.exec('DELETE FROM pts WHERE day=? AND ms<=?',day,upto);
+    if(op==='days'){
+      const m=new Map(),addTo=(d,n,last)=>{const x=m.get(d)||{day:d,n:0,last:0};x.n+=n;x.last=Math.max(x.last,last);m.set(d,x);};
+      if(this.oldTable)for(const r of this.sql.exec('SELECT day, COUNT(*) AS n, MAX(ms) AS last FROM pts WHERE day NOT IN (SELECT day FROM old_done) GROUP BY day').toArray())addTo(r.day,r.n,r.last);
+      for(const r of this.sql.exec('SELECT ms,last,n FROM chunks').toArray())addTo(liveDay(r.ms),r.n,r.last);
+      for(const p of this.buf)addTo(liveDay(p[0]),1,p[0]);
+      return Response.json({days:[...m.values()].sort((a,b)=>a.day<b.day?-1:1)});}
+    if(op==='get')return Response.json({points:this.pointsOf(day,Number(u.searchParams.get('since'))||0)});
+    if(op==='del'){const upto=Number(u.searchParams.get('upto'))||0,a=liveDayStart(day);
+      this.flush();
+      this.sql.exec('DELETE FROM chunks WHERE ms>=? AND ms<? AND last<=?',a,a+86400000,upto);
+      if(this.oldTable){ // old one-row-per-point table: mark the day done (deleting row by row would use the quota),
+        this.sql.exec('INSERT OR IGNORE INTO old_done(day) VALUES(?)',day); // and drop the whole table once every day in it is done
+        if(!this.sql.exec('SELECT 1 FROM pts WHERE day NOT IN (SELECT day FROM old_done) LIMIT 1').toArray().length){
+          this.sql.exec('DROP TABLE pts');this.sql.exec('DROP TABLE old_done');this.oldTable=false;}}
       return Response.json({ok:true});}
     return Response.json({error:'Unknown operation'},{status:400});
   }
