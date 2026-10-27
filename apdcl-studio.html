@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
+<html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="kvsync.js?v=20261028" data-reload="bomkits"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
 <title>Estimate Studio · Pranju OS</title>
 <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="icon" href="icon-192.png" sizes="192x192"><link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>
@@ -130,5 +130,20 @@ $("kScaled").textContent=Object.values(units).filter(v=>+v&&+v!==1).length;
 $("kDep").textContent=Object.values(mode).filter(v=>v==="dep").length;
 $("sProj").textContent=sp.length;$("sPts").textContent=sp.reduce((a,p)=>a+(p.pts||[]).length,0);
 if(sp[0])$("sNext").textContent=`Last survey: ${sp[0].name}, ${new Date(sp[0].upd).toLocaleDateString("en-IN",{day:"numeric",month:"short"})}`;
+</script>
+<script src="gsync.js?v=20261023"></script>
+<script>
+/* Estimate Studio home shows BoQ Trainer and Line Survey progress, which those pages sync when opened.
+   Pull both here too (same merge rules as the pages), so this page shows the other phone's work straight away. */
+(async function(){try{const G=window.GSync;if(!G||!G.code())return;const c=G.code();
+  const get=k=>{try{return JSON.parse(localStorage.getItem(k)||"null")}catch(e){return null}},put=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+  const [E,V]=await Promise.all([G.fetchSlot(c,"#estimates").catch(()=>null),G.fetchSlot(c,"#sldsurvey").catch(()=>null)]);let ch=false;
+  if(E&&E.prog){const P=get("p2b-prog")||{};Object.entries(E.prog).forEach(([k,v])=>{const l=P[k];if(!l){P[k]=v;ch=true;return}
+    const d={...(l.d||{})};Object.entries(v.d||{}).forEach(([dk,n])=>{if(!(d[dk]>=n)){d[dk]=n;ch=true}});
+    const nb=Math.max(l.best||0,v.best||0),nn=Math.max(l.n||0,v.n||0);if(nb!==l.best||nn!==l.n)ch=true;P[k]={best:nb,n:nn,upd:Math.max(l.upd||0,v.upd||0),d}});
+    if(ch)put("p2b-prog",P);}
+  if(V&&V.projects){const D=get("sld-survey-v1")||{projects:{},cur:null};D.projects=D.projects||{};let c2=false;
+    Object.values(V.projects).forEach(v=>{const l=D.projects[v.id];if(!l||(v.upd||0)>(l.upd||0)){D.projects[v.id]=v;c2=true}});if(c2){put("sld-survey-v1",D);ch=true;}}
+  if(ch)location.reload();}catch(e){console.warn("Estimate Studio pull",e)}})();
 </script>
 </body></html>
