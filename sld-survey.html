@@ -304,10 +304,10 @@ const LINES={
 const KG=["Sources & tapping","New poles & structures","Switching, protection & metering","DTR","Crossings","Change of line type","Consumer end","Existing & dismantling","Landmark (drawing only)","Existing structures on the route","Upgrade / convert an existing structure"];
 const KORD=[0,1,9,10,2,3,4,5,6,7,8];   // order the groups appear in the picker
 const KINDS={
- src11:{g:0,t:"11 kV tapping point",d:"Existing 11 kV pole / DP / structure the new line taps from",src:"HV",o:["srcStr","dof","stays"]},
- src33:{g:0,t:"33 kV tapping point",d:"Existing 33 kV pole / DP / structure the new line taps from",src:"HV",o:["srcStr","stays"]},
+ src11:{g:0,t:"11 kV tapping point",d:"Existing 11 kV pole / DP / structure the new line taps from",src:"HV",o:["exType","srcStr","dof","stays"]},
+ src33:{g:0,t:"33 kV tapping point",d:"Existing 33 kV pole / DP / structure the new line taps from",src:"HV",o:["exType","srcStr","stays"]},
  srcDTR:{g:0,t:"Existing DTR (LT side)",d:"Supply taken from the LT side of an existing DTR",src:"LT",o:["dtrNo","kva","stays"]},
- srcLT:{g:0,t:"LT source (existing LT pole)",d:"Existing LT pole the new LT line starts from",src:"LT",o:["srcStr","stays"]},
+ srcLT:{g:0,t:"LT source (existing LT pole)",d:"Existing LT pole the new LT line starts from",src:"LT",o:["exType","srcStr","stays"]},
  pole:{g:1,t:"New pole (PSC)",d:"Turning point, line end or any pole you fix",o:["poleLen","db","stays"]},
  steel:{g:1,t:"New steel pole",d:"SP-56 / 60 / 66 / 76 with steel-pole grouting",o:["steelType","db","stays"]},
  tp:{g:1,t:"New 3-pole structure (TP)",d:"3 × PSC 9.75 m tied with 3.2 m channels — heavy angle, tee-off or AB switch point",o:["poleLen","goab","dof","la","stays"]},
@@ -317,14 +317,14 @@ const KINDS={
  replace:{g:1,t:"Pole replacement",d:"Damaged / rotten / leaning pole replaced; old pole to dismantling",o:["poleLen","oldPole","dmg","stays"]},
  exFit:{g:9,t:"Existing pole, new fittings",d:"Pole stays; cross-arm, insulators as the structure needs",o:["exType","db","stays"]},
  exPole:{g:9,t:"Existing pole (reused as is)",d:"Already on the route; no new fittings",o:["exType","db","stays"]},
- exDP:{g:9,t:"Existing DP",d:"Double pole already standing. New line fittings are added for the line(s) you join to it",o:["exEq","fit","db","stays"]},
- exTP:{g:9,t:"Existing 3-pole structure",d:"Three-pole structure already standing",o:["exEq","fit","stays"]},
- ex4P:{g:9,t:"Existing 4-pole structure",d:"Four-pole structure already standing",o:["exEq","fit","stays"]},
+ exDP:{g:9,t:"Existing DP",d:"Double pole already standing. New line fittings are added for the line(s) you join to it",o:["exType","exEq","fit","db","stays"]},
+ exTP:{g:9,t:"Existing 3-pole structure",d:"Three-pole structure already standing",o:["exType","exEq","fit","stays"]},
+ ex4P:{g:9,t:"Existing 4-pole structure",d:"Four-pole structure already standing",o:["exType","exEq","fit","stays"]},
  exDTR:{g:9,t:"Existing DTR S/S on the route",d:"New HT line taps or passes at an existing DTR substation; LT can start from it",o:["dtrNo","kva","fit","stays"]},
- sp2dp:{g:10,t:"Existing pole → DP (add 1 pole)",d:"One new pole beside the existing pole, tied with channels",o:["poleLen","goab","dof","la","stays"]},
- dp2tp:{g:10,t:"Existing DP → 3-pole (add 1 pole)",d:"One new pole added to an existing DP; 3.2 m channels tie all three",o:["poleLen","newCh","goab","dof","la","stays"]},
- sp2tp:{g:10,t:"Existing pole → 3-pole (add 2 poles)",d:"Two new poles added to an existing single pole",o:["poleLen","goab","dof","la","stays"]},
- dp24p:{g:10,t:"Existing DP → 4-pole (add 2 poles)",d:"Two new poles added to an existing DP for heavy tension",o:["poleLen","stays"]},
+ sp2dp:{g:10,t:"Existing pole → DP (add 1 pole)",d:"One new pole beside the existing pole, tied with channels",o:["exType","poleLen","goab","dof","la","stays"]},
+ dp2tp:{g:10,t:"Existing DP → 3-pole (add 1 pole)",d:"One new pole added to an existing DP; 3.2 m channels tie all three",o:["exType","poleLen","newCh","goab","dof","la","stays"]},
+ sp2tp:{g:10,t:"Existing pole → 3-pole (add 2 poles)",d:"Two new poles added to an existing single pole",o:["exType","poleLen","goab","dof","la","stays"]},
+ dp24p:{g:10,t:"Existing DP → 4-pole (add 2 poles)",d:"Two new poles added to an existing DP for heavy tension",o:["exType","poleLen","stays"]},
  shift:{g:10,t:"Pole shifting (pole moved here)",d:"Pole re-erected at this new location; old pole to dismantling unless re-used",o:["poleLen","oldPole","reuseOld","stays"]},
  regrout:{g:10,t:"Straighten & re-grout existing pole",d:"Leaning pole straightened with fresh grouting and a stay",kitOnly:true,o:["poleLen","stays"],def:{stays:1}},
  dp:{g:2,t:"11 kV DP (cut-point)",d:"Double pole with optional GOAB / DO / LA",o:["poleLen","goab","dof","la","onEx","stays"]},
@@ -365,7 +365,7 @@ const OPTF={
  dtrNo:{l:"DTR No.",ty:"txt",def:""},lmType:{l:"Landmark",ty:"sel",o:LMT,def:"School"},
  fit:{l:"New line fittings on it (cross-arm / channel, insulators, jumpers)",ty:"chk",def:true},
  exEq:{l:"Equipment already on it",ty:"sel",o:[["","None"],["GOAB","GOAB"],["DO","DO fuse"],["LA","LA"],["GOAB + DO","GOAB + DO"],["GOAB + DO + LA","GOAB + DO + LA"],["DTR","DTR"]],def:""},
- exType:{l:"Existing pole type",ty:"sel",o:[["PSC","PSC"],["RCC","RCC"],["SP-56","SP-56 steel tubular"],["SP-60","SP-60 steel tubular"],["SP-66","SP-66 steel tubular"],["SP-76","SP-76 steel tubular"],["Steel","Steel tubular (other)"],["Rail","Rail pole"],["RSJ","RS joist"]],def:"PSC"},
+ exType:{l:"Existing pole(s) type",ty:"sel",o:[["PSC","PSC"],["RCC","RCC"],["SP-56","SP-56 steel tubular"],["SP-60","SP-60 steel tubular"],["SP-66","SP-66 steel tubular"],["SP-76","SP-76 steel tubular"],["Steel","Steel tubular (other)"],["Rail","Rail pole"],["RSJ","RS joist"]],def:"PSC"},
  srcStr:{l:"Tapping structure",ty:"sel",o:[["SP","Single pole"],["DP","Double pole (DP)"],["TP","3-pole structure"],["4P","4-pole structure"],["ST","Steel / rail pole"]],def:"SP"},
  newCh:{l:"New 3.2 m channels (old DP channels to dismantling)",ty:"chk",def:true},
  reuseOld:{l:"Old pole re-used here (no new pole)",ty:"chk",def:false},
@@ -502,7 +502,7 @@ function compute(p){
   stayKit(kv,nd.stays,(nd.manualStays?"as marked":"auto")+" at P"+x.no);
   const pl=opt(x,"poleLen")||(segIn?poleOf(segIn.sg):kv===33?"SP-76":kv===11?"9.75":"8.5");
   const r=nd.roles[mainCls],strainy=r&&r!=="tangent"&&r!=="tap";
-  const kva=+opt(x,"kva"),dtK=DTRK[kva]||"774",spl=opt(x,"poleLen")||(kv===33&&segIn?poleOf(segIn.sg):"9.75"),isSP=v=>/^SP/.test(v);
+  const kva=+opt(x,"kva"),dtK=DTRK[kva]||"774",exT=opt(x,"exType"),spl=opt(x,"poleLen")||(["sp2dp","dp2tp","sp2tp","dp24p"].includes(x.kind)&&/^SP/.test(exT)?exT:kv===33&&segIn?poleOf(segIn.sg):"9.75"),isSP=v=>/^SP/.test(v);
   switch(x.kind){
    case "pole":newPole(pl,1,kv,(isSP(pl)?pl+" ":"")+"marked pole P"+x.no);if(strainy||isSP(pl)){earth(1,isSP(pl)?"steel pole":"dead-ends, cut-points and tee-offs");nd.earth=1}break;
    case "steel":{const st=opt(x,"steelType");newPole(st,1,kv,st+" at P"+x.no);earth(1,"steel pole");nd.earth=1;break}
@@ -709,30 +709,33 @@ function sldSVG(c,so){
  const SH=(X,Y,s)=>out.push(s.replace(/\$X/g,X.toFixed(1)).replace(/\$Y/g,Y.toFixed(1)));
  const dtrSym=(X,Y,l1,l2,fence)=>{out.push(`<rect x="${X-13}" y="${Y-9}" width="26" height="18" fill="#fff" stroke="#111" stroke-width="1"/><circle cx="${X-3.4}" cy="${Y}" r="5.5" fill="none" stroke="#111"/><circle cx="${X+3.4}" cy="${Y}" r="5.5" fill="none" stroke="#111"/>`);t(X,Y-13,l1,{fs:7.5,fw:700});if(l2)t(X,Y+18,l2,{fs:6.3});if(fence)out.push(`<rect x="${X-18}" y="${Y-12}" width="36" height="24" fill="none" stroke="#6b7280" stroke-width="0.6" stroke-dasharray="2 2"/>`)};
  const dpSym=(X,Y,lb,sub)=>{out.push(`<circle cx="${X-3.5}" cy="${Y}" r="3" fill="#fff" stroke="#111"/><circle cx="${X+3.5}" cy="${Y}" r="3" fill="#fff" stroke="#111"/>`);t(X,Y-8,lb,{fs:7,fw:700});if(sub)t(X,Y+14,sub,{fs:6.3})};
+ let exSq=false,nwSq=false;const exNm=x=>{const v=opt(x,"exType");return v&&v!=="PSC"?({RCC:"RCC",Steel:"STEEL",Rail:"RAIL",RSJ:"RSJ"}[v]||v)+" ":""};
  const multiSym=(X,Y,st,lb,sub,subC)=>{const n=st.length,P=n===4?[[-4,-4],[4,-4],[-4,4],[4,4]]:n===3?[[-7,0],[0,0],[7,0]]:[[-3.5,0],[3.5,0]];
   if(n>1)out.push(`<path d="M${(X+P[0][0]).toFixed(1)},${(Y+P[0][1]).toFixed(1)} ${P.slice(1).map(q=>"L"+(X+q[0]).toFixed(1)+","+(Y+q[1]).toFixed(1)).join(" ")}" stroke="#111" stroke-width="0.8" fill="none"/>`);
-  P.forEach((q,i)=>out.push(`<circle cx="${(X+q[0]).toFixed(1)}" cy="${(Y+q[1]).toFixed(1)}" r="${n===4?2.4:2.9}" fill="${st[i]==="e"?"#111":"#fff"}" stroke="#111" stroke-width="1"/>`));
+  P.forEach((q,i)=>{const r=n===4?2.4:2.9,cx=X+q[0],cy=Y+q[1],sq=st[i]==="e"?exSq:nwSq;out.push(sq?`<rect x="${(cx-r).toFixed(1)}" y="${(cy-r).toFixed(1)}" width="${2*r}" height="${2*r}" fill="${st[i]==="e"?"#111":"#fff"}" stroke="#111" stroke-width="1"/>`:`<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${r}" fill="${st[i]==="e"?"#111":"#fff"}" stroke="#111" stroke-width="1"/>`)});
   t(X,Y-(n===4?10:8),lb,{fs:7,fw:700});if(sub)t(X,Y+(n===4?16:14),sub,{fs:6.1,c:subC||"#111"})};
+ const spOf=x=>(opt(x,"poleLen")||opt(x,"exType"))+" ";
  const eqTxt=x=>[opt(x,"goab")&&"GOAB",opt(x,"dof")&&"DO",opt(x,"la")&&"LA"].filter(Boolean).join(" + ");
  const crossSym0=(X,Y,nn,label,rail)=>{const ux=nn.nx,uy=nn.ny;[-5,5].forEach(d=>{const sx=X-uy*d,sy=Y+ux*d;out.push(`<line x1="${(sx-ux*22).toFixed(1)}" y1="${(sy-uy*22).toFixed(1)}" x2="${(sx+ux*22).toFixed(1)}" y2="${(sy+uy*22).toFixed(1)}" stroke="#6b7280" stroke-width="${rail?1.4:0.9}" stroke-dasharray="${rail?"2 2":"6 2 1.5 2"}"/>`)});
   t(X+ux*30,Y+uy*30+2.5,label,{fs:6.5,fw:700,c:"#4b5563"})};
  c.pts.forEach(x=>{const[X,Y]=T(x),nd=c.nodes[x.id]||{},lb=c.lab[x.id]||("P"+x.no),nn=segN[x.id]||{nx:0,ny:-1},plab=()=>t(X+nn.nx*10,Y+nn.ny*10+2.4,lb,{fs:6.8,fw:700}),open=(r=3.4)=>out.push(`<circle cx="${X}" cy="${Y}" r="${r}" fill="#fff" stroke="#111" stroke-width="1.2"/>`);
   (nd.stayDirs||[]).slice(0,nd.stays||0).forEach(d=>stay(X,Y,d));
+  exSq=/^(SP|Steel|Rail|RSJ)/.test(opt(x,"exType")||"");nwSq=/^SP/.test(opt(x,"poleLen")||"")||(exSq&&/^SP/.test(opt(x,"exType"))&&!opt(x,"poleLen"));
   const kva=opt(x,"kva"),onEx=!!opt(x,"onEx"),filled=()=>out.push(`<circle cx="${X}" cy="${Y}" r="3.2" fill="#111"/>`);
   switch(x.kind){
    case "src11":case "src33":case "srcLT":case "srcDTR":{const mp=x.kind!=="srcDTR"&&["DP","TP","4P"].includes(opt(x,"srcStr"));out.push((mp?"":`<circle cx="${X}" cy="${Y}" r="3.2" fill="#111"/>`)+`<circle cx="${X}" cy="${Y}" r="${mp?11:9}" fill="none" stroke="#C92A2A" stroke-width="1.2" stroke-dasharray="3 2"/>`);
-    const ss=opt(x,"srcStr"),sw={SP:"POLE",DP:"DP",TP:"3-POLE STRUCTURE","4P":"4-POLE STRUCTURE",ST:"STEEL / RAIL POLE"}[ss]||"POLE";
+    const ss=opt(x,"srcStr"),sw=exNm(x)+({SP:"POLE",DP:"DP",TP:"3-POLE STRUCTURE","4P":"4-POLE STRUCTURE",ST:"STEEL / RAIL POLE"}[ss]||"POLE");
     if(x.kind!=="srcDTR"&&ss&&ss!=="SP"&&ss!=="ST"){const n={DP:2,TP:3,"4P":4}[ss],Q=n===4?[[-3.6,-3.6],[3.6,-3.6],[-3.6,3.6],[3.6,3.6]]:n===3?[[-5.5,0],[0,0],[5.5,0]]:[[-3.2,0],[3.2,0]];Q.forEach(q=>out.push(`<circle cx="${(X+q[0]).toFixed(1)}" cy="${(Y+q[1]).toFixed(1)}" r="2.3" fill="#111"/>`))}
     const l1=x.kind==="srcDTR"?"EXISTING DTR"+(x.dtrNo?" NO. "+x.dtrNo:""):x.kind==="srcLT"?"LT SOURCE":"TAPPING POINT",l2=x.kind==="src11"?"EXISTING 11 KV "+sw:x.kind==="src33"?"EXISTING 33 KV "+sw:x.kind==="srcDTR"?kva+" KVA, 11/0.433 KV":"EXISTING LT "+sw;
     t(X,Y-14,l1,{fs:7.5,fw:700,c:"#C92A2A"});t(X,Y+19,l2,{fs:6.3,c:"#C92A2A"});if(p.meta.fdr&&x.kind.startsWith("src1")||p.meta.fdr&&x.kind==="src33")t(X,Y+27,p.meta.fdr.toUpperCase(),{fs:6.3,c:"#C92A2A"});break}
    case "exPole":case "exFit":{const ty=opt(x,"exType");if(ty&&ty!=="PSC"){out.push(`<rect x="${X-3.4}" y="${Y-3.4}" width="6.8" height="6.8" fill="#111"/>`);plab();t(X-nn.nx*12,Y-nn.ny*12+2.4,"EXISTING "+({RCC:"RCC",Steel:"STEEL",Rail:"RAIL",RSJ:"RSJ"}[ty]||ty)+" POLE",{fs:5.8,c:"#4b5563"})}else{filled();plab()}break}
-   case "exDP":case "exTP":case "ex4P":{const n={exDP:2,exTP:3,ex4P:4}[x.kind],eq=opt(x,"exEq");multiSym(X,Y,"e".repeat(n).split(""),lb,"EXISTING "+["","","DP","3-POLE STR.","4-POLE STR."][n]+(eq?", "+eq.toUpperCase():""),"#4b5563");break}
+   case "exDP":case "exTP":case "ex4P":{const n={exDP:2,exTP:3,ex4P:4}[x.kind],eq=opt(x,"exEq");multiSym(X,Y,"e".repeat(n).split(""),lb,"EXISTING "+exNm(x)+["","","DP","3-POLE STR.","4-POLE STR."][n]+(eq?", "+eq.toUpperCase():""),"#4b5563");break}
    case "tp":multiSym(X,Y,["n","n","n"],lb,"3-POLE STRUCTURE (NEW)"+(eqTxt(x)?", "+eqTxt(x):""));break;
    case "ltdp":multiSym(X,Y,["n","n"],lb,"LT DP (NEW)");break;
-   case "sp2dp":multiSym(X,Y,["e","n"],lb,"EXISTING POLE → DP (+1 NEW POLE)"+(eqTxt(x)?", "+eqTxt(x):""),"#1e3a5f");break;
-   case "dp2tp":multiSym(X,Y,["e","e","n"],lb,"EXISTING DP → 3-POLE (+1 NEW POLE)"+(eqTxt(x)?", "+eqTxt(x):""),"#1e3a5f");break;
-   case "sp2tp":multiSym(X,Y,["e","n","n"],lb,"EXISTING POLE → 3-POLE (+2 NEW POLES)"+(eqTxt(x)?", "+eqTxt(x):""),"#1e3a5f");break;
-   case "dp24p":multiSym(X,Y,["e","e","n","n"],lb,"EXISTING DP → 4-POLE (+2 NEW POLES)","#1e3a5f");break;
+   case "sp2dp":multiSym(X,Y,["e","n"],lb,"EXISTING "+exNm(x)+"POLE → DP (+1 NEW "+(nwSq?spOf(x):"")+"POLE)"+(eqTxt(x)?", "+eqTxt(x):""),"#1e3a5f");break;
+   case "dp2tp":multiSym(X,Y,["e","e","n"],lb,"EXISTING "+exNm(x)+"DP → 3-POLE (+1 NEW "+(nwSq?spOf(x):"")+"POLE)"+(eqTxt(x)?", "+eqTxt(x):""),"#1e3a5f");break;
+   case "sp2tp":multiSym(X,Y,["e","n","n"],lb,"EXISTING "+exNm(x)+"POLE → 3-POLE (+2 NEW "+(nwSq?spOf(x):"")+"POLES)"+(eqTxt(x)?", "+eqTxt(x):""),"#1e3a5f");break;
+   case "dp24p":multiSym(X,Y,["e","e","n","n"],lb,"EXISTING "+exNm(x)+"DP → 4-POLE (+2 NEW "+(nwSq?spOf(x):"")+"POLES)","#1e3a5f");break;
    case "exDTR":out.push(`<rect x="${X-13}" y="${Y-9}" width="26" height="18" fill="#e5e7eb" stroke="#111" stroke-width="1"/><circle cx="${X-3.4}" cy="${Y}" r="5.5" fill="none" stroke="#111"/><circle cx="${X+3.4}" cy="${Y}" r="5.5" fill="none" stroke="#111"/>`);t(X,Y-13,"EXISTING "+kva+" KVA DTR"+(x.dtrNo?" NO. "+x.dtrNo:""),{fs:7.2,fw:700,c:"#1F4E9C"});t(X,Y+18,"11/0.433 KV (NO NEW WORK ON DTR)",{fs:6,c:"#1F4E9C"});break;
    case "shift":open();out.push(`<circle cx="${X}" cy="${Y}" r="6" fill="none" stroke="#b45309" stroke-width="0.9"/>`);plab();t(X-nn.nx*13,Y-nn.ny*13+2.4,opt(x,"reuseOld")?"POLE SHIFTED (OLD POLE RE-USED)":"POLE SHIFTED HERE",{fs:6,c:"#b45309"});break;
    case "regrout":filled();plab();t(X-nn.nx*12,Y-nn.ny*12+2.4,"STRAIGHTENED & RE-GROUTED",{fs:5.8,c:"#b45309"});break;
