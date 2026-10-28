@@ -55,7 +55,8 @@ function sheetHTML(p,c,ed){const e=ensure(p,c),k=calc(p,e);let sl=0;
  const ctl=h=>ed?`<td class="ctl">${h||""}</td>`:"";
  const itemRow=(x,i,isJob)=>{const r=x.r,it=x.it,bad=r.sor&&!SOR[r.sor]&&!r.cust;
   const B=ed?`<input class="ci sor${bad?" bad":""}" data-f="sor" data-id="${r.id}" value="${esc(r.cust&&!r.sor?"":r.sor)}" inputmode="numeric" title="SoR Sl. No. — type a number, or tap 🔍 to search">`:esc(r.sor);
-  const Cc=r.cust&&ed?`<textarea class="ci" data-f="d" data-id="${r.id}" rows="1">${esc(it.desc)}</textarea>`:esc(bad?"(not in SoR 2021-22)":it.desc);
+  const vt=ed&&!r.cust&&SOR[r.sor]&&SOR[r.sor][9]?`<span class="vt noprint">${kvTag(SOR[r.sor][9])}</span>`:"";
+  const Cc=r.cust&&ed?`<textarea class="ci" data-f="d" data-id="${r.id}" rows="1">${esc(it.desc)}</textarea>`:esc(bad?"(not in SoR 2021-22)":it.desc)+vt;
   const Dd=r.cust&&ed?`<input class="ci" data-f="u" data-id="${r.id}" value="${esc(it.unit)}">`:esc(it.unit);
   const Ff=r.cust&&ed?`<input class="ci n" data-f="r" data-id="${r.id}" value="${it.rate}" inputmode="decimal">`:rup(it.rate);
   const Ee=ed?`<input class="ci n" data-f="q" data-id="${r.id}" value="${fmtQ(r.q,it.unit)}" inputmode="decimal">`:fmtQ(r.q,it.unit);
@@ -132,6 +133,12 @@ const CSS=`
 #sorList .sr{display:grid;grid-template-columns:52px 1fr 52px 96px;gap:8px;padding:7px 10px;border-bottom:1px solid var(--line);cursor:pointer;font-size:13px}
 #sorList .sr:hover{background:#f0fdfa}#sorList .sg{background:#f1f5f9;font:700 12px system-ui;padding:6px 10px;color:#334155;position:sticky;top:0}
 #sorList .sr b{font-family:var(--mono)}#sorList .sr .rt{text-align:right;font-family:var(--mono)}
+#sorList .sr{grid-template-columns:52px 1fr 64px 52px 96px}#sorList .sr.off{opacity:.45}
+.vk{display:inline-block;font:700 10.5px system-ui;padding:1px 6px;border-radius:999px;background:#e2e8f0;color:#334155;white-space:nowrap;text-align:center}.vk.v33{background:#ede9fe;color:#5b21b6}.vk.v11{background:#dcfce7;color:#166534}.vk.vLT{background:#ffedd5;color:#9a3412}.vk.vHT{background:#e0f2fe;color:#075985}
+.ctxrow{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;margin:2px 0 8px;font-size:13px}.ctxrow .lb{font-weight:650;color:#475569}.ctxrow select{padding:5px 8px;border-radius:8px;border:1px solid var(--line)}
+.seg{display:inline-flex;border:1px solid #0f766e;border-radius:10px;overflow:hidden}.seg button{border:0;background:#fff;padding:5px 11px;font:600 13px system-ui;cursor:pointer;color:#0f766e}.seg button.on{background:#0f766e;color:#fff}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}.chips button{border:1px solid #cbd5e1;background:#f8fafc;border-radius:999px;padding:4px 10px;font:600 12.5px system-ui;cursor:pointer}.chips button.on{background:#0f766e;color:#fff;border-color:#0f766e}
+.xe .vt{font:700 9px system-ui;margin-left:4px;vertical-align:1px}
 /* application */
 .appfiles{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px}.appfile{width:150px;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff;font-size:12px}
 .appfile .th{height:180px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:zoom-in}.appfile .th img,.appfile .th canvas{max-width:100%;max-height:100%}
@@ -177,7 +184,12 @@ document.querySelector("#v-proj").insertAdjacentHTML("beforebegin",`<section id=
  <div class="fwwrap ed" id="fwBox"></div></section>`);
 {const se=$("#printSld"),pe=$("#printEst");se.insertAdjacentHTML("afterend",'<div class="printarea" id="printApp"></div>');se.parentNode.insertBefore(pe,se);pe.insertAdjacentHTML("beforebegin",'<div class="printarea" id="printFw"></div>')}
 document.body.insertAdjacentHTML("beforeend",`
-<dialog id="sorDlg"><div class="dlg"><h3 id="sorT">Pick from SoR 2021-22</h3><div class="f" style="grid-template-columns:1fr 200px"><label>Search number or words<input id="sorQ" placeholder="e.g. 746, rabbit, stay set, grouting"></label><label>Section<select id="sorSec"><option value="">All sections</option>${SECS.map((s,i)=>`<option value="${i}">${esc(s)}</option>`).join("")}</select></label></div>
+<dialog id="sorDlg"><div class="dlg"><h3 id="sorT">Pick from SoR 2021-22</h3>
+<div class="ctxrow"><span class="lb">Working on</span><span class="seg" id="sorKv">${[["","Any"],["33","33 kV"],["11","11 kV"],["LT","LT"]].map(([v,t])=>`<button type="button" data-kv="${v}">${t}</button>`).join("")}</span>
+ <span class="lb">Conductor</span><select id="sorCond"><option value="">Any</option>${["Wolf","Panther","Raccoon","Dog","Rabbit","Weasel","Squirrel"].map(c=>`<option>${c}</option>`).join("")}</select></div>
+<div class="chips" id="sorChips">${[["Disc","disc"],["Disc hardware","h/w fitting"],["Pin insulator","pin insulator"],["Tension clamp","tension clamp"],["Suspension clamp","suspension clamp"],["PG clamp","pg clamp"],["Jointing sleeve","sleeve"],["Cross arm","cross arm"],["Channel","channel"],["Top cleat","top cleat"],["Stay set","stay set"],["Stay wire","stay wire"],["Guy insulator","guy insulator"],["Pole","pole"],["Grouting","grouting"],["Earthing","earth"],["LA","arrestor"],["AB switch / isolator","isolator|tpgo|ab switch|goab|air break"],["DO fuse","do fuse"],["Conductor","conductor"],["DTR","dtr"],["Danger plate","danger"],["Barbed wire","barbed"],["Nuts & bolts","nuts"]].map(([t,q])=>`<button type="button" data-q="${esc(q)}">${t}</button>`).join("")}</div>
+<div class="f" style="grid-template-columns:1fr 200px"><label>Search number or words<input id="sorQ" placeholder="e.g. 607, disc, stay set, grouting"></label><label>Section<select id="sorSec"><option value="">All sections</option>${SECS.map((s,i)=>`<option value="${i}">${esc(s)}</option>`).join("")}</select></label></div>
+<label class="ck" style="font-size:13px"><input type="checkbox" id="sorAll"> Also show items for other voltages and conductors</label>
 <div id="sorList"></div><div class="drow"><span style="flex:1"></span><button class="btn alt" id="sorClose" type="button">Close</button></div></div></dialog>`);
 document.querySelectorAll("nav.tabs button[data-v=fw]").forEach(b=>b.onclick=()=>{show("fw");renderAll()});
 
@@ -219,14 +231,30 @@ const oldX=$("#xlsBtn");if(oldX){oldX.textContent="⬇ Excel (.xlsx) in your for
 
 /* SoR picker */
 let sorCb=null;
-function openSor(cb,title){sorCb=cb;$("#sorT").textContent=(title||"Pick")+" — SoR 2021-22";$("#sorQ").value="";$("#sorSec").value="";listSor();$("#sorDlg").showModal();setTimeout(()=>$("#sorQ").focus(),50)}
-function listSor(){const q=$("#sorQ").value.trim().toLowerCase(),sec=$("#sorSec").value,words=q.split(/\s+/).filter(Boolean);let out=[],n=0,last=-2;
+// what the SDE is working on: voltage and conductor, guessed from the SLD, remembered per survey
+function ctxOf(p,c){const e=p.est||{};if(e.ctx)return e.ctx;const seg=(c.segs||[]).filter(s=>!s.L.ex&&!s.L.dis),hv=seg.filter(s=>s.cls==="HV");
+ const kv=hv.some(s=>s.kv===33)?"33":hv.length?"11":seg.length?"LT":"",cn=(()=>{const L=(hv[0]||seg[0]||{}).L||{},m=String(L.t||"").match(/Wolf|Panther|Raccoon|Dog|Rabbit|Weasel|Squirrel/);return m?m[0]:""})();return{kv,cond:cn}}
+const kvTag=v=>v?`<span class="vk v${v}">${v==="LT"?"LT":v==="HT"?"HT (11/33)":v+" kV"}</span>`:"";
+const kvFits=(t,kv)=>!kv||!t||t===kv||(t==="HT"&&(kv==="33"||kv==="11"));
+const condFits=(t,cn)=>!cn||!t||t===cn;
+let SC={kv:"",cond:""};
+function openSor(cb,title){const p=P();sorCb=cb;SC={...ctxOf(p,compute(p))};$("#sorT").textContent=(title||"Pick")+" — SoR 2021-22";$("#sorQ").value="";$("#sorSec").value="";$("#sorAll").checked=false;$("#sorCond").value=SC.cond;listSor();$("#sorDlg").showModal();setTimeout(()=>$("#sorQ").focus(),50)}
+function saveCtx(){const p=P();if(p.est){p.est.ctx={...SC};touch(p)}}
+function listSor(){document.querySelectorAll("#sorKv button").forEach(b=>b.classList.toggle("on",b.dataset.kv===SC.kv));
+ const q=$("#sorQ").value.trim().toLowerCase(),sec=$("#sorSec").value,all=$("#sorAll").checked,alts=q.split("|").map(a=>a.split(/\s+/).filter(Boolean)).filter(a=>a.length);
+ document.querySelectorAll("#sorChips button").forEach(b=>b.classList.toggle("on",b.dataset.q===q));
+ const norm=s=>s.toLowerCase().replace(/rac+o+n/g,"raccoon");let out=[],n=0,last="",hidden=0;
  Object.keys(SOR).sort((a,b)=>+a-+b).forEach(k=>{const s=SOR[k];if(sec!==""&&s[7]!==+sec)return;
-  if(words.length&&!(k===q||words.every(w=>(k+" "+s[2]+" "+s[3]).toLowerCase().includes(w))))return;if(n>=150)return;n++;
-  if(s[7]!==last){last=s[7];out.push(`<div class="sg">${esc(SECS[s[7]]||"")}</div>`)}
-  out.push(`<div class="sr" data-k="${k}"><b>${k}</b><span>${esc(s[2])}</span><span>${esc(s[3])}</span><span class="rt">${rup(s[4])}</span></div>`)});
- $("#sorList").innerHTML=out.join("")||'<p class="muted" style="padding:12px">Nothing matches.</p>'}
-$("#sorQ").addEventListener("input",listSor);$("#sorSec").addEventListener("change",listSor);$("#sorClose").onclick=()=>$("#sorDlg").close();
+  const hay=norm(k+" "+s[2]+" "+s[3]+" "+(s[8]||"")+" "+(SECS[s[7]]||""));
+  if(alts.length&&!(k===q||alts.some(ws=>ws.every(w=>{w=norm(w);return w.length<=3?new RegExp("(^|[^a-z0-9])"+w.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"([^a-z0-9]|$)").test(hay):hay.includes(w)}))))return;
+  const fit=kvFits(s[9],SC.kv)&&condFits(s[10],SC.cond);if(!fit&&!all){hidden++;return}if(n>=200)return;n++;
+  const g=(SECS[s[7]]||"")+(s[8]?" — "+s[8]:"");if(g!==last){last=g;out.push(`<div class="sg">${esc(g)}</div>`)}
+  out.push(`<div class="sr${fit?"":" off"}" data-k="${k}"><b>${k}</b><span>${esc(s[2])}</span><span>${kvTag(s[9])}</span><span>${esc(s[3])}</span><span class="rt">${rup(s[4])}</span></div>`)});
+ $("#sorList").innerHTML=(out.join("")||'<p class="muted" style="padding:12px">Nothing matches.</p>')+(hidden&&!all?`<p class="muted" style="padding:8px 12px;font-size:12.5px">${hidden} item${hidden>1?"s":""} for other voltages or conductors hidden — tick “Also show” to see them.</p>`:"")}
+$("#sorQ").addEventListener("input",listSor);$("#sorSec").addEventListener("change",listSor);$("#sorAll").addEventListener("change",listSor);
+$("#sorKv").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;SC.kv=b.dataset.kv;saveCtx();listSor()});
+$("#sorCond").addEventListener("change",e=>{SC.cond=e.target.value;saveCtx();listSor()});
+$("#sorChips").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;$("#sorQ").value=$("#sorQ").value===b.dataset.q?"":b.dataset.q;listSor()});$("#sorClose").onclick=()=>$("#sorDlg").close();
 $("#sorList").addEventListener("click",e=>{const r=e.target.closest(".sr");if(!r)return;$("#sorDlg").close();if(sorCb)sorCb(r.dataset.k)});
 
 /* ---------- Excel, built on the workbook's own styles ---------- */
