@@ -143,6 +143,10 @@ const CATALOG=[
   ["MASPTOP50","S&P 500 Top 50",[]],
   ["HNGSNGBEES","Hang Seng",[]]];
 const CAT_VER=1;
+/* international ETFs: their NSE price can sit far above or below NAV (overseas-investment limits), so a fall from
+   the 52W high may only be a premium collapsing. These get a "premium-driven, check NAV" note instead of "too deep". */
+const INTL=new Set(["MON100","N100","MONQ50","MAFANG","MASPTOP50","HNGSNGBEES","MAHKTECH","NASDAQ100","MOSP500","SPXETF","ICICINASDAQ","HDFCNASDAQ"]);
+const isIntl=c=>INTL.has(String(c&&c.code||"").toUpperCase())||/nasdaq|s&p 500|hang seng|nyse|fang|global/i.test(String(c&&c.group||""));
 /* adds the indexes the universe is missing; returns the codes added */
 function addUnique(){const s=I.load(KEY),S={...DEF,...(s.settings||{})};
   /* only on a phone that already has your universe, so a fresh phone never overwrites the synced one */
@@ -260,7 +264,9 @@ function tonight(M){
     ...gt.map(x=>{const l=x.l,s=x.sug;return I.todo("gt "+x.st,"GTT",esc(l.code),s?price(s.trig):"",esc(!x.g&&s?"not placed yet":x.msg),s?`limit ${price(s.lim)} · ${s.qty}`:"",[x.g?"Update":"Placed",`data-gtt="${esc(l.id)}"`]);})];
   const why=[];if(!M.sells.length&&!M.avg&&!M.buys.length&&!M.amo.length){if(M.buyMsg)why.push("No new buy: "+M.buyMsg);if(M.avgMsg)why.push("No average: "+M.avgMsg);}
   if(M.buys.length&&M.avgMsg)why.push(M.avgMsg);
-  if(M.checks.length)why.push(`Check price first: ${M.checks.map(c=>esc(c.code)+" "+pct((ok(c.fall52)?c.fall52:c.fall)*100)).join(", ")} looks too deep`);
+  {const f=c=>esc(c.code)+" "+pct((ok(c.fall52)?c.fall52:c.fall)*100),deep=M.checks.filter(c=>!isIntl(c)),prem=M.checks.filter(c=>isIntl(c));
+   if(deep.length)why.push(`Check price first: ${deep.map(f).join(", ")} looks too deep`);
+   if(prem.length)why.push(`Premium-driven: ${prem.map(f).join(", ")} — international ETF, the fall may be its premium to NAV shrinking, not the index falling. Compare the price with its iNAV before buying`);}
   if(t.open&&tot)why.push("Final after the 3:30 PM close.");
   return `<section class="card hero"><div class="when">${esc(when)}</div><div class="big">${esc(big)}</div>
     ${rows.join("")||`<div class="nothing">No sell, average or buy signal.</div>`}
@@ -286,7 +292,7 @@ function watch(M){
   if(!L.length)return `<p class="nothing">Waiting for live prices.</p>`;
   return `<p class="line">Indexes you don't hold · fall from the 52-week-high close · buy zone below <b>${pct(M.S.minFall*100)}</b></p>
    <div class="rows">${show.map(c=>{const zone=c.fall<=M.S.minFall;
-     return `<div class="row"><span><b>${esc(c.code)}</b> ${c.status==="BUY"?`<span class="tag ok">buy</span>`:c.mode!=="buy"?`<span class="tag">hold</span>`:zone&&c.status==="Group held"?`<span class="tag">group held</span>`:""}
+     return `<div class="row"><span><b>${esc(c.code)}</b> ${isIntl(c)?`<span class="tag" title="International ETF: price can trade at a premium/discount to NAV">premium</span> `:""}${c.status==="BUY"?`<span class="tag ok">buy</span>`:c.mode!=="buy"?`<span class="tag">hold</span>`:zone&&c.status==="Group held"?`<span class="tag">group held</span>`:""}
        <div class="sub">${esc(c.group)}</div></span>
        <span class="r"><span class="${zone?"dn":""}">${pct(c.fall*100,1)}</span><div class="sub">${price(c.close)} · <span class="${tone(c.chg)}">${pct(c.chg,1)}</span></div></span></div>`;}).join("")}</div>
    ${L.length>10?`<button class="more" type="button" id="wAll">${showAll?"Show fewer":"Show all "+L.length}</button>`:""}`;}
