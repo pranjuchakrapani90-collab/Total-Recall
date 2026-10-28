@@ -76,6 +76,7 @@ dialog::backdrop{background:#0006}
 .sldbox svg{display:block;width:100%;height:auto;min-width:640px}
 .sldbox.editing{outline:2px solid #0f766e;outline-offset:-2px}.sldbox.editing svg{touch-action:none;user-select:none;-webkit-user-select:none}.sldbox.editing .tx{cursor:move}.sldbox.editing .grab{cursor:grab}.sldbox.adding svg{cursor:crosshair}
 .btn.on{background:#0f766e;color:#fff;border-color:#0f766e}
+.cols{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;margin:6px 0 2px;font-size:13px}.cols label{display:flex;align-items:center;gap:5px}.cols input[type=color]{width:30px;height:24px;padding:0;border:1px solid var(--line);border-radius:6px;background:#fff}
 .angs{display:flex;flex-wrap:wrap;gap:4px;margin:4px 0 8px}.angs button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:4px 8px;font:600 13px system-ui;cursor:pointer}
 .tools{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;align-items:stretch}.tools .sep{width:1px;background:var(--line);margin:2px 2px}
 .tb{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:52px;padding:5px 6px;border:1px solid var(--line);border-radius:10px;background:#fff;font:700 16px system-ui;cursor:pointer;color:#1e293b}
@@ -156,6 +157,17 @@ table.boq{border-collapse:collapse;width:100%;min-width:720px;font-size:12.5px}
    <label><input type="checkbox" id="oGps"> GPS beside marked points</label>
    <label><input type="checkbox" id="oSpan" checked> Span lengths</label>
    <label><input type="checkbox" id="oSign"> Signature block</label>
+   <label><input type="checkbox" id="oArrow" checked> Power-flow arrows</label>
+   <label><input type="checkbox" id="oStay" checked> Stay symbols</label>
+  </div>
+  <div class="cols">
+   <b>Colours</b>
+   <label><input type="color" id="cHv"> New 11/33 kV line</label>
+   <label><input type="color" id="cLt"> New LT line</label>
+   <label><input type="color" id="cEx"> Existing line</label>
+   <label><input type="color" id="cDis"> Line to be dismantled</label>
+   <button class="btn alt sm" id="cBw" type="button">Black &amp; white</button>
+   <button class="btn alt sm" id="cDef" type="button">Default colours</button>
   </div>
   <div class="drow" style="justify-content:flex-start">
    <button class="btn" id="printSldBtn" type="button">🖨 Print / save PDF</button>
@@ -282,6 +294,7 @@ table.boq{border-collapse:collapse;width:100%;min-width:720px;font-size:12.5px}
   <label>Line<select id="lLine"></select></label>
   <label>Length (m)<input type="number" id="lLen" min="0" step="1" placeholder="auto"></label>
   <label>Pole for new poles<select id="lPole"></select></label>
+  <label>Colour of this line<span style="display:flex;gap:8px;align-items:center"><input type="color" id="lCol" style="width:44px;height:30px;padding:0"><label class="ck" style="margin:0"><input type="checkbox" id="lColDef"> default</label></span></label>
   <label>Crossing on this span<select id="lCross"><option value="">None</option><option value="road">Road (guarding)</option><option value="line">Other line (guarding)</option></select></label>
  </div>
  <div class="sec">
@@ -707,7 +720,7 @@ const workOf=c=>P().meta.work||autoWork(c);
 const locOf=()=>P().meta.loc||"________";
 
 /* ================= SLD drawing ================= */
-let LASTT=null;
+let LASTT=null;const DEFCOL={hv:"#2B8A3E",lt:"#C2410C",ex:"#1F4E9C",dis:"#C92A2A"},BWCOL={hv:"#111111",lt:"#111111",ex:"#555555",dis:"#111111"};
 function sldSVG(c,so){
  const p=P(),W=842,H=595,esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
  const title=(p.meta.title||("SINGLE LINE DIAGRAM FOR "+workOf(c)+" AT "+locOf()+" UNDER SAMAGURI ESD")).toUpperCase();
@@ -739,7 +752,7 @@ function sldSVG(c,so){
   const hid=ov&&ov.hide;return(o.nobox||hid||TB.push(tbox(x,y,str,o)),out.push(`<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" font-size="${o.fs||7.5}" font-weight="${o.fw||400}" fill="${o.c||"#111"}" text-anchor="${o.a||"middle"}" ${o.rot!=null?`transform="rotate(${o.rot.toFixed(1)} ${x.toFixed(1)} ${y.toFixed(1)})"`:""} stroke="#fff" stroke-width="2.6" paint-order="stroke" font-family="Arial, Helvetica, sans-serif"${key?` data-k="${key}" data-x="${x.toFixed(1)}" data-y="${y.toFixed(1)}" class="tx"`:""}${hid?' opacity="0.3" text-decoration="line-through"':""}>${esc(str)}</text>`))};
  out.push(`<rect x="0" y="0" width="${W}" height="${H}" fill="#fff"/><rect x="12" y="12" width="${W-24}" height="${H-24}" fill="none" stroke="#111" stroke-width="1.5"/><rect x="16" y="16" width="${W-32}" height="${H-32}" fill="none" stroke="#111" stroke-width="0.8"/>`);
  const tfs=tl.length>2?9.5:11.5,tlh=tl.length>2?12:14;tl.forEach((l,i)=>{t(W/2,40+i*tlh,l,{fs:tfs,fw:700});const w=l.length*tfs*0.54;out.push(`<line x1="${W/2-w/2}" y1="${43+i*tlh}" x2="${W/2+w/2}" y2="${43+i*tlh}" stroke="#111" stroke-width="0.7"/>`)});
- const col=L=>L.dis?"#C92A2A":L.ex?"#1F4E9C":L.cls==="HV"?"#2B8A3E":"#C2410C";
+ const PAL={...DEFCOL,...(so.col||{})},col=L=>L.dis?PAL.dis:L.ex?PAL.ex:L.cls==="HV"?PAL.hv:PAL.lt;
  ctx("f");
  // ---- identifiers: roads, railway tracks, rivers, drains (drawn under the electrical lines)
  const pl2=a=>a.map(q=>q[0].toFixed(1)+","+q[1].toFixed(1)).join(" ");
@@ -772,20 +785,20 @@ function sldSVG(c,so){
  const rotOf=(x1,y1,x2,y2)=>{let a=Math.atan2(y2-y1,x2-x1)*R2D;if(a>90)a-=180;if(a<-90)a+=180;return a};
  const segN={},runOf=new Map();{const inSeg={};c.segs.forEach(sg=>inSeg[sg.b.id]=sg);c.segs.forEach(sg=>{let h=sg,g=0;while(inSeg[h.a.id]&&inSeg[h.a.id].line===sg.line&&(c.adj[h.a.id]||[]).filter(a=>a.sg.line===sg.line).length===2&&g++<999)h=inSeg[h.a.id];runOf.set(sg,h)});
   const tot=new Map(),best=new Map();c.segs.forEach(sg=>{const h=runOf.get(sg);tot.set(h,(tot.get(h)||0)+sg.len);const[a1,a2]=T(sg.a),[b1,b2]=T(sg.b),L=Math.hypot(b1-a1,b2-a2);if(!best.has(h)||L>best.get(h).L)best.set(h,{sg,L})});c.segs.forEach(sg=>{const h=runOf.get(sg);sg.runLab=best.get(h).sg===sg?tot.get(h):null})}
- c.segs.forEach(sg=>{ctx("s:"+sg.b.id);const[a1,a2]=T(sg.a),[b1,b2]=T(sg.b),L=sg.L,{nx,ny,l:len}=nrm(a1,a2,b1,b2),rot=rotOf(a1,a2,b1,b2);segN[sg.b.id]={nx,ny};
+ c.segs.forEach(sg=>{ctx("s:"+sg.b.id);const[a1,a2]=T(sg.a),[b1,b2]=T(sg.b),L=sg.L,SC=sg.b.lcol||col(sg.L),{nx,ny,l:len}=nrm(a1,a2,b1,b2),rot=rotOf(a1,a2,b1,b2);segN[sg.b.id]={nx,ny};
   const ta=trimTo(sg.a,[a1,a2],sg.mid.length?T(sg.mid[0]):[b1,b2]),tb=trimTo(sg.b,[b1,b2],sg.mid.length?T(sg.mid[sg.mid.length-1]):[a1,a2]);
   {const ps=[ta,...sg.mid.map(T),tb];for(let i=0;i<ps.length-1;i++)LS.push([ps[i][0],ps[i][1],ps[i+1][0],ps[i+1][1]])}
-  out.push(`<line x1="${ta[0].toFixed(1)}" y1="${ta[1].toFixed(1)}" x2="${tb[0].toFixed(1)}" y2="${tb[1].toFixed(1)}" stroke="${col(L)}" stroke-width="${L.cls==="HV"?2.2:1.6}" ${L.dis?'stroke-dasharray="2 3"':L.cls==="LT"&&!L.ex?'stroke-dasharray="6 3"':""} stroke-linecap="round"/>`);if(so.edit)out.push(`<line x1="${ta[0].toFixed(1)}" y1="${ta[1].toFixed(1)}" x2="${tb[0].toFixed(1)}" y2="${tb[1].toFixed(1)}" stroke="transparent" stroke-width="12" class="lhit" data-s="${sg.b.id}"/>`);
+  out.push(`<line x1="${ta[0].toFixed(1)}" y1="${ta[1].toFixed(1)}" x2="${tb[0].toFixed(1)}" y2="${tb[1].toFixed(1)}" stroke="${SC}" stroke-width="${L.cls==="HV"?2.2:1.6}" ${L.dis?'stroke-dasharray="2 3"':L.cls==="LT"&&!L.ex?'stroke-dasharray="6 3"':""} stroke-linecap="round"/>`);if(so.edit)out.push(`<line x1="${ta[0].toFixed(1)}" y1="${ta[1].toFixed(1)}" x2="${tb[0].toFixed(1)}" y2="${tb[1].toFixed(1)}" stroke="transparent" stroke-width="12" class="lhit" data-s="${sg.b.id}"/>`);
   const mx=(a1+b1)/2,my=(a2+b2)/2;
-  if(sg.runLab!=null){if(len>70)t(mx-nx*21,my-ny*21+2.5,L.sh+" · "+(sg.runLab/1000).toFixed(3)+" KM",{fs:7,fw:700,c:col(L),rot});else if(len>30)t(mx-nx*21,my-ny*21+2.5,L.sh.replace(/^(11 KV|33 KV|LT) /,"")+" · "+(sg.runLab/1000).toFixed(3)+" KM",{fs:6,fw:700,c:col(L),rot})}
-  if(!L.ex&&!L.dis&&len>24){const ux=(b1-a1)/len,uy=(b2-a2)/len,ptsOn=[sg.a,...sg.mid,sg.b].map(T);let bi=0,bl=0;for(let i=0;i<ptsOn.length-1;i++){const d=Math.hypot(ptsOn[i+1][0]-ptsOn[i][0],ptsOn[i+1][1]-ptsOn[i][1]);if(d>bl){bl=d;bi=i}}
+  if(sg.runLab!=null){if(len>70)t(mx-nx*21,my-ny*21+2.5,L.sh+" · "+(sg.runLab/1000).toFixed(3)+" KM",{fs:7,fw:700,c:SC,rot});else if(len>30)t(mx-nx*21,my-ny*21+2.5,L.sh.replace(/^(11 KV|33 KV|LT) /,"")+" · "+(sg.runLab/1000).toFixed(3)+" KM",{fs:6,fw:700,c:SC,rot})}
+  if(so.arrow!==false&&!L.ex&&!L.dis&&len>24){const ux=(b1-a1)/len,uy=(b2-a2)/len,ptsOn=[sg.a,...sg.mid,sg.b].map(T);let bi=0,bl=0;for(let i=0;i<ptsOn.length-1;i++){const d=Math.hypot(ptsOn[i+1][0]-ptsOn[i][0],ptsOn[i+1][1]-ptsOn[i][1]);if(d>bl){bl=d;bi=i}}
    const k=Math.floor(ptsOn.length/2)-1>=0?Math.floor((ptsOn.length-1)/2):0,P1=ptsOn[k],P2=ptsOn[k+1]||ptsOn[k],cx=(P1[0]+P2[0])/2,cy=(P1[1]+P2[1])/2,r=4.5;
-   out.push(`<path d="M${(cx+ux*r).toFixed(1)},${(cy+uy*r).toFixed(1)} L${(cx-ux*r-uy*r*.8).toFixed(1)},${(cy-uy*r+ux*r*.8).toFixed(1)} L${(cx-ux*r+uy*r*.8).toFixed(1)},${(cy-uy*r-ux*r*.8).toFixed(1)} Z" fill="${col(L)}"/>`)}
+   out.push(`<path d="M${(cx+ux*r).toFixed(1)},${(cy+uy*r).toFixed(1)} L${(cx-ux*r-uy*r*.8).toFixed(1)},${(cy-uy*r+ux*r*.8).toFixed(1)} L${(cx-ux*r+uy*r*.8).toFixed(1)},${(cy-uy*r-ux*r*.8).toFixed(1)} Z" fill="${SC}"/>`)}
   if(so.span&&!L.ex&&!L.dis){const ptsOn=[sg.a,...sg.mid,sg.b];for(let i=0;i<ptsOn.length-1;i++){const[p1,p2]=T(ptsOn[i]),[q1,q2]=T(ptsOn[i+1]);if(Math.hypot(q1-p1,q2-p2)<24)continue;t((p1+q1)/2-nx*9,(p2+q2)/2-ny*9+2.3,Math.round(hav(ptsOn[i],ptsOn[i+1])*(+sg.b.len>0?sg.len/Math.max(hav(sg.a,sg.b),0.01):1))+" m",{fs:6,c:"#374151",rot})}}
   sg.mid.forEach(m=>{const[x,y]=T(m);out.push(`<circle cx="${x}" cy="${y}" r="2.8" fill="${m.exist?"#111":"#fff"}" stroke="#111" stroke-width="1"/>`);if(m.earth)earthSym(x,y);if(m.stay){const A=xy(sg.a,c.o),B=xy(sg.b,c.o);stay(x,y,{x:-(B.y-A.y),y:B.x-A.x})}const sp=len/(sg.mid.length+1),step=Math.max(1,Math.ceil(20/Math.max(sp,1)));if(m.i%step===0)t(x+nx*9,y+ny*9+2.2,m.lab,{fs:6})});
  });
  function earthSym(x,y){out.push(`<path d="M${x},${y+3} v4 M${x-3.5},${y+7} h7 M${x-2.3},${y+8.8} h4.6 M${x-1.1},${y+10.5} h2.2" stroke="#111" stroke-width="0.7" fill="none"/>`)}
- function stay(x,y,d){const l=Math.hypot(d.x,d.y)||1,ux=d.x/l,uy=-d.y/l,ex=x+ux*15,ey=y+uy*15;LS.push([x,y,ex,ey]);out.push(`<line x1="${x}" y1="${y}" x2="${ex}" y2="${ey}" stroke="#6b7280" stroke-width="0.9"/><path d="M${ex},${ey} l${(-ux*4-uy*2.4).toFixed(1)},${(-uy*4+ux*2.4).toFixed(1)} M${ex},${ey} l${(-ux*4+uy*2.4).toFixed(1)},${(-uy*4-ux*2.4).toFixed(1)}" stroke="#6b7280" stroke-width="0.9" fill="none"/>`)}
+ function stay(x,y,d){if(so.stay===false)return;const l=Math.hypot(d.x,d.y)||1,ux=d.x/l,uy=-d.y/l,ex=x+ux*15,ey=y+uy*15;LS.push([x,y,ex,ey]);out.push(`<line x1="${x}" y1="${y}" x2="${ex}" y2="${ey}" stroke="#6b7280" stroke-width="0.9"/><path d="M${ex},${ey} l${(-ux*4-uy*2.4).toFixed(1)},${(-uy*4+ux*2.4).toFixed(1)} M${ex},${ey} l${(-ux*4+uy*2.4).toFixed(1)},${(-uy*4-ux*2.4).toFixed(1)}" stroke="#6b7280" stroke-width="0.9" fill="none"/>`)}
  // nodes
  const SH=(X,Y,s)=>out.push(s.replace(/\$X/g,X.toFixed(1)).replace(/\$Y/g,Y.toFixed(1)));
  const dtrSym=(X,Y,l1,l2,fence)=>{out.push(`<rect x="${X-13}" y="${Y-9}" width="26" height="18" fill="#fff" stroke="#111" stroke-width="1"/><circle cx="${X-3.4}" cy="${Y}" r="5.5" fill="none" stroke="#111"/><circle cx="${X+3.4}" cy="${Y}" r="5.5" fill="none" stroke="#111"/>`);block(X,Y,"d",[{txt:l1,fs:7.5,fw:700},{txt:l2,fs:6.3}]);if(fence)out.push(`<rect x="${X-18}" y="${Y-12}" width="36" height="24" fill="none" stroke="#6b7280" stroke-width="0.6" stroke-dasharray="2 2"/>`)};
@@ -1002,7 +1015,7 @@ function renderSurvey(c,fit){const p=P();$("#status").textContent=statusText();$
    <button class="btn alt sm" type="button">Edit</button></div>`}).join("")||'<div class="card muted">No points yet.</div>';
  $("#plist").querySelectorAll(".pt").forEach(el=>{el.onclick=()=>{const x=p.pts.find(q=>q.id===el.dataset.id);selId=x.id;if(map)map.panTo([x.lat,x.lng]);openPoint(x)}});
  drawMap(c,fit)}
-function renderSLD(c){const p=P(),o=p.opt;["North","Gps","Span","Sign"].forEach(k=>$("#o"+k).checked=!!o[k.toLowerCase()]);$("#sldTitle").value=p.meta.title||"";
+function renderSLD(c){const p=P(),o=p.opt;$("#oArrow").checked=o.arrow!==false;$("#oStay").checked=o.stay!==false;{const C={...DEFCOL,...(o.col||{})};$("#cHv").value=C.hv;$("#cLt").value=C.lt;$("#cEx").value=C.ex;$("#cDis").value=C.dis}["North","Gps","Span","Sign"].forEach(k=>$("#o"+k).checked=!!o[k.toLowerCase()]);$("#sldTitle").value=p.meta.title||"";
  if(EDIT&&!c.pts.length&&!(p.lay&&p.lay.f)){p.lay=p.lay||{};p.lay.f={ox:150,oy:300,s:0.6,mnx:0,mxy:0,olat:26.4,olng:92.9}}
  $("#sldBox").innerHTML=c.pts.length||EDIT?sldSVG(c,{...o,edit:EDIT}):'<p class="muted" style="padding:16px">Mark points on the Survey tab, or tap ✎ Edit drawing to draw the SLD directly.</p>';
  $("#sldBox").classList.toggle("editing",EDIT);$("#sldBox").classList.toggle("adding",EDIT&&EDMODE==="add");edUI()}
@@ -1092,16 +1105,16 @@ function openLine(b){const p=P();LNB=b;const a=p.pts.find(q=>q.id===b.par);
  $("#lFrom").innerHTML=(a?"":'<option value="">— not connected —</option>')+p.pts.filter(q=>!desc.has(q.id)&&!isStand(q)).map(q=>`<option value="${q.id}" ${q.id===b.par?"selected":""}>P${q.no} · ${KINDS[q.kind].t}${q.note?" · "+q.note:""}</option>`).join("");
  $("#lTo").value="P"+b.no+" · "+KINDS[b.kind].t;
  $("#lLine").innerHTML=Object.entries(LG).map(([g,gl])=>`<optgroup label="${gl}">`+Object.entries(LINES).filter(([,v])=>v.g===g).map(([k,v])=>`<option value="${k}" ${k===b.line?"selected":""}>${v.t}</option>`).join("")+"</optgroup>").join("");
- $("#lPole").innerHTML=$("#dPole").innerHTML;$("#lPole").value=b.pole||"";$("#lCross").value=b.cross||"";
+ $("#lPole").innerHTML=$("#dPole").innerHTML;$("#lPole").value=b.pole||"";$("#lCross").value=b.cross||"";{const L=LINES[b.line]||{},C={...DEFCOL,...(p.opt.col||{})};$("#lCol").value=b.lcol||(L.dis?C.dis:L.ex?C.ex:L.cls==="HV"?C.hv:C.lt);$("#lColDef").checked=!b.lcol}
  $("#lLen").value=b.len||"";$("#lLen").placeholder=a?"auto: "+Math.round(hav(a,b))+" m":"auto";
  const A=a&&posOf(a.id),B=posOf(b.id);if(A&&B){const ang=Math.round(Math.atan2(A[1]-B[1],B[0]-A[0])*R2D);$("#lAng").value=(ang+360)%360;$("#lMm").value=Math.round(Math.hypot(B[0]-A[0],B[1]-A[1])*MM)}else{$("#lAng").value="";$("#lMm").value=""}
  LN0={a:$("#lAng").value,m:$("#lMm").value,par:b.par};
  $("#lAngs").innerHTML=[["→",0],["↗",45],["↑",90],["↖",135],["←",180],["↙",225],["↓",270],["↘",315]].map(([t,v])=>`<button type="button" data-a="${v}">${t} ${v}°</button>`).join("");
  $("#lAngs").querySelectorAll("button").forEach(x=>x.onclick=()=>$("#lAng").value=x.dataset.a);
  $("#lnDlg").showModal()}
-$("#lCancel").onclick=()=>$("#lnDlg").close();
+$("#lCancel").onclick=()=>$("#lnDlg").close();$("#lCol").addEventListener("input",()=>$("#lColDef").checked=false);
 $("#lSave").onclick=()=>{const p=P(),b=LNB;if(!b)return;snap();
- const nf=$("#lFrom").value||null;b.par=nf;b.line=$("#lLine").value;b.pole=$("#lPole").value;b.cross=$("#lCross").value;const lv=$("#lLen").value;b.len=lv===""?null:+lv;
+ const nf=$("#lFrom").value||null;b.par=nf;b.line=$("#lLine").value;b.pole=$("#lPole").value;b.cross=$("#lCross").value;if($("#lColDef").checked)delete b.lcol;else b.lcol=$("#lCol").value;const lv=$("#lLen").value;b.len=lv===""?null:+lv;
  const ang=$("#lAng").value,mm=$("#lMm").value;
  if(nf&&ang!==""&&mm!==""&&(ang!==LN0.a||mm!==LN0.m||nf!==LN0.par)){const A=posOf(nf),B=posOf(b.id);if(A&&B){freeze(p);const r=(+ang)*D2R,d=(+mm)/MM,X=A[0]+Math.cos(r)*d,Y=A[1]-Math.sin(r)*d,dx=X-B[0],dy=Y-B[1];
   const sub=$("#lSub").checked?subtree(p,b.id).map(q=>[q,posOf(q.id)]):[];setPos(p,b,X,Y);sub.forEach(([q,Q])=>{if(Q)setPos(p,q,Q[0]+dx,Q[1]+dy)})}}
@@ -1182,6 +1195,9 @@ $("#newProj").onclick=()=>{const n=prompt("Name of the survey (e.g. Baghbar Ali 
 [["mWork","work"],["mLoc","loc"],["mPay","pay"],["mDoc","doc"],["mDate","date"],["mSS","ss"],["mFdr","fdr"],["mFee","fee"]].forEach(([id,k])=>$("#"+id).addEventListener("change",e=>{const p=P();p.meta[k]=k==="fee"?+e.target.value||0:e.target.value;touch(p);renderAll()}));
 $("#sldTitle").addEventListener("input",e=>{const p=P();p.meta.title=e.target.value.trim();p.upd=Date.now();save()});
 $("#sldTitle").addEventListener("change",e=>{const p=P();p.meta.title=e.target.value.trim();touch(p);renderAll()});
+["Arrow","Stay"].forEach(k=>$("#o"+k).addEventListener("change",e=>{const p=P();p.opt[k.toLowerCase()]=e.target.checked;touch(p);renderAll()}));
+[["cHv","hv"],["cLt","lt"],["cEx","ex"],["cDis","dis"]].forEach(([id,k])=>$("#"+id).addEventListener("change",e=>{const p=P();p.opt.col={...(p.opt.col||{}),[k]:e.target.value};touch(p);renderAll()}));
+$("#cBw").onclick=()=>{const p=P();p.opt.col={...BWCOL};touch(p);renderAll()};$("#cDef").onclick=()=>{const p=P();delete p.opt.col;p.pts.forEach(x=>delete x.lcol);touch(p);renderAll()};
 ["North","Gps","Span","Sign"].forEach(k=>$("#o"+k).addEventListener("change",e=>{const p=P();p.opt[k.toLowerCase()]=e.target.checked;touch(p);renderAll()}));
 Object.keys(DEF_SET).forEach(k=>$("#"+k).addEventListener("change",e=>{const p=P();p.set=p.set||{...DEF_SET};p.set[k]=Math.max(0,+e.target.value||0);touch(p)}));
 
