@@ -708,26 +708,29 @@ function sldSVG(c,so){
  // nodes
  const SH=(X,Y,s)=>out.push(s.replace(/\$X/g,X.toFixed(1)).replace(/\$Y/g,Y.toFixed(1)));
  const dtrSym=(X,Y,l1,l2,fence)=>{out.push(`<rect x="${X-13}" y="${Y-9}" width="26" height="18" fill="#fff" stroke="#111" stroke-width="1"/><circle cx="${X-3.4}" cy="${Y}" r="5.5" fill="none" stroke="#111"/><circle cx="${X+3.4}" cy="${Y}" r="5.5" fill="none" stroke="#111"/>`);t(X,Y-13,l1,{fs:7.5,fw:700});if(l2)t(X,Y+18,l2,{fs:6.3});if(fence)out.push(`<rect x="${X-18}" y="${Y-12}" width="36" height="24" fill="none" stroke="#6b7280" stroke-width="0.6" stroke-dasharray="2 2"/>`)};
- const dpSym=(X,Y,lb,sub)=>{out.push(`<circle cx="${X-3.5}" cy="${Y}" r="3" fill="#fff" stroke="#111"/><circle cx="${X+3.5}" cy="${Y}" r="3" fill="#fff" stroke="#111"/>`);t(X,Y-8,lb,{fs:7,fw:700});if(sub)t(X,Y+14,sub,{fs:6.3})};
+ const dpSym=(X,Y,lb,sub)=>{poleGrp(X,Y,["n","n"],false,nwSq);t(X,Y-9,lb,{fs:7,fw:700});subEnd=13;if(sub){t(X,Y+13,sub,{fs:6.3});subEnd=22}};
  let exSq=false,nwSq=false;const exNm=x=>{const v=opt(x,"exType");return v&&v!=="PSC"?({RCC:"RCC",Steel:"STEEL",Rail:"RAIL",RSJ:"RSJ"}[v]||v)+" ":""};
- const multiSym=(X,Y,st,lb,sub,subC)=>{const n=st.length,P=n===4?[[-4,-4],[4,-4],[-4,4],[4,4]]:n===3?[[-7,0],[0,0],[7,0]]:[[-3.5,0],[3.5,0]];
-  if(n>1)out.push(`<path d="M${(X+P[0][0]).toFixed(1)},${(Y+P[0][1]).toFixed(1)} ${P.slice(1).map(q=>"L"+(X+q[0]).toFixed(1)+","+(Y+q[1]).toFixed(1)).join(" ")}" stroke="#111" stroke-width="0.8" fill="none"/>`);
-  P.forEach((q,i)=>{const r=n===4?2.4:2.9,cx=X+q[0],cy=Y+q[1],sq=st[i]==="e"?exSq:nwSq;out.push(sq?`<rect x="${(cx-r).toFixed(1)}" y="${(cy-r).toFixed(1)}" width="${2*r}" height="${2*r}" fill="${st[i]==="e"?"#111":"#fff"}" stroke="#111" stroke-width="1"/>`:`<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${r}" fill="${st[i]==="e"?"#111":"#fff"}" stroke="#111" stroke-width="1"/>`)});
-  t(X,Y-(n===4?10:8),lb,{fs:7,fw:700});if(sub)t(X,Y+(n===4?16:14),sub,{fs:6.1,c:subC||"#111"})};
+ // pole layouts: DP = two poles side by side, 3-pole = triangle, 4-pole = square, all with clear separation
+ const GEO={1:[[0,0]],2:[[-7,0],[7,0]],3:[[0,-6.5],[7.5,5.5],[-7.5,5.5]],4:[[-6.5,-6.5],[6.5,-6.5],[6.5,6.5],[-6.5,6.5]]},TOP={1:8,2:9,3:13,4:13},BOT={1:12,2:13,3:18,4:18};
+ const poleGrp=(X,Y,st,sqE,sqN)=>{const n=st.length,P=GEO[n],r=2.8,f=v=>v.toFixed(1);
+  if(n>1)out.push(`<path d="M${P.map(q=>f(X+q[0])+","+f(Y+q[1])).join(" L")}${n>2?" Z":""}" stroke="#111" stroke-width="0.8" fill="none"/>`);
+  P.forEach((q,i)=>{const cx=X+q[0],cy=Y+q[1],e=st[i]==="e",sq=e?sqE:sqN;out.push(sq?`<rect x="${f(cx-r)}" y="${f(cy-r)}" width="${2*r}" height="${2*r}" fill="${e?"#111":"#fff"}" stroke="#111" stroke-width="1"/>`:`<circle cx="${f(cx)}" cy="${f(cy)}" r="${r}" fill="${e?"#111":"#fff"}" stroke="#111" stroke-width="1"/>`)})};
+ let subEnd=0;
+ const multiSym=(X,Y,st,lb,sub,subC)=>{const n=st.length;poleGrp(X,Y,st,exSq,nwSq);t(X,Y-TOP[n],lb,{fs:7,fw:700});subEnd=BOT[n];if(sub){t(X,Y+BOT[n],sub,{fs:6.1,c:subC||"#111"});subEnd=BOT[n]+9}};
  const spOf=x=>(opt(x,"poleLen")||opt(x,"exType"))+" ";
  const eqTxt=x=>[opt(x,"goab")&&"GOAB",opt(x,"dof")&&"DO",opt(x,"la")&&"LA"].filter(Boolean).join(" + ");
  const crossSym0=(X,Y,nn,label,rail)=>{const ux=nn.nx,uy=nn.ny;[-5,5].forEach(d=>{const sx=X-uy*d,sy=Y+ux*d;out.push(`<line x1="${(sx-ux*22).toFixed(1)}" y1="${(sy-uy*22).toFixed(1)}" x2="${(sx+ux*22).toFixed(1)}" y2="${(sy+uy*22).toFixed(1)}" stroke="#6b7280" stroke-width="${rail?1.4:0.9}" stroke-dasharray="${rail?"2 2":"6 2 1.5 2"}"/>`)});
   t(X+ux*30,Y+uy*30+2.5,label,{fs:6.5,fw:700,c:"#4b5563"})};
  c.pts.forEach(x=>{const[X,Y]=T(x),nd=c.nodes[x.id]||{},lb=c.lab[x.id]||("P"+x.no),nn=segN[x.id]||{nx:0,ny:-1},plab=()=>t(X+nn.nx*10,Y+nn.ny*10+2.4,lb,{fs:6.8,fw:700}),open=(r=3.4)=>out.push(`<circle cx="${X}" cy="${Y}" r="${r}" fill="#fff" stroke="#111" stroke-width="1.2"/>`);
   (nd.stayDirs||[]).slice(0,nd.stays||0).forEach(d=>stay(X,Y,d));
-  exSq=/^(SP|Steel|Rail|RSJ)/.test(opt(x,"exType")||"");nwSq=/^SP/.test(opt(x,"poleLen")||"")||(exSq&&/^SP/.test(opt(x,"exType"))&&!opt(x,"poleLen"));
+  subEnd=0;exSq=/^(SP|Steel|Rail|RSJ)/.test(opt(x,"exType")||"");nwSq=/^SP/.test(opt(x,"poleLen")||"")||(exSq&&/^SP/.test(opt(x,"exType"))&&!opt(x,"poleLen"));
   const kva=opt(x,"kva"),onEx=!!opt(x,"onEx"),filled=()=>out.push(`<circle cx="${X}" cy="${Y}" r="3.2" fill="#111"/>`);
   switch(x.kind){
-   case "src11":case "src33":case "srcLT":case "srcDTR":{const mp=x.kind!=="srcDTR"&&["DP","TP","4P"].includes(opt(x,"srcStr"));out.push((mp?"":`<circle cx="${X}" cy="${Y}" r="3.2" fill="#111"/>`)+`<circle cx="${X}" cy="${Y}" r="${mp?11:9}" fill="none" stroke="#C92A2A" stroke-width="1.2" stroke-dasharray="3 2"/>`);
+   case "src11":case "src33":case "srcLT":case "srcDTR":{const mp=x.kind!=="srcDTR"&&["DP","TP","4P"].includes(opt(x,"srcStr"));out.push((mp?"":`<circle cx="${X}" cy="${Y}" r="3.2" fill="#111"/>`)+`<circle cx="${X}" cy="${Y}" r="${mp?14:9}" fill="none" stroke="#C92A2A" stroke-width="1.2" stroke-dasharray="3 2"/>`);
     const ss=opt(x,"srcStr"),sw=exNm(x)+({SP:"POLE",DP:"DP",TP:"3-POLE STRUCTURE","4P":"4-POLE STRUCTURE",ST:"STEEL / RAIL POLE"}[ss]||"POLE");
-    if(x.kind!=="srcDTR"&&ss&&ss!=="SP"&&ss!=="ST"){const n={DP:2,TP:3,"4P":4}[ss],Q=n===4?[[-3.6,-3.6],[3.6,-3.6],[-3.6,3.6],[3.6,3.6]]:n===3?[[-5.5,0],[0,0],[5.5,0]]:[[-3.2,0],[3.2,0]];Q.forEach(q=>out.push(`<circle cx="${(X+q[0]).toFixed(1)}" cy="${(Y+q[1]).toFixed(1)}" r="2.3" fill="#111"/>`))}
+    if(x.kind!=="srcDTR"&&ss&&ss!=="SP"&&ss!=="ST"){const n={DP:2,TP:3,"4P":4}[ss];poleGrp(X,Y,"e".repeat(n).split(""),exSq,exSq)}
     const l1=x.kind==="srcDTR"?"EXISTING DTR"+(x.dtrNo?" NO. "+x.dtrNo:""):x.kind==="srcLT"?"LT SOURCE":"TAPPING POINT",l2=x.kind==="src11"?"EXISTING 11 KV "+sw:x.kind==="src33"?"EXISTING 33 KV "+sw:x.kind==="srcDTR"?kva+" KVA, 11/0.433 KV":"EXISTING LT "+sw;
-    t(X,Y-14,l1,{fs:7.5,fw:700,c:"#C92A2A"});t(X,Y+19,l2,{fs:6.3,c:"#C92A2A"});if(p.meta.fdr&&x.kind.startsWith("src1")||p.meta.fdr&&x.kind==="src33")t(X,Y+27,p.meta.fdr.toUpperCase(),{fs:6.3,c:"#C92A2A"});break}
+    const g=mp?5:0,hasF=p.meta.fdr&&(x.kind.startsWith("src1")||x.kind==="src33");t(X,Y-14-g,l1,{fs:7.5,fw:700,c:"#C92A2A"});t(X,Y+19+g,l2,{fs:6.3,c:"#C92A2A"});subEnd=19+g+(hasF?8:0);if(hasF)t(X,Y+27+g,p.meta.fdr.toUpperCase(),{fs:6.3,c:"#C92A2A"});break}
    case "exPole":case "exFit":{const ty=opt(x,"exType");if(ty&&ty!=="PSC"){out.push(`<rect x="${X-3.4}" y="${Y-3.4}" width="6.8" height="6.8" fill="#111"/>`);plab();t(X-nn.nx*12,Y-nn.ny*12+2.4,"EXISTING "+({RCC:"RCC",Steel:"STEEL",Rail:"RAIL",RSJ:"RSJ"}[ty]||ty)+" POLE",{fs:5.8,c:"#4b5563"})}else{filled();plab()}break}
    case "exDP":case "exTP":case "ex4P":{const n={exDP:2,exTP:3,ex4P:4}[x.kind],eq=opt(x,"exEq");multiSym(X,Y,"e".repeat(n).split(""),lb,"EXISTING "+exNm(x)+["","","DP","3-POLE STR.","4-POLE STR."][n]+(eq?", "+eq.toUpperCase():""),"#4b5563");break}
    case "tp":multiSym(X,Y,["n","n","n"],lb,"3-POLE STRUCTURE (NEW)"+(eqTxt(x)?", "+eqTxt(x):""));break;
@@ -743,7 +746,7 @@ function sldSVG(c,so){
    case "iso33":dpSym(X,Y,lb,"33 KV ISOLATOR (TPGO-DBCR 800 A)");break;
    case "ctpt":dpSym(X,Y,lb,"11 KV CT-PT METERING");break;
    case "vcb11":dpSym(X,Y,lb,"11 KV OUTDOOR VCB");break;
-   case "p4":[[-4,-4],[4,-4],[-4,4],[4,4]].forEach(([a,b])=>out.push(`<circle cx="${X+a}" cy="${Y+b}" r="2.3" fill="#fff" stroke="#111"/>`));t(X,Y-10,lb,{fs:7,fw:700});break;
+   case "p4":multiSym(X,Y,["n","n","n","n"],lb,"4-POLE STRUCTURE (NEW)");break;
    case "dtr":dtrSym(X,Y,kva+" KVA DTR (NEW)","11/0.433 KV"+(opt(x,"goab")?", GOAB+DO+LA":", DO+LA")+(onEx?", ON EXISTING DP":""),opt(x,"fence"));break;
    case "htc":dtrSym(X,Y,kva+" KVA S/S (HT CONSUMER)","11/0.433 KV, METERED",opt(x,"fence"));break;
    case "dtrAug":dtrSym(X,Y,"DTR AUGMENTATION","EXISTING "+opt(x,"kvaFrom")+" KVA → NEW "+kva+" KVA");break;
@@ -778,7 +781,7 @@ function sldSVG(c,so){
   }
   if(nd.earth&&["pole","steel","replace","xRiver","tMV","shift"].includes(x.kind))earthSym(X,Y);
   const db=+(opt(x,"db")||0);if(db>0&&(KINDS[x.kind].o||[]).includes("db")){out.push(`<rect x="${X+6}" y="${Y+4}" width="9" height="7" fill="#fff" stroke="#111" stroke-width="0.8"/>`);t(X+18,Y+10,"LT DB ("+db+" CONS.)",{fs:6.2,a:"start"})}
-  if(x.note&&x.kind!=="lm")t(X,Y+(["dtr","htc","dtrAug","dtrTemp","dtrShift","exDTR"].includes(x.kind)?27:x.kind.startsWith("src")?(p.meta.fdr?35:27):17),x.note,{fs:6.3,c:"#4b5563"});
+  if(x.note&&x.kind!=="lm")t(X,Y+(subEnd?subEnd+8:["dtr","htc","dtrAug","dtrTemp","dtrShift","exDTR"].includes(x.kind)?27:x.kind.startsWith("src")?(p.meta.fdr?35:27):17),x.note,{fs:6.3,c:"#4b5563"});
   if(so.gps&&x.kind!=="lm")t(X+10,Y-2,gpsTxt(x),{fs:5.6,c:"#4b5563",a:"start"});
  });
  if(so.north){out.push(`<g transform="translate(790 ${top+10})"><path d="M0,-14 L6,8 L0,3 L-6,8 Z" fill="#111"/><text x="0" y="-18" font-size="10" font-weight="700" text-anchor="middle" font-family="Arial">N</text></g>`)}
