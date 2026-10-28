@@ -119,7 +119,7 @@ table.boq{border-collapse:collapse;width:100%;min-width:720px;font-size:12.5px}
  <div class="trow"><a class="backlink" href="apdcl-studio.html">← Estimate Studio</a><span id="syncBadge" class="sbadge">☁ Sync off</span></div>
  <h1>Line Survey</h1>
  <p class="sub">Mark the key points on site. The poles in between, the SLD and the estimate follow.</p>
- <div class="projbar"><select id="projSel" aria-label="Survey"></select><button class="btn alt sm" id="renProj" type="button" title="Rename this survey — the name is also the SLD title">✎ Rename</button><button class="btn alt sm" id="newProj" type="button">＋ New survey</button><button class="savebadge" id="saveBadge" type="button" title="Where surveys are saved">✓ Saved</button></div>
+ <div class="projbar"><select id="projSel" aria-label="Survey"></select><button class="btn alt sm" id="renProj" type="button" title="Rename this survey">✎ Rename</button><button class="btn alt sm" id="newProj" type="button">＋ New survey</button><button class="savebadge" id="saveBadge" type="button" title="Where surveys are saved">✓ Saved</button></div>
  <nav class="tabs" role="tablist">
   <button data-v="survey" aria-selected="true">📍 Survey</button>
   <button data-v="sld" aria-selected="false">🗺 SLD</button>
@@ -141,6 +141,7 @@ table.boq{border-collapse:collapse;width:100%;min-width:720px;font-size:12.5px}
    <button class="btn alt" id="fitBtn" type="button">⤢</button>
   </div>
  </div>
+ <div class="f" style="margin:8px 0 4px"><label>Survey name<input id="survName" placeholder="e.g. Amoni DP to 3-pole conversion"></label></div>
  <p class="status" id="status">Start at the tapping point (existing 11 kV pole or LT source), then walk the route and mark each turning point, DP, DTR and line end.</p>
  <div id="surveyWarn"></div>
  <div class="sum" id="surveySum"></div>
@@ -151,7 +152,7 @@ table.boq{border-collapse:collapse;width:100%;min-width:720px;font-size:12.5px}
 <section id="v-sld" hidden>
  <div class="card noprint">
   <div class="f">
-   <label>Survey name = SLD title<input id="sldTitle" placeholder="Auto from the survey"></label>
+   <label>SLD title<input id="sldTitle" placeholder="Auto from the survey"></label>
   </div>
   <div class="chk">
    <label><input type="checkbox" id="oNorth"> North arrow</label>
@@ -211,7 +212,7 @@ table.boq{border-collapse:collapse;width:100%;min-width:720px;font-size:12.5px}
  <div class="card noprint">
   <h2>Estimate details</h2>
   <div class="f">
-   <label>Work (title)<input id="mWork" placeholder="Auto from the survey"></label>
+   <label>Estimate title (name of work)<input id="mWork" placeholder="Auto from the survey"></label>
    <label>Location<input id="mLoc" placeholder="Village / road"></label>
    <label>Charges<select id="mPay"><option value="dept">Departmental (F, G = 0)</option><option value="dep">Deposit, APDCL executes (F 3%, G 15%)</option></select></label>
    <label>Document No<input id="mDoc" placeholder="SESD/2026/____"></label>
@@ -731,7 +732,7 @@ const locOf=()=>P().meta.loc||"________";
 let LASTT=null,LASTA=null;const DEFCOL={hv:"#2B8A3E",lt:"#C2410C",ex:"#1F4E9C",dis:"#C92A2A"},BWCOL={hv:"#111111",lt:"#111111",ex:"#555555",dis:"#111111"};
 function sldSVG(c,so){
  const p=P(),W=842,H=595,esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
- const title=(p.meta.title||(namedOf(p)?p.name:"SINGLE LINE DIAGRAM FOR "+workOf(c)+" AT "+locOf()+" UNDER SAMAGURI ESD")).toUpperCase();
+ const title=(p.meta.title||("SINGLE LINE DIAGRAM FOR "+workOf(c)+" AT "+locOf()+" UNDER SAMAGURI ESD")).toUpperCase();
  const all=[];c.pts.forEach(x=>all.push(xy(x,c.o)));c.segs.forEach(s=>s.mid.forEach(m=>all.push(xy(m,c.o))));
  const tl0=wrap(title,92,9),tl=tl0.length>2?wrap(title,112,4):tl0;const top=40+tl.length*(tl.length>2?12:14)+30,bot=so.sign?490:535,lft=105,rgt=737;LASTA={x1:30,x2:812,y1:top-12,y2:so.sign?480:552};
  let mnx=Math.min(...all.map(a=>a.x)),mxx=Math.max(...all.map(a=>a.x)),mny=Math.min(...all.map(a=>a.y)),mxy=Math.max(...all.map(a=>a.y));
@@ -1029,7 +1030,7 @@ function renderSurvey(c,fit){const p=P();$("#status").textContent=statusText();$
    <button class="btn alt sm" type="button">Edit</button></div>`}).join("")||'<div class="card muted">No points yet.</div>';
  $("#plist").querySelectorAll(".pt").forEach(el=>{el.onclick=()=>{const x=p.pts.find(q=>q.id===el.dataset.id);selId=x.id;if(map)map.panTo([x.lat,x.lng]);openPoint(x)}});
  drawMap(c,fit)}
-function renderSLD(c){const p=P(),o=p.opt;$("#oArrow").checked=o.arrow!==false;$("#oStay").checked=o.stay!==false;{const C={...DEFCOL,...(o.col||{})};$("#cHv").value=C.hv;$("#cLt").value=C.lt;$("#cEx").value=C.ex;$("#cDis").value=C.dis}["North","Gps","Span","Sign"].forEach(k=>$("#o"+k).checked=!!o[k.toLowerCase()]);$("#sldTitle").value=p.meta.title||(namedOf(p)?p.name:"");$("#sldTitle").placeholder="Auto: SINGLE LINE DIAGRAM FOR "+workOf(c).toUpperCase()+"…";
+function renderSLD(c){const p=P(),o=p.opt;$("#oArrow").checked=o.arrow!==false;$("#oStay").checked=o.stay!==false;{const C={...DEFCOL,...(o.col||{})};$("#cHv").value=C.hv;$("#cLt").value=C.lt;$("#cEx").value=C.ex;$("#cDis").value=C.dis}["North","Gps","Span","Sign"].forEach(k=>$("#o"+k).checked=!!o[k.toLowerCase()]);$("#sldTitle").value=p.meta.title||"";$("#sldTitle").placeholder="Auto: SINGLE LINE DIAGRAM FOR "+workOf(c).toUpperCase()+"…";
  if(EDIT&&!c.pts.length&&!(p.lay&&p.lay.f)){p.lay=p.lay||{};p.lay.f={ox:150,oy:300,s:0.6,mnx:0,mxy:0,olat:26.4,olng:92.9}}
  $("#sldBox").innerHTML=c.pts.length||EDIT?sldSVG(c,{...o,edit:EDIT}):'<p class="muted" style="padding:16px">Mark points on the Survey tab, or tap ✎ Edit drawing to draw the SLD directly.</p>';
  $("#sldBox").classList.toggle("editing",EDIT);$("#sldBox").classList.toggle("adding",EDIT&&EDMODE==="add");edUI()}
@@ -1228,12 +1229,12 @@ function renderProj(){storeInfo();const L=live();$("#projList").innerHTML=L.map(
   <div style="display:flex;gap:6px"><button class="btn alt sm" data-a="open">Open</button><button class="btn alt sm" data-a="ren">Rename</button><button class="btn alt sm" data-a="dup">Copy</button><button class="btn bad sm" data-a="del">✕</button></div></div>`).join("");
  $("#projList").querySelectorAll(".pt").forEach(el=>el.querySelectorAll("button").forEach(b=>b.onclick=e=>{e.stopPropagation();const p=DB.projects[el.dataset.id],a=b.dataset.a;
   if(a==="open"){DB.cur=p.id;save(false);show("survey");renderAll(true)}
-  if(a==="ren"){const n=prompt("Survey name — also used as the SLD title",p.name);if(n&&n.trim())renameSurvey(p,n)}
+  if(a==="ren"){const n=prompt("Survey name",p.name);if(n&&n.trim())renameSurvey(p,n)}
   if(a==="dup"){const q=JSON.parse(JSON.stringify(p));q.id=uid();q.name=p.name+" (copy)";q.upd=Date.now();DB.projects[q.id]=q;DB.cur=q.id;save();renderAll(true)}
   if(a==="del"){if(confirm("Delete survey '"+p.name+"'?")){p.del=true;p.pts=[];touch(p);renderAll(true)}}}));
  const S={...DEF_SET,...P().set};Object.keys(DEF_SET).forEach(k=>{$("#"+k).value=S[k]})}
 const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
-function renderSel(){$("#projSel").innerHTML=live().map(p=>`<option value="${p.id}" ${p.id===DB.cur?"selected":""}>${esc(p.name)} (${p.pts.length} pts)</option>`).join("")}
+function renderSel(){{const el=$("#survName");if(el&&document.activeElement!==el)el.value=P().name||""}$("#projSel").innerHTML=live().map(p=>`<option value="${p.id}" ${p.id===DB.cur?"selected":""}>${esc(p.name)} (${p.pts.length} pts)</option>`).join("")}
 let VIEW="survey";
 function renderAll(fit){P();renderSel();const c=compute(P());if(VIEW==="survey")renderSurvey(c,fit);else drawMapLater=c;if(VIEW==="sld")renderSLD(c);if(VIEW==="est")renderEst(c);if(VIEW==="proj")renderProj()}
 let drawMapLater=null;
@@ -1245,8 +1246,9 @@ $("#newProj").onclick=()=>{const n=prompt("Name of the survey (e.g. Baghbar Ali 
 // meta / options inputs
 [["mWork","work"],["mLoc","loc"],["mDoc","doc"],["mSS","ss"],["mFdr","fdr"],["mFee","fee"]].forEach(([id,k])=>$("#"+id).addEventListener("input",e=>{const p=P();p.meta[k]=k==="fee"?+e.target.value||0:e.target.value;p.upd=Date.now();save()}));
 [["mWork","work"],["mLoc","loc"],["mPay","pay"],["mDoc","doc"],["mDate","date"],["mSS","ss"],["mFdr","fdr"],["mFee","fee"]].forEach(([id,k])=>$("#"+id).addEventListener("change",e=>{const p=P();p.meta[k]=k==="fee"?+e.target.value||0:e.target.value;touch(p);renderAll()}));
-$("#sldTitle").addEventListener("change",e=>{const p=P(),v=e.target.value.trim();if(v)renameSurvey(p,v);else{delete p.meta.title;p.name="Survey "+new Date().toLocaleDateString("en-IN");touch(p);renderAll()}});
-$("#renProj").onclick=()=>{const p=P(),n=prompt("Survey name — also used as the SLD title (leave as is to cancel)",namedOf(p)?p.name:"");if(n===null||!n.trim())return;renameSurvey(p,n)};
+$("#sldTitle").addEventListener("change",e=>{const p=P();p.meta.title=e.target.value.trim();touch(p);renderAll()});
+$("#survName").addEventListener("change",e=>renameSurvey(P(),e.target.value));
+$("#renProj").onclick=()=>{const p=P(),n=prompt("Survey name",p.name);if(n===null||!n.trim())return;renameSurvey(p,n)};
 ["Arrow","Stay"].forEach(k=>$("#o"+k).addEventListener("change",e=>{const p=P();p.opt[k.toLowerCase()]=e.target.checked;touch(p);renderAll()}));
 [["cHv","hv"],["cLt","lt"],["cEx","ex"],["cDis","dis"]].forEach(([id,k])=>$("#"+id).addEventListener("change",e=>{const p=P();p.opt.col={...(p.opt.col||{}),[k]:e.target.value};touch(p);renderAll()}));
 $("#cBw").onclick=()=>{const p=P();p.opt.col={...BWCOL};touch(p);renderAll()};$("#cDef").onclick=()=>{const p=P();delete p.opt.col;p.pts.forEach(x=>delete x.lcol);touch(p);renderAll()};
@@ -1255,7 +1257,7 @@ Object.keys(DEF_SET).forEach(k=>$("#"+k).addEventListener("change",e=>{const p=P
 
 /* ================= Outputs ================= */
 const namedOf=p=>!!p.name&&!/^survey(\s+\d+|\s+[\d\/.\-]+)?(\s+\(copy\))?$/i.test(p.name.trim());
-function renameSurvey(p,n){n=(n||"").trim();if(!n)return;p.name=n;delete p.meta.title;touch(p);renderAll()}
+function renameSurvey(p,n){n=(n||"").trim();if(!n)return;p.name=n;touch(p);renderAll()}
 function fileBase(){return(P().name||"survey").replace(/[^\w\- ]+/g,"").trim().replace(/\s+/g,"_")}
 function dl(blob,name){const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}
 $("#svgBtn").onclick=()=>{const c=compute(P());dl(new Blob([sldSVG(c,P().opt)],{type:"image/svg+xml"}),fileBase()+"_SLD.svg")};
