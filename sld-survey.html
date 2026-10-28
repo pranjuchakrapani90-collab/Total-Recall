@@ -226,7 +226,7 @@ table.boq{border-collapse:collapse;width:100%;min-width:720px;font-size:12.5px}
    <button class="btn alt" id="printEstBtn" type="button">🖨 Print / save PDF</button>
    <button class="btn alt" id="printBothBtn" type="button">🖨 Estimate + SLD</button>
   </div>
-  <p class="hint">The estimate below is built from the SLD in your own format. Every light-blue box can be changed: type another SoR No. and the item, unit and rate follow from SoR 2021-22; change quantities; tap the RDSS / O&amp;M column to mark stock material. The Excel file is laid out exactly like your workbook, with VLOOKUPs on the SoR sheet.</p>
+  <p class="hint">The estimate below is built from the SLD in your own format. Every light-blue box can be changed: type another SoR No. and the item, unit and rate follow from SoR 2021-22; change quantities; in the RDSS / O&amp;M / reusable column choose what was not bought new, or switch that column off. The Excel file is laid out exactly like your workbook, with VLOOKUPs on the SoR sheet.</p>
  </div>
  <div id="estWarn"></div>
  <div class="est" id="estBox"></div>
@@ -1394,5 +1394,5 @@ setSync(syncCode()?"busy":"off");cloudSync();
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)cloudSync()});
 window.__test={compute,boq,P,DB,save,renderAll,sldSVG,buildXlsx,words};
 </script>
-<script src="drive.js?v=20261029"></script><script src="est-assets.js?v=20261029b"></script><script src="est-doc.js?v=20261029b"></script>
+<script src="drive.js?v=20261029"></script><script src="est-assets.js?v=20261029c"></script><script src="est-doc.js?v=20261029c"></script>
 </body></html>

@@ -17,6 +17,13 @@ const ROM=["i","ii","iii","iv","v","vi","vii","viii","ix","x","xi","xii","xiii",
 const isKm=u=>/^k\.?m\.?$/i.test(String(u||"").trim());
 const fmtQ=(q,u)=>{q=+q||0;if(isKm(u))return q.toFixed(3);return Number.isInteger(q)?String(q):String(Math.round(q*1000)/1000)};
 const CIVIL=SECS.findIndex(s=>/CIVIL/i.test(s));
+// kinds of material that are not bought new: shown in column H and deducted at M
+const SK={rdss:{n:"RDSS dismantled",rem:"RDSS DISMANTLED"},om:{n:"O&M stock",rem:"O&M SUPPLY"},reuse:{n:"Reusable",rem:"REUSABLE"}};
+const skOf=r=>r.st&&!r.job?(SK[r.sk]?r.sk:(/RDSS/i.test(r.rem||"")?"rdss":/REUS/i.test(r.rem||"")?"reuse":"om")):"";
+const hasCol=e=>e.stockCol!==false;
+function usedSk(e){const u=new Set();e.rows.forEach(r=>{const s=skOf(r);if(s)u.add(s)});return["rdss","om","reuse"].filter(x=>u.has(x))}
+const hHeadOf=e=>e.hHead||((u=>u.length?u.map(x=>SK[x].n).join(" / ")+" materials":"RDSS dismantled / O&M stock materials")(usedSk(e)));
+const mLabOf=e=>e.mLab||((u=>"Less: "+(u.length?u.map(x=>x==="reuse"?"reusable":SK[x].n).join(", ").replace(/, ([^,]*)$/," & $1"):"RDSS dismantled & O&M stock")+" materials (incl. GST)")(usedSk(e)));
 const isJobSor=k=>{const s=SOR[k];return !!s&&(s[7]===CIVIL||/^(Job|Rm|Sqm|Cum)\.?$/i.test(s[3]))};
 const isCond=k=>/^(44[5-9]|45\d|46[0-3]|1[0-9]|2[0-9])$/.test(String(k));
 
@@ -33,14 +40,14 @@ function itemOf(r){const s=r.sor&&SOR[r.sor];if(s&&!r.cust)return{desc:s[2],unit
 function sigOf(c){const b=boq(c);return JSON.stringify([b.mat.map(r=>[r.sor,r.q,r.eq]),b.job.map(r=>[r.sor,r.q])])}
 function genRows(c){const b=boq(c),rows=[],U=()=>uid();
  const push=(r,q,st,job)=>{if(!(q>0))return;const k=/^\d+$/.test(r.sor)&&SOR[r.sor]?r.sor:"";
-  rows.push({id:U(),sor:k,q:Math.round(q*1000)/1000,st:!!st,job:!!job,rem:st?(isCond(r.sor)?"RDSS DISMANTLED":"O&M SUPPLY"):"",
+  rows.push({id:U(),sor:k,q:Math.round(q*1000)/1000,st:!!st,sk:st?(isCond(r.sor)?"rdss":"om"):"",job:!!job,rem:st?(isCond(r.sor)?"RDSS DISMANTLED":"O&M SUPPLY"):"",
    ...(k?{}:{cust:true,sor0:r.sor,d:r.desc,u:r.unit,r:r.rate})})};
  b.mat.forEach(r=>{const eq=Math.min(r.eq||0,r.q);if(eq>=r.q)push(r,r.q,true);else{push(r,r.q-eq,false);push(r,eq,true)}});
  b.job.forEach(r=>push(r,r.q,false,true));return rows}
 function defaults(p){const m=p.meta,dep=m.pay==="dep";return{kc:dep?0.03:0,ks:dep?0.15:0}}
 function ensure(p,c){if(!p.est){p.est={v:1,rows:genRows(c),sig:sigOf(c),edited:false,...defaults(p),meter:0,sarma:true};return p.est}
  const e=p.est;if(!e.edited){const sg=sigOf(c);if(sg!==e.sig){e.rows=genRows(c);e.sig=sg}}return e}
-function calc(p,e){const mat=[],job=[];e.rows.forEach(r=>{const it=itemOf(r),G=it.rate*(+r.q||0);(r.job?job:mat).push({r,it,G,H:r.st&&!r.job?G:0})});
+function calc(p,e){const mat=[],job=[];e.rows.forEach(r=>{const it=itemOf(r),G=it.rate*(+r.q||0);(r.job?job:mat).push({r,it,G,H:hasCol(e)&&skOf(r)?G:0})});
  const A=mat.reduce((s,x)=>s+x.G,0),HA=mat.reduce((s,x)=>s+x.H,0),B=A*0.05,C=A+B,D=C*0.15,E=job.reduce((s,x)=>s+x.G,0),DE=D+E,F=C*(+e.kc||0),G=DE*(+e.ks||0),
   Hh=C+DE+F+G,I=+(p.meta.fee||0),J=Hh*0.09,K=Hh*0.09,L=Hh+I+J+K,H28=HA,H30=H28*0.09,H32=H28+H30*2,M=H32,N=+(e.meter||0),O=L-M-N,Pp=Math.ceil(O-1e-9);
  return{mat,job,A,HA,B,C,D,E,DE,F,G,Hh,I,J,K,L,H30,H32,M,N,O,P:Pp}}
@@ -50,7 +57,7 @@ const dtOf=p=>{const d=p.meta.date;if(!d)return"";const[y,m,dd]=d.split("-");ret
 
 /* ---------- the sheet, drawn like the workbook ---------- */
 const W=[6.11,7,61.11,4.89,8.66,12.66,15.89,12,16.55],TW=W.reduce((a,b)=>a+b,0);
-function sheetHTML(p,c,ed){const e=ensure(p,c),k=calc(p,e);let sl=0;
+function sheetHTML(p,c,ed){const e=ensure(p,c),k=calc(p,e),HC=hasCol(e),N9=HC?9:8,N3=HC?3:2,WW=HC?W:W.filter((w,i)=>i!==7),TT=WW.reduce((a,b)=>a+b,0);let sl=0;
  const inp=(cls,val,attrs="")=>ed?`<input class="ci ${cls}" value="${esc(val)}" ${attrs}>`:esc(val);
  const ctl=h=>ed?`<td class="ctl">${h||""}</td>`:"";
  const itemRow=(x,i,isJob)=>{const r=x.r,it=x.it,bad=r.sor&&!SOR[r.sor]&&!r.cust;
@@ -60,21 +67,21 @@ function sheetHTML(p,c,ed){const e=ensure(p,c),k=calc(p,e);let sl=0;
   const Dd=r.cust&&ed?`<input class="ci" data-f="u" data-id="${r.id}" value="${esc(it.unit)}">`:esc(it.unit);
   const Ff=r.cust&&ed?`<input class="ci n" data-f="r" data-id="${r.id}" value="${it.rate}" inputmode="decimal">`:rup(it.rate);
   const Ee=ed?`<input class="ci n" data-f="q" data-id="${r.id}" value="${fmtQ(r.q,it.unit)}" inputmode="decimal">`:fmtQ(r.q,it.unit);
-  const Hh=isJob?rup(0):ed?`<button type="button" class="stk${r.st?" on":""}" data-act="st" data-id="${r.id}" title="RDSS dismantled / O&amp;M stock: tap to switch">${rup(x.H)}</button>`:rup(x.H);
+  const sk=skOf(r),Hh=isJob?rup(0):ed?`<span class="skv${sk?" on "+sk:""}">${rup(x.H)}</span><select class="skov" data-f="sk" data-id="${r.id}" title="Not bought new? Choose RDSS dismantled, O&amp;M stock or reusable"><option value="">New material (₹ 0.00 here)</option>${Object.entries(SK).map(([k2,v])=>`<option value="${k2}" ${sk===k2?"selected":""}>${v.n}</option>`).join("")}</select>`:rup(x.H);
   const Ii=ed?`<input class="ci" data-f="rem" data-id="${r.id}" value="${esc(r.rem||"")}" list="remList">`:esc(r.rem||"");
-  return`<tr class="${isJob?"jb":"it"}"><td class="c">${isJob?ROM[i]||i+1:++sl}</td><td class="c">${B}</td><td class="l${isJob?" t":""}">${Cc}${ed?` <button type="button" class="pk" data-act="pick" data-id="${r.id}" title="Pick from SoR">🔍</button>`:""}</td><td class="c">${Dd}</td><td class="c">${Ee}</td><td class="${isJob?"c":"l"}">${Ff}</td><td class="c">${rup(x.G)}</td><td class="c h">${Hh}</td><td class="i">${Ii}</td>${ctl(`<button type="button" data-act="up" data-id="${r.id}" title="Move up">↑</button><button type="button" data-act="dn" data-id="${r.id}" title="Move down">↓</button><button type="button" data-act="del" data-id="${r.id}" title="Delete row">✕</button><button type="button" data-act="mv" data-id="${r.id}" title="${isJob?"Move to materials":"Move to E (labour included)"}">${isJob?"⇡M":"⇣E"}</button>`)}</tr>`};
- const ab=(L,t,v,h,o={})=>`<tr class="ab${o.nb?" nb":""}"><td class="c">${L}</td><td class="l" colspan="5">${t}</td><td class="c">${o.gh!=null?o.gh:rup(v)}</td><td class="c h">${h==null?"":rup(h)}</td><td></td>${ctl(o.ctl)}</tr>`;
+  return`<tr class="${isJob?"jb":"it"}"><td class="c">${isJob?ROM[i]||i+1:++sl}</td><td class="c">${B}</td><td class="l${isJob?" t":""}">${Cc}${ed?` <button type="button" class="pk" data-act="pick" data-id="${r.id}" title="Pick from SoR">🔍</button>`:""}</td><td class="c">${Dd}</td><td class="c">${Ee}</td><td class="${isJob?"c":"l"}">${Ff}</td><td class="c">${rup(x.G)}</td>${HC?`<td class="c h${ed&&!isJob?" skc":""}">${Hh}</td>`:""}<td class="i">${Ii}</td>${ctl(`<button type="button" data-act="up" data-id="${r.id}" title="Move up">↑</button><button type="button" data-act="dn" data-id="${r.id}" title="Move down">↓</button><button type="button" data-act="del" data-id="${r.id}" title="Delete row">✕</button><button type="button" data-act="mv" data-id="${r.id}" title="${isJob?"Move to materials":"Move to E (labour included)"}">${isJob?"⇡M":"⇣E"}</button>`)}</tr>`};
+ const ab=(L,t,v,h,o={})=>`<tr class="ab${o.nb?" nb":""}"><td class="c">${L}</td><td class="l" colspan="5">${t}</td><td class="c">${o.gh!=null?o.gh:rup(v)}</td>${HC?`<td class="c h">${h==null?"":rup(h)}</td>`:""}<td></td>${ctl(o.ctl)}</tr>`;
  const pct=(f,v,lab)=>ed?`<label class="pc">${lab} <input class="ci n" data-g="${f}" value="${Math.round((+v||0)*10000)/100}" inputmode="decimal">%</label>`:"";
- const addRow=job=>ed?`<tr class="add"><td colspan="9"><button type="button" data-act="add" data-job="${job?1:0}">＋ Add ${job?"item with labour included (E)":"material item"}</button><button type="button" data-act="addpick" data-job="${job?1:0}">🔍 Add from SoR</button>${job?"":`<button type="button" data-act="addcust" data-job="0">＋ Item without SoR No.</button>`}</td>${ctl()}</tr>`:"";
- return`<div class="xe${ed?" ed":""}"><table class="xs"><colgroup>${W.map(w=>`<col style="width:${(w/TW*100).toFixed(3)}%">`).join("")}${ed?'<col class="ctlc">':""}</colgroup><tbody>
- <tr style="height:29px"><td colspan="9" class="h1 c">ASSAM POWER DISTRIBUTION COMPANY LTD.</td>${ctl()}</tr>
- <tr style="height:25px"><td colspan="9" class="h1 c">Samaguri Electrical Sub-Division, Nagaon ED-II, CAR</td>${ctl()}</tr>
- <tr style="height:14px"><td colspan="6" rowspan="2" class="h2 c">PROVISIONAL ESTIMATE</td><td colspan="3" class="ar b c">GSTIN :18AABCL1354J1ZJ</td>${ctl()}</tr>
- <tr style="height:16px"><td colspan="3" class="ar b c">PROFORMA INVOICE</td>${ctl()}</tr>
- <tr style="height:14px"><td colspan="4" class="cal">Document No : ${ed?`<input class="ci" data-m="doc" value="${esc(docOf(p))}" style="width:70%">`:esc(docOf(p))}</td><td colspan="2" class="cal">Dt: ${ed?`<input class="ci" data-m="date" type="date" value="${esc(p.meta.date||"")}" style="width:72%">`:esc(dtOf(p))}</td><td colspan="3" class="ar c">(not valid for Input Tax credit)</td>${ctl()}</tr>
- <tr style="height:46px"><td colspan="6" class="ti">${ed?`<textarea class="ci" data-m="estTitle" rows="3" placeholder="${esc(titleOf({meta:{...p.meta,estTitle:""}},c))}">${esc(p.meta.estTitle||titleOf(p,c))}</textarea>`:esc(titleOf(p,c))}</td><td colspan="3" class="sr c">Rates as per SoR 2021-22</td>${ctl()}</tr>
- ${e.sarma!==false?`<tr style="height:14px"><td colspan="9" class="sa c">"This estimate has been prepared incorporating the recommendations of Hon'ble Justice H.N. Sarma Commission."</td>${ctl(ed?'<label class="pc"><input type="checkbox" data-g="sarma" checked> Sarma line</label>':"")}</tr>`:ed?`<tr class="add"><td colspan="9"><label class="pc"><input type="checkbox" data-g="sarma"> Show the H.N. Sarma Commission line</label></td>${ctl()}</tr>`:""}
- <tr class="hd" style="height:72px"><td class="c nb">Sl. No.</td><td class="c">SOR Sl. No.</td><td class="c">Item Description</td><td class="c">Unit</td><td class="c">Quantity</td><td class="c">Ex. Work Price in Rs.</td><td class="c">Amount<br>in Rs.</td><td class="c">RDSS dismantled / O&amp;M stock materials</td><td class="c">Remarks</td>${ctl()}</tr>
+ const addRow=job=>ed?`<tr class="add"><td colspan="${N9}"><button type="button" data-act="add" data-job="${job?1:0}">＋ Add ${job?"item with labour included (E)":"material item"}</button><button type="button" data-act="addpick" data-job="${job?1:0}">🔍 Add from SoR</button>${job?"":`<button type="button" data-act="addcust" data-job="0">＋ Item without SoR No.</button>`}</td>${ctl()}</tr>`:"";
+ return`<div class="xe${ed?" ed":""}"><table class="xs"><colgroup>${WW.map(w=>`<col style="width:${(w/TT*100).toFixed(3)}%">`).join("")}${ed?'<col class="ctlc">':""}</colgroup><tbody>
+ <tr style="height:29px"><td colspan="${N9}" class="h1 c">ASSAM POWER DISTRIBUTION COMPANY LTD.</td>${ctl()}</tr>
+ <tr style="height:25px"><td colspan="${N9}" class="h1 c">Samaguri Electrical Sub-Division, Nagaon ED-II, CAR</td>${ctl()}</tr>
+ <tr style="height:14px"><td colspan="6" rowspan="2" class="h2 c">PROVISIONAL ESTIMATE</td><td colspan="${N3}" class="ar b c">GSTIN :18AABCL1354J1ZJ</td>${ctl()}</tr>
+ <tr style="height:16px"><td colspan="${N3}" class="ar b c">PROFORMA INVOICE</td>${ctl()}</tr>
+ <tr style="height:14px"><td colspan="4" class="cal">Document No : ${ed?`<input class="ci" data-m="doc" value="${esc(docOf(p))}" style="width:70%">`:esc(docOf(p))}</td><td colspan="2" class="cal">Dt: ${ed?`<input class="ci" data-m="date" type="date" value="${esc(p.meta.date||"")}" style="width:72%">`:esc(dtOf(p))}</td><td colspan="${N3}" class="ar c">(not valid for Input Tax credit)</td>${ctl()}</tr>
+ <tr style="height:46px"><td colspan="6" class="ti">${ed?`<textarea class="ci" data-m="estTitle" rows="3" placeholder="${esc(titleOf({meta:{...p.meta,estTitle:""}},c))}">${esc(p.meta.estTitle||titleOf(p,c))}</textarea>`:esc(titleOf(p,c))}</td><td colspan="${N3}" class="sr c">Rates as per SoR 2021-22</td>${ctl()}</tr>
+ ${e.sarma!==false?`<tr style="height:14px"><td colspan="${N9}" class="sa c">"This estimate has been prepared incorporating the recommendations of Hon'ble Justice H.N. Sarma Commission."</td>${ctl(ed?'<label class="pc"><input type="checkbox" data-g="sarma" checked> Sarma line</label>':"")}</tr>`:ed?`<tr class="add"><td colspan="${N9}"><label class="pc"><input type="checkbox" data-g="sarma"> Show the H.N. Sarma Commission line</label></td>${ctl()}</tr>`:""}
+ <tr class="hd" style="height:72px"><td class="c nb">Sl. No.</td><td class="c">SOR Sl. No.</td><td class="c">Item Description</td><td class="c">Unit</td><td class="c">Quantity</td><td class="c">Ex. Work Price in Rs.</td><td class="c">Amount<br>in Rs.</td>${HC?`<td class="c">${ed?`<textarea class="ci c" data-g="hHead" rows="3">${esc(hHeadOf(e))}</textarea>`:esc(hHeadOf(e))}</td>`:""}<td class="c">Remarks</td>${ctl(ed?`<label class="pc"><input type="checkbox" data-g="stockCol" ${HC?"checked":""}> RDSS / O&amp;M / reusable column</label>`:"")}</tr>
  ${k.mat.map((x,i)=>itemRow(x,i,false)).join("")}${addRow(false)}
  ${ab("A","Cost of Material excl GST",k.A,k.HA)}
  ${ab("B","Add: Transportation &amp; Storage (5% of A )",k.B,0)}
@@ -90,11 +97,11 @@ function sheetHTML(p,c,ed){const e=ensure(p,c),k=calc(p,e);let sl=0;
  ${ab("J","CGST @ (9% on H)",k.J,k.H30)}
  ${ab("K","SGST @ (9% on H)",k.K,k.H30)}
  ${ab("L","Total Amount (H+I+J+K)",k.L,k.H32)}
- ${ab("M","Less: RDSS dismantled conductor &amp; O&amp;M stock DTR (incl. GST)",k.M,null)}
+ ${ab("M",ed&&HC?`<input class="ci" data-g="mLab" value="${esc(mLabOf(e))}">`:esc(mLabOf(e)),k.M,null)}
  ${ab("N","Less: Cost of metering equipments to be paid separately",k.N,null,{gh:ed?`<input class="ci n c" data-g="meter" value="${+(e.meter||0)}" inputmode="decimal">`:null})}
  ${ab("O","Total: L-M-N ( Total Estimate Amount )",k.O,null)}
  ${ab("P","Total Estimated Amount ( ROUNDED OFF )",k.P,null,{nb:1})}
- <tr class="wd"><td colspan="8">Rupees (${words(k.P)}) only.</td><td class="nob"></td>${ctl()}</tr>
+ <tr class="wd"><td colspan="${N9-1}">Rupees (${words(k.P)}) only.</td><td class="nob"></td>${ctl()}</tr>
  </tbody></table>${ed?`<datalist id="remList"><option value="RDSS DISMANTLED"><option value="O&amp;M SUPPLY"><option value="PARTY SUPPLY"><option value="EXISTING"></datalist>`:""}</div>`}
 
 /* ---------- Estimate tab ---------- */
@@ -122,7 +129,9 @@ const CSS=`
 .xe .ci.n{text-align:center}.xe textarea.ci{display:block;min-height:1.3em;font:inherit}
 .xe .ti textarea.ci{min-height:42px}
 .xe .pk{border:0;background:none;cursor:pointer;padding:0 2px;font-size:11px}
-.xe .stk{border:1px dashed #94a3b8;background:#fff;border-radius:4px;font:inherit;cursor:pointer;padding:0 3px;width:100%}.xe .stk.on{background:#fef3c7;border-color:#d97706}
+.xe td.skc{position:relative;cursor:pointer}.xe td.skc .skv{display:block;border:1px dashed #94a3b8;border-radius:4px}.xe .skv.on{background:#fef3c7;border:1px solid #d97706}.xe .skv.reuse{background:#dcfce7;border-color:#16a34a}.xe .skv.om{background:#e0f2fe;border-color:#0284c7}
+.xe select.skov{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:14px}
+.xe .hd textarea.ci{font:inherit;text-align:center;resize:none;height:66px;overflow:hidden}
 .xe td.ctl{white-space:nowrap;padding-left:6px!important;text-align:left}
 .xe td.ctl button{border:1px solid #cbd5e1;background:#fff;border-radius:6px;cursor:pointer;font:12px system-ui;padding:1px 5px;margin-right:2px}
 .xe td.ctl .pc,.xe tr.add .pc{font:12px system-ui;color:#334155}.xe td.ctl .pc input.ci{width:46px;display:inline-block;background:#eef6ff}
@@ -207,10 +216,12 @@ const rowById=(e,id)=>e.rows.find(r=>r.id===id);
 function edit(fn){const p=P(),c=compute(p),e=ensure(p,c);fn(p,e,c);e.edited=true;touch(p);renderAll()}
 box.addEventListener("change",ev=>{const t=ev.target,p=P();
  if(t.dataset.m){const k=t.dataset.m;let v=t.value;if(k==="fee")v=+v||0;if(k==="estTitle"){const c=compute(p);v=v.trim();if(v===titleOf({meta:{...p.meta,estTitle:""}},c))v=""}p.meta[k]=v;touch(p);renderAll();return}
- if(t.dataset.g){const k=t.dataset.g;edit((p,e)=>{if(k==="sarma")e.sarma=t.checked;else if(k==="meter")e.meter=+t.value||0;else e[k]=(+t.value||0)/100});return}
+ if(t.dataset.g){const k=t.dataset.g;edit((p,e)=>{if(k==="sarma")e.sarma=t.checked;else if(k==="stockCol"){e.stockCol=t.checked;if(!t.checked&&usedSk(e).length&&!confirm("Hide the RDSS / O&M / reusable column? Nothing will be deducted at M; your markings are kept and come back if you show the column again.")){e.stockCol=true}}
+  else if(k==="hHead"||k==="mLab"){const v=t.value.trim(),def=k==="hHead"?hHeadOf({...e,hHead:""}):mLabOf({...e,mLab:""});e[k]=v&&v!==def?v:""}else if(k==="meter")e.meter=+t.value||0;else e[k]=(+t.value||0)/100});return}
  const id=t.dataset.id,f=t.dataset.f;if(!id||!f)return;
  edit((p,e)=>{const r=rowById(e,id);if(!r)return;
   if(f==="sor"){const v=t.value.trim();if(!v){r.sor="";if(!r.cust){r.cust=true;r.d=r.d||"";r.u=r.u||"";r.r=r.r||0}return}r.sor=v;if(SOR[v]){delete r.cust;if(isJobSor(v)!==!!r.job&&confirm(isJobSor(v)?"SoR "+v+" is a labour-included job item. Move it to E (other expenses where labour charge is included)?":"SoR "+v+" is a material item. Move it up to the materials?"))r.job=isJobSor(v)}}
+  else if(f==="sk"){const v=t.value,old=skOf(r);r.st=!!v;r.sk=v;if(v&&(!r.rem||(old&&r.rem===SK[old].rem)))r.rem=SK[v].rem;if(!v&&/^(RDSS DISMANTLED|O&M SUPPLY|REUSABLE)$/.test(r.rem||""))r.rem=""}
   else if(f==="q")r.q=+t.value||0;else if(f==="rem")r.rem=t.value.trim();else if(f==="d")r.d=t.value;else if(f==="u")r.u=t.value.trim();else if(f==="r")r.r=+t.value||0})});
 box.addEventListener("click",ev=>{const b=ev.target.closest("button[data-act]");if(!b)return;const a=b.dataset.act,id=b.dataset.id;
  if(a==="pick"){openSor(k=>edit((p,e)=>{const r=rowById(e,id);if(r){r.sor=k;delete r.cust;if(isJobSor(k)!==!!r.job&&confirm(isJobSor(k)?"This is a labour-included job item. Move it to E?":"This is a material item. Move it to the materials?"))r.job=isJobSor(k)}}),"Change item");return}
@@ -221,7 +232,7 @@ box.addEventListener("click",ev=>{const b=ev.target.closest("button[data-act]");
   else if(!r)return;
   else if(a==="del"){if(confirm("Delete this row?"))e.rows.splice(i,1)}
   else if(a==="st"){r.st=!r.st;if(r.st&&!r.rem)r.rem=isCond(r.sor)?"RDSS DISMANTLED":"O&M SUPPLY";if(!r.st&&/^(RDSS DISMANTLED|O&M SUPPLY)$/.test(r.rem))r.rem=""}
-  else if(a==="mv"){r.job=!r.job;if(r.job)r.st=false}
+  else if(a==="mv"){r.job=!r.job;if(r.job){r.st=false;r.sk=""}}
   else if(a==="up"||a==="dn"){const same=e.rows.map((x,j)=>[x,j]).filter(([x])=>!!x.job===!!r.job),k=same.findIndex(([x])=>x===r),o=same[a==="up"?k-1:k+1];if(o){e.rows[i]=o[0];e.rows[o[1]]=r}}})});
 $("#estRegen").onclick=()=>{const p=P();if(p.est&&p.est.edited&&!confirm("Start the estimate again from the current SLD? All your changes to items, quantities and remarks will be lost."))return;const c=compute(p);const keep=p.est?{kc:p.est.kc,ks:p.est.ks,meter:p.est.meter,sarma:p.est.sarma}:{};delete p.est;ensure(p,c);Object.assign(p.est,keep);touch(p);renderAll()};
 $("#mPay").addEventListener("change",()=>{const p=P();if(p.est){Object.assign(p.est,defaults(p));touch(p);renderAll()}});
@@ -274,14 +285,14 @@ function buildEstXlsx(p,c){const e=ensure(p,c),k=calc(p,e),rows=[],merges=[];let
  row(14.25,[S("A",143,"Document No : "+docOf(p)),blank(2,4,143),S("E",143,"Dt: "+dtOf(p)),E("F",143),S("G",134,"(not valid for Input Tax credit)"),blank(8,9,134)]);merges.push("A5:D5","E5:F5","G5:I5");
  row(45.75,[S("A",144,titleOf(p,c)),blank(2,6,144),S("G",135,"Rates as per SoR 2021-22"),blank(8,9,135)]);merges.push("A6:F6","G6:I6");
  if(e.sarma!==false){row(14.25,[S("A",136,"\"This estimate has been prepared incorporating the recommendations of Hon'ble Justice H.N. Sarma Commission.\""),blank(2,9,137)]);merges.push(`A${R}:I${R}`)}
- row(72,[S("A",104,"Sl. No."),S("B",105,"SOR Sl. No."),S("C",105,"Item Description"),S("D",105,"Unit"),S("E",106,"Quantity"),S("F",107,"Ex. Work Price in Rs."),S("G",108,"Amount\nin Rs."),S("H",109,"RDSS dismantled / O&M stock materials"),S("I",130,"Remarks")]);
+ row(72,[S("A",104,"Sl. No."),S("B",105,"SOR Sl. No."),S("C",105,"Item Description"),S("D",105,"Unit"),S("E",106,"Quantity"),S("F",107,"Ex. Work Price in Rs."),S("G",108,"Amount\nin Rs."),S("H",109,hHeadOf(e)),S("I",130,"Remarks")]);
  const VL=(r,col)=>`VLOOKUP(B${r},'SOR-21-22 (2)'!$A$2:$${colL(col)}$931,${col},0)`;
  const htOf=d=>{const L=Math.max(1,Math.ceil(String(d).length/72));return L>1?+(L*14.4+1).toFixed(1):15};
  const item=(x,sl,job)=>{const r=x.r,it=x.it,rr=R+1,lk=!!(r.sor&&SOR[r.sor]&&!r.cust),eSt=job?160:isKm(it.unit)||!Number.isInteger(+r.q)?158:157;
   const cells=[job?S("A",118,sl):N("A",110,sl),lk?N("B",job?119:111,+r.sor):(r.sor?S("B",job?119:111,r.sor):E("B",job?119:111)),
    lk?F("C",job?120:112,VL(rr,4),it.desc,true):S("C",job?120:112,it.desc),lk?F("D",job?121:110,VL(rr,5),it.unit,true):S("D",job?121:110,it.unit),
    N("E",eSt,+r.q||0),lk?F("F",job?122:113,VL(rr,6),it.rate):N("F",job?122:113,it.rate),F("G",job?122:114,`F${rr}*E${rr}`,x.G),
-   job?N("H",115,0):(r.st?F("H",115,`G${rr}`,x.G):N("H",115,0)),r.rem?S("I",htOf(it.desc)>15?159:129,r.rem):E("I",129)];
+   job?N("H",115,0):(x.H?F("H",115,`G${rr}`,x.G):N("H",115,0)),r.rem?S("I",htOf(it.desc)>15?159:129,r.rem):E("I",129)];
   row(htOf(it.desc),cells,htOf(it.desc)===15);return rr};
  const first=R+1;k.mat.forEach((x,i)=>item(x,i+1,false));const last=Math.max(R,first);
  const ab=(L,lab,gf,gv,hf,hv,o={})=>{const rr=R+1,st=o.st||[116,138,117];row(o.h||15,[L!==""?S("A",st[0],L):E("A",st[0]),S("B",st[1],lab),blank(3,6,st[1]),gf!=null?F("G",st[2],gf,gv):N("G",st[2],gv),hf===null?E("H",115):hf!=null?F("H",115,hf,hv):N("H",115,hv||0),E("I",129),...(o.jk||[])]);merges.push(`B${rr}:F${rr}`);return rr};
@@ -300,7 +311,7 @@ function buildEstXlsx(p,c){const e=ensure(p,c),k=calc(p,e),rows=[],merges=[];let
  const rJ=ab("J","CGST @ (9% on H)",`G${rH}*9%`,k.J,`H${rH}*9%`,k.H30);
  const rK=ab("K","SGST @ (9% on H)",`G${rH}*9%`,k.K,`H${rH}*9%`,k.H30);
  const rL=ab("L","Total Amount (H+I+J+K)",`G${rH}+G${rI}+G${rJ}+G${rK}`,k.L,`H${rH}+H${rJ}+H${rK}`,k.H32);
- const rM=ab("M","Less: RDSS dismantled conductor & O&M stock DTR (incl. GST)",`H${rL}`,k.M,null);
+ const rM=hasCol(e)?ab("M",mLabOf(e),`H${rL}`,k.M,null):ab("M",mLabOf(e),null,0,null);
  const rN=ab("N","Less: Cost of metering equipments to be paid separately",null,k.N,null);
  const rO=ab("O","Total: L-M-N ( Total Estimate Amount )",`G${rL}-G${rM}-G${rN}`,k.O,null,null,{st:[124,139,125],h:14.25});
  ab("P","Total Estimated Amount ( ROUNDED OFF )",`ROUNDUP(G${rO},0)`,k.P,null,null,{st:[126,140,127],h:14.25});
@@ -308,7 +319,7 @@ function buildEstXlsx(p,c){const e=ensure(p,c),k=calc(p,e),rows=[],merges=[];let
  const sname=(p.name||"Estimate").replace(/[\\\/\?\*\[\]:']/g," ").replace(/\s+/g," ").trim().slice(0,31)||"Estimate";
  const fit=R>45?' fitToHeight="0"':"";
  const sh1=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><dimension ref="A1:K${R}"/><sheetViews><sheetView tabSelected="1" zoomScaleNormal="100" workbookViewId="0"/></sheetViews><sheetFormatPr defaultColWidth="8.6640625" defaultRowHeight="14.4"/><cols><col min="1" max="1" width="6.109375" customWidth="1"/><col min="2" max="2" width="7" customWidth="1"/><col min="3" max="3" width="61.109375" customWidth="1"/><col min="4" max="4" width="4.88671875" customWidth="1"/><col min="6" max="6" width="12.6640625" customWidth="1"/><col min="7" max="7" width="15.88671875" customWidth="1"/><col min="8" max="8" width="12" customWidth="1"/><col min="9" max="9" width="16.5546875" customWidth="1"/><col min="10" max="10" width="52" customWidth="1"/></cols><sheetData>${rows.join("")}</sheetData><mergeCells count="${merges.length}">${merges.map(m=>`<mergeCell ref="${m}"/>`).join("")}</mergeCells><pageMargins left="0.75" right="0.75" top="1" bottom="1" header="0.511811023622047" footer="0.511811023622047"/><pageSetup paperSize="9" orientation="portrait"${fit} horizontalDpi="300" verticalDpi="300"/></worksheet>`;
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><dimension ref="A1:K${R}"/><sheetViews><sheetView tabSelected="1" zoomScaleNormal="100" workbookViewId="0"/></sheetViews><sheetFormatPr defaultColWidth="8.6640625" defaultRowHeight="14.4"/><cols><col min="1" max="1" width="6.109375" customWidth="1"/><col min="2" max="2" width="7" customWidth="1"/><col min="3" max="3" width="61.109375" customWidth="1"/><col min="4" max="4" width="4.88671875" customWidth="1"/><col min="6" max="6" width="12.6640625" customWidth="1"/><col min="7" max="7" width="15.88671875" customWidth="1"/><col min="8" max="8" width="12" customWidth="1"${hasCol(e)?"":' hidden="1"'}/><col min="9" max="9" width="16.5546875" customWidth="1"/><col min="10" max="10" width="52" customWidth="1"/></cols><sheetData>${rows.join("")}</sheetData><mergeCells count="${merges.length}">${merges.map(m=>`<mergeCell ref="${m}"/>`).join("")}</mergeCells><pageMargins left="0.75" right="0.75" top="1" bottom="1" header="0.511811023622047" footer="0.511811023622047"/><pageSetup paperSize="9" orientation="portrait"${fit} horizontalDpi="300" verticalDpi="300"/></worksheet>`;
  // hidden SoR sheet that the VLOOKUPs read — every SoR 2021-22 item, same layout as the workbook
  const sx=[`<row r="1" ht="110.25" customHeight="1">${(window.SOR_HDR||[]).map((h,i)=>`<c r="${colL(i+1)}1" s="${[51,52,51,51,51,53,54,54][i]}" t="inlineStr"><is><t>${xe(h)}</t></is></c>`).join("")}</row>`];let rn=1;
  Object.keys(SOR).sort((a,b)=>+a-+b).forEach(k2=>{const s=SOR[k2];rn++;const v=(col,st,x)=>x===""||x==null?`<c r="${col}${rn}" s="${st}"/>`:typeof x==="number"?`<c r="${col}${rn}" s="${st}"><v>${x}</v></c>`:`<c r="${col}${rn}" s="${st}" t="inlineStr"><is><t>${xe(x)}</t></is></c>`;
@@ -358,14 +369,17 @@ $("#apFiles").addEventListener("click",async e=>{const o=e.target.closest("[data
 const fy=d=>{const t=d?new Date(d):new Date(),y=t.getFullYear(),m=t.getMonth()+1,s=m>=4?y:y-1;return s+"-"+String((s+1)%100).padStart(2,"0")};
 const lc=s=>s?s[0].toLowerCase()+s.slice(1):s;
 function draft(p,c){const e=ensure(p,c),k=calc(p,e),a=app(p),tt=(p.meta.estTitle||"").replace(/^\s*provisional estimate for\s*/i,"").replace(/\.\s*$/,""),work=tt||lc(workOf(c)).replace(/^construction of /,"")+" at "+locOf().replace(/^_+$/,"________"),loc=locOf().replace(/^_+$/,"________"),dt=d=>{if(!d)return"";const[y,m,dd]=d.split("-");return dd+"."+m+"."+y};
- const st=k.mat.filter(x=>x.H>0),rd=st.filter(x=>/RDSS/i.test(x.r.rem)),om=st.filter(x=>!/RDSS/i.test(x.r.rem));
+ const st=k.mat.filter(x=>x.H>0),rd=st.filter(x=>skOf(x.r)==="rdss"),om=st.filter(x=>skOf(x.r)==="om"),ru=st.filter(x=>skOf(x.r)==="reuse");
  const nm=x=>{const d=x.it.desc.replace(/\s+/g," ").trim(),kv=d.match(/(\d+)\s*KVA/i);if(kv&&/DTR|transformer/i.test(d))return kv[1]+" KVA DTR";if(/earth pipe/i.test(d))return(/^CI/i.test(d)?"CI ":"GI ")+"earth pipes";
   const a=d.match(/^ACSR\s*"?\s*(\w+)\s*"?\s*Conductor/i);if(a)return"ACSR "+a[1][0].toUpperCase()+a[1].slice(1).toLowerCase()+" conductor";if(/^\d+C\s*x/i.test(d))return"LT AB cable "+d.split(" (")[0];
   return d.split(/\s*[(,]/)[0].slice(0,48)};
  const qn=x=>isKm(x.it.unit)?" ("+fmtQ(x.r.q,x.it.unit)+" KM)":"";
  let sorP="The estimate has been prepared as per SoR 2021-22.";
- if(st.length){const parts=[];if(rd.length)parts.push("the "+rd.map(x=>nm(x)+qn(x)).join(", ")+" used in the works "+(rd.length>1?"are":"is")+" RDSS dismantled material");if(om.length)parts.push((rd.length?"":"the ")+om.map(x=>nm(x)).join(", ")+" "+(om.length>1?"were":"was")+" drawn from O&M stock");
-  sorP+=" "+parts.join(", and ").replace(/^the/,"The")+". The cost of the same has been deducted from the estimate as summarised below:"}
+ if(st.length){const and=l=>l.reduce((o,x,i)=>o+(i===0?"":i===l.length-1?" and ":", ")+x,""),parts=[];
+  if(rd.length)parts.push("the "+and(rd.map(x=>nm(x)+qn(x)))+" used in the works "+(rd.length>1?"are":"is")+" RDSS dismantled material");
+  if(om.length)parts.push("the "+and(om.map(x=>nm(x)))+" "+(om.length>1?"were":"was")+" drawn from O&M stock");
+  if(ru.length)parts.push("the "+and(ru.map(x=>nm(x)+qn(x)))+" "+(ru.length>1?"are":"is")+" reusable material from the existing installation");
+  sorP+=" "+parts.reduce((o,x,i,l)=>o+(i===0?"":i===l.length-1?", and ":", ")+x,"").replace(/^the/,"The")+". The cost of the same has been deducted from the estimate as summarised below:"}
  else sorP+=" The estimate is summarised below:";
  const paras=[{t:"With regards to the subject cited above, I have the honour to submit herewith the provisional estimate for "+work+".",ind:1}];
  if(a.name||a.files.length)paras.push({t:"It may please be noted that "+(a.name?"an application"+(a.date?" dated "+dt(a.date):"")+(a.ref?" vide "+a.ref:"")+" has been received from "+a.name:"an application has been received")+(a.for?" for "+a.for:"")+". Accordingly, the site was surveyed and the provisional estimate has been prepared for the following works:",ind:1});
@@ -373,7 +387,7 @@ function draft(p,c){const e=ensure(p,c),k=calc(p,e),a=app(p),tt=(p.meta.estTitle
  const works=autoWork(c).replace(/^Construction of /,"").split(/, | & /).map(s=>s.trim()).filter(Boolean).map(s=>s[0].toUpperCase()+s.slice(1)+".");
  return{no:"No. SDE/SESD/        /"+fy(p.meta.date)+"/",dated:"Dated:",to:"The Asst. General Manager\nNagaon Electrical Division- II\nNagaon, APDCL:: CAR",
   sub:"Submission of provisional estimate for "+work,paras,works,after:[],sorP:{t:sorP,ind:1},
-  l2:(rd.length?"RDSS dismantled conductor":"")+(rd.length&&om.length?" and ":"")+(om.length?"O&M stock materials":"")+(om.length?" ("+om.map(x=>nm(x).replace(/^\d+ KVA /,"")).join(", ")+")":""),
+  l2:[rd.length?"RDSS dismantled conductor":"",om.length?"O&M stock materials ("+om.map(x=>nm(x).replace(/^\d+ KVA /,"")).join(", ")+")":"",ru.length?"reusable materials ("+ru.map(x=>nm(x).replace(/^\d+ KVA /,"")).join(", ")+")":""].filter(Boolean).reduce((o,x,i,l)=>o+(i===0?"":i===l.length-1?" and ":", ")+x,""),
   close:"In this regard , you are requested to kindly accord approval of the aforementioned estimate. This is for favour of your kind information and necessary action.",
   encl:"Enclosed: Provisional estimate"+(a.files.length?", application"+(a.name?" of "+a.name:""):"")+" and SLD as stated."}}
 function fwOf(p,c){if(!p.fw)p.fw=draft(p,c);return p.fw}
