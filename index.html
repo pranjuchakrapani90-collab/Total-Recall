@@ -1341,7 +1341,7 @@ $('travelNotePhotoBox').addEventListener('click',function(e){
 $('travelDriveBox').addEventListener('click',async function(e){
   var t=e.target;if(!t||!t.id)return;
   if(t.id==='travelDriveConnect'){t.disabled=true;t.textContent='Opening Google…';try{await PosDrive.connect()}catch(err){t.disabled=false;t.textContent='Connect Google Drive';alert('Could not start Google sign-in: '+err.message)}}
-  if(t.id==='travelDriveOff'){if(!confirm('Disconnect Google Drive? Your files stay in Drive. New GPS days go back to the Worker store until you connect again.'))return;try{await PosDrive.disconnect()}catch(err){alert(err.message)}travelDriveBadge()}
+  if(t.id==='travelDriveOff'){if(!confirm('Disconnect Google Drive? Your files stay in Drive, but Pranju OS sync between your devices stops until you connect again.'))return;try{await PosDrive.disconnect()}catch(err){alert(err.message)}travelDriveBadge()}
   if(t.id==='travelDriveNow'){t.disabled=true;t.textContent='Uploading…';await travelDriveWork()}
 });
 $('travelNoteList').addEventListener('click',function(e){

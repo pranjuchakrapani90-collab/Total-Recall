@@ -243,7 +243,7 @@ async function handleLive(request,env,origin){
      POST ?mode=drive&op=disconnect        -> revokes the connection (files stay in Drive) */
 const GD_SCOPE='https://www.googleapis.com/auth/drive.file';
 const GD_API='https://www.googleapis.com/drive/v3';
-const GD_FOLDERS=[['root','Pranju OS',null],['travel','Travel Trace','root'],['gps','GPS archive','travel'],['photos','Memory photos','travel']];
+const GD_FOLDERS=[['root','Pranju OS',null],['travel','Travel Trace','root'],['gps','GPS archive','travel'],['photos','Memory photos','travel'],['vault','Sync vault (locked)','root']];
 let gdAccess=null;
 const gdRedirect=request=>new URL(request.url).origin+'/drive-callback';
 async function gdRefresh(env){const raw=await env.SYNC_KV.get('drive:refresh');return raw?JSON.parse(raw):null;}
@@ -359,27 +359,80 @@ async function handleQuotes(request){
   }catch(e){out[sym]={error:String(e&&e.message||e)};}}));
   return new Response(JSON.stringify({at:Date.now(),quotes:out}),{headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
 }
+/* ---------- Sync vaults in Google Drive (28 Oct 2026) ----------
+   Every page's encrypted sync bundle (one per slot: People/Tasks, #melodies, #health, #inv-cash, ...) is kept as a
+   file in the owner's Drive, "Pranju OS / Sync vault (locked)". The Worker only ever sees AES-encrypted text.
+   - first read of a slot with Drive connected: its KV copy is copied into Drive (KV left untouched as a backup)
+   - after that, reads and writes go to Drive only. KV is never used as a silent fallback for a slot already in
+     Drive, because it would hand back old data; if Drive can't be reached the page is told so and keeps its own copy.
+   - KV marker "drive:vm:<vault>" = {id, at} remembers the Drive file for each slot. */
+const GD_UP='https://www.googleapis.com/upload/drive/v3';
+const vmCache=new Map();
+async function vaultMark(env,key){if(vmCache.has(key))return vmCache.get(key);const raw=await env.SYNC_KV.get('drive:vm:'+key);const m=raw?JSON.parse(raw):null;if(m)vmCache.set(key,m);return m;}
+async function vaultSetMark(env,key,id){const m={id,at:new Date().toISOString()};vmCache.set(key,m);await env.SYNC_KV.put('drive:vm:'+key,JSON.stringify(m));return m;}
+const vaultFileName=key=>key.replace(/^vault2:/,'').slice(0,16)+'.vault';
+async function vaultDriveRead(token,id){
+  const r=await fetch(GD_API+'/files/'+encodeURIComponent(id)+'?alt=media',{headers:{Authorization:'Bearer '+token}});
+  if(r.status===404)return {missing:true};
+  if(!r.ok)throw new Error('Google Drive read failed (HTTP '+r.status+')');
+  return {blob:await r.text()};}
+async function vaultDriveCreate(env,token,key,blob){
+  const f=await gdFolders(env,token,false),b='posvault'+Date.now();
+  const meta={name:vaultFileName(key),parents:[f.vault],mimeType:'application/json',appProperties:{posVault:key.slice(-40)}};
+  const body='--'+b+'\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'+JSON.stringify(meta)+'\r\n--'+b+'\r\nContent-Type: application/json\r\n\r\n'+blob+'\r\n--'+b+'--';
+  const r=await fetch(GD_UP+'/files?uploadType=multipart&fields=id',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'multipart/related; boundary='+b},body});
+  const d=await r.json().catch(()=>({}));if(!r.ok||!d.id)throw new Error('Google Drive save failed (HTTP '+r.status+')');
+  return (await vaultSetMark(env,key,d.id)).id;}
+async function vaultDriveWrite(token,id,blob){
+  const r=await fetch(GD_UP+'/files/'+encodeURIComponent(id)+'?uploadType=media&fields=id',{method:'PATCH',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:blob});
+  if(r.status===404)return false;
+  if(!r.ok)throw new Error('Google Drive save failed (HTTP '+r.status+')');
+  return true;}
+async function kvVaultRead(env,key,oldKey){
+  let blob=await env.SYNC_KV.get(key);
+  if(blob===null){blob=await env.SYNC_KV.get(oldKey);if(blob!==null){await env.SYNC_KV.put(key,blob);await env.SYNC_KV.delete(oldKey);}}
+  return blob;}
+async function driveToken(env){if(!(env.GOOGLE_CLIENT_ID&&env.GOOGLE_CLIENT_SECRET))return null;try{return (await gdAccessToken(env)).token}catch(e){if(e&&e.code==='not_connected')return null;throw e;}}
 async function handleSync(request,env){
-  if(!env.SYNC_KV)return new Response(JSON.stringify({error:'Cloud sync is not configured: SYNC_KV binding is missing on the Worker.'}),{status:503,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
+  const json=(o,st)=>new Response(JSON.stringify(o),{status:st||200,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
+  if(!env.SYNC_KV)return json({error:'Cloud sync is not configured: SYNC_KV binding is missing on the Worker.'},503);
   const code=String(request.headers.get('X-Total-Recall-Sync')||'').trim();
-  if(code.length<8)return new Response(JSON.stringify({error:'A sync code of at least 8 characters is required.'}),{status:400,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
+  if(code.length<8)return json({error:'A sync code of at least 8 characters is required.'},400);
   const key=await kvName(code),oldKey='vault:'+await sha(code);
+  const mark=await vaultMark(env,key);
+  let token;
+  try{token=await driveToken(env);}
+  catch(e){if(mark)return json({error:'Google Drive could not be reached just now; your data on this device is safe, try again shortly. ('+(e&&e.message||e)+')'},503);token=null;}
+  if(mark&&!token)return json({error:'Your sync data now lives in Google Drive, which is disconnected. Open Travel Trace → Google Drive → Connect.',code:'drive_needed'},409);
   if(request.method==='POST'){
     const body=await request.json();
-    if(!body||!body.state)return new Response(JSON.stringify({error:'state is required'}),{status:400,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
-    let blob=await env.SYNC_KV.get(key);
-    if(blob===null){blob=await env.SYNC_KV.get(oldKey);if(blob!==null){await env.SYNC_KV.put(key,blob);await env.SYNC_KV.delete(oldKey);}}
-    return new Response(JSON.stringify({blob:blob||null}),{status:200,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
+    if(!body||!body.state)return json({error:'state is required'},400);
+    if(!token)return json({blob:await kvVaultRead(env,key,oldKey)||null,store:'cloudflare'});
+    try{
+      if(mark){const got=await vaultDriveRead(token,mark.id);
+        if(!got.missing)return json({blob:got.blob||null,store:'drive'});}
+      /* first time (or the Drive file was deleted): bring the Cloudflare copy over, leaving it in place as a backup */
+      const blob=await kvVaultRead(env,key,oldKey);
+      if(blob!==null)await vaultDriveCreate(env,token,key,blob);
+      return json({blob:blob||null,store:'drive'});
+    }catch(e){
+      if(mark)return json({error:'Google Drive could not be reached just now; your data on this device is safe, try again shortly. ('+(e&&e.message||e)+')'},503);
+      return json({blob:await kvVaultRead(env,key,oldKey)||null,store:'cloudflare'});}
   }
   if(request.method==='PUT'){
     const blob=await request.text();
-    if(!blob)throw new Error('Encrypted sync payload is empty');
-    if(blob.length>20*1024*1024)throw new Error('Sync payload too large');
-    await env.SYNC_KV.put(key,blob);
-    if(await env.SYNC_KV.get(oldKey)!==null)await env.SYNC_KV.delete(oldKey);
-    return new Response(JSON.stringify({ok:true}),{status:200,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
+    if(!blob)return json({error:'Encrypted sync payload is empty'},400);
+    if(blob.length>20*1024*1024)return json({error:'Sync payload too large'},413);
+    if(!token){
+      await env.SYNC_KV.put(key,blob);
+      if(await env.SYNC_KV.get(oldKey)!==null)await env.SYNC_KV.delete(oldKey);
+      return json({ok:true,store:'cloudflare'});}
+    try{
+      if(!(mark&&await vaultDriveWrite(token,mark.id,blob)))await vaultDriveCreate(env,token,key,blob);
+      return json({ok:true,store:'drive'});
+    }catch(e){return json({error:'Google Drive could not be reached just now; your data on this device is safe and will sync next time. ('+(e&&e.message||e)+')'},503);}
   }
-  return new Response(JSON.stringify({error:'Method not allowed'}),{status:405,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
+  return json({error:'Method not allowed'},405);
 }
 /* WhatsApp Review: Claude drafts items from the WhatsApp self-chat into a TickTick project named "WA REVIEW".
    Pranju OS lists them (GET ?mode=wa-review) and, per item, approves it into its destination project with the
