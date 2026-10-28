@@ -229,7 +229,7 @@ table.boq{border-collapse:collapse;width:100%;min-width:720px;font-size:12.5px}
   <div class="f">
    <label>From point<select id="dPar"></select></label>
    <label>Line<select id="dLine"></select></label>
-   <label>Pole for new poles<select id="dPole"><option value="">Auto</option><option value="9.75">PSC 9.75 m</option><option value="8.5">PSC 8.5 m</option><option value="7.5">PSC 7.5 m</option></select></label>
+   <label>Pole for new poles<select id="dPole"><option value="">Auto</option><option value="9.75">PSC 9.75 m</option><option value="8.5">PSC 8.5 m</option><option value="7.5">PSC 7.5 m</option><option value="SP-56">SP-56 (11 m)</option><option value="SP-60">SP-60 (12 m)</option><option value="SP-66">SP-66 (12 m)</option><option value="SP-76">SP-76 (14.5 m)</option></select></label>
    <label>Crossing on this span<select id="dCross"><option value="">None</option><option value="road">Road (guarding)</option><option value="line">Other line (guarding)</option></select></label>
   </div>
   <div class="chk" id="dSegOpts"></div>
@@ -310,9 +310,9 @@ const KINDS={
  srcLT:{g:0,t:"LT source (existing LT pole)",d:"Existing LT pole the new LT line starts from",src:"LT",o:["srcStr","stays"]},
  pole:{g:1,t:"New pole (PSC)",d:"Turning point, line end or any pole you fix",o:["poleLen","db","stays"]},
  steel:{g:1,t:"New steel pole",d:"SP-56 / 60 / 66 / 76 with steel-pole grouting",o:["steelType","db","stays"]},
- tp:{g:1,t:"New 3-pole structure (TP)",d:"3 × PSC 9.75 m tied with 3.2 m channels — heavy angle, tee-off or AB switch point",o:["goab","dof","la","stays"]},
- p4:{g:1,t:"4-pole structure (4P)",d:"Heavy angle or terminal tension, 4 × PSC 9.75 m",o:["stays"]},
- ltdp:{g:1,t:"New LT double pole",d:"2 × PSC 8.5 m for an LT angle, tee-off or distribution box",o:["db","stays"]},
+ tp:{g:1,t:"New 3-pole structure (TP)",d:"3 × PSC 9.75 m tied with 3.2 m channels — heavy angle, tee-off or AB switch point",o:["poleLen","goab","dof","la","stays"]},
+ p4:{g:1,t:"4-pole structure (4P)",d:"Heavy angle or terminal tension, 4 × PSC 9.75 m",o:["poleLen","stays"]},
+ ltdp:{g:1,t:"New LT double pole",d:"2 × PSC 8.5 m for an LT angle, tee-off or distribution box",o:["poleLen","db","stays"]},
  heighten:{g:1,t:"Line heightening pole",d:"Sarma Commission safety kit, 9.75 m PSC",kitOnly:true,o:["stays"]},
  replace:{g:1,t:"Pole replacement",d:"Damaged / rotten / leaning pole replaced; old pole to dismantling",o:["poleLen","oldPole","dmg","stays"]},
  exFit:{g:9,t:"Existing pole, new fittings",d:"Pole stays; cross-arm, insulators as the structure needs",o:["exType","db","stays"]},
@@ -321,20 +321,20 @@ const KINDS={
  exTP:{g:9,t:"Existing 3-pole structure",d:"Three-pole structure already standing",o:["exEq","fit","stays"]},
  ex4P:{g:9,t:"Existing 4-pole structure",d:"Four-pole structure already standing",o:["exEq","fit","stays"]},
  exDTR:{g:9,t:"Existing DTR S/S on the route",d:"New HT line taps or passes at an existing DTR substation; LT can start from it",o:["dtrNo","kva","fit","stays"]},
- sp2dp:{g:10,t:"Existing pole → DP (add 1 pole)",d:"One new pole beside the existing pole, tied with channels",o:["goab","dof","la","stays"]},
- dp2tp:{g:10,t:"Existing DP → 3-pole (add 1 pole)",d:"One new pole added to an existing DP; 3.2 m channels tie all three",o:["newCh","goab","dof","la","stays"]},
- sp2tp:{g:10,t:"Existing pole → 3-pole (add 2 poles)",d:"Two new poles added to an existing single pole",o:["goab","dof","la","stays"]},
- dp24p:{g:10,t:"Existing DP → 4-pole (add 2 poles)",d:"Two new poles added to an existing DP for heavy tension",o:["stays"]},
+ sp2dp:{g:10,t:"Existing pole → DP (add 1 pole)",d:"One new pole beside the existing pole, tied with channels",o:["poleLen","goab","dof","la","stays"]},
+ dp2tp:{g:10,t:"Existing DP → 3-pole (add 1 pole)",d:"One new pole added to an existing DP; 3.2 m channels tie all three",o:["poleLen","newCh","goab","dof","la","stays"]},
+ sp2tp:{g:10,t:"Existing pole → 3-pole (add 2 poles)",d:"Two new poles added to an existing single pole",o:["poleLen","goab","dof","la","stays"]},
+ dp24p:{g:10,t:"Existing DP → 4-pole (add 2 poles)",d:"Two new poles added to an existing DP for heavy tension",o:["poleLen","stays"]},
  shift:{g:10,t:"Pole shifting (pole moved here)",d:"Pole re-erected at this new location; old pole to dismantling unless re-used",o:["poleLen","oldPole","reuseOld","stays"]},
  regrout:{g:10,t:"Straighten & re-grout existing pole",d:"Leaning pole straightened with fresh grouting and a stay",kitOnly:true,o:["poleLen","stays"],def:{stays:1}},
- dp:{g:2,t:"11 kV DP (cut-point)",d:"Double pole with optional GOAB / DO / LA",o:["goab","dof","la","onEx","stays"]},
- iso33:{g:2,t:"33 kV sectionalising isolator DP",d:"TPGO-DBCR 800 A with earth switch on a DP",kitOnly:true,o:["stays"]},
- ctpt:{g:2,t:"CT-PT metering structure",d:"11 kV CTPT, metering cabinet, AAAC CC jumpers",o:["onEx","stays"]},
- vcb11:{g:2,t:"11 kV outdoor VCB point",d:"Outdoor VCB 800 A with structure, LAs",o:["onEx","stays"]},
- dtr:{g:3,t:"New DTR substation",d:"New DTR on a new double pole, or on an existing DP (tick the box)",o:["kva","goab","fence","chem","onEx","db","stays"]},
+ dp:{g:2,t:"11 kV DP (cut-point)",d:"Double pole with optional GOAB / DO / LA",o:["poleLen","goab","dof","la","onEx","stays"]},
+ iso33:{g:2,t:"33 kV sectionalising isolator DP",d:"TPGO-DBCR 800 A with earth switch on a DP",kitOnly:true,o:["poleLen","stays"]},
+ ctpt:{g:2,t:"CT-PT metering structure",d:"11 kV CTPT, metering cabinet, AAAC CC jumpers",o:["poleLen","onEx","stays"]},
+ vcb11:{g:2,t:"11 kV outdoor VCB point",d:"Outdoor VCB 800 A with structure, LAs",o:["poleLen","onEx","stays"]},
+ dtr:{g:3,t:"New DTR substation",d:"New DTR on a new double pole, or on an existing DP (tick the box)",o:["poleLen","kva","goab","fence","chem","onEx","db","stays"]},
  dtrAug:{g:3,t:"DTR augmentation",d:"Existing DTR replaced by a bigger one; old DTR to dismantling",kitOnly:true,o:["kvaFrom","kva","db"]},
  dtrTemp:{g:3,t:"Temporary DTR on existing DP",d:"DTR from O&M stock; labour only payable",kitOnly:true,o:["kva"]},
- dtrShift:{g:3,t:"DTR shifting (new DP here)",d:"Existing DTR re-installed on a new DP",o:["kva","goab","fence","oldDP","stays"]},
+ dtrShift:{g:3,t:"DTR shifting (new DP here)",d:"Existing DTR re-installed on a new DP",o:["poleLen","kva","goab","fence","oldDP","stays"]},
  xRoad:{g:4,t:"Road crossing",d:"Pole with guarding across the road",o:["onEx","stays"]},
  xRail:{g:4,t:"Railway crossing (UG)",d:"Full UG crossing: DPs, cable, CI spun pipe, boring",kitOnly:true,o:["railPole","cable","bore"]},
  xRiver:{g:4,t:"River / nallah bank",d:"Steel pole on one bank for a long span (mark both banks)",o:["steelType","stays"],def:{stays:2}},
@@ -344,7 +344,7 @@ const KINDS={
  tMV:{g:5,t:"Bare → MVCC transition",d:"Termination kits and LA where MVCC starts or ends",o:["onEx","stays"]},
  tABC:{g:5,t:"Bare LT → ABC transition",d:"Anchor, IPCs and end caps where ABC starts",o:["onEx","stays"]},
  t13:{g:5,t:"1-ph → 3-ph conversion start",d:"Dead-end for the two added wires",o:["onEx","stays"],def:{onEx:true}},
- htc:{g:6,t:"HT consumer S/S",d:"PWSS / BSNL type 25 kVA S/S with metering",o:["kva","fence","stays"],def:{kva:25}},
+ htc:{g:6,t:"HT consumer S/S",d:"PWSS / BSNL type 25 kVA S/S with metering",o:["poleLen","kva","fence","stays"],def:{kva:25}},
  slight:{g:6,t:"Street-light point",d:"Street-light connections from this pole",o:["n","onEx"],def:{onEx:true}},
  svc:{g:6,t:"Service connections",d:"Households served from this pole",o:["n","onEx"],def:{onEx:true,n:5}},
  rmPole:{g:7,t:"Existing pole / DP to be removed",d:"Goes to the dismantling estimate",standalone:true,kitOnly:true,o:["oldPole","oldStruct"]},
@@ -357,15 +357,15 @@ const OPTF={
  goab:{l:"GOAB",ty:"chk",def:true},fence:{l:"Fencing (Type-II)",ty:"chk",def:true},dof:{l:"DO fuse set",ty:"chk",def:false},la:{l:"LA",ty:"chk",def:false},chem:{l:"Chemical earthing",ty:"chk",def:false},
  onEx:{l:"On existing pole / structure",ty:"chk",def:false},oldDP:{l:"Remove old DP",ty:"chk",def:true},
  db:{l:"LT DB: consumers (0 = none)",ty:"num",def:0},n:{l:"Number",ty:"num",def:1},stays:{l:"Stays (blank = auto)",ty:"num",blank:true},
- poleLen:{l:"Pole",ty:"sel",o:[["","Auto"],["9.75","PSC 9.75 m"],["8.5","PSC 8.5 m"],["7.5","PSC 7.5 m"]],def:""},
+ poleLen:{l:"Pole",ty:"sel",o:[["","Auto"],["9.75","PSC 9.75 m"],["8.5","PSC 8.5 m"],["7.5","PSC 7.5 m"],["SP-56","SP-56 steel tubular (11 m)"],["SP-60","SP-60 steel tubular (12 m)"],["SP-66","SP-66 steel tubular (12 m)"],["SP-76","SP-76 steel tubular (14.5 m)"]],def:""},
  steelType:{l:"Steel pole",ty:"sel",o:[["SP-56","SP-56 (11 m)"],["SP-60","SP-60 (12 m)"],["SP-66","SP-66 (12 m)"],["SP-76","SP-76 (14.5 m)"]],def:"SP-56"},
- oldPole:{l:"Old pole",ty:"sel",o:[["PSC 8.5","PSC 8.5 m"],["PSC 7.5","PSC 7.5 m"],["PSC 9.75","PSC 9.75 m"],["SP-60","SP-60"],["SP-76","SP-76"],["Rail","Rail pole"],["RSJ","RS joist"]],def:"PSC 8.5"},
+ oldPole:{l:"Old pole",ty:"sel",o:[["PSC 8.5","PSC 8.5 m"],["PSC 7.5","PSC 7.5 m"],["PSC 9.75","PSC 9.75 m"],["SP-56","SP-56"],["SP-60","SP-60"],["SP-66","SP-66"],["SP-76","SP-76"],["Rail","Rail pole"],["RSJ","RS joist"]],def:"PSC 8.5"},
  dmg:{l:"Conductor damaged (m)",ty:"num",def:0},cable:{l:"Cable per crossing (m)",ty:"num",def:600},bore:{l:"Boring under track (m)",ty:"num",def:20},blen:{l:"Bridge length (m)",ty:"num",def:100},
  railPole:{l:"Crossing poles",ty:"sel",o:[["9.75","PSC 9.75 m"],["SP-76","SP-76"]],def:"9.75"},
  dtrNo:{l:"DTR No.",ty:"txt",def:""},lmType:{l:"Landmark",ty:"sel",o:LMT,def:"School"},
  fit:{l:"New line fittings on it (cross-arm / channel, insulators, jumpers)",ty:"chk",def:true},
  exEq:{l:"Equipment already on it",ty:"sel",o:[["","None"],["GOAB","GOAB"],["DO","DO fuse"],["LA","LA"],["GOAB + DO","GOAB + DO"],["GOAB + DO + LA","GOAB + DO + LA"],["DTR","DTR"]],def:""},
- exType:{l:"Existing pole type",ty:"sel",o:[["PSC","PSC"],["RCC","RCC"],["Steel","Steel tubular"],["Rail","Rail pole"],["RSJ","RS joist"]],def:"PSC"},
+ exType:{l:"Existing pole type",ty:"sel",o:[["PSC","PSC"],["RCC","RCC"],["SP-56","SP-56 steel tubular"],["SP-60","SP-60 steel tubular"],["SP-66","SP-66 steel tubular"],["SP-76","SP-76 steel tubular"],["Steel","Steel tubular (other)"],["Rail","Rail pole"],["RSJ","RS joist"]],def:"PSC"},
  srcStr:{l:"Tapping structure",ty:"sel",o:[["SP","Single pole"],["DP","Double pole (DP)"],["TP","3-pole structure"],["4P","4-pole structure"],["ST","Steel / rail pole"]],def:"SP"},
  newCh:{l:"New 3.2 m channels (old DP channels to dismantling)",ty:"chk",def:true},
  reuseOld:{l:"Old pole re-used here (no new pole)",ty:"chk",def:false},
@@ -374,7 +374,7 @@ const OPTF={
 const XF={exBarbed:{l:"Barbed wire (kg)",ty:"num",def:0},exDanger:{l:"Extra danger plates",ty:"num",def:0},exEarth:{l:"Extra earthing",ty:"num",def:0},exGuard:{l:"Guarding set",ty:"chk",def:false},exGoab:{l:"GOAB on this pole",ty:"chk",def:false},exDo:{l:"DO fuse set",ty:"chk",def:false},exLa:{l:"LA set",ty:"chk",def:false}};
 function opt(x,k){const v=x[k];if(v!==undefined&&v!==null&&v!=="")return v;const K=KINDS[x.kind]||{};if(K.def&&k in K.def)return K.def[k];const f=OPTF[k]||XF[k];return f?f.def:undefined}
 const POLE={"9.75":["748","427"],"8.5":["747","426"],"7.5":["746","425"],"SP-56":["751","422"],"SP-60":["752","422"],"SP-66":["753","423"],"SP-76":["754","423"]};
-const OLDP={"PSC 8.5":"747","PSC 7.5":"746","PSC 9.75":"748","SP-60":"752","SP-76":"754","Rail":"756","RSJ":"757"};
+const OLDP={"PSC 8.5":"747","PSC 7.5":"746","PSC 9.75":"748","SP-56":"751","SP-60":"752","SP-66":"753","SP-76":"754","Rail":"756","RSJ":"757"};
 const DTRK={16:"770",25:"771",63:"772",100:"774",160:"778",200:"780",250:"782"};
 const DEF_SET={sHV:45,sMV:32,sEHV:33,sLT:40,sABC:33,sEarth:5,sStay:0,sSvc:30};
 const isSrc=x=>!!(KINDS[x.kind]&&KINDS[x.kind].src),isStand=x=>!!(KINDS[x.kind]&&KINDS[x.kind].standalone);
@@ -471,7 +471,7 @@ function compute(p){
  function ltStrain(L,dev,w){if(L.abc){if(dev<30)return ltTangent(L,1,w+" (suspension up to 30°)");add("806",2,w);add("810",2,w);add("830",1,w)}else{add("632",2*wn(L),w);add("853",2*wn(L),w);add("646",wn(L)===2?2:3,"N&B at cut-point")}}
  const KT={HV:{t:hvTangent,d:hvDead},LT:{t:ltTangent,d:ltDead}};
  function dtrLT(kva,w,ex){const f=ex?addEx:add;if(kva<=63){f("124",30,"LT cable DTR to LT DB"+w);f("683",12,"lugs"+w)}else{f("71",kva>=250?60:30,(kva>=250?"2 runs for 250 kVA":"LT cable DTR to LT DB")+w);f("686",kva>=250?32:16,"lugs"+w)}}
- function dtrStruct(tag,goab,chem,onExDP){if(!onExDP)newPole("9.75",2,11,"DP for "+tag);add("638",6,"DTR DP channel arms");add("830",12,"DTR DP");add("646",15,"DTR structure");add("633",0,"");
+ function dtrStruct(tag,goab,chem,onExDP,pp){if(!onExDP)newPole(pp||"9.75",2,11,"DP for "+tag);add("638",6,"DTR DP channel arms");add("830",12,"DTR DP");add("646",15,"DTR structure");add("633",0,"");
   add("513",1,"DO fuse set for "+tag);add("676",1,"LA set for "+tag);add("626",3,"DO / jumper support");add("841",3,"DO / jumper support");
   if(goab){add("518",1,"GOAB at "+tag);add("638",2,"GOAB mounting");add("830",4,"GOAB mounting")}
   earth(3,"3 pits per DTR substation",chem);add("649",6,"DTR earthing leads (15 kg total)");add("476",20,"GI strip for DTR earthing")}
@@ -502,18 +502,18 @@ function compute(p){
   stayKit(kv,nd.stays,(nd.manualStays?"as marked":"auto")+" at P"+x.no);
   const pl=opt(x,"poleLen")||(segIn?poleOf(segIn.sg):kv===33?"SP-76":kv===11?"9.75":"8.5");
   const r=nd.roles[mainCls],strainy=r&&r!=="tangent"&&r!=="tap";
-  const kva=+opt(x,"kva"),dtK=DTRK[kva]||"774";
+  const kva=+opt(x,"kva"),dtK=DTRK[kva]||"774",spl=opt(x,"poleLen")||(kv===33&&segIn?poleOf(segIn.sg):"9.75"),isSP=v=>/^SP/.test(v);
   switch(x.kind){
-   case "pole":newPole(pl,1,kv,"marked pole P"+x.no);if(strainy){earth(1,"dead-ends, cut-points and tee-offs");nd.earth=1}break;
+   case "pole":newPole(pl,1,kv,(isSP(pl)?pl+" ":"")+"marked pole P"+x.no);if(strainy||isSP(pl)){earth(1,isSP(pl)?"steel pole":"dead-ends, cut-points and tee-offs");nd.earth=1}break;
    case "steel":{const st=opt(x,"steelType");newPole(st,1,kv,st+" at P"+x.no);earth(1,"steel pole");nd.earth=1;break}
    case "xRiver":{const st=opt(x,"steelType");newPole(st,1,kv,st+" on the bank at P"+x.no);earth(1,"river-bank pole");nd.earth=1;break}
-   case "p4":newPole("9.75",4,kv,"4-pole structure P"+x.no);add("638",8,"4P channel arms");add("830",16,"4P");add("646",20,"4P");earth(2,"4-pole structure");nd.earth=2;break;
+   case "p4":newPole(spl,4,kv,"4-pole structure P"+x.no);add("638",8,"4P channel arms");add("830",16,"4P");add("646",20,"4P");earth(2,"4-pole structure");nd.earth=2;break;
    case "heighten":newPole("9.75",1,11,"heightening pole P"+x.no);add("638",2,"heightening kit");add("634",1,"heightening kit");add("626",6,"heightening kit");add("841",6,"heightening kit");add("447",0.09,"heightening jumpers");add("827",6,"heightening kit");add("649",12,"cradling / guarding");add("650",18,"cradling / guarding");add("646",10,"heightening kit");break;
    case "replace":{newPole(pl,1,kv,"replacement pole P"+x.no);dis(OLDP[opt(x,"oldPole")]||"747",1,"old pole at P"+x.no);const d=+opt(x,"dmg");
     if(d>0&&inL){if(inL.mv)add(inL.cond,Math.round(d*3),"damaged conductor at P"+x.no);else if(inL.abc)add(inL.cond,Math.round(d),"damaged cable at P"+x.no);else if(inL.cls==="HV")add(inL.cond,d*3/1000,"damaged conductor at P"+x.no);else if(inL.w)add(inL.cond,d*inL.w/1000,"damaged conductor at P"+x.no)}
     if(strainy){earth(1,"replacement at a structure");nd.earth=1}break}
    case "tp":case "sp2dp":case "dp2tp":case "sp2tp":case "dp24p":{
-    const k33=kv===33,sp=k33?(opt(x,"poleLen")||pl):"9.75",ch=k33?"641":"640",tg=" at P"+x.no;
+    const k33=kv===33,sp=spl,ch=k33?"641":"640",tg=" at P"+x.no;
     if(x.kind==="tp"){newPole(sp,3,kv,"3-pole structure"+tg);add(ch,4,"3-pole structure channels");add("830",12,"3-pole structure");add("646",12,"3-pole structure");add("633",0,"");earth(3,"1 per pole of the 3-pole structure");nd.earth=3}
     else if(x.kind==="sp2dp"){newPole(sp,1,kv,"pole added to make a DP"+tg);add(k33?"640":"638",2,"channels tying the new pole to the old one");add("830",4,"pole conversion");add("646",6,"pole conversion");earth(1,"new pole of the converted structure");nd.earth=1}
     else if(x.kind==="dp2tp"){newPole(sp,1,kv,"pole added to make a 3-pole structure"+tg);if(opt(x,"newCh")){add(ch,2,"3.2 m channels tying all three poles");dis("638",2,"old DP channels"+tg)}add("830",6,"DP → 3-pole conversion");add("646",8,"DP → 3-pole conversion");earth(1,"new pole of the converted structure");nd.earth=1}
@@ -521,25 +521,25 @@ function compute(p){
     else{newPole(sp,2,kv,"poles added to make a 4-pole structure"+tg);add(k33?"640":"638",4,"channels for the added pair and cross ties");add("830",8,"DP → 4-pole conversion");add("646",10,"DP → 4-pole conversion");earth(2,"new poles of the converted structure");nd.earth=2}
     if(x.kind!=="dp24p"){if(opt(x,"goab")){add(k33?"660":"518",1,(k33?"isolator":"GOAB")+tg);add("638",2,"GOAB mounting");add("830",4,"GOAB mounting");add("646",4,"GOAB")}if(opt(x,"dof"))add("513",1,"DO fuse set"+tg);if(opt(x,"la"))add(k33?"674":"676",1,"LA"+tg)}
     flags.add("Structure conversion / 3-pole quantities are typical APDCL practice — check channels and clamps against the site");break}
-   case "ltdp":newPole("8.5",2,kv,"LT double pole at P"+x.no);add("644",4,"MS channel tying the LT DP");add("830",4,"LT DP");add("646",4,"LT DP");earth(1,"LT DP");nd.earth=1;break;
+   case "ltdp":newPole(opt(x,"poleLen")||"8.5",2,kv,"LT double pole at P"+x.no);add("644",4,"MS channel tying the LT DP");add("830",4,"LT DP");add("646",4,"LT DP");earth(1,"LT DP");nd.earth=1;break;
    case "exDTR":if(opt(x,"fit")&&inL&&inL.bare)add(inL.pg,6,"jumpers at existing DTR P"+x.no);break;
    case "shift":{if(opt(x,"reuseOld")){const pp=POLE[pl]||POLE["8.5"];addEx(pp[0],1,"old pole re-erected at P"+x.no);add(pp[1],1,"grouting of the shifted pole");add(danger(kv),1,"shifted pole");if(kv>=11)add("633",2,"anti-climbing")}
     else{newPole(pl,1,kv,"pole at the shifted location P"+x.no);dis(OLDP[opt(x,"oldPole")]||"747",1,"old pole removed for shifting P"+x.no)}
     if(strainy){earth(1,"shifted pole at a structure");nd.earth=1}break}
    case "regrout":{const pp=POLE[pl]||POLE["8.5"];add(pp[1],1,"re-grouting of leaning pole P"+x.no);break}
-   case "dp":if(!onEx){newPole("9.75",2,11,"DP at P"+x.no);add("638",4,"DP channel arms");add("830",8,"DP");add("646",8,"DP");add("633",0,"");earth(2,"2 per DP");nd.earth=2}
+   case "dp":if(!onEx){newPole(spl,2,kv>=11?kv:11,"DP at P"+x.no);add("638",4,"DP channel arms");add("830",8,"DP");add("646",8,"DP");add("633",0,"");earth(2,"2 per DP");nd.earth=2}
     if(opt(x,"goab")){add("518",1,"GOAB at P"+x.no);add("638",2,"GOAB mounting");add("830",4,"GOAB mounting");add("646",4,"GOAB")}if(opt(x,"dof"))add("513",1,"DO fuse set at P"+x.no);if(opt(x,"la"))add("676",1,"LA at P"+x.no);break;
-   case "iso33":newPole("9.75",2,33,"isolator DP P"+x.no);add("660",1,"33 kV isolator at P"+x.no);add("640",12,"isolator structure");add("636",48,"GI angle bracing");add("830",20,"isolator structure");add("613",6,"isolator jumpers");add("449",0.03,"Wolf jumpers");add("828",12,"isolator jumpers");add("646",15,"isolator structure");earth(2,"isolator DP");nd.earth=2;break;
-   case "ctpt":if(!onEx)newPole("9.75",2,11,"CT-PT structure P"+x.no);add("569",1,"CTPT at P"+x.no);add("507",1,"metering cabinet");add("37",10,"control cable");add("638",2,"CTPT mounting");add("637",6,"CTPT mounting");add("459",120,"AAAC covered conductor jumpers");add("T70",6,"CTPT terminations");add("H70",6,"CTPT tension");add("I70",6,"CTPT tension");add("476",10,"CTPT earthing");add("646",10,"CTPT structure");earth(1,"CTPT body");nd.earth=1;break;
-   case "vcb11":if(!onEx)newPole("9.75",2,11,"VCB structure P"+x.no);add("VCB11",1,"outdoor VCB at P"+x.no);add("676",2,"LAs both sides of VCB");add("638",2,"VCB mounting");add("646",10,"VCB structure");earth(2,"VCB");nd.earth=2;break;
-   case "dtr":add(dtK,1,kva+" kVA DTR at P"+x.no);dtrStruct("DTR P"+x.no,opt(x,"goab"),opt(x,"chem"),onEx);nd.earth=3;
+   case "iso33":newPole(spl,2,33,"isolator DP P"+x.no);add("660",1,"33 kV isolator at P"+x.no);add("640",12,"isolator structure");add("636",48,"GI angle bracing");add("830",20,"isolator structure");add("613",6,"isolator jumpers");add("449",0.03,"Wolf jumpers");add("828",12,"isolator jumpers");add("646",15,"isolator structure");earth(2,"isolator DP");nd.earth=2;break;
+   case "ctpt":if(!onEx)newPole(spl,2,11,"CT-PT structure P"+x.no);add("569",1,"CTPT at P"+x.no);add("507",1,"metering cabinet");add("37",10,"control cable");add("638",2,"CTPT mounting");add("637",6,"CTPT mounting");add("459",120,"AAAC covered conductor jumpers");add("T70",6,"CTPT terminations");add("H70",6,"CTPT tension");add("I70",6,"CTPT tension");add("476",10,"CTPT earthing");add("646",10,"CTPT structure");earth(1,"CTPT body");nd.earth=1;break;
+   case "vcb11":if(!onEx)newPole(spl,2,11,"VCB structure P"+x.no);add("VCB11",1,"outdoor VCB at P"+x.no);add("676",2,"LAs both sides of VCB");add("638",2,"VCB mounting");add("646",10,"VCB structure");earth(2,"VCB");nd.earth=2;break;
+   case "dtr":add(dtK,1,kva+" kVA DTR at P"+x.no);dtrStruct("DTR P"+x.no,opt(x,"goab"),opt(x,"chem"),onEx,spl);nd.earth=3;
     if(inL&&inL.bare)add(inL.pg,6,"jumpers at DTR");if(inL&&inL.mv)add(inL.term,3,"MVCC termination at DTR");dtrLT(kva,"");
     add(kva<=63?"356":"357",1,kva<=63?"MCCB 100 A for ≤63 kVA":"MCCB 200 A");if(kva>=250)flags.add("250 kVA DTR: MCCB 200 A taken from SoR; a 400 A MCCB is needed — revise rate");if(opt(x,"fence"))add("420",1,"DTR fencing");break;
-   case "htc":add(dtK,1,kva+" kVA DTR for HT consumer at P"+x.no);dtrStruct("HT consumer S/S P"+x.no,true,false);nd.earth=3;add("513",1,"second DO set (PWSS pattern)");add("507",1,"metering cabinet");add("597",3,"LT CT metering");
+   case "htc":add(dtK,1,kva+" kVA DTR for HT consumer at P"+x.no);dtrStruct("HT consumer S/S P"+x.no,true,false,false,spl);nd.earth=3;add("513",1,"second DO set (PWSS pattern)");add("507",1,"metering cabinet");add("597",3,"LT CT metering");
     if(inL&&inL.bare)add(inL.pg,6,"jumpers at S/S");if(inL&&inL.mv)add(inL.term,3,"termination at S/S");add("124",10,"PWSS pattern: 40 m cable in all");dtrLT(25,"");add("356",1,"MCCB");if(opt(x,"fence"))add("420",1,"S/S fencing");break;
    case "dtrAug":{const kf=+opt(x,"kvaFrom");add(dtK,1,"new "+kva+" kVA DTR at P"+x.no);dtrLT(kva," (upgraded)");add(kva<=63?"356":"357",1,"MCCB for the new DTR");dis(DTRK[kf]||"772",1,"old "+kf+" kVA DTR at P"+x.no);if(kva>=250)flags.add("250 kVA DTR: MCCB 200 A taken from SoR; a 400 A MCCB is needed — revise rate");break}
    case "dtrTemp":addEx(dtK,1,kva+" kVA DTR at P"+x.no);dtrLT(kva,"",true);addEx("474",3,"earthing");addEx("650",10,"earthing leads");addEx("646",5,"fixing");break;
-   case "dtrShift":addEx(dtK,1,kva+" kVA DTR re-installed at P"+x.no);dtrStruct("shifted DTR P"+x.no,opt(x,"goab"),false);nd.earth=3;dtrLT(kva,"");if(inL&&inL.bare)add(inL.pg,6,"jumpers at DTR");if(opt(x,"fence"))add("420",1,"DTR fencing");if(opt(x,"oldDP"))dis("748",2,"old DTR DP poles");break;
+   case "dtrShift":addEx(dtK,1,kva+" kVA DTR re-installed at P"+x.no);dtrStruct("shifted DTR P"+x.no,opt(x,"goab"),false,false,spl);nd.earth=3;dtrLT(kva,"");if(inL&&inL.bare)add(inL.pg,6,"jumpers at DTR");if(opt(x,"fence"))add("420",1,"DTR fencing");if(opt(x,"oldDP"))dis("748",2,"old DTR DP poles");break;
    case "xRoad":case "xLine":if(!onEx)newPole(pl,1,kv,(x.kind==="xRoad"?"road":"line")+" crossing pole P"+x.no);guard(x.kind==="xRoad"?"road crossing guarding at P"+x.no:"cradle guard at P"+x.no);nd.earth=2;break;
    case "xEHV":if(!onEx)newPole(pl,1,kv,"EHV crossing pole P"+x.no);add(kv===33?"674":"676",2,"LAs at EHV crossing");earth(2,"EHV crossing");nd.earth=2;flags.add("EHV crossing: make the span under the tower MVCC (choose an MVCC line for it)");break;
    case "xRail":{const k33=kv===33,rp=opt(x,"railPole"),cab=+opt(x,"cable"),bore=+opt(x,"bore");newPole(rp,4,kv,"railway crossing DPs at P"+x.no);
@@ -577,7 +577,7 @@ function compute(p){
   if(L.flag)flags.add(L.flag);if(sg.reuse)flags.add("Conductor marked as RDSS dismantled / existing stock is shown in the side column and deducted (material + 18% GST)");
   if(n){if(L.onEx){nExMid+=n;(L.cls==="HV"?hvTangent:ltTangent)(L,n,"existing intermediate poles, one per "+maxSpan(L)+" m");}
    else{nGen+=n;const pl=poleOf(sg);newPole(pl,n,sg.kv,"intermediate poles, max span "+maxSpan(L)+" m");(L.cls==="HV"?hvTangent:ltTangent)(L,n,"intermediate poles");
-    const ne=S.sEarth>0?Math.floor(n/S.sEarth):0;earth(ne,"every "+S.sEarth+"th intermediate pole");sg.mid.forEach(m=>{m.earth=S.sEarth>0&&m.i%S.sEarth===0});
+    const stl=/^SP/.test(pl),ne=stl?n:S.sEarth>0?Math.floor(n/S.sEarth):0;earth(ne,stl?"every steel intermediate pole":"every "+S.sEarth+"th intermediate pole");sg.mid.forEach(m=>{m.earth=stl||S.sEarth>0&&m.i%S.sEarth===0});
     const ns=S.sStay>0?Math.floor(n/S.sStay):0;if(ns){stayKit(sg.kv,ns,"storm stay every "+S.sStay+"th pole");sg.mid.forEach(m=>{m.stay=m.i%S.sStay===0})}}}
   if(L.bare&&L.cls==="HV")add(L.sl,Math.ceil(sg.len/1000*3),"3 sleeves per route-km");
   if(L.mv){add(L.jt,Math.floor(sg.len/1000*3),"3 joints per route-km");[sg.a,sg.b].forEach(x=>{if(["dtr","htc","tMV","dtrShift"].includes(x.kind))return;const e=adj[x.id].filter(a=>work(a.sg.L)&&a.sg.cls==="HV");if(e.length===1||isSrc(x)||e.some(a=>!a.sg.L.mv))add(L.term,3,"MVCC termination at P"+x.no)})}
@@ -770,6 +770,7 @@ function sldSVG(c,so){
      Mosque:`<path d="M${gx-4},${gy+4} v-3 h8 v3 z M${gx-4},${gy+1} a4,4 0 0 1 8,0 z" stroke="#3b2a1a" stroke-width="0.6" fill="#fff"/>`,Church:`<path d="M${gx},${gy-5} v9 M${gx-3},${gy-2} h6" stroke="#3b2a1a" stroke-width="1.1"/>`,
      Hospital:`<path d="M${gx},${gy-4} v8 M${gx-4},${gy} h8" stroke="#C92A2A" stroke-width="2"/>`,Bank:`<text x="${gx}" y="${gy+3}" font-size="8" font-weight="700" text-anchor="middle" fill="#3b2a1a" font-family="Arial">₹</text>`};
     out.push(G[ty]||`<rect x="${gx-4}" y="${gy-4}" width="8" height="8" fill="#fff" stroke="#3b2a1a" stroke-width="0.6"/>`);t(X+5,Y+2.4,nm,{fs:6.4,fw:700,c:"#3b2a1a"});break}
+   case "pole":if(/^SP/.test(opt(x,"poleLen")||"")){out.push(`<rect x="${X-3.4}" y="${Y-3.4}" width="6.8" height="6.8" fill="#fff" stroke="#111" stroke-width="1.2"/>`);plab();t(X-nn.nx*12,Y-nn.ny*12+2.4,opt(x,"poleLen"),{fs:6})}else{open();plab()}break;
    default:open();plab();
   }
   if(nd.earth&&["pole","steel","replace","xRiver","tMV","shift"].includes(x.kind))earthSym(X,Y);
