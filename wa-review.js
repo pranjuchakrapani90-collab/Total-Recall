@@ -14,6 +14,7 @@ var esc=function(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){re
 
 var css=document.createElement("style");css.textContent=
 ".wal{display:flex;flex-direction:column;gap:8px}"+
+".walk{display:flex;flex-wrap:wrap;gap:6px;margin:-2px 0 4px}.walk a{display:inline-flex;align-items:center;gap:5px;max-width:100%;padding:6px 10px;border-radius:999px;background:var(--tr-acc-soft,#eef0ff);color:var(--tr-acc-ink,#3730a3);font:600 12.5px system-ui,sans-serif;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}"+
 ".wai{display:flex;gap:10px;align-items:flex-start;text-align:left;width:100%;background:var(--tr-paper,#fff);color:var(--tr-ink,#1c1b19);border:1px solid var(--tr-line,#e6e3db);border-radius:12px;padding:11px 12px;font-weight:500}"+
 ".wai b{display:block;font-weight:650;font-size:14.5px;line-height:1.3}.wai small{color:var(--tr-muted,#6b6a64);font-size:12px}"+
 ".wad{flex:0 0 auto;font:600 10.5px system-ui,sans-serif;letter-spacing:.05em;text-transform:uppercase;padding:3px 7px;border-radius:6px;background:var(--tr-acc-soft,#eef0ff);color:var(--tr-acc-ink,#3730a3);margin-top:1px}"+
@@ -49,7 +50,7 @@ modal.innerHTML='<div class="was"><div class="wah"><h3>WhatsApp Review</h3><span
 '<label>Tags<div class="wat" id="waTags"></div></label>'+
 '<div class="wa2"><label>Goes to<select id="waDest"></select></label><label>Due<input id="waDue" type="date"></label></div>'+
 '<div class="wa2"><label>Priority<select id="waPri"></select></label><label>Repeat<select id="waRep"><option value="daily">Daily</option><option value="none">Does not repeat</option></select></label></div></div>'+
-'<label>Notes<textarea id="waNotes"></textarea></label>'+
+'<label>Notes<textarea id="waNotes"></textarea></label><div class="walk" id="waLinks" hidden></div>'+
 '<div class="waerr" id="waErr"></div>'+
 '<div class="wab"><button id="waOk">Approve ✓</button><button id="waDel" class="danger">Discard</button></div>'+
 '<div class="wab"><button id="waSkip" class="secondary">Skip for now</button><button id="waLater" class="ghost">Close</button></div></div>';
@@ -65,13 +66,14 @@ function tagsHtml(sel){var s={};(sel||[]).forEach(function(t){s[String(t).toLowe
     MORE.map(function(t){return '<button type="button" data-t="'+t+'" class="mo '+(s[t]?"on":"")+'">'+t+'</button>'}).join("");}
 function open(i){if(!items.length){close();return}cur=Math.max(0,Math.min(i,items.length-1));var it=items[cur];
   $("waPos").textContent=(cur+1)+" of "+items.length;$("waTitle").value=it.title;$("waTags").innerHTML=tagsHtml(it.tags);
-  $("waDest").value=it.target||"inbox";$("waDue").value=it.due||"";$("waPri").value=String(it.priority||0);$("waRep").value=it.repeat==="daily"?"daily":"none";$("waNotes").value=it.notes||"";$("waErr").textContent="";
+  $("waDest").value=it.target||"inbox";$("waDue").value=it.due||"";$("waPri").value=String(it.priority||0);$("waRep").value=it.repeat==="daily"?"daily":"none";$("waNotes").value=it.notes||"";driveLinks();$("waErr").textContent="";
   $("waUp").hidden=!it.update;$("waNew").checked=false;$("waTaskF").hidden=!!it.update;if(it.update)$("waUpT").textContent=(it.update.title||"(existing task)")+(it.update.projectName?" · "+it.update.projectName:"");
   $("waPk").hidden=true;$("waPick").hidden=false;$("waPick").textContent=it.update?"Choose a different task…":"＋ Add to an existing task…";
   modal.hidden=false;}
 function close(){modal.hidden=true;cur=-1;}
 function current(){var it=items[cur];return {id:it.id,title:($("waTitle").value.trim()||it.title).toUpperCase(),tags:[].map.call($("waTags").querySelectorAll("button.on"),function(b){return b.dataset.t}),
   target:$("waDest").value,due:$("waDue").value,priority:+$("waPri").value,repeat:$("waRep").value,notes:$("waNotes").value.trim(),mode:it.update&&!$("waNew").checked?"update":"new",update:it.update?it.update.id:"",uproject:it.update?it.update.project:"",utitle:it.update?it.update.title:""};}
+function driveLinks(){var box=$("waLinks");if(!box)return;var t=$("waNotes").value||"",out=[],seen={};t.split(/\n/).forEach(function(line){var re=/https:\/\/(?:drive|docs)\.google\.com\/[^\s)>\]]+/g,m;while((m=re.exec(line))){var u=m[0];if(seen[u])continue;seen[u]=1;var lbl=line.slice(0,m.index).replace(/^[\s\-\u2022\u{1F4CE}]+/u,"").replace(/^drive\s*:\s*/i,"").replace(/(drive|link)?\s*[:\-\u2013]\s*$/i,"").trim()||"Drive file";out.push('<a href="'+esc(u)+'" target="_blank" rel="noopener noreferrer">\u{1F4CE} '+esc(lbl.slice(0,60))+'</a>')}});box.innerHTML=out.join("");box.hidden=!out.length}
 async function post(body){var r=await fetch(URLB(),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body),cache:"no-store"});
   var d={};try{d=await r.json()}catch(e){}if(!r.ok||d.error)throw new Error(d.error||("HTTP "+r.status));return d;}
 async function act(kind){if(busy||cur<0)return;busy=true;$("waErr").textContent="";var b=kind==="approve"?$("waOk"):$("waDel"),t=b.textContent;b.textContent="…";
@@ -81,6 +83,7 @@ async function act(kind){if(busy||cur<0)return;busy=true;$("waErr").textContent=
   finally{b.textContent=t;busy=false;}}
 $("waOk").addEventListener("click",function(){act("approve")});
 $("waNew").addEventListener("change",function(){$("waTaskF").hidden=!this.checked;});
+$("waNotes").addEventListener("input",driveLinks);
 /* pick the task yourself: searchable list of open tasks (Inbox, SCHEDULE, PROJECTS, REFERENCE, CHECKLISTS) */
 var allTasks=null;
 function pkDraw(){var q=$("waPkQ").value.trim().toLowerCase(),L=$("waPkL");if(!allTasks){L.innerHTML="<p>Loading your tasks…</p>";return}
