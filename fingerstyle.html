@@ -102,6 +102,10 @@ input{accent-color:var(--steel)}
 .cboxes{display:flex;flex-wrap:wrap;gap:14px;margin:10px 0}.cbox{color:var(--ink,currentColor);flex:none}
 .nbtempo{display:flex;align-items:center;gap:6px;font:600 13px var(--mono);flex:none}
 .nbtempo button{padding:6px 10px}
+#nbDone{flex:none;padding:8px 12px;white-space:nowrap}
+@media(max-width:600px){#nowbar{flex-wrap:wrap;row-gap:8px}#nowbar .nbtxt{order:9;flex:1 1 100%}}
+#nowbar.playing .gsm-btn{display:none}
+.lhd{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}.lhd h2{min-width:0}.lhd button{flex:none;padding:7px 11px;font-size:13px}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:84px;z-index:30;background:var(--good);color:#fff;padding:10px 16px;border-radius:12px;font-weight:600;max-width:calc(100% - 32px);text-align:center}
 .sess{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
 .sess li{display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:var(--bg);border-radius:10px;padding:10px 12px}
@@ -125,7 +129,7 @@ input{accent-color:var(--steel)}
 <div id="toast" class="toast" hidden role="status">🎸 Today's goal reached. Keep going if you like!</div>
 <div id="nowbar" class="nowbar" hidden><button type="button" class="play" id="nbPlay">▶ Play</button>
   <span class="nbtxt"><span id="nbInfo" class="nbinfo"></span><span id="nbGoal" class="nbgoal"></span></span>
-  <span class="nbtempo"><button type="button" data-tdelta="-5" aria-label="Slower">−</button><span id="nbT">60</span><button type="button" data-tdelta="5" aria-label="Faster">+</button></span></div>
+  <span class="nbtempo"><button type="button" data-tdelta="-5" aria-label="Slower">−</button><span id="nbT">60</span><button type="button" data-tdelta="5" aria-label="Faster">+</button></span><button type="button" class="good" id="nbDone" hidden>✓ Done</button></div>
 <script>
 "use strict";
 /* ===================== The course: chords, levels and lessons live in fs-course.js (shared with the hub) ===================== */
@@ -503,7 +507,7 @@ function lessonView(L){
   const chords=[...new Set(E.ch.map(c=>cname(c.name)))].filter(Boolean);
   const nb=Math.ceil(E.total/E.meter-1e-6);
   return `<section class="card"><div class="num">Level ${lvNo(L.lv)} · ${Lv.n} · lesson ${idx+1} of ${Lv.ls.length}</div>
-    <h2>${L.t}</h2>${exTabs(L,P)}
+    <div class="lhd"><h2>${L.t}</h2>${exDone(L)?`<button type="button" data-undone="${L.id}">✓ Done</button>`:`<button type="button" class="good" data-done="${L.id}">Mark done</button>`}</div>${exTabs(L,P)}
     <div class="chips"><span class="chip">${L.meter}/4</span>${chords.length?`<span class="chip t">${chords.join(" · ")}</span>`:""}<span class="chip">${nb} bars</span>${L.free?`<span class="chip g">your tempo</span>`:`<span class="chip g">goal ${L.tempo[1]} bpm</span>`}${L.song?`<span class="chip t">song</span>`:""}${L.tune?`<span class="chip t">🎛 ${TUNINGS[L.tune].n} tuning</span>`:""}${L.swing?`<span class="chip">swing</span>`:""}</div>
     <p class="pdesc"><b>In words:</b> ${L.w}</p>
     <p class="tip">💡 ${L.tip}</p>
@@ -532,9 +536,10 @@ function render(){
   header();setBar();paintGoal();requestAnimationFrame(fixClefs);
 }
 function setBar(){const nb=document.getElementById("nowbar"),L0=view.k==="lesson"&&byId(view.id),L=L0&&!L0.task?L0:null;nb.hidden=!L;document.body.style.paddingBottom=L?"80px":"0";
-  if(!L)return;const b=document.getElementById("nbPlay");b.textContent=play?"■ Stop":"▶ Play";b.classList.toggle("on",!!play);
+  if(!L)return;nb.classList.toggle("playing",!!play);const b=document.getElementById("nbPlay");b.textContent=play?"■ Stop":"▶ Play";b.classList.toggle("on",!!play);
   document.getElementById("nbInfo").textContent=play?(sel?(sel.a===sel.b?`Looping bar ${sel.a+1}`:`Looping bars ${sel.a+1}–${sel.b+1}`):`Playing ${L.id}`):`Lesson ${L.id}${sel?` · bar${sel.a===sel.b?" "+(sel.a+1):"s "+(sel.a+1)+"–"+(sel.b+1)}`:""}`;
   document.getElementById("nbT").textContent=tempoOf(L);
+  {const dn=document.getElementById("nbDone");dn.hidden=!play||!!exDone(L);dn.dataset.done=L.id;}
   if(play)play.sub=SUB;}
 function open(id){const P=ALL.find(l=>l.id===id);if(P&&P.ex.length>1)id=(P.ex.find(e=>!exDone(e))||P.ex[0]).id;view={k:"lesson",id};sel=null;st.last=id;save();render();window.scrollTo({top:0});}
 function setSel(s){const wasPlaying=!!play;sel=s;render();if(wasPlaying)start();}
@@ -546,8 +551,8 @@ document.addEventListener("click",e=>{
     const r=document.getElementById("tempo");if(r){r.value=tempoOf(L);document.getElementById("tempoV").textContent=tempoOf(L);}if(play){const was=true;stop();start();}else setBar();return;}
   const ld=e.target.closest("[data-lessondone]");if(ld){const P=ALL.find(l=>l.id===ld.dataset.lessondone);P.ex.forEach(x=>{if(!exDone(x)){st.done[x.id]=dkey(new Date());st.doneT[x.id]=Date.now();}});save();
     const nx=ALL[ALL.indexOf(P)+1];if(nx&&unlockedLv(nx.lv))open(nx.id);else{view={k:"home"};render();}return;}
-  const d=e.target.closest("[data-done]");if(d){st.done[d.dataset.done]=dkey(new Date());st.doneT[d.dataset.done]=Date.now();save();const L=byId(d.dataset.done),P=lessonOf(L);
-    const sib=P.ex.slice(P.ex.indexOf(L)+1).concat(P.ex.slice(0,P.ex.indexOf(L))).find(x=>!exDone(x));if(sib){open(sib.id);return;}
+  const d=e.target.closest("[data-done]");if(d){st.done[d.dataset.done]=dkey(new Date());st.doneT[d.dataset.done]=Date.now();save();const L=byId(d.dataset.done),P=lessonOf(L),go=d.id==="nbDone"&&!!play; // from the bottom bar while playing: carry straight on with the next exercise
+    const sib=P.ex.slice(P.ex.indexOf(L)+1).concat(P.ex.slice(0,P.ex.indexOf(L))).find(x=>!exDone(x));if(sib){open(sib.id);if(go)start();return;}
     const nx=ALL[ALL.indexOf(P)+1];if(nx&&unlockedLv(nx.lv))open(nx.id);else{view={k:"home"};render();}return;}
   const u=e.target.closest("[data-undone]");if(u){const L=byId(u.dataset.undone);[L.id].concat(L.home&&L.pid!==L.id?[L.pid]:[]).forEach(id=>{if(st.done[id]){delete st.done[id];st.offT[id]=Date.now();}});save();render();return;}
   if(e.target.closest("[data-syncnow]")){cloudSync();return;}

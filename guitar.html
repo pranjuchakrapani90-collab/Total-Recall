@@ -382,6 +382,11 @@ body.hasbar .wrap{padding-bottom:96px}
 .nbgoal{font:600 14px var(--mono);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .nbtxt{overflow:hidden}
 .nowbar .nbmix{flex:0 1 170px}
+.nbbpm{flex:none;font:700 16px var(--mono);color:var(--accent,#b45309);white-space:nowrap}
+@media(max-width:600px){#nowbar{flex-wrap:wrap;row-gap:8px}#nowbar .nbtxt{order:9;flex:1 1 100%}}
+#nowbar.playing .gsm-btn{display:none}
+.nbdone{flex:none;white-space:nowrap;background:var(--good,#15803d)!important;color:#fff!important}
+.ctx .ctxdone{background:var(--good,#15803d);color:#fff;border:0;border-radius:8px;padding:5px 10px;font:600 13px var(--body,system-ui);cursor:pointer}
 .nbgoal.met{color:var(--good)}
 #hTodayS.met b{color:#a7f3d0}
 .goal{border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
@@ -495,7 +500,7 @@ body.hasbar .wrap{padding-bottom:96px}
 <nav class="stepper" id="stepper" aria-label="Session steps"></nav>
 <div class="ctx" id="ctx" hidden></div>
 <div id="goalToast" class="gtoast" hidden role="status">🎸 Today's goal reached. Keep going if you like!</div>
-<div id="nowbar" class="nowbar" hidden><button type="button" class="play" id="nbPlay" data-nbplay="1">▶ Play</button><button type="button" class="nbp" id="nbPause" data-nbpause="1" hidden >❚❚ Pause</button><button type="button" class="nbp" id="nbRestart" data-nbrestart="1" hidden >⏮ Start over</button><span class="nbtxt"><span id="nbInfo" class="nbinfo">Playing</span><span id="nbGoal" class="nbgoal"></span></span><button type="button" id="nbResume" data-resume="1" hidden>🔈 Restore sound</button></div>
+<div id="nowbar" class="nowbar" hidden><button type="button" class="play" id="nbPlay" data-nbplay="1">▶ Play</button><button type="button" class="nbp" id="nbPause" data-nbpause="1" hidden >❚❚ Pause</button><button type="button" class="nbp" id="nbRestart" data-nbrestart="1" hidden >⏮ Start over</button><span class="nbtxt"><span id="nbInfo" class="nbinfo">Playing</span><span id="nbGoal" class="nbgoal"></span></span><span class="nbbpm" id="nbBpm" hidden></span><button type="button" class="nbdone" id="nbDone" data-mdone="1" hidden>✓ Done</button><button type="button" id="nbResume" data-resume="1" hidden>🔈 Restore sound</button></div>
 <main id="view"><div class="loading">Loading your session…</div></main>
 <p class="note" id="syncNote"></p>
 </div>
@@ -2062,7 +2067,7 @@ function renderCtx(){
   const c=document.getElementById("ctx");if(view==="setup"||view==="summary"||view==="write"){c.hidden=true;return;}
   c.hidden=false;const p=curPat(),sh=typeof view==="number"?CSH[view]:null;
   c.innerHTML=`<span>${escH(p?p.name:"")} · <b>${curTempo} bpm</b> · ${sh?shLab(sh):NOTE[S.keyPc]+" "+SCALES[today.scale].short.toLowerCase()+", "+shapeName(today.position)}</span>
-    <span class="cx">${S.click?"Metronome on":"Metronome off"} · <button type="button" class="linkb" data-go="setup">Settings</button></span>`;
+    <span class="cx">${S.click?"Metronome on":"Metronome off"} · <button type="button" class="linkb" data-go="setup">Settings</button>${pageDone()?` <button type="button" class="ctxdone" data-mdone="1">✓ Done</button>`:""}</span>`;
 }
 function resetTempo(){curTempo=today.tempo!=null?today.tempo:(S.tempo||72);}
 function render(){
@@ -2316,13 +2321,19 @@ function startFollow(id){
 }
 const mainId=()=>isBox(view)?"pos":typeof view==="number"?"i"+view:view==="write"?(W.editId||course().canAdd?(wA().ok?"w":null):crNow()?"cr":null):null;
 function updateNowbar(){setNowbar();}
+/* the step's own "Done" button (box warm-up, exercise or course shape); the sticky header and the bottom bar carry a copy of it */
+function pageDone(){return document.querySelector(".donego:not([disabled]),[data-crdone]:not([disabled])");}
+document.addEventListener("click",e=>{if(!e.target.closest("[data-mdone]"))return;const b=pageDone();if(!b)return;const was=!!play;b.click();
+  if(was)setTimeout(()=>{const p=document.getElementById("nbPlay"),nb=document.getElementById("nowbar");if(p&&!play&&!p.disabled&&nb&&!nb.hidden)p.click();},120);}); // carry straight on with the next step
 function setNowbar(){
-  const nb=document.getElementById("nowbar");if(!nb)return;const m=mainId(),show=!!m||!!play;nb.hidden=!show;document.body.classList.toggle("hasbar",show);
+  const nb=document.getElementById("nowbar");if(!nb)return;const m=mainId(),show=!!m||!!play;nb.hidden=!show;nb.classList.toggle("playing",!!play);document.body.classList.toggle("hasbar",show);
   if(paused&&paused.id!==m)paused=null;
   const pz=paused&&!play;
   const pb=document.getElementById("nbPlay");if(pb){pb.textContent=play?"■ Stop":pz?"▶ Resume":"▶ Play";pb.classList.toggle("on",!!play);pb.disabled=!play&&!m;}
   const pa=document.getElementById("nbPause");if(pa)pa.hidden=!(play&&!play.test&&!play.ro);
   const rs=document.getElementById("nbRestart");if(rs)rs.hidden=!pz;
+  const bp=document.getElementById("nbBpm");if(bp){bp.hidden=!m&&!play;bp.textContent="♩"+curTempo;}
+  const dn=document.getElementById("nbDone");if(dn)dn.hidden=!play||!pageDone();
   const sel=m&&m!=="pos"&&typeof barSel!=="undefined"?barSel[selKey(m)]:null,pp=document.getElementById("posPlay");
   const what=m==="pos"?(pp&&pp.dataset.idle?pp.dataset.idle[0].toUpperCase()+pp.dataset.idle.slice(1):"The box"):m==="cr"?(()=>{const r=crNow();return r?`${r.p.name} · ${shLab(r.sh)} · ${curTempo} bpm`:"";})():m==="w"?`Your pattern${W.name?" · "+W.name:""}${sel?(sel.a===sel.b?` · bar ${sel.a+1}`:` · bars ${sel.a+1}–${sel.b+1}`):""}`:m?`${Number(m.slice(1))+1}. ${shLab(CSH[Number(m.slice(1))])}${sel?(sel.a===sel.b?` · bar ${sel.a+1}`:` · bars ${sel.a+1}–${sel.b+1}`):""}`:"";
   if(!play)document.getElementById("nbInfo").textContent=pz?`Paused · ${paused.bar!=null?"bar "+(paused.bar+1):"your bars"}`:what;
@@ -2800,7 +2811,7 @@ document.addEventListener("input",e=>{
   if(["vDrums","vNotes","vChords","vClick","vMaster"].includes(e.target.id)){const id=e.target.id,v=Number(e.target.value);S[id]=v/100;
     document.querySelectorAll(`#${id}V`).forEach(x=>x.textContent=v);document.querySelectorAll(`#${id},#nb${id}`).forEach(x=>{if(x!==e.target)x.value=v;});persistSettings();return;}
   if(e.target.id==="nbvNotes"||e.target.id==="nbvDrums"){const id=e.target.id.slice(2),v=Number(e.target.value);S[id]=v/100;persistSettings();return;}
-  if(e.target.id!=="tempo")return;curTempo=Number(e.target.value);document.getElementById("tempoV").textContent=curTempo;
+  if(e.target.id!=="tempo")return;curTempo=Number(e.target.value);document.getElementById("tempoV").textContent=curTempo;{const bp=document.getElementById("nbBpm");if(bp)bp.textContent="♩"+curTempo;}
   if(today&&today.tempo==null){S.tempo=curTempo;persistSettings();}setTempoNote();
 });
 document.addEventListener("submit",e=>{if(e.target.id!=="buildForm")return;e.preventDefault();if(!today)return;
