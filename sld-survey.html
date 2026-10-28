@@ -751,7 +751,7 @@ function sldSVG(c,so){
  // a line ends on the outline of a 3-pole / 4-pole structure (DP: mid of the tie, single pole: the pole itself)
  // a line meets a 3-pole / 4-pole structure or a DTR exactly at the middle of the side facing it (DP: middle of the tie, single pole: the pole)
  const trimTo=(x,P,Q)=>{const n=NP(x);if(n!=="d"&&n<3)return P;const g=GEO[n],dx=Q[0]-P[0],dy=Q[1]-P[1],l=Math.hypot(dx,dy)||1;let best=null,bd=-2;
-  const cand=[];for(let i=0;i<g.length;i++){const a=g[i],b=g[(i+1)%g.length];cand.push([(a[0]+b[0])/2,(a[1]+b[1])/2]);if(n===3)cand.push(a)}
+  const cand=[];for(let i=0;i<g.length;i++){const a=g[i],b=g[(i+1)%g.length];cand.push([(a[0]+b[0])/2,(a[1]+b[1])/2])}
   cand.forEach(([mx,my])=>{const ml=Math.hypot(mx,my)||1,d=(mx*dx+my*dy)/(ml*l);if(d>bd+1e-6){bd=d;best=[mx,my]}});
   return[P[0]+best[0],P[1]+best[1]]};
  const out=[],TB=[],LS=[];
