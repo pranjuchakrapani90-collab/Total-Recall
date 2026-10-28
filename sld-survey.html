@@ -82,6 +82,7 @@ dialog::backdrop{background:#0006}
 .tb{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:52px;padding:5px 6px;border:1px solid var(--line);border-radius:10px;background:#fff;font:700 16px system-ui;cursor:pointer;color:#1e293b}
 .tb span{font:600 10px system-ui;margin-top:2px;color:#475569}.tb.on{background:#0f766e;border-color:#0f766e;color:#fff}.tb.on span{color:#e6fffa}.tb:disabled{opacity:.4}
 .sldbox.editing.adding svg,.sldbox.editing.lining svg,.sldbox.editing.texting svg{cursor:crosshair}.sldbox.editing.deleting svg{cursor:not-allowed}
+.sldbox g.sel .grab{fill:#2563eb;fill-opacity:.22;stroke:#1d4ed8;stroke-opacity:1;stroke-dasharray:none}.sldbox .seln{fill:#1d4ed8}.sldbox.editing.selecting svg{cursor:crosshair}
 .sldbox .pick .grab{fill:#f59e0b;fill-opacity:.35;stroke:#b45309;stroke-opacity:1}.sldbox.editing .lhit{cursor:pointer}.sldbox.editing .lhit:hover{stroke:#f59e0b;stroke-opacity:.35}
 /* estimate */
 .est{overflow:auto;background:#fff;border:1px solid var(--line);border-radius:12px}
@@ -180,6 +181,7 @@ table.boq{border-collapse:collapse;width:100%;min-width:720px;font-size:12.5px}
   <div id="edTools" hidden>
    <div class="tools">
     <button class="tb" data-tool="move" type="button" title="Select / move">✥<span>Move</span></button>
+    <button class="tb" data-tool="select" type="button" title="Drag a box to select part of the drawing">⬚<span>Select</span></button>
     <button class="tb" data-tool="add" type="button" title="Place a structure">✚<span>Structure</span></button>
     <button class="tb" data-tool="line" type="button" title="Draw a line from one structure to another">╱<span>Line</span></button>
     <button class="tb" data-tool="text" type="button" title="Add free text">T<span>Text</span></button>
@@ -189,12 +191,17 @@ table.boq{border-collapse:collapse;width:100%;min-width:720px;font-size:12.5px}
     <button class="tb" id="edRedo" type="button" title="Redo (Ctrl+Y)">↷<span>Redo</span></button>
     <button class="tb" id="edSnap" type="button" title="Snap to grid and line up with neighbours">⌗<span>Snap</span></button>
     <i class="sep"></i>
+    <button class="tb" id="edAll" type="button" title="Select the whole drawing">▣<span>Select all</span></button>
+    <button class="tb" id="edCtr" type="button" title="Centre on the sheet">⊕<span>Centre</span></button>
+    <button class="tb" id="edBig" type="button" title="Make it bigger">⤢<span>Bigger</span></button>
+    <button class="tb" id="edSml" type="button" title="Make it smaller">⤡<span>Smaller</span></button>
+    <i class="sep"></i>
     <button class="tb" id="edZo" type="button" title="Zoom out">−<span>Zoom</span></button>
     <button class="tb" id="edZi" type="button" title="Zoom in">+<span>Zoom</span></button>
     <button class="tb" id="edReset" type="button" title="Back to the automatic layout">↺<span>Reset</span></button>
    </div>
   </div>
-  <p class="hint" id="edHint" hidden></p>
+  <p class="hint" id="edHint" hidden></p><b class="small" id="edSelN" style="color:#1d4ed8"></b>
  </div>
  <div class="sldbox" id="sldBox"></div>
 </section>
@@ -720,12 +727,12 @@ const workOf=c=>P().meta.work||autoWork(c);
 const locOf=()=>P().meta.loc||"________";
 
 /* ================= SLD drawing ================= */
-let LASTT=null;const DEFCOL={hv:"#2B8A3E",lt:"#C2410C",ex:"#1F4E9C",dis:"#C92A2A"},BWCOL={hv:"#111111",lt:"#111111",ex:"#555555",dis:"#111111"};
+let LASTT=null,LASTA=null;const DEFCOL={hv:"#2B8A3E",lt:"#C2410C",ex:"#1F4E9C",dis:"#C92A2A"},BWCOL={hv:"#111111",lt:"#111111",ex:"#555555",dis:"#111111"};
 function sldSVG(c,so){
  const p=P(),W=842,H=595,esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
  const title=(p.meta.title||("SINGLE LINE DIAGRAM FOR "+workOf(c)+" AT "+locOf()+" UNDER SAMAGURI ESD")).toUpperCase();
  const all=[];c.pts.forEach(x=>all.push(xy(x,c.o)));c.segs.forEach(s=>s.mid.forEach(m=>all.push(xy(m,c.o))));
- const tl0=wrap(title,92,9),tl=tl0.length>2?wrap(title,112,4):tl0;const top=40+tl.length*(tl.length>2?12:14)+30,bot=so.sign?490:535,lft=105,rgt=737;
+ const tl0=wrap(title,92,9),tl=tl0.length>2?wrap(title,112,4):tl0;const top=40+tl.length*(tl.length>2?12:14)+30,bot=so.sign?490:535,lft=105,rgt=737;LASTA={x1:30,x2:812,y1:top-12,y2:so.sign?480:552};
  let mnx=Math.min(...all.map(a=>a.x)),mxx=Math.max(...all.map(a=>a.x)),mny=Math.min(...all.map(a=>a.y)),mxy=Math.max(...all.map(a=>a.y));
  if(!all.length){mnx=mny=-1;mxx=mxy=1}
  const sx=(rgt-lft)/Math.max(mxx-mnx,1),sy=(bot-top)/Math.max(mxy-mny,1),s=Math.min(sx,sy,8);
@@ -1028,7 +1035,7 @@ const HINTS={move:"Drag a structure or any text to move it. Tap a structure to c
  del:"Tap a structure, a line or a text to delete it. Undo brings it back."};
 function edUI(){$("#edBtn").textContent=EDIT?"✓ Done editing":"✎ Edit drawing";$("#edBtn").classList.toggle("on",EDIT);$("#edTools").hidden=!EDIT;
  document.querySelectorAll(".tb[data-tool]").forEach(b=>b.classList.toggle("on",b.dataset.tool===EDMODE));$("#edSnap").classList.toggle("on",SNAP);$("#edUndo").disabled=!HIST.length;$("#edRedo").disabled=!FUT.length;
- const bx=$("#sldBox");["adding","lining","texting","deleting"].forEach((c,i)=>bx.classList.toggle(c,EDIT&&EDMODE===["add","line","text","del"][i]));
+ const bx=$("#sldBox");["adding","lining","texting","deleting","selecting"].forEach((c,i)=>bx.classList.toggle(c,EDIT&&EDMODE===["add","line","text","del","select"][i]));
  const svg=bx.querySelector("svg");if(svg)svg.style.width=(ZOOM*100)+"%";
  const pk=PICK&&P().pts.find(q=>q.id===PICK);
  $("#edHint").hidden=!EDIT;$("#edHint").textContent=EDMODE==="line"&&pk?"Now tap where the line goes from P"+pk.no+": another structure, or an empty spot for a new pole. Esc cancels.":HINTS[EDMODE];
@@ -1097,6 +1104,44 @@ function editText(p,key,el){const L=lay(p);
  const v=prompt("Edit this text.\n• Leave empty to restore the original\n• Type a single - to hide it",o.hide?"-":cur);if(v===null)return;snap();
  if(v.trim()==="-")o.hide=true;else if(v.trim()===""){delete o.t;delete o.hide;delete o.dx;delete o.dy}else{o.t=v;delete o.hide}
  if(Object.keys(o).length)L.txt[key]=o;else delete L.txt[key];freeze(p);touch(p);renderAll()}
+/* selection: box-select, move a group, centre on the sheet, enlarge / shrink */
+let SEL=new Set(),SELN=new Set(),GD=null;
+HINTS.select="Drag a box around the part you want (or tap Select all). Then drag any selected structure to move the whole selection, or use Centre / Bigger / Smaller. Arrow keys nudge it.";
+function markSel(){const bx=$("#sldBox");bx.querySelectorAll("g[data-p]").forEach(g=>g.classList.toggle("sel",SEL.has(g.dataset.p)));bx.querySelectorAll(".tx").forEach(t=>t.classList.toggle("seln",SELN.has(t.dataset.k)));
+ const n=SEL.size+SELN.size;["#edCtr","#edBig","#edSml"].forEach(id=>$(id).title=n?"Applies to the "+n+" selected item"+(n>1?"s":""):"Applies to the whole drawing");$("#edSelN").textContent=n?n+" selected":""}
+const _edUI=edUI;edUI=function(){_edUI();markSel()};
+function selItems(){const p=P(),L=lay(p);const pts=SEL.size||SELN.size?p.pts.filter(x=>SEL.has(x.id)):p.pts.slice(),notes=SEL.size||SELN.size?L.notes.filter(n=>SELN.has("a:"+n.id)):L.notes.slice();return{pts,notes}}
+function selBox(it){let x1=1e9,y1=1e9,x2=-1e9,y2=-1e9;const add=b=>{x1=Math.min(x1,b.x);y1=Math.min(y1,b.y);x2=Math.max(x2,b.x+b.width);y2=Math.max(y2,b.y+b.height)};
+ it.pts.forEach(x=>{const g=document.querySelector(`#sldBox g[data-p="${x.id}"]`);if(g)try{add(g.getBBox())}catch(_){}});
+ it.notes.forEach(n=>{const t=document.querySelector(`#sldBox .tx[data-k="a:${n.id}"]`);if(t)try{add(t.getBBox())}catch(_){}});return x2>x1?{x1,y1,x2,y2}:null}
+function moveItems(p,it,f){const L=lay(p),P0=it.pts.map(x=>[x,posOf(x.id)]);P0.forEach(([x,q])=>{if(q){const[X,Y]=f(q[0],q[1]);setPos(p,x,X,Y)}});it.notes.forEach(n=>{const[X,Y]=f(n.x,n.y);n.x=+X.toFixed(1);n.y=+Y.toFixed(1)})}
+// lengths taken from the drawing must not change when the drawing is enlarged or shrunk
+function lockLens(p,it){const c=compute(p),ids=new Set(it.pts.map(x=>x.id));c.segs.forEach(sg=>{if(+sg.b.len>0)return;if(!(ids.has(sg.a.id)||ids.has(sg.b.id)))return;if(sg.a.src==="sld"||sg.b.src==="sld")sg.b.len=Math.round(sg.len)})}
+$("#edAll").onclick=()=>{const p=P();SEL=new Set(p.pts.map(x=>x.id));SELN=new Set(lay(p).notes.map(n=>"a:"+n.id));EDMODE="select";renderAll()};
+$("#edCtr").onclick=()=>{const p=P(),it=selItems(),b=selBox(it),A=LASTA;if(!b||!A)return;snap();freeze(p);const dx=(A.x1+A.x2)/2-(b.x1+b.x2)/2,dy=(A.y1+A.y2)/2-(b.y1+b.y2)/2;moveItems(p,it,(X,Y)=>[X+dx,Y+dy]);touch(p);renderAll()};
+function scaleSel(k){const p=P(),it=selItems(),b=selBox(it),A=LASTA;if(!b)return;
+ if(k>1&&A){k=Math.min(k,(A.x2-A.x1)/(b.x2-b.x1),(A.y2-A.y1)/(b.y2-b.y1));if(k<=1.01){alert("It already fills the sheet.");return}}snap();freeze(p);lockLens(p,it);const cx=(b.x1+b.x2)/2,cy=(b.y1+b.y2)/2,w=(b.x2-b.x1)*k/2,h=(b.y2-b.y1)*k/2;
+ // keep the result inside the sheet
+ const sx=A?Math.max(A.x1+w-cx,Math.min(A.x2-w-cx,0)):0,sy=A?Math.max(A.y1+h-cy,Math.min(A.y2-h-cy,0)):0;
+ moveItems(p,it,(X,Y)=>[cx+(X-cx)*k+sx,cy+(Y-cy)*k+sy]);touch(p);renderAll()}
+$("#edBig").onclick=()=>scaleSel(1.15);$("#edSml").onclick=()=>scaleSel(1/1.15);
+$("#sldBox").addEventListener("pointerdown",e=>{if(!EDIT||!["select","move"].includes(EDMODE))return;const xy0=svgXY(e);if(!xy0)return;
+ const g=e.target.closest("g[data-p]"),tx=e.target.closest(".tx"),key=tx&&tx.dataset.k,isNote=key&&key.startsWith("a:");
+ const inSel=(g&&SEL.has(g.dataset.p)&&!(tx&&!isNote))||(isNote&&SELN.has(key));
+ if(EDMODE==="move"&&!(inSel&&SEL.size+SELN.size>1))return;
+ e.stopImmediatePropagation();e.preventDefault();try{$("#sldBox").setPointerCapture(e.pointerId)}catch(_){}
+ if(EDMODE==="select"&&!inSel&&(g||isNote)){SEL=new Set(g&&!isNote?[g.dataset.p]:[]);SELN=new Set(isNote?[key]:[]);markSel()}
+ if(inSel||g||isNote){const L=lay(P());GD={k:"g",s:xy0,d:[0,0],m:false,bb:selBox({pts:P().pts.filter(x=>SEL.has(x.id)),notes:L.notes.filter(n=>SELN.has("a:"+n.id))})};return}
+ const svg=$("#sldBox svg"),r=document.createElementNS("http://www.w3.org/2000/svg","rect");r.setAttribute("fill","#2563eb");r.setAttribute("fill-opacity","0.08");r.setAttribute("stroke","#1d4ed8");r.setAttribute("stroke-dasharray","4 3");svg.appendChild(r);GD={k:"box",s:xy0,r}},true);
+$("#sldBox").addEventListener("pointermove",e=>{if(!GD)return;const q=svgXY(e);if(!q)return;const dx=q[0]-GD.s[0],dy=q[1]-GD.s[1];if(Math.hypot(dx,dy)>3)GD.m=true;
+ if(GD.k==="box"){const x=Math.min(q[0],GD.s[0]),y=Math.min(q[1],GD.s[1]);GD.r.setAttribute("x",x);GD.r.setAttribute("y",y);GD.r.setAttribute("width",Math.abs(dx));GD.r.setAttribute("height",Math.abs(dy));GD.b={x1:x,y1:y,x2:x+Math.abs(dx),y2:y+Math.abs(dy)};return}
+ let cdx=dx,cdy=dy;const A=LASTA,bb=GD.bb;if(A&&bb){cdx=Math.max(A.x1-bb.x1,Math.min(A.x2-bb.x2,dx));cdy=Math.max(A.y1-bb.y1,Math.min(A.y2-bb.y2,dy))}GD.d=[cdx,cdy];const tr=`translate(${cdx.toFixed(1)} ${cdy.toFixed(1)})`,_tr=`translate(${dx.toFixed(1)} ${dy.toFixed(1)})`;SEL.forEach(id=>{const g=document.querySelector(`#sldBox g[data-p="${id}"]`);if(g)g.setAttribute("transform",tr)});SELN.forEach(k=>{const t=document.querySelector(`#sldBox .tx[data-k="${k}"]`);if(t)t.setAttribute("transform",tr)})},true);
+$("#sldBox").addEventListener("pointerup",e=>{const D=GD;GD=null;if(!D)return;e.stopImmediatePropagation();const p=P();
+ if(D.k==="box"){D.r.remove();if(!D.m||!D.b){SEL.clear();SELN.clear();markSel();return}const B=D.b,inB=(x,y)=>x>=B.x1&&x<=B.x2&&y>=B.y1&&y<=B.y2;
+  if(!e.shiftKey){SEL.clear();SELN.clear()}p.pts.forEach(x=>{const q=posOf(x.id);if(q&&inB(q[0],q[1]))SEL.add(x.id)});lay(p).notes.forEach(n=>{if(inB(n.x,n.y))SELN.add("a:"+n.id)});markSel();edUI();return}
+ if(!D.m)return;const[dx,dy]=D.d;snap();freeze(p);const L=lay(p);moveItems(p,{pts:p.pts.filter(x=>SEL.has(x.id)),notes:L.notes.filter(n=>SELN.has("a:"+n.id))},(X,Y)=>[X+dx,Y+dy]);touch(p);renderAll()},true);
+document.addEventListener("keydown",e=>{if(!EDIT||VIEW!=="sld"||document.querySelector("dialog[open]")||!(SEL.size||SELN.size))return;const m={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]}[e.key];if(!m)return;
+ e.preventDefault();const st=e.shiftKey?10:2,p=P(),L=lay(p);snap();freeze(p);moveItems(p,{pts:p.pts.filter(x=>SEL.has(x.id)),notes:L.notes.filter(n=>SELN.has("a:"+n.id))},(X,Y)=>[X+m[0]*st,Y+m[1]*st]);touch(p);renderAll()});
 /* line box */
 let LNB=null,LN0=null;const MM=297/842;
 function openLine(b){const p=P();LNB=b;const a=p.pts.find(q=>q.id===b.par);
