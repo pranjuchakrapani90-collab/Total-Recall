@@ -374,7 +374,9 @@ function draft(p,c){const e=ensure(p,c),k=calc(p,e),a=app(p),tt=(p.meta.estTitle
  const st=k.mat.filter(x=>x.H>0),rd=st.filter(x=>skOf(x.r)==="rdss"),om=st.filter(x=>skOf(x.r)==="om"),ru=st.filter(x=>skOf(x.r)==="reuse");
  const nm=x=>{const d=x.it.desc.replace(/\s+/g," ").trim(),kv=d.match(/(\d+)\s*KVA/i);if(kv&&/DTR|transformer/i.test(d))return kv[1]+" KVA DTR";if(/earth pipe/i.test(d))return(/^CI/i.test(d)?"CI ":"GI ")+"earth pipes";
   const a=d.match(/^ACSR\s*"?\s*(\w+)\s*"?\s*Conductor/i);if(a)return"ACSR "+a[1][0].toUpperCase()+a[1].slice(1).toLowerCase()+" conductor";if(/^\d+C\s*x/i.test(d))return"LT AB cable "+d.split(" (")[0];
-  return d.split(/\s*[(,]/)[0].slice(0,48)};
+  const T=[[/disc insulator/i,"disc insulators"],[/h\/?w fitting/i,"disc hardware fittings"],[/tension clamp/i,"tension clamps"],[/suspension clamp/i,"suspension clamps"],[/pg clamp/i,"PG clamps"],[/pin insulator/i,"pin insulators"],[/shackle insulator/i,"shackle insulators"],[/guy insulator/i,"guy insulators"],[/stay set/i,"stay sets"],[/stay wire/i,"stay wire"],[/channel cross arm/i,"channel cross arms"],[/cross arm/i,"cross arms"],[/tubular pole|SP-?\d+/i,"steel tubular poles"],[/PSC pole/i,"PSC poles"],[/rail pole/i,"rail poles"],[/lightning arrestor|lighting arrestor/i,"lightning arresters"],[/GOAB|AB switch/i,"AB switch"],[/DO fuse/i,"DO fuse sets"],[/MCCB/i,"MCCB"],[/distribution box/i,"distribution boxes"],[/jointing sleeve|sleeve/i,"jointing sleeves"],[/conductor/i,"conductor"]];
+  for(const[rx,t]of T)if(rx.test(d))return t;
+  const w=d.split(/\s*[(,]/)[0];if(w.length<=48)return w;return w.slice(0,48).replace(/\s+\S*$/,"")};
  const qn=x=>isKm(x.it.unit)?" ("+fmtQ(x.r.q,x.it.unit)+" KM)":"";
  let sorP="The estimate has been prepared as per SoR 2021-22.";
  if(st.length){const and=l=>l.reduce((o,x,i)=>o+(i===0?"":i===l.length-1?" and ":", ")+x,""),parts=[];
