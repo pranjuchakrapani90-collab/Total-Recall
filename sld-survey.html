@@ -74,6 +74,8 @@ dialog::backdrop{background:#0006}
 /* SLD */
 .sldbox{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:auto}
 .sldbox svg{display:block;width:100%;height:auto;min-width:640px}
+.sldbox.editing{outline:2px solid #0f766e;outline-offset:-2px}.sldbox.editing svg{touch-action:none;user-select:none;-webkit-user-select:none}.sldbox.editing .tx{cursor:move}.sldbox.editing .grab{cursor:grab}.sldbox.adding svg{cursor:crosshair}
+.btn.on{background:#0f766e;color:#fff;border-color:#0f766e}
 /* estimate */
 .est{overflow:auto;background:#fff;border:1px solid var(--line);border-radius:12px}
 table.boq{border-collapse:collapse;width:100%;min-width:720px;font-size:12.5px}
@@ -154,6 +156,15 @@ table.boq{border-collapse:collapse;width:100%;min-width:720px;font-size:12.5px}
    <button class="btn alt" id="pngBtn" type="button">⬇ PNG</button>
    <button class="btn alt" id="svgBtn" type="button">⬇ SVG</button>
   </div>
+  <div class="drow edrow" style="justify-content:flex-start;margin-top:8px">
+   <button class="btn" id="edBtn" type="button">✎ Edit drawing</button>
+   <span id="edTools" hidden style="display:contents">
+    <button class="btn alt sm on" id="edMove" type="button">✥ Move &amp; edit</button>
+    <button class="btn alt sm" id="edAdd" type="button">✚ Add structure</button>
+    <button class="btn alt sm" id="edReset" type="button">↺ Reset layout</button>
+   </span>
+  </div>
+  <p class="hint" id="edHint" hidden></p>
  </div>
  <div class="sldbox" id="sldBox"></div>
 </section>
@@ -230,6 +241,7 @@ table.boq{border-collapse:collapse;width:100%;min-width:720px;font-size:12.5px}
    <label>From point<select id="dPar"></select></label>
    <label>Line<select id="dLine"></select></label>
    <label>Pole for new poles<select id="dPole"><option value="">Auto</option><option value="9.75">PSC 9.75 m</option><option value="8.5">PSC 8.5 m</option><option value="7.5">PSC 7.5 m</option><option value="SP-56">SP-56 (11 m)</option><option value="SP-60">SP-60 (12 m)</option><option value="SP-66">SP-66 (12 m)</option><option value="SP-76">SP-76 (14.5 m)</option></select></label>
+   <label>Span length (m)<input type="number" id="dLen" min="0" step="1" placeholder="auto"></label>
    <label>Crossing on this span<select id="dCross"><option value="">None</option><option value="road">Road (guarding)</option><option value="line">Other line (guarding)</option></select></label>
   </div>
   <div class="chk" id="dSegOpts"></div>
@@ -439,7 +451,7 @@ function compute(p){
  const addEx=(sor,q,w)=>add(sor,q,w+" (existing / O&M stock)",true);
  const dis=(sor,q,w)=>{if(!q)return;if(!RATES[sor]){warn.push("No rate for SoR "+sor);return}DM[sor]=(DM[sor]||0)+q;(dwhy[sor]=dwhy[sor]||[]);if(w&&!dwhy[sor].includes(w))dwhy[sor].push(w)};
  const segs=[];pts.forEach(b=>{if(!b.par)return;const a=byId[b.par];if(!a||isStand(b)){b.par=null;return}
-  const L=LINES[b.line]||LINES["11R"];segs.push({a,b,line:b.line,L,cls:L.cls,kv:L.kv||(L.cls==="HV"?11:0.4),len:hav(a,b),pole:b.pole||"",cross:b.cross||"",reuse:!!b.reuse,disOld:!!b.disOld,rmPoles:b.rmPoles!==false})});
+  const L=LINES[b.line]||LINES["11R"];segs.push({a,b,line:b.line,L,cls:L.cls,kv:L.kv||(L.cls==="HV"?11:0.4),len:+b.len>0?+b.len:hav(a,b),pole:b.pole||"",cross:b.cross||"",reuse:!!b.reuse,disOld:!!b.disOld,rmPoles:b.rmPoles!==false})});
  const work=L=>!L.ex&&!L.dis;
  const maxSpan=L=>L.abc?S.sABC:L.kv===33?S.sEHV:L.mv?S.sMV:L.cls==="HV"?S.sHV:S.sLT;
  const poleOf=sg=>sg.pole||(sg.kv===33?"SP-76":sg.cls==="HV"?"9.75":"8.5");
@@ -648,6 +660,7 @@ const workOf=c=>P().meta.work||autoWork(c);
 const locOf=()=>P().meta.loc||"________";
 
 /* ================= SLD drawing ================= */
+let LASTT=null;
 function sldSVG(c,so){
  const p=P(),W=842,H=595,esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
  const title=(p.meta.title||("SINGLE LINE DIAGRAM FOR "+workOf(c)+" AT "+locOf()+" UNDER SAMAGURI ESD")).toUpperCase();
@@ -657,7 +670,13 @@ function sldSVG(c,so){
  if(!all.length){mnx=mny=-1;mxx=mxy=1}
  const sx=(rgt-lft)/Math.max(mxx-mnx,1),sy=(bot-top)/Math.max(mxy-mny,1),s=Math.min(sx,sy,8);
  const ox=lft+((rgt-lft)-(mxx-mnx)*s)/2,oy=top+((bot-top)-(mxy-mny)*s)/2;
- const T=pt=>{const q=xy(pt,c.o);return[ox+(q.x-mnx)*s,oy+(mxy-q.y)*s]};
+ const lay=p.lay||{},F=lay.f;
+ // the transform in use: frozen once the drawing is edited, so nothing jumps when points are added
+ const TR=F||{ox,oy,s,mnx,mxy,olat:c.o.lat,olng:c.o.lng};LASTT=TR;
+ const geoT=pt=>{const q=xy(pt,{lat:TR.olat,lng:TR.olng});return[TR.ox+(q.x-TR.mnx)*TR.s,TR.oy+(TR.mxy-q.y)*TR.s]};
+ const T=pt=>{if(pt.gen&&pt._a){const A=T(pt._a),B=T(pt._b);return[A[0]+(B[0]-A[0])*pt._t,A[1]+(B[1]-A[1])*pt._t]}const v=pt.id&&lay.pos&&lay.pos[pt.id];return v?[v[0],v[1]]:geoT(pt)};
+ c.segs.forEach(sg=>sg.mid.forEach(m=>{m._a=sg.a;m._b=sg.b;m._t=m.i/(sg.mid.length+1)}));
+ let CTX="",CN=0;const ctx=k=>{CTX=k;CN=0};
  // pole layouts: DP = two poles side by side, 3-pole = triangle (apex up), 4-pole = square, all with clear separation
  const GEO={1:[[0,0]],2:[[-7,0],[7,0]],3:[[0,-7],[8,6],[-8,6]],4:[[-6.5,-6.5],[6.5,-6.5],[6.5,6.5],[-6.5,6.5]]},TOP={1:8,2:9,3:14,4:13},BOT={1:12,2:13,3:16,4:16},HW={1:4,2:10,3:11,4:10};
  const NP=x=>{const k=x.kind;if(["dp","iso33","ctpt","vcb11","exDP","sp2dp","ltdp","xRail","xBridge"].includes(k))return 2;if(["tp","exTP","dp2tp","sp2tp"].includes(k))return 3;if(["p4","ex4P","dp24p"].includes(k))return 4;if(k.startsWith("src")&&k!=="srcDTR")return{DP:2,TP:3,"4P":4}[opt(x,"srcStr")]||1;return 1};
@@ -669,10 +688,12 @@ function sldSVG(c,so){
  const out=[],TB=[],LS=[];
  const tbox=(x,y,str,o={})=>{const fs=o.fs||7.5,w=String(str).length*fs*0.56,h=fs*1.05,a=o.a||"middle",x0=a==="start"?0:a==="end"?-w:-w/2,c=[[x0,-h*0.8],[x0+w,-h*0.8],[x0+w,h*0.25],[x0,h*0.25]],r=(o.rot||0)*D2R,cs=Math.cos(r),sn=Math.sin(r),P=c.map(([u,v])=>[x+u*cs-v*sn,y+u*sn+v*cs]);
   return{x1:Math.min(...P.map(q=>q[0])),y1:Math.min(...P.map(q=>q[1])),x2:Math.max(...P.map(q=>q[0])),y2:Math.max(...P.map(q=>q[1]))}};
- const t=(x,y,str,o={})=>(o.nobox||TB.push(tbox(x,y,str,o)),out.push(`<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" font-size="${o.fs||7.5}" font-weight="${o.fw||400}" fill="${o.c||"#111"}" text-anchor="${o.a||"middle"}" ${o.rot!=null?`transform="rotate(${o.rot.toFixed(1)} ${x.toFixed(1)} ${y.toFixed(1)})"`:""} stroke="#fff" stroke-width="2.6" paint-order="stroke" font-family="Arial, Helvetica, sans-serif">${esc(str)}</text>`));
+ const t=(x,y,str,o={})=>{const key=o.k||(CTX?CTX+":"+(CN++):""),ov=key&&lay.txt&&lay.txt[key];if(ov){if(ov.hide&&!so.edit)return;if(ov.t!=null&&ov.t!=="")str=ov.t;x+=ov.dx||0;y+=ov.dy||0}
+  const hid=ov&&ov.hide;return(o.nobox||hid||TB.push(tbox(x,y,str,o)),out.push(`<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" font-size="${o.fs||7.5}" font-weight="${o.fw||400}" fill="${o.c||"#111"}" text-anchor="${o.a||"middle"}" ${o.rot!=null?`transform="rotate(${o.rot.toFixed(1)} ${x.toFixed(1)} ${y.toFixed(1)})"`:""} stroke="#fff" stroke-width="2.6" paint-order="stroke" font-family="Arial, Helvetica, sans-serif"${key?` data-k="${key}" data-x="${x.toFixed(1)}" data-y="${y.toFixed(1)}" class="tx"`:""}${hid?' opacity="0.3" text-decoration="line-through"':""}>${esc(str)}</text>`))};
  out.push(`<rect x="0" y="0" width="${W}" height="${H}" fill="#fff"/><rect x="12" y="12" width="${W-24}" height="${H-24}" fill="none" stroke="#111" stroke-width="1.5"/><rect x="16" y="16" width="${W-32}" height="${H-32}" fill="none" stroke="#111" stroke-width="0.8"/>`);
  const tfs=tl.length>2?9.5:11.5,tlh=tl.length>2?12:14;tl.forEach((l,i)=>{t(W/2,40+i*tlh,l,{fs:tfs,fw:700});const w=l.length*tfs*0.54;out.push(`<line x1="${W/2-w/2}" y1="${43+i*tlh}" x2="${W/2+w/2}" y2="${43+i*tlh}" stroke="#111" stroke-width="0.7"/>`)});
  const col=L=>L.dis?"#C92A2A":L.ex?"#1F4E9C":L.cls==="HV"?"#2B8A3E":"#C2410C";
+ ctx("f");
  // ---- identifiers: roads, railway tracks, rivers, drains (drawn under the electrical lines)
  const pl2=a=>a.map(q=>q[0].toFixed(1)+","+q[1].toFixed(1)).join(" ");
  const labAlong=(a,b,txt,o)=>{const rot=Math.atan2(b[1]-a[1],b[0]-a[0])*R2D,r2=rot>90?rot-180:rot<-90?rot+180:rot;t((a[0]+b[0])/2,(a[1]+b[1])/2+2.3,txt,{...o,rot:r2})};
@@ -704,7 +725,7 @@ function sldSVG(c,so){
  const rotOf=(x1,y1,x2,y2)=>{let a=Math.atan2(y2-y1,x2-x1)*R2D;if(a>90)a-=180;if(a<-90)a+=180;return a};
  const segN={},runOf=new Map();{const inSeg={};c.segs.forEach(sg=>inSeg[sg.b.id]=sg);c.segs.forEach(sg=>{let h=sg,g=0;while(inSeg[h.a.id]&&inSeg[h.a.id].line===sg.line&&(c.adj[h.a.id]||[]).filter(a=>a.sg.line===sg.line).length===2&&g++<999)h=inSeg[h.a.id];runOf.set(sg,h)});
   const tot=new Map(),best=new Map();c.segs.forEach(sg=>{const h=runOf.get(sg);tot.set(h,(tot.get(h)||0)+sg.len);const[a1,a2]=T(sg.a),[b1,b2]=T(sg.b),L=Math.hypot(b1-a1,b2-a2);if(!best.has(h)||L>best.get(h).L)best.set(h,{sg,L})});c.segs.forEach(sg=>{const h=runOf.get(sg);sg.runLab=best.get(h).sg===sg?tot.get(h):null})}
- c.segs.forEach(sg=>{const[a1,a2]=T(sg.a),[b1,b2]=T(sg.b),L=sg.L,{nx,ny,l:len}=nrm(a1,a2,b1,b2),rot=rotOf(a1,a2,b1,b2);segN[sg.b.id]={nx,ny};
+ c.segs.forEach(sg=>{ctx("s:"+sg.b.id);const[a1,a2]=T(sg.a),[b1,b2]=T(sg.b),L=sg.L,{nx,ny,l:len}=nrm(a1,a2,b1,b2),rot=rotOf(a1,a2,b1,b2);segN[sg.b.id]={nx,ny};
   const ta=trimTo(sg.a,[a1,a2],sg.mid.length?T(sg.mid[0]):[b1,b2]),tb=trimTo(sg.b,[b1,b2],sg.mid.length?T(sg.mid[sg.mid.length-1]):[a1,a2]);
   {const ps=[ta,...sg.mid.map(T),tb];for(let i=0;i<ps.length-1;i++)LS.push([ps[i][0],ps[i][1],ps[i+1][0],ps[i+1][1]])}
   out.push(`<line x1="${ta[0].toFixed(1)}" y1="${ta[1].toFixed(1)}" x2="${tb[0].toFixed(1)}" y2="${tb[1].toFixed(1)}" stroke="${col(L)}" stroke-width="${L.cls==="HV"?2.2:1.6}" ${L.dis?'stroke-dasharray="2 3"':L.cls==="LT"&&!L.ex?'stroke-dasharray="6 3"':""} stroke-linecap="round"/>`);
@@ -713,7 +734,7 @@ function sldSVG(c,so){
   if(!L.ex&&!L.dis&&len>24){const ux=(b1-a1)/len,uy=(b2-a2)/len,ptsOn=[sg.a,...sg.mid,sg.b].map(T);let bi=0,bl=0;for(let i=0;i<ptsOn.length-1;i++){const d=Math.hypot(ptsOn[i+1][0]-ptsOn[i][0],ptsOn[i+1][1]-ptsOn[i][1]);if(d>bl){bl=d;bi=i}}
    const k=Math.floor(ptsOn.length/2)-1>=0?Math.floor((ptsOn.length-1)/2):0,P1=ptsOn[k],P2=ptsOn[k+1]||ptsOn[k],cx=(P1[0]+P2[0])/2,cy=(P1[1]+P2[1])/2,r=4.5;
    out.push(`<path d="M${(cx+ux*r).toFixed(1)},${(cy+uy*r).toFixed(1)} L${(cx-ux*r-uy*r*.8).toFixed(1)},${(cy-uy*r+ux*r*.8).toFixed(1)} L${(cx-ux*r+uy*r*.8).toFixed(1)},${(cy-uy*r-ux*r*.8).toFixed(1)} Z" fill="${col(L)}"/>`)}
-  if(so.span&&!L.ex&&!L.dis){const ptsOn=[sg.a,...sg.mid,sg.b];for(let i=0;i<ptsOn.length-1;i++){const[p1,p2]=T(ptsOn[i]),[q1,q2]=T(ptsOn[i+1]);if(Math.hypot(q1-p1,q2-p2)<24)continue;t((p1+q1)/2-nx*9,(p2+q2)/2-ny*9+2.3,Math.round(hav(ptsOn[i],ptsOn[i+1]))+" m",{fs:6,c:"#374151",rot})}}
+  if(so.span&&!L.ex&&!L.dis){const ptsOn=[sg.a,...sg.mid,sg.b];for(let i=0;i<ptsOn.length-1;i++){const[p1,p2]=T(ptsOn[i]),[q1,q2]=T(ptsOn[i+1]);if(Math.hypot(q1-p1,q2-p2)<24)continue;t((p1+q1)/2-nx*9,(p2+q2)/2-ny*9+2.3,Math.round(hav(ptsOn[i],ptsOn[i+1])*(+sg.b.len>0?sg.len/Math.max(hav(sg.a,sg.b),0.01):1))+" m",{fs:6,c:"#374151",rot})}}
   sg.mid.forEach(m=>{const[x,y]=T(m);out.push(`<circle cx="${x}" cy="${y}" r="2.8" fill="${m.exist?"#111":"#fff"}" stroke="#111" stroke-width="1"/>`);if(m.earth)earthSym(x,y);if(m.stay){const A=xy(sg.a,c.o),B=xy(sg.b,c.o);stay(x,y,{x:-(B.y-A.y),y:B.x-A.x})}const sp=len/(sg.mid.length+1),step=Math.max(1,Math.ceil(20/Math.max(sp,1)));if(m.i%step===0)t(x+nx*9,y+ny*9+2.2,m.lab,{fs:6})});
  });
  function earthSym(x,y){out.push(`<path d="M${x},${y+3} v4 M${x-3.5},${y+7} h7 M${x-2.3},${y+8.8} h4.6 M${x-1.1},${y+10.5} h2.2" stroke="#111" stroke-width="0.7" fill="none"/>`)}
@@ -748,7 +769,7 @@ function sldSVG(c,so){
  const eqTxt=x=>[opt(x,"goab")&&"GOAB",opt(x,"dof")&&"DO",opt(x,"la")&&"LA"].filter(Boolean).join(" + ");
  const crossSym0=(X,Y,nn,label,rail)=>{const ux=nn.nx,uy=nn.ny;[-5,5].forEach(d=>{const sx=X-uy*d,sy=Y+ux*d;out.push(`<line x1="${(sx-ux*22).toFixed(1)}" y1="${(sy-uy*22).toFixed(1)}" x2="${(sx+ux*22).toFixed(1)}" y2="${(sy+uy*22).toFixed(1)}" stroke="#6b7280" stroke-width="${rail?1.4:0.9}" stroke-dasharray="${rail?"2 2":"6 2 1.5 2"}"/>`)});
   t(X+ux*30,Y+uy*30+2.5,label,{fs:6.5,fw:700,c:"#4b5563"})};
- c.pts.forEach(x=>{const[X,Y]=T(x),nd=c.nodes[x.id]||{},lb=c.lab[x.id]||("P"+x.no),nn=segN[x.id]||{nx:0,ny:-1},plab=()=>t(X+nn.nx*10,Y+nn.ny*10+2.4,lb,{fs:6.8,fw:700}),open=(r=3.4)=>out.push(`<circle cx="${X}" cy="${Y}" r="${r}" fill="#fff" stroke="#111" stroke-width="1.2"/>`);
+ c.pts.forEach(x=>{ctx("n:"+x.id);out.push(`<g data-p="${x.id}">`);const[X,Y]=T(x),nd=c.nodes[x.id]||{},lb=c.lab[x.id]||("P"+x.no),nn=segN[x.id]||{nx:0,ny:-1},plab=()=>t(X+nn.nx*10,Y+nn.ny*10+2.4,lb,{fs:6.8,fw:700}),open=(r=3.4)=>out.push(`<circle cx="${X}" cy="${Y}" r="${r}" fill="#fff" stroke="#111" stroke-width="1.2"/>`);
   (nd.stayDirs||[]).slice(0,nd.stays||0).forEach(d=>stay(X,Y,d));
   subEnd=0;CUR=x;noteDone=false;{let sx=0,sy=0,m=0;(c.adj[x.id]||[]).forEach(a=>{const sg=a.sg,nb=sg.a===x?(sg.mid[0]||sg.b):(sg.mid[sg.mid.length-1]||sg.a),[qx,qy]=T(nb),l=Math.hypot(qx-X,qy-Y)||1;sx+=(qx-X)/l;sy+=(qy-Y)/l;m++});
    if(!m)FREE={x:0,y:1};else if(Math.hypot(sx,sy)>0.5)FREE={x:-sx,y:-sy};else{const a=(c.adj[x.id]||[])[0].sg,[p1,p2]=T(a.a),[q1,q2]=T(a.b),dx=q1-p1,dy=q2-p2;FREE=Math.abs(dx)>=Math.abs(dy)?{x:0,y:-1}:{x:1,y:0}}}
@@ -812,7 +833,8 @@ function sldSVG(c,so){
   const db=+(opt(x,"db")||0);if(db>0&&(KINDS[x.kind].o||[]).includes("db")){out.push(`<rect x="${X+6}" y="${Y+4}" width="9" height="7" fill="#fff" stroke="#111" stroke-width="0.8"/>`);t(X+18,Y+10,"LT DB ("+db+" CONS.)",{fs:6.2,a:"start"})}
   if(x.note&&x.kind!=="lm"&&!noteDone)t(X,Y+(subEnd?subEnd+8:["dtr","htc","dtrAug","dtrTemp","dtrShift","exDTR"].includes(x.kind)?27:x.kind.startsWith("src")?(p.meta.fdr?35:27):17),x.note,{fs:6.3,c:"#4b5563"});
   if(so.gps&&x.kind!=="lm")t(X+10,Y-2,gpsTxt(x),{fs:5.6,c:"#4b5563",a:"start"});
- });
+  {const[GX,GY]=T(x);out.push(so.edit?`<circle cx="${GX.toFixed(1)}" cy="${GY.toFixed(1)}" r="12" fill="#0f766e" fill-opacity="0.08" stroke="#0f766e" stroke-opacity="0.5" stroke-dasharray="2 2" class="grab"/></g>`:"</g>")}
+ });ctx("foot");
  if(so.north){out.push(`<g transform="translate(790 ${top+10})"><path d="M0,-14 L6,8 L0,3 L-6,8 Z" fill="#111"/><text x="0" y="-18" font-size="10" font-weight="700" text-anchor="middle" font-family="Arial">N</text></g>`)}
  // existing-vs-new key is part of the drawing language; tiny scale note
  t(lft,H-24,"Schematic, drawn from GPS survey. Not to scale. All lengths in metres unless shown in KM.",{fs:6.2,a:"start",c:"#6b7280"});
@@ -881,7 +903,7 @@ function renderDlgLine(){const p=P(),K=KINDS[draft.kind];$("#dLineSec").hidden=!
  const desc=new Set();(function mark(id){desc.add(id);p.pts.filter(q=>q.par===id).forEach(q=>mark(q.id))})(draft.id);
  $("#dPar").innerHTML=(K.src?'<option value="">— none (this is a source) —</option>':'<option value="">— not connected —</option>')+p.pts.filter(q=>!desc.has(q.id)&&!isStand(q)).map(q=>`<option value="${q.id}" ${q.id===draft.par?"selected":""}>P${q.no} · ${KINDS[q.kind].t}${q.note?" · "+q.note:""}</option>`).join("");
  $("#dLine").innerHTML=Object.entries(LG).map(([g,gl])=>`<optgroup label="${gl}">`+Object.entries(LINES).filter(([,v])=>v.g===g).map(([k,v])=>`<option value="${k}" ${k===draft.line?"selected":""}>${v.t}</option>`).join("")+"</optgroup>").join("");
- $("#dPole").value=draft.pole||"";$("#dCross").value=draft.cross||"";renderSegOpts()}
+ $("#dPole").value=draft.pole||"";$("#dCross").value=draft.cross||"";{const pa=p.pts.find(q=>q.id===draft.par);$("#dLen").value=draft.len||"";$("#dLen").placeholder=pa?"auto: "+Math.round(hav(pa,draft))+" m":"auto"}renderSegOpts()}
 function renderSegOpts(){const L=LINES[$("#dLine").value]||{};let h="";
  if(!L.ex&&!L.dis)h+=`<label class="ck"><input type="checkbox" id="sReuse" ${draft.reuse?"checked":""}> Conductor from RDSS dismantled / existing stock</label>`;
  if(L.onEx&&L.old)h+=`<label class="ck"><input type="checkbox" id="sDisOld" ${draft.disOld?"checked":""}> Old conductor to dismantling</label>`;
@@ -893,7 +915,7 @@ function readOpts(){const K=KINDS[draft.kind];(K.o||[]).forEach(k=>{const el=doc
  const fp=document.getElementById("o_fpar");if(fp)draft.fpar=fp.value||"";
  Object.keys(XF).forEach(k=>{const el=document.getElementById("x_"+k);if(!el)return;draft[k]=XF[k].ty==="chk"?el.checked:(+el.value||0)})}
 function readSeg(){const g=id=>document.getElementById(id);if(g("sReuse"))draft.reuse=g("sReuse").checked;if(g("sDisOld"))draft.disOld=g("sDisOld").checked;if(g("sRm"))draft.rmPoles=g("sRm").checked}
-function readDlg(){readOpts();readSeg();draft.kind=$("#dKind").value;draft.note=$("#dNote").value.trim();const K=KINDS[draft.kind];draft.par=K.standalone?null:($("#dPar").value||null);draft.line=$("#dLine").value;draft.pole=$("#dPole").value;draft.cross=$("#dCross").value}
+function readDlg(){readOpts();readSeg();draft.kind=$("#dKind").value;draft.note=$("#dNote").value.trim();const K=KINDS[draft.kind];draft.par=K.standalone?null:($("#dPar").value||null);draft.line=$("#dLine").value;draft.pole=$("#dPole").value;draft.cross=$("#dCross").value;const lv=$("#dLen").value;draft.len=lv===""?null:+lv}
 $("#ptDlg").addEventListener("input",keepPending);$("#ptDlg").addEventListener("change",keepPending);
 $("#ptDlg").addEventListener("close",()=>{if(DB.pending&&!keepOpen){delete DB.pending;save(false)}});let keepOpen=false;
 function keepPending(){try{readDlg()}catch(e){return}DB.pending={pid:P().id,editId:edit?edit.id:null,draft:JSON.parse(JSON.stringify(draft))};save(false)}
@@ -934,7 +956,40 @@ function renderSurvey(c,fit){const p=P();$("#status").textContent=statusText();$
  $("#plist").querySelectorAll(".pt").forEach(el=>{el.onclick=()=>{const x=p.pts.find(q=>q.id===el.dataset.id);selId=x.id;if(map)map.panTo([x.lat,x.lng]);openPoint(x)}});
  drawMap(c,fit)}
 function renderSLD(c){const p=P(),o=p.opt;["North","Gps","Span","Sign"].forEach(k=>$("#o"+k).checked=!!o[k.toLowerCase()]);$("#sldTitle").value=p.meta.title||"";
- $("#sldBox").innerHTML=c.pts.length?sldSVG(c,o):'<p class="muted" style="padding:16px">Mark points on the Survey tab first.</p>'}
+ if(EDIT&&!c.pts.length&&!(p.lay&&p.lay.f)){p.lay=p.lay||{};p.lay.f={ox:150,oy:300,s:0.6,mnx:0,mxy:0,olat:26.4,olng:92.9}}
+ $("#sldBox").innerHTML=c.pts.length||EDIT?sldSVG(c,{...o,edit:EDIT}):'<p class="muted" style="padding:16px">Mark points on the Survey tab, or tap ✎ Edit drawing to draw the SLD directly.</p>';
+ $("#sldBox").classList.toggle("editing",EDIT);$("#sldBox").classList.toggle("adding",EDIT&&EDMODE==="add");edUI()}
+/* ================= Drawing editor (SLD tab) ================= */
+let EDIT=false,EDMODE="move",ED=null;
+function edUI(){$("#edBtn").textContent=EDIT?"✓ Done editing":"✎ Edit drawing";$("#edBtn").classList.toggle("on",EDIT);$("#edTools").hidden=!EDIT;$("#edMove").classList.toggle("on",EDMODE==="move");$("#edAdd").classList.toggle("on",EDMODE==="add");
+ $("#edHint").hidden=!EDIT;$("#edHint").textContent=EDMODE==="add"?"Tap an empty spot on the drawing to place a structure there. Choose what it is and which point it is connected from; type the span length if you know it.":"Drag a structure or any text to move it. Tap a structure to change it (type, options, line, span length). Tap a text to rewrite it, restore it, or hide it."}
+function lay(p){p.lay=p.lay||{};p.lay.pos=p.lay.pos||{};p.lay.txt=p.lay.txt||{};return p.lay}
+function freeze(p){const L=lay(p);if(!L.f&&LASTT)L.f={...LASTT}}
+function svgXY(e){const svg=$("#sldBox svg");if(!svg)return null;const pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;const q=pt.matrixTransform(svg.getScreenCTM().inverse());return[q.x,q.y]}
+function unT(p,X,Y){const F=p.lay.f,qx=(X-F.ox)/F.s+F.mnx,qy=F.mxy-(Y-F.oy)/F.s;return{lat:F.olat+qy/110540,lng:F.olng+qx/(Math.cos(F.olat*D2R)*111320)}}
+$("#edBtn").onclick=()=>{EDIT=!EDIT;if(EDIT)EDMODE="move";renderAll()};
+$("#edMove").onclick=()=>{EDMODE="move";renderAll()};$("#edAdd").onclick=()=>{EDMODE="add";renderAll()};
+$("#edReset").onclick=()=>{if(!confirm("Reset the drawing to the automatic layout? Your moved structures and edited texts are cleared (points and estimate stay)."))return;const p=P();delete p.lay;touch(p);renderAll()};
+$("#sldBox").addEventListener("pointerdown",e=>{if(!EDIT)return;const xy0=svgXY(e);if(!xy0)return;const p=P();
+ const tx=e.target.closest(".tx"),g=e.target.closest("g[data-p]");
+ if(tx)ED={k:"t",el:tx,key:tx.dataset.k,s:xy0,m:false};
+ else if(g){const gr=g.querySelector(".grab");ED={k:"n",el:g,id:g.dataset.p,s:xy0,m:false,c:gr?[+gr.getAttribute("cx"),+gr.getAttribute("cy")]:[0,0]}}
+ else if(EDMODE==="add"){freeze(p);const ll=unT(p,xy0[0],xy0[1]);openPoint(null,{lat:ll.lat,lng:ll.lng,src:"sld"});return}
+ else return;
+ e.preventDefault();try{$("#sldBox").setPointerCapture(e.pointerId)}catch(_){}});
+$("#sldBox").addEventListener("pointermove",e=>{if(!ED)return;const q=svgXY(e);if(!q)return;const dx=q[0]-ED.s[0],dy=q[1]-ED.s[1];if(Math.hypot(dx,dy)>3)ED.m=true;if(ED.m&&(ED.k==="t"||EDMODE==="move"))ED.el.setAttribute("transform",`translate(${dx.toFixed(1)} ${dy.toFixed(1)})`);ED.d=[dx,dy]});
+$("#sldBox").addEventListener("pointerup",e=>{const D=ED;ED=null;if(!D)return;const p=P(),L=lay(p);
+ if(!D.m){if(D.k==="n"){const x=p.pts.find(q=>q.id===D.id);if(x)openPoint(x)}else editText(p,D.key,D.el);return}
+ const[dx,dy]=D.d;freeze(p);
+ if(D.k==="t"){const o=L.txt[D.key]=L.txt[D.key]||{};o.dx=(o.dx||0)+dx;o.dy=(o.dy||0)+dy}
+ else if(EDMODE==="move"){const x=p.pts.find(q=>q.id===D.id);if(!x)return;const X=D.c[0]+dx,Y=D.c[1]+dy;
+  if(x.src==="sld"){const ll=unT(p,X,Y);x.lat=ll.lat;x.lng=ll.lng;delete L.pos[x.id]}else L.pos[x.id]=[+X.toFixed(1),+Y.toFixed(1)]}
+ touch(p);renderAll()});
+$("#sldBox").addEventListener("pointercancel",()=>{ED=null;renderAll()});
+function editText(p,key,el){const L=lay(p),o=L.txt[key]||{},cur=o.t||el.textContent;
+ const v=prompt("Edit this text.\n• Leave empty to restore the original\n• Type a single - to hide it",o.hide?"-":cur);if(v===null)return;
+ if(v.trim()==="-"){o.hide=true}else if(v.trim()===""){delete o.t;delete o.hide;delete o.dx;delete o.dy}else{o.t=v;delete o.hide}
+ if(Object.keys(o).length)L.txt[key]=o;else delete L.txt[key];freeze(p);touch(p);renderAll()}
 function renderEst(c){const p=P(),m=p.meta;$("#mWork").value=m.work;$("#mWork").placeholder=autoWork(c);$("#mLoc").value=m.loc;$("#mPay").value=m.pay;$("#mDoc").value=m.doc;$("#mDate").value=m.date;$("#mSS").value=m.ss;$("#mFdr").value=m.fdr;$("#mFee").value=m.fee||0;
  const fl=c.flags.length?`<div class="warns flags"><b>Rates to check</b><ul>${c.flags.map(x=>`<li>${x}</li>`).join("")}</ul></div>`:"";
  $("#estWarn").innerHTML=warnBox(c)+fl;$("#estBox").innerHTML=c.pts.length?estHTML(c):'<p class="muted" style="padding:16px">Mark points on the Survey tab first.</p>'}
