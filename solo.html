@@ -76,6 +76,8 @@ details.primer summary{cursor:pointer;font-weight:650}
 .exrow{flex-wrap:nowrap!important;gap:6px!important}.exrow button{padding:9px 11px;white-space:nowrap}
 .tchip{font:700 13px var(--mono);padding:8px 9px!important;border-radius:10px;background:#f1f5f9;color:var(--ink);white-space:nowrap;gap:2px}
 .tchip.on{background:var(--acc-soft);color:#7c2d12}.tchip small{font:600 11px var(--mono);opacity:.7}
+.exhd{flex-wrap:nowrap!important;align-items:flex-start!important}.exhd h3{min-width:0}.exhd button{flex:none;padding:6px 10px;font-size:13px}
+.transport .tchip b{font-size:16px}.transport .cbar button{padding:9px 11px;white-space:nowrap}.transport .cplay .gsm-btn{display:none}.transport .cbar .nbgoal{font-size:13px}.transport .exn{font:600 12px var(--body);color:var(--muted);white-space:nowrap}
 /* transport */
 .transport{position:fixed;left:0;right:0;bottom:0;z-index:40;background:#fff;border-top:1px solid var(--line);box-shadow:0 -6px 20px #0f172a14;padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px))}
 .transport .tin{max-width:900px;margin:0 auto;display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center}
@@ -94,7 +96,7 @@ details.primer summary{cursor:pointer;font-weight:650}
   <p id="syncLine" style="margin-top:8px;font-size:12px;opacity:.9"></p>
 </div></header>
 <main class="wrap" id="app"></main>
-<p style="text-align:center;font-size:11px;color:#94a3b8;margin:4px 0 90px">Soloing Course · version 20 Oct 2026 (d) · sound fix 3</p>
+<p style="text-align:center;font-size:11px;color:#94a3b8;margin:4px 0 90px">Soloing Course · version 28 Oct 2026 · sound fix 3</p>
 <div class="transport" id="transport" hidden></div>
 <script>
 "use strict";
@@ -621,6 +623,7 @@ function barBox(b){const s=S(),bar=s.bars[b]||[],W=160,T=8,G=9,x=p=>6+p/BAR*(W-1
   return `<div class="bar${b===sel?" sel":""}" data-bar="${b}"><div class="bh">${chordName(C16[b],s.key)}<span>${ui.skel&&SK.length?`◎${nn(P[SK[b]].m,s.key)} · `:""}${b+1}</span></div><svg viewBox="0 0 ${W} ${H}" data-sub="${bl.sub}">${g}</svg></div>`;}
 
 function renderTransport(){const el=document.getElementById("transport");el.hidden=false;const tm=`<span class="nbgoal" data-gsp-timer></span>`;
+  if(view==="course"&&window.SOLO_COURSE&&SOLO_COURSE.bar){const cb=SOLO_COURSE.bar();if(cb){el.innerHTML=`<div class="tin cbar${play?" cplay":""}">${cb}${tm}</div>`;if(window.GSPlanTick)GSPlanTick();return;}}
   if(view!=="build"||!S()){ // course, warm-up and the solo list: a slim bar with Stop and this section's timer for the cycle
     const what=play?(view==="course"?"Playing the example":view==="jam"?"Warm-up playing":"Playing"):"Soloing Course";
     el.innerHTML=`<div class="tin">${play?`<button class="pri" ${view==="course"?"data-cstop":"data-stop"}="1">■ Stop</button>`:""}<span class="nbinfo">${what}</span>${tm}</div>`;
@@ -768,7 +771,7 @@ function syncCard(){const on=!!syncCode();return `<section class="card"><div cla
 render();setSync(syncCode()?"busy":"off");cloudSync().then(ch=>{if(ch&&!play)render();});
 </script>
 <script src="triad-course.js?v=20261020d"></script>
-<script src="soloing-course.js?v=20261025"></script>
+<script src="soloing-course.js?v=20261028"></script>
 <script>render();</script>
 <script src="metro.js?v=20261026"></script><script>GSMetro.mount({here:"sc",name:"Soloing Course",bar:"#transport",into:".tin",after:".pri",meter:"4",bpm:70,
   credit:(s,fin)=>{const k=dkey(new Date());st.days[k]=(st.days[k]||0)+s;save(!fin);},stopPage:()=>{if(play){stop();render();}}});</script>

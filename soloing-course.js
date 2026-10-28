@@ -331,7 +331,7 @@ function renderLesson(id){const f=findL(id);if(!f)return renderSyllabus();const 
   </section>
   ${keyBar(l,K,D)}${grpBar(l,K,G,D)}
   ${l.ex.filter(e=>e.kg===K).map((e,j)=>({e,j})).filter(x=>x.e.g===G).map(({e,j})=>{const xid=e.id,ex=exData(xid,e),on=play&&play.cex===xid;
-    return `<section class="card"><div class="row between"><h3>${j+1}. ${esc(e.t)}${e.sub?` · ${esc(e.sub)}`:` · ${esc(e.g)}`}</h3>${D[xid]?`<span class="badge fin">done</span>`:""}</div>
+    return `<section class="card" data-excard="${xid}"><div class="row between exhd"><h3>${j+1}. ${esc(e.t)}${e.sub?` · ${esc(e.sub)}`:` · ${esc(e.g)}`}</h3><button data-cdone="${xid}" class="${D[xid]?"good":""}">${D[xid]?"✓ Done":"Mark done"}</button></div>
       <p>${esc(e.how)}</p><p class="small muted">${keyName(ex.key)} major · ${esc(ex.info||"")} · ${ex.bars.length} bars</p>
       ${exTab(ex,xid)}${miniFret(ex)}
       <div class="row exrow">${on?`<button class="pri" data-cstop="1">■ Stop</button>`:`<button class="pri" data-cplay="${xid}">▶ Play with band</button>`}${tchip(on)}
@@ -350,7 +350,17 @@ function renderLesson(id){const f=findL(id);if(!f)return renderSyllabus();const 
 function tchip(on){const g=ctempo(),cl=!(st.course&&st.course.climb===false),lo=Math.max(40,g-20);
   return `<button class="tchip${cl?" on":""}" data-cclimb="1" title="${cl?`Climb on: starts at ${lo} bpm, +4 bpm each time round, up to ${g}. Tap to play at ${g} straight away.`:`Climb off: plays at ${g} bpm. Tap to climb from ${lo}.`}">${on?`♩<b class="ctnow">${cl?lo:g}</b>${cl?`<small>→${g}</small>`:""}`:cl?`↗${lo}<small>→${g}</small>`:`♩${g}`}</button>`;}
 window.renderCourse=function(){document.getElementById("app").innerHTML=cur.lesson?renderLesson(cur.lesson):renderSyllabus();};
-window.SOLO_COURSE={C,allEx,exData,progress:()=>{const D=done(),A=allEx();return {n:A.filter(x=>D[x.id]).length,tot:A.length};}};
+/* the exercises on screen right now (this lesson, key and shape/string set) */
+function onScreen(){const f=cur.lesson&&findL(cur.lesson);if(!f||!f.l.ex.length)return null;const l=f.l,K=curKey(l),G=curGrp(l,K);
+  return {l,K,G,xs:l.ex.filter(e=>e.kg===K&&e.g===G)};}
+/* bottom bar on a lesson page: Play/Stop, live tempo, Done for the exercise playing, position in the set */
+function bottomBar(){const o=onScreen();if(!o)return "";const D=done(),xs=o.xs;
+  if(play&&play.cex){const i=xs.findIndex(e=>e.id===play.cex),id=play.cex;
+    return `<button class="pri" data-cstop="1">■ Stop</button>${tchip(true)}<button data-cbdone="${id}" class="${D[id]?"good":""}">${D[id]?"✓ Done":"✓ Mark done"}</button>${i>=0?`<span class="exn">${i+1}/${xs.length}</span>`:""}`;}
+  const nx=xs.find(e=>!D[e.id])||xs[0],i=xs.indexOf(nx);
+  return `<button class="pri" data-cbplay="${nx.id}">▶ Play ${i+1}</button>${tchip(false)}<span class="exn">${xs.filter(e=>D[e.id]).length}/${xs.length} done</span>`;}
+function playEx(id){const b=document.querySelector(`[data-cplay="${id}"]`);if(b){b.click();const c=document.querySelector(`[data-excard="${id}"]`);if(c)window.scrollTo({top:Math.max(0,window.scrollY+c.getBoundingClientRect().top-12),behavior:"smooth"});}}
+window.SOLO_COURSE={C,allEx,exData,bar:bottomBar,progress:()=>{const D=done(),A=allEx();return {n:A.filter(x=>D[x.id]).length,tot:A.length};}};
 
 document.addEventListener("click",e=>{const t=e.target.closest("button");if(!t)return;const d=t.dataset;
   if(view!=="course")return;
@@ -367,6 +377,18 @@ document.addEventListener("click",e=>{const t=e.target.closest("button");if(!t)r
   if(d.cgrp){stop();cur.grp=d.cgrp;render();window.scrollTo(0,0);return;}
   if(d.cldone){const f=findL(d.cldone);if(!f)return;stop();const D=done(),now=Date.now();f.l.ex.forEach(e=>{if(!D[e.id])D[e.id]=now;});st.course.t=now;save();
     const all=C.flatMap(x=>x.lessons),nx=all[all.indexOf(f.l)+1];if(nx){cur.lesson=nx.id;cur.grp=null;cur.key=null;cur.keyL=null;}render();window.scrollTo(0,0);return;}
+  if(d.cbplay){playEx(d.cbplay);return;}
+  if(d.cbdone){const D=done(),L0=cur.lesson;if(D[d.cbdone])return; // from the bottom bar while playing: mark it done and go straight on to the next one
+    D[d.cbdone]=Date.now();st.course.t=Date.now();save();stop();
+    const f=findL(L0),l=f&&f.l;if(!l){render();return;}
+    let K=curKey(l),G=curGrp(l,K);const gs=groups(l,K);
+    if(l.ex.filter(e=>e.kg===K&&e.g===G).every(e=>D[e.id])){
+      const ng=gs.slice(gs.indexOf(G)+1).concat(gs.slice(0,gs.indexOf(G))).find(g=>l.ex.some(e=>e.kg===K&&e.g===g&&!D[e.id]));
+      if(ng){cur.grp=ng;toast(`${G} done ✓ Now ${ng}`);}
+      else{const nk=KORD.slice(KORD.indexOf(K)+1).concat(KORD.slice(0,KORD.indexOf(K))).find(k=>!keyDone(l,k));
+        if(nk!=null){cur.key=nk;cur.keyL=l.id;cur.grp=null;toast(`${KLAB(K)} done ✓ Now ${KLAB(nk)} major`);}
+        else{const all=C.flatMap(x=>x.lessons),nx=all[all.indexOf(l)+1];if(nx){cur.lesson=nx.id;cur.grp=null;cur.key=null;cur.keyL=null;toast(`${l.id} complete in all 12 keys ✓`);}render();window.scrollTo(0,0);return;}}}
+    render();const o2=onScreen();const nx=o2&&o2.xs.find(e=>!D[e.id]);if(nx)setTimeout(()=>playEx(nx.id),60);return;}
   if(d.cdone){const D=done(),was=D[d.cdone];if(was)delete D[d.cdone];else D[d.cdone]=Date.now();st.course.t=Date.now();save();
     const f=cur.lesson&&findL(cur.lesson);
     if(!was&&f){const l=f.l,K=curKey(l),G=curGrp(l,K),gs=groups(l,K);
