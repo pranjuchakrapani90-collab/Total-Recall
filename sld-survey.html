@@ -643,7 +643,7 @@ function autoWork(c){const bits=[],f=v=>(v/1000).toFixed(3)+" km",P_=c.pts,has=k
  has("iso33").forEach(()=>bits.push("33 KV sectionalising isolator"));has("ctpt").forEach(()=>bits.push("11 KV CT-PT metering"));has("vcb11").forEach(()=>bits.push("11 KV outdoor VCB"));
  has("xRail").forEach(()=>bits.push("railway track crossing"));has("xBridge").forEach(()=>bits.push("bridge crossing"));
  if(!bits.length)return c.segs.some(s=>s.L.dis)||has("rmPole").length?"Dismantling of existing line":"Construction of line";
- return"Construction of "+bits.join(", ").replace(/, ([^,]*)$/," & $1")}
+ const j=bits.join(", ").replace(/, ([^,]*)$/," & $1");return/^(conversion|shifting|straightening)/.test(j)?j[0].toUpperCase()+j.slice(1):"Construction of "+j}
 const workOf=c=>P().meta.work||autoWork(c);
 const locOf=()=>P().meta.loc||"________";
 
@@ -658,7 +658,18 @@ function sldSVG(c,so){
  const sx=(rgt-lft)/Math.max(mxx-mnx,1),sy=(bot-top)/Math.max(mxy-mny,1),s=Math.min(sx,sy,8);
  const ox=lft+((rgt-lft)-(mxx-mnx)*s)/2,oy=top+((bot-top)-(mxy-mny)*s)/2;
  const T=pt=>{const q=xy(pt,c.o);return[ox+(q.x-mnx)*s,oy+(mxy-q.y)*s]};
- const out=[];const t=(x,y,str,o={})=>out.push(`<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" font-size="${o.fs||7.5}" font-weight="${o.fw||400}" fill="${o.c||"#111"}" text-anchor="${o.a||"middle"}" ${o.rot!=null?`transform="rotate(${o.rot.toFixed(1)} ${x.toFixed(1)} ${y.toFixed(1)})"`:""} stroke="#fff" stroke-width="2.6" paint-order="stroke" font-family="Arial, Helvetica, sans-serif">${esc(str)}</text>`);
+ // pole layouts: DP = two poles side by side, 3-pole = triangle (apex up), 4-pole = square, all with clear separation
+ const GEO={1:[[0,0]],2:[[-7,0],[7,0]],3:[[0,-7],[8,6],[-8,6]],4:[[-6.5,-6.5],[6.5,-6.5],[6.5,6.5],[-6.5,6.5]]},TOP={1:8,2:9,3:14,4:13},BOT={1:12,2:13,3:16,4:16},HW={1:4,2:10,3:11,4:10};
+ const NP=x=>{const k=x.kind;if(["dp","iso33","ctpt","vcb11","exDP","sp2dp","ltdp","xRail","xBridge"].includes(k))return 2;if(["tp","exTP","dp2tp","sp2tp"].includes(k))return 3;if(["p4","ex4P","dp24p"].includes(k))return 4;if(k.startsWith("src")&&k!=="srcDTR")return{DP:2,TP:3,"4P":4}[opt(x,"srcStr")]||1;return 1};
+ // a line ends on the outline of a 3-pole / 4-pole structure (DP: mid of the tie, single pole: the pole itself)
+ const trimTo=(x,P,Q)=>{const n=NP(x);if(n<3)return P;const g=GEO[n],dx=Q[0]-P[0],dy=Q[1]-P[1];let best=1;
+  for(let i=0;i<g.length;i++){const a=g[i],b=g[(i+1)%g.length],ex=b[0]-a[0],ey=b[1]-a[1],den=dx*ey-dy*ex;if(Math.abs(den)<1e-9)continue;
+   const tt=(a[0]*ey-a[1]*ex)/den,u=(a[0]*dy-a[1]*dx)/den;if(tt>0&&tt<best&&u>=0&&u<=1)best=tt}
+  return best<1?[P[0]+dx*best,P[1]+dy*best]:P};
+ const out=[],TB=[],LS=[];
+ const tbox=(x,y,str,o={})=>{const fs=o.fs||7.5,w=String(str).length*fs*0.56,h=fs*1.05,a=o.a||"middle",x0=a==="start"?0:a==="end"?-w:-w/2,c=[[x0,-h*0.8],[x0+w,-h*0.8],[x0+w,h*0.25],[x0,h*0.25]],r=(o.rot||0)*D2R,cs=Math.cos(r),sn=Math.sin(r),P=c.map(([u,v])=>[x+u*cs-v*sn,y+u*sn+v*cs]);
+  return{x1:Math.min(...P.map(q=>q[0])),y1:Math.min(...P.map(q=>q[1])),x2:Math.max(...P.map(q=>q[0])),y2:Math.max(...P.map(q=>q[1]))}};
+ const t=(x,y,str,o={})=>(o.nobox||TB.push(tbox(x,y,str,o)),out.push(`<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" font-size="${o.fs||7.5}" font-weight="${o.fw||400}" fill="${o.c||"#111"}" text-anchor="${o.a||"middle"}" ${o.rot!=null?`transform="rotate(${o.rot.toFixed(1)} ${x.toFixed(1)} ${y.toFixed(1)})"`:""} stroke="#fff" stroke-width="2.6" paint-order="stroke" font-family="Arial, Helvetica, sans-serif">${esc(str)}</text>`));
  out.push(`<rect x="0" y="0" width="${W}" height="${H}" fill="#fff"/><rect x="12" y="12" width="${W-24}" height="${H-24}" fill="none" stroke="#111" stroke-width="1.5"/><rect x="16" y="16" width="${W-32}" height="${H-32}" fill="none" stroke="#111" stroke-width="0.8"/>`);
  const tfs=tl.length>2?9.5:11.5,tlh=tl.length>2?12:14;tl.forEach((l,i)=>{t(W/2,40+i*tlh,l,{fs:tfs,fw:700});const w=l.length*tfs*0.54;out.push(`<line x1="${W/2-w/2}" y1="${43+i*tlh}" x2="${W/2+w/2}" y2="${43+i*tlh}" stroke="#111" stroke-width="0.7"/>`)});
  const col=L=>L.dis?"#C92A2A":L.ex?"#1F4E9C":L.cls==="HV"?"#2B8A3E":"#C2410C";
@@ -694,7 +705,9 @@ function sldSVG(c,so){
  const segN={},runOf=new Map();{const inSeg={};c.segs.forEach(sg=>inSeg[sg.b.id]=sg);c.segs.forEach(sg=>{let h=sg,g=0;while(inSeg[h.a.id]&&inSeg[h.a.id].line===sg.line&&(c.adj[h.a.id]||[]).filter(a=>a.sg.line===sg.line).length===2&&g++<999)h=inSeg[h.a.id];runOf.set(sg,h)});
   const tot=new Map(),best=new Map();c.segs.forEach(sg=>{const h=runOf.get(sg);tot.set(h,(tot.get(h)||0)+sg.len);const[a1,a2]=T(sg.a),[b1,b2]=T(sg.b),L=Math.hypot(b1-a1,b2-a2);if(!best.has(h)||L>best.get(h).L)best.set(h,{sg,L})});c.segs.forEach(sg=>{const h=runOf.get(sg);sg.runLab=best.get(h).sg===sg?tot.get(h):null})}
  c.segs.forEach(sg=>{const[a1,a2]=T(sg.a),[b1,b2]=T(sg.b),L=sg.L,{nx,ny,l:len}=nrm(a1,a2,b1,b2),rot=rotOf(a1,a2,b1,b2);segN[sg.b.id]={nx,ny};
-  out.push(`<line x1="${a1}" y1="${a2}" x2="${b1}" y2="${b2}" stroke="${col(L)}" stroke-width="${L.cls==="HV"?2.2:1.6}" ${L.dis?'stroke-dasharray="2 3"':L.cls==="LT"&&!L.ex?'stroke-dasharray="6 3"':""} stroke-linecap="round"/>`);
+  const ta=trimTo(sg.a,[a1,a2],sg.mid.length?T(sg.mid[0]):[b1,b2]),tb=trimTo(sg.b,[b1,b2],sg.mid.length?T(sg.mid[sg.mid.length-1]):[a1,a2]);
+  {const ps=[ta,...sg.mid.map(T),tb];for(let i=0;i<ps.length-1;i++)LS.push([ps[i][0],ps[i][1],ps[i+1][0],ps[i+1][1]])}
+  out.push(`<line x1="${ta[0].toFixed(1)}" y1="${ta[1].toFixed(1)}" x2="${tb[0].toFixed(1)}" y2="${tb[1].toFixed(1)}" stroke="${col(L)}" stroke-width="${L.cls==="HV"?2.2:1.6}" ${L.dis?'stroke-dasharray="2 3"':L.cls==="LT"&&!L.ex?'stroke-dasharray="6 3"':""} stroke-linecap="round"/>`);
   const mx=(a1+b1)/2,my=(a2+b2)/2;
   if(sg.runLab!=null){if(len>70)t(mx-nx*21,my-ny*21+2.5,L.sh+" · "+(sg.runLab/1000).toFixed(3)+" KM",{fs:7,fw:700,c:col(L),rot});else if(len>30)t(mx-nx*21,my-ny*21+2.5,L.sh.replace(/^(11 KV|33 KV|LT) /,"")+" · "+(sg.runLab/1000).toFixed(3)+" KM",{fs:6,fw:700,c:col(L),rot})}
   if(!L.ex&&!L.dis&&len>24){const ux=(b1-a1)/len,uy=(b2-a2)/len,ptsOn=[sg.a,...sg.mid,sg.b].map(T);let bi=0,bl=0;for(let i=0;i<ptsOn.length-1;i++){const d=Math.hypot(ptsOn[i+1][0]-ptsOn[i][0],ptsOn[i+1][1]-ptsOn[i][1]);if(d>bl){bl=d;bi=i}}
@@ -704,26 +717,42 @@ function sldSVG(c,so){
   sg.mid.forEach(m=>{const[x,y]=T(m);out.push(`<circle cx="${x}" cy="${y}" r="2.8" fill="${m.exist?"#111":"#fff"}" stroke="#111" stroke-width="1"/>`);if(m.earth)earthSym(x,y);if(m.stay){const A=xy(sg.a,c.o),B=xy(sg.b,c.o);stay(x,y,{x:-(B.y-A.y),y:B.x-A.x})}const sp=len/(sg.mid.length+1),step=Math.max(1,Math.ceil(20/Math.max(sp,1)));if(m.i%step===0)t(x+nx*9,y+ny*9+2.2,m.lab,{fs:6})});
  });
  function earthSym(x,y){out.push(`<path d="M${x},${y+3} v4 M${x-3.5},${y+7} h7 M${x-2.3},${y+8.8} h4.6 M${x-1.1},${y+10.5} h2.2" stroke="#111" stroke-width="0.7" fill="none"/>`)}
- function stay(x,y,d){const l=Math.hypot(d.x,d.y)||1,ux=d.x/l,uy=-d.y/l,ex=x+ux*15,ey=y+uy*15;out.push(`<line x1="${x}" y1="${y}" x2="${ex}" y2="${ey}" stroke="#6b7280" stroke-width="0.9"/><path d="M${ex},${ey} l${(-ux*4-uy*2.4).toFixed(1)},${(-uy*4+ux*2.4).toFixed(1)} M${ex},${ey} l${(-ux*4+uy*2.4).toFixed(1)},${(-uy*4-ux*2.4).toFixed(1)}" stroke="#6b7280" stroke-width="0.9" fill="none"/>`)}
+ function stay(x,y,d){const l=Math.hypot(d.x,d.y)||1,ux=d.x/l,uy=-d.y/l,ex=x+ux*15,ey=y+uy*15;LS.push([x,y,ex,ey]);out.push(`<line x1="${x}" y1="${y}" x2="${ex}" y2="${ey}" stroke="#6b7280" stroke-width="0.9"/><path d="M${ex},${ey} l${(-ux*4-uy*2.4).toFixed(1)},${(-uy*4+ux*2.4).toFixed(1)} M${ex},${ey} l${(-ux*4+uy*2.4).toFixed(1)},${(-uy*4-ux*2.4).toFixed(1)}" stroke="#6b7280" stroke-width="0.9" fill="none"/>`)}
  // nodes
  const SH=(X,Y,s)=>out.push(s.replace(/\$X/g,X.toFixed(1)).replace(/\$Y/g,Y.toFixed(1)));
  const dtrSym=(X,Y,l1,l2,fence)=>{out.push(`<rect x="${X-13}" y="${Y-9}" width="26" height="18" fill="#fff" stroke="#111" stroke-width="1"/><circle cx="${X-3.4}" cy="${Y}" r="5.5" fill="none" stroke="#111"/><circle cx="${X+3.4}" cy="${Y}" r="5.5" fill="none" stroke="#111"/>`);t(X,Y-13,l1,{fs:7.5,fw:700});if(l2)t(X,Y+18,l2,{fs:6.3});if(fence)out.push(`<rect x="${X-18}" y="${Y-12}" width="36" height="24" fill="none" stroke="#6b7280" stroke-width="0.6" stroke-dasharray="2 2"/>`)};
- const dpSym=(X,Y,lb,sub)=>{poleGrp(X,Y,["n","n"],false,nwSq);t(X,Y-9,lb,{fs:7,fw:700});subEnd=13;if(sub){t(X,Y+13,sub,{fs:6.3});subEnd=22}};
+ const dpSym=(X,Y,lb,sub)=>{poleGrp(X,Y,["n","n"],false,nwSq);block(X,Y,2,[{txt:lb,fs:7,fw:700},{txt:sub,fs:6.3}])};
  let exSq=false,nwSq=false;const exNm=x=>{const v=opt(x,"exType");return v&&v!=="PSC"?({RCC:"RCC",Steel:"STEEL",Rail:"RAIL",RSJ:"RSJ"}[v]||v)+" ":""};
  // pole layouts: DP = two poles side by side, 3-pole = triangle, 4-pole = square, all with clear separation
- const GEO={1:[[0,0]],2:[[-7,0],[7,0]],3:[[0,-6.5],[7.5,5.5],[-7.5,5.5]],4:[[-6.5,-6.5],[6.5,-6.5],[6.5,6.5],[-6.5,6.5]]},TOP={1:8,2:9,3:13,4:13},BOT={1:12,2:13,3:18,4:18};
  const poleGrp=(X,Y,st,sqE,sqN)=>{const n=st.length,P=GEO[n],r=2.8,f=v=>v.toFixed(1);
   if(n>1)out.push(`<path d="M${P.map(q=>f(X+q[0])+","+f(Y+q[1])).join(" L")}${n>2?" Z":""}" stroke="#111" stroke-width="0.8" fill="none"/>`);
   P.forEach((q,i)=>{const cx=X+q[0],cy=Y+q[1],e=st[i]==="e",sq=e?sqE:sqN;out.push(sq?`<rect x="${f(cx-r)}" y="${f(cy-r)}" width="${2*r}" height="${2*r}" fill="${e?"#111":"#fff"}" stroke="#111" stroke-width="1"/>`:`<circle cx="${f(cx)}" cy="${f(cy)}" r="${r}" fill="${e?"#111":"#fff"}" stroke="#111" stroke-width="1"/>`)})};
  let subEnd=0;
- const multiSym=(X,Y,st,lb,sub,subC)=>{const n=st.length;poleGrp(X,Y,st,exSq,nwSq);t(X,Y-TOP[n],lb,{fs:7,fw:700});subEnd=BOT[n];if(sub){t(X,Y+BOT[n],sub,{fs:6.1,c:subC||"#111"});subEnd=BOT[n]+9}};
+ let CUR=null,FREE=null,noteDone=false;
+ // stack label / description / note on the side of the structure that no line runs into
+ const segHit=(b,L)=>{let t0=0,t1=1;const dx=L[2]-L[0],dy=L[3]-L[1],pp=[-dx,dx,-dy,dy],qq=[L[0]-b.x1,b.x2-L[0],L[1]-b.y1,b.y2-L[1]];for(let i=0;i<4;i++){if(pp[i]===0){if(qq[i]<0)return false}else{const r=qq[i]/pp[i];if(pp[i]<0){if(r>t1)return false;if(r>t0)t0=r}else{if(r<t0)return false;if(r<t1)t1=r}}}return true};
+ const boxHit=(a,b)=>a.x1<b.x2&&b.x1<a.x2&&a.y1<b.y2&&b.y1<a.y2;
+ // stack label / description / note on the side of the structure that is clear of lines and other labels
+ const block=(X,Y,n,rows)=>{rows=rows.filter(r=>r&&r.txt);if(CUR&&CUR.note&&CUR.kind!=="lm"){rows.push({txt:CUR.note,fs:6.3,c:"#4b5563"});noteDone=true}
+  const f=FREE||{x:0,y:1},k=rows.length,gap=9,pref=Math.abs(f.y)>=Math.abs(f.x)*0.75?(f.y<0?"up":"down"):(f.x>0?"right":"left");
+  const up=i=>Y-TOP[n]-(k-1-i)*gap,dn=i=>Y+BOT[n]+i*gap;
+  const pos=(mode,i)=>({up:[X,up(i),"middle"],down:[X,dn(i),"middle"],ur:[X-HW[n],up(i),"start"],ul:[X+HW[n],up(i),"end"],dr:[X-HW[n],dn(i),"start"],dl:[X+HW[n],dn(i),"end"],
+   right:[X+HW[n]+5,Y+2.4+(i-(k-1)/2)*gap,"start"],left:[X-HW[n]-5,Y+2.4+(i-(k-1)/2)*gap,"end"]})[mode];
+  const ALT={up:["up","ur","ul"],down:["down","dr","dl"],right:["right","ur","dr"],left:["left","ul","dl"]};
+  let best=null;[...new Set([...ALT[pref],"up","down","right","left","ur","ul","dr","dl"])].forEach((mode,ord)=>{let sc=ord*0.5;
+   rows.forEach((r,i)=>{const[x,y,a]=pos(mode,i),b=tbox(x,y,r.txt,{fs:r.fs,a});LS.forEach(L=>{if(segHit(b,L))sc+=10});TB.forEach(q=>{if(boxHit(b,q))sc+=4});if(b.x1<20||b.x2>W-20||b.y1<60||b.y2>H-28)sc+=20});
+   if(!best||sc<best.sc)best={mode,sc}});
+  rows.forEach((r,i)=>{const[x,y,a]=pos(best.mode,i);t(x,y,r.txt,{fs:r.fs,fw:r.fw,c:r.c,a})})};
+ const multiSym=(X,Y,st,lb,sub,subC)=>{const n=st.length;poleGrp(X,Y,st,exSq,nwSq);block(X,Y,n,[{txt:lb,fs:7,fw:700},{txt:sub,fs:6.1,c:subC||"#111"}])};
  const spOf=x=>(opt(x,"poleLen")||opt(x,"exType"))+" ";
  const eqTxt=x=>[opt(x,"goab")&&"GOAB",opt(x,"dof")&&"DO",opt(x,"la")&&"LA"].filter(Boolean).join(" + ");
  const crossSym0=(X,Y,nn,label,rail)=>{const ux=nn.nx,uy=nn.ny;[-5,5].forEach(d=>{const sx=X-uy*d,sy=Y+ux*d;out.push(`<line x1="${(sx-ux*22).toFixed(1)}" y1="${(sy-uy*22).toFixed(1)}" x2="${(sx+ux*22).toFixed(1)}" y2="${(sy+uy*22).toFixed(1)}" stroke="#6b7280" stroke-width="${rail?1.4:0.9}" stroke-dasharray="${rail?"2 2":"6 2 1.5 2"}"/>`)});
   t(X+ux*30,Y+uy*30+2.5,label,{fs:6.5,fw:700,c:"#4b5563"})};
  c.pts.forEach(x=>{const[X,Y]=T(x),nd=c.nodes[x.id]||{},lb=c.lab[x.id]||("P"+x.no),nn=segN[x.id]||{nx:0,ny:-1},plab=()=>t(X+nn.nx*10,Y+nn.ny*10+2.4,lb,{fs:6.8,fw:700}),open=(r=3.4)=>out.push(`<circle cx="${X}" cy="${Y}" r="${r}" fill="#fff" stroke="#111" stroke-width="1.2"/>`);
   (nd.stayDirs||[]).slice(0,nd.stays||0).forEach(d=>stay(X,Y,d));
-  subEnd=0;exSq=/^(SP|Steel|Rail|RSJ)/.test(opt(x,"exType")||"");nwSq=/^SP/.test(opt(x,"poleLen")||"")||(exSq&&/^SP/.test(opt(x,"exType"))&&!opt(x,"poleLen"));
+  subEnd=0;CUR=x;noteDone=false;{let sx=0,sy=0,m=0;(c.adj[x.id]||[]).forEach(a=>{const sg=a.sg,nb=sg.a===x?(sg.mid[0]||sg.b):(sg.mid[sg.mid.length-1]||sg.a),[qx,qy]=T(nb),l=Math.hypot(qx-X,qy-Y)||1;sx+=(qx-X)/l;sy+=(qy-Y)/l;m++});
+   if(!m)FREE={x:0,y:1};else if(Math.hypot(sx,sy)>0.5)FREE={x:-sx,y:-sy};else{const a=(c.adj[x.id]||[])[0].sg,[p1,p2]=T(a.a),[q1,q2]=T(a.b),dx=q1-p1,dy=q2-p2;FREE=Math.abs(dx)>=Math.abs(dy)?{x:0,y:-1}:{x:1,y:0}}}
+  exSq=/^(SP|Steel|Rail|RSJ)/.test(opt(x,"exType")||"");nwSq=/^SP/.test(opt(x,"poleLen")||"")||(exSq&&/^SP/.test(opt(x,"exType"))&&!opt(x,"poleLen"));
   const kva=opt(x,"kva"),onEx=!!opt(x,"onEx"),filled=()=>out.push(`<circle cx="${X}" cy="${Y}" r="3.2" fill="#111"/>`);
   switch(x.kind){
    case "src11":case "src33":case "srcLT":case "srcDTR":{const mp=x.kind!=="srcDTR"&&["DP","TP","4P"].includes(opt(x,"srcStr"));out.push((mp?"":`<circle cx="${X}" cy="${Y}" r="3.2" fill="#111"/>`)+`<circle cx="${X}" cy="${Y}" r="${mp?14:9}" fill="none" stroke="#C92A2A" stroke-width="1.2" stroke-dasharray="3 2"/>`);
@@ -736,9 +765,9 @@ function sldSVG(c,so){
    case "tp":multiSym(X,Y,["n","n","n"],lb,"3-POLE STRUCTURE (NEW)"+(eqTxt(x)?", "+eqTxt(x):""));break;
    case "ltdp":multiSym(X,Y,["n","n"],lb,"LT DP (NEW)");break;
    case "sp2dp":multiSym(X,Y,["e","n"],lb,"EXISTING "+exNm(x)+"POLE → DP (+1 NEW "+(nwSq?spOf(x):"")+"POLE)"+(eqTxt(x)?", "+eqTxt(x):""),"#1e3a5f");break;
-   case "dp2tp":multiSym(X,Y,["e","e","n"],lb,"EXISTING "+exNm(x)+"DP → 3-POLE (+1 NEW "+(nwSq?spOf(x):"")+"POLE)"+(eqTxt(x)?", "+eqTxt(x):""),"#1e3a5f");break;
-   case "sp2tp":multiSym(X,Y,["e","n","n"],lb,"EXISTING "+exNm(x)+"POLE → 3-POLE (+2 NEW "+(nwSq?spOf(x):"")+"POLES)"+(eqTxt(x)?", "+eqTxt(x):""),"#1e3a5f");break;
-   case "dp24p":multiSym(X,Y,["e","e","n","n"],lb,"EXISTING "+exNm(x)+"DP → 4-POLE (+2 NEW "+(nwSq?spOf(x):"")+"POLES)","#1e3a5f");break;
+   case "dp2tp":multiSym(X,Y,["n","e","e"],lb,"EXISTING "+exNm(x)+"DP → 3-POLE (+1 NEW "+(nwSq?spOf(x):"")+"POLE)"+(eqTxt(x)?", "+eqTxt(x):""),"#1e3a5f");break;
+   case "sp2tp":multiSym(X,Y,["n","e","n"],lb,"EXISTING "+exNm(x)+"POLE → 3-POLE (+2 NEW "+(nwSq?spOf(x):"")+"POLES)"+(eqTxt(x)?", "+eqTxt(x):""),"#1e3a5f");break;
+   case "dp24p":multiSym(X,Y,["n","n","e","e"],lb,"EXISTING "+exNm(x)+"DP → 4-POLE (+2 NEW "+(nwSq?spOf(x):"")+"POLES)","#1e3a5f");break;
    case "exDTR":out.push(`<rect x="${X-13}" y="${Y-9}" width="26" height="18" fill="#e5e7eb" stroke="#111" stroke-width="1"/><circle cx="${X-3.4}" cy="${Y}" r="5.5" fill="none" stroke="#111"/><circle cx="${X+3.4}" cy="${Y}" r="5.5" fill="none" stroke="#111"/>`);t(X,Y-13,"EXISTING "+kva+" KVA DTR"+(x.dtrNo?" NO. "+x.dtrNo:""),{fs:7.2,fw:700,c:"#1F4E9C"});t(X,Y+18,"11/0.433 KV (NO NEW WORK ON DTR)",{fs:6,c:"#1F4E9C"});break;
    case "shift":open();out.push(`<circle cx="${X}" cy="${Y}" r="6" fill="none" stroke="#b45309" stroke-width="0.9"/>`);plab();t(X-nn.nx*13,Y-nn.ny*13+2.4,opt(x,"reuseOld")?"POLE SHIFTED (OLD POLE RE-USED)":"POLE SHIFTED HERE",{fs:6,c:"#b45309"});break;
    case "regrout":filled();plab();t(X-nn.nx*12,Y-nn.ny*12+2.4,"STRAIGHTENED & RE-GROUTED",{fs:5.8,c:"#b45309"});break;
@@ -781,7 +810,7 @@ function sldSVG(c,so){
   }
   if(nd.earth&&["pole","steel","replace","xRiver","tMV","shift"].includes(x.kind))earthSym(X,Y);
   const db=+(opt(x,"db")||0);if(db>0&&(KINDS[x.kind].o||[]).includes("db")){out.push(`<rect x="${X+6}" y="${Y+4}" width="9" height="7" fill="#fff" stroke="#111" stroke-width="0.8"/>`);t(X+18,Y+10,"LT DB ("+db+" CONS.)",{fs:6.2,a:"start"})}
-  if(x.note&&x.kind!=="lm")t(X,Y+(subEnd?subEnd+8:["dtr","htc","dtrAug","dtrTemp","dtrShift","exDTR"].includes(x.kind)?27:x.kind.startsWith("src")?(p.meta.fdr?35:27):17),x.note,{fs:6.3,c:"#4b5563"});
+  if(x.note&&x.kind!=="lm"&&!noteDone)t(X,Y+(subEnd?subEnd+8:["dtr","htc","dtrAug","dtrTemp","dtrShift","exDTR"].includes(x.kind)?27:x.kind.startsWith("src")?(p.meta.fdr?35:27):17),x.note,{fs:6.3,c:"#4b5563"});
   if(so.gps&&x.kind!=="lm")t(X+10,Y-2,gpsTxt(x),{fs:5.6,c:"#4b5563",a:"start"});
  });
  if(so.north){out.push(`<g transform="translate(790 ${top+10})"><path d="M0,-14 L6,8 L0,3 L-6,8 Z" fill="#111"/><text x="0" y="-18" font-size="10" font-weight="700" text-anchor="middle" font-family="Arial">N</text></g>`)}
