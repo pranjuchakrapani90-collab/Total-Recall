@@ -1,11 +1,12 @@
 /* Pole-to-BoQ Trainer · Estimate drill (28 Oct 2026)
    A blank estimate sheet laid out like the office Excel: tap the SoR cell to pull the item in (as VLOOKUP does),
    type the quantity and the amount works itself out, then fill the A–P abstract percentages yourself.
-   The work to estimate is drawn from the structures already practised in the Structures tab.
-   Uses the trainer's globals: C, K, ORDER, LEVELS, PROG, STD, kitRows, tolOf, fmt, fq, esc, lsGet, lsSet. */
+   It is the last step of every lesson (one structure) and of every level (a mix of that level's structures).
+   Mounted by the trainer: Drill.mount(el,{key,pool,mix,pass,onPass}). Rates are always APDCL SoR 2021-22.
+   Uses the trainer's globals: C, K, kitRows, tolOf, fmt, fq, esc, lsGet, lsSet. */
 (function(){
 "use strict";
-const D=document,q$=s=>D.querySelector(s),root=q$("#drill");if(!root)return;
+const D=document,q$=s=>D.querySelector(s);let root=null,OPT=null;
 const DRAFT="p2b-drill-cur",HIST="p2b-drill";
 const TYPES={
  dept:{t:"Departmental (capital / O&M)",f:0,gd:0,ge:0,note:"Departmental work: no contingency and no supervision charge."},
@@ -15,22 +16,22 @@ const TYPES={
 const ABK=[["b","bb"],["d","db"],["f","fb"],["g1"],["g2"],["j"],["k"]];
 const r2=n=>Math.round(n*100)/100;
 let S=null;
-function load(){try{S=JSON.parse(lsGet(DRAFT,"null"))}catch(e){S=null}if(S&&(!S.sc||!Array.isArray(S.rows)))S=null;if(S)S.sc.kits=S.sc.kits.filter(([k])=>K[k]);if(S&&!S.sc.kits.length)S=null}
-function save(){lsSet(DRAFT,JSON.stringify(S))}
+function drafts(){try{const d=JSON.parse(lsGet(DRAFT,"{}"));return d&&!d.sc&&typeof d==="object"?d:{}}catch(e){return {}}}
+function load(){const d=drafts();S=d[OPT.key]||null;if(S&&(!S.sc||!Array.isArray(S.rows)))S=null;if(S)S.sc.kits=S.sc.kits.filter(([k])=>K[k]&&OPT.pool.includes(k));if(S&&!S.sc.kits.length)S=null}
+function save(){const d=drafts();d[OPT.key]=S;lsSet(DRAFT,JSON.stringify(d))}
 
 /* ---------- the work to estimate ---------- */
-const covered=()=>ORDER.filter(k=>PROG[k]&&!K[k].noqty);
 const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
 function maxCount(k){const lv=K[k].lv;return lv==="blk"?4:lv==="lt"||lv==="hv"?3:/per route-km/.test(K[k].t)?2:1}
-function newScenario(any){
- const pool=any?ORDER.filter(k=>!K[k].noqty):covered();if(!pool.length)return null;
- const pick=[...pool].sort(()=>Math.random()-.5),n=Math.min(pool.length,pool.length>3&&Math.random()<.25?3:rnd(1,2));
- const kits=pick.slice(0,n).map(k=>[k,rnd(1,maxCount(k))]);
+function newScenario(){
+ const pool=OPT.pool;if(!pool.length)return null;
+ const pick=[...pool].sort(()=>Math.random()-.5),n=OPT.mix?Math.min(pool.length,rnd(2,3)):1;
+ const kits=pick.slice(0,n).map(k=>[k,OPT.mix?rnd(1,Math.min(2,maxCount(k))):rnd(1,maxCount(k))]);
  const ty=Object.keys(TYPES)[rnd(0,2)];
- return {kits,type:ty,std:STD,any:!!any,ts:Date.now()};
+ return {kits,type:ty,std:"apdcl",ts:Date.now()};
 }
 function keyRows(sc){
- const old=STD;STD=sc.std;const by={},out=[];
+ const old=STD;STD="apdcl";const by={},out=[];
  try{sc.kits.forEach(([k,n])=>kitRows(k).forEach(r=>{if(!(r.q>0))return;const ex=by[r.id];
   if(ex){ex.q=+(ex.q+r.q*n).toFixed(3);ex.opt=ex.opt&&r.opt;if(r.why&&!ex.why)ex.why=r.why}
   else{by[r.id]={id:r.id,q:+(r.q*n).toFixed(3),opt:r.opt,why:r.why||""};out.push(by[r.id])}}))}finally{STD=old}
@@ -82,22 +83,17 @@ function setItem(i,id){if(!S||i<0)return;S.rows[i].id=id;if(i===S.rows.length-1)
  const el=root.querySelector(`input[data-q="${i}"]`);if(el)el.focus()}
 
 /* ---------- render ---------- */
-function start(any){const sc=newScenario(any);if(!sc){render();return}
- S={sc,rows:[{id:"",q:""}],ab:{b:"",bb:"",d:"",db:"",f:"",fb:"",g1:"",g2:"",j:"",k:""},checked:null};save();render();root.scrollIntoView({block:"start"})}
+function start(){const sc=newScenario();if(!sc){root.innerHTML="";return}
+ S={sc,rows:[{id:"",q:""}],ab:{b:"",bb:"",d:"",db:"",f:"",fb:"",g1:"",g2:"",j:"",k:""},checked:null};save();render()}
 function baseSel(key){const v=S.ab[key]||"";return `<select class="xbase" data-ab="${key}" aria-label="base">`+["","A","C","D","E","H"].map(o=>`<option value="${o}" ${o===v?"selected":""}>${o?"of "+o:"of …"}</option>`).join("")+`</select>`}
 function pct(key){return `<input class="xpct" data-ab="${key}" inputmode="decimal" value="${esc(S.ab[key])}" aria-label="percent">%`}
 function render(){
- if(!S){const n=covered().length;
-  root.innerHTML=`<div class="kit xempty"><div class="eyebrow">Estimate drill</div><h2>Build an estimate from a blank sheet</h2>
-  <p class="scenario">You get the name of a work made from the structures you have practised. Tap the SoR cell to bring the item in, type the quantity, then fill the abstract: transport, labour, contingency, supervision and GST. Check it like a checking officer would.</p>
-  ${n?`<p class="hint">${n} structure${n>1?"s":""} practised so far.</p>`:`<p class="hint">No structure practised yet. Do a quiz in Structures first, or drill on any structure.</p>`}
-  <div class="actions">${n?`<button class="btn" id="xnew">New estimate</button>`:""}<button class="btn ${n?"ghost":""}" id="xany">${n?"Any structure":"Drill on any structure"}</button></div>${histHtml()}</div>`;
-  const a=q$("#xnew");if(a)a.onclick=()=>start(false);q$("#xany").onclick=()=>start(true);return}
+ if(!S){start();return}
  const sc=S.sc,ty=TYPES[sc.type],chk=S.checked;
  let h=`<div class="xtask"><div><div class="eyebrow">Prepare the estimate</div><h2>${esc(workName(sc))}</h2>
-  <p class="xmeta"><span>${esc(ty.t)}</span><span>${sc.std==="apdcl"?"APDCL SoR items":"RDSS / REC drawing items"}</span><span>SoR 2021-22</span></p>
+  <p class="xmeta"><span>${esc(ty.t)}</span><span>APDCL SoR 2021-22 rates</span><span>Pass mark ${Math.round(OPT.pass*100)}%</span></p>
   <details class="xsc"><summary>What the work covers</summary><ul>${sc.kits.map(([k,n])=>`<li><b>${n} ×</b> ${esc(K[k].t)}<div class="why">${esc(K[k].scen||"")}</div></li>`).join("")}</ul></details></div>
-  <div class="actions" style="margin-top:0"><button class="btn ghost" id="xnew2">New</button></div></div>`;
+  <div class="actions" style="margin-top:0"><button class="btn ghost" id="xnew2">Another work</button></div></div>`;
  /* the sheet */
  h+=`<div class="xl"><div class="xlscroll"><table class="sheet"><thead><tr class="cols"><th></th><th>A</th><th>B</th><th>C</th><th>D</th><th>E</th><th>F</th><th>G</th><th></th></tr>
  <tr class="hdr"><th>1</th><th>Sl.</th><th>SoR Sl. No.</th><th>Item Description</th><th>Unit</th><th>Qty</th><th>Ex-work price ₹</th><th>Amount ₹</th><th></th></tr></thead><tbody>`;
@@ -113,9 +109,9 @@ function render(){
  h+=`</tbody></table></div></div><p class="hint" style="margin-top:6px">Tap an SoR cell to bring the item in; a new row opens below each time. Rate and amount fill themselves, as VLOOKUP does in the office sheet.</p>`;
  /* the abstract */
  h+=`<div class="xl xab"><table class="sheet abs"><thead><tr class="hdr"><th></th><th>Abstract of cost</th><th>Amount ₹</th></tr></thead><tbody id="xabb"></tbody></table></div>
- <div class="actions"><button class="btn" id="xcheck">Check my estimate</button><button class="btn ghost" id="xreset">Clear sheet</button><span id="xsc" class="score"></span></div><div id="xres"></div>${histHtml()}`;
+ <div class="actions"><button class="btn" id="xcheck">Check my estimate</button><button class="btn ghost" id="xreset">Clear sheet</button><span id="xsc" class="score"></span></div><div id="xres"></div>`;
  root.innerHTML=h;renderAb();if(chk)renderResult();
- q$("#xnew2").onclick=()=>{if(!S.checked&&S.rows.some(r=>r.id)&&!confirm("Start a new estimate? This sheet will be cleared."))return;start(sc.any)};
+ q$("#xnew2").onclick=()=>{if(!S.checked&&S.rows.some(r=>r.id)&&!confirm("Start a new estimate? This sheet will be cleared."))return;start()};
  root.querySelectorAll("[data-pick]").forEach(b=>b.onclick=()=>openPicker(+b.dataset.pick));
  root.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{S.rows.splice(+b.dataset.del,1);if(!S.rows.length||S.rows[S.rows.length-1].id)S.rows.push({id:"",q:""});S.checked=null;save();render()});
  root.querySelectorAll("[data-q]").forEach(inp=>inp.oninput=()=>{const i=+inp.dataset.q,r=S.rows[i];r.q=inp.value.replace(/[^\d.]/g,"");
@@ -164,7 +160,8 @@ function check(){
  const abN=Object.keys(ab).length,abOk=Object.values(ab).filter(Boolean).length;
  const raw=(okItems+abOk-extra*0.5)/(need.length+abN),score=Math.max(0,Math.min(1,raw));
  S.checked={rows,ab,missing:missing.map(r=>r.id),okItems,need:need.length,extra,abOk,abN,score};save();
- const hst=hist();hst[String(Date.now())]={t:workName(S.sc),ty:S.sc.type,s:Math.round(score*100)};
+ const hst=hist();hst[String(Date.now())]={t:workName(S.sc),ty:S.sc.type,s:Math.round(score*100),k:OPT.key};
+ if(score>=OPT.pass&&OPT.onPass)OPT.onPass(score);
  const ks=Object.keys(hst).sort();while(ks.length>30)delete hst[ks.shift()];lsSet(HIST,JSON.stringify(hst));
  render();const r=q$("#xres");if(r)r.scrollIntoView({behavior:"smooth",block:"start"});
 }
@@ -180,9 +177,12 @@ function renderResult(){
   h+=`<h3>Abstract corrections</h3><ul class="xfix">`+wrongAb.map(k=>`<li><b>${lab[k]}</b>: ${/b$/.test(k)&&k.length===2?"of "+ans[k]:ans[k]+"%"}</li>`).join("")+`</ul>`}
  h+=`<div class="note"><b>Rule</b>${esc(TYPES[S.sc.type].note)} Transport 5% of A, labour 15% of C, CGST and SGST 9% each on H.</div>`;
  h+=`<p class="hint">Model answer: A ₹${fmt(model.A)}${model.E?`, E ₹${fmt(model.E)}`:""}, net payable ₹${fmt(model.P)}. Optional items are left out of the model.</p>`;
- h+=`<div class="actions"><button class="btn" id="xagain">Next estimate</button><button class="btn ghost" id="xredo">Fix and check again</button></div></div>`;
+ const pass=c.score>=OPT.pass;
+ h+=pass?`<div class="note xpass"><b>Passed</b>${esc(OPT.passMsg||"Step complete.")}</div>`:`<div class="note trap"><b>Not yet</b>You need ${Math.round(OPT.pass*100)}% to complete this step. Fix the sheet and check again, or try another work.</div>`;
+ h+=`<div class="actions">${pass&&OPT.next?`<button class="btn" id="xnext">${esc(OPT.next.label)}</button>`:""}<button class="btn ${pass&&OPT.next?"ghost":""}" id="xredo">Fix and check again</button><button class="btn ghost" id="xagain">Another work</button></div></div>`;
  q$("#xres").innerHTML=h;
- q$("#xagain").onclick=()=>start(S.sc.any);
+ const nx=q$("#xnext");if(nx)nx.onclick=OPT.next.go;
+ q$("#xagain").onclick=()=>start();
  q$("#xredo").onclick=()=>{S.checked=null;save();render()};
 }
 function hist(){try{return JSON.parse(lsGet(HIST,"{}"))||{}}catch(e){return {}}}
@@ -196,6 +196,5 @@ q$("#xpq").onkeydown=e=>{if(e.key==="Enter"){const m=matches(e.target.value);if(
 q$("#xpl").onclick=e=>{const b=e.target.closest("button[data-id]");if(b)setItem(pickRow,b.dataset.id)};
 q$("#xpclose").onclick=closePicker;q$("#xpick").addEventListener("click",e=>{if(e.target.id==="xpick")closePicker()});
 
-load();render();
-window.drillRefresh=()=>{if(!S)render()};
+window.Drill={mount(el,opt){root=el;OPT=Object.assign({pass:.8},opt);load();render()},history:hist};
 })();

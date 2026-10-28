@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="kvsync.js?v=20261028b" data-reload="p2b-cur p2b-qck p2b-std"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
+<!doctype html><html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="kvsync.js?v=20261028c" data-reload="p2b-cur p2b-qck p2b-steps"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
 <title>Pole-to-BoQ Trainer · Pranju OS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -336,16 +336,46 @@ table.sheet.abs tr.fin td{background:var(--accent-soft)}
 .xpl button b{font:600 .9rem var(--f-mono);grid-row:span 2}
 .xpl button span{font-size:.86rem}.xpl button small{font:.72rem var(--f-mono);color:var(--muted)}
 @media (max-width:520px){.xstats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* ---------- Course map and lesson stepper ---------- */
+.sorpill{font:600 .74rem var(--f-mono);background:var(--accent-soft);color:var(--accent);padding:3px 8px;border-radius:3px}
+.ccard{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px;margin-bottom:14px}
+.ccard h2{font:700 1.5rem/1.1 var(--f-display);margin:2px 0 8px}
+.cbar{height:8px;border-radius:5px;background:var(--accent-soft);overflow:hidden}.cbar i{display:block;height:100%;background:var(--ok)}
+.cgo{margin-top:14px;width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;text-align:left;background:var(--accent);color:#fff;border:0;border-radius:8px;padding:14px 16px;cursor:pointer;font:inherit}
+.cgo small{grid-column:1;font:600 .72rem var(--f-mono);letter-spacing:.08em;text-transform:uppercase;opacity:.85}
+.cgo b{grid-column:1;font:700 1.25rem/1.15 var(--f-display)}.cgo span{grid-column:2;grid-row:1/3;font-size:1.2rem}
+.clvl{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:12px 14px;margin-bottom:12px}
+.clvl.lock{opacity:.6}.clvl.fin{border-color:var(--ok)}
+.clh{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.clh h3{font:700 1.15rem var(--f-display);margin:0 0 6px;text-transform:uppercase;letter-spacing:.03em}.clh span{font:.74rem var(--f-mono);color:var(--muted);white-space:nowrap}
+.clvl ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px}
+.clvl li button{width:100%;display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:8px;align-items:center;text-align:left;background:none;border:0;border-radius:4px;padding:8px 6px;color:var(--ink);font:inherit;font-size:.92rem;cursor:pointer}
+.clvl li button:not(:disabled):hover{background:var(--accent-soft)}
+.clvl li button:disabled{color:var(--muted);cursor:default}
+.clvl li button.cu{background:var(--accent-soft);font-weight:600}
+.clvl li button.lvt .ctt{font-family:var(--f-display);font-weight:700;letter-spacing:.03em;text-transform:uppercase;font-size:.95rem}
+.cico{font-size:.85rem;text-align:center;color:var(--accent)}.dn .cico{color:var(--ok)}
+.cst{display:flex;gap:3px}.cst i{width:7px;height:7px;border-radius:50%;border:1.3px solid var(--muted)}.cst i.y{background:var(--ok);border-color:var(--ok)}
+.cback{background:none;border:0;padding:0 0 10px;color:var(--accent);font:500 .95rem var(--f-body);cursor:pointer}
+.stepper{list-style:none;margin:14px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px}
+.stepper button{width:100%;display:flex;gap:8px;align-items:center;text-align:left;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:4px;padding:8px;font:500 .84rem var(--f-body);cursor:pointer}
+.stepper button b{flex:none;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font:600 .78rem var(--f-mono);border:1.4px solid var(--muted)}
+.stepper button.dn b{background:var(--ok);border-color:var(--ok);color:#fff}
+.stepper button.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);background:var(--accent-soft)}
+.stepper button:disabled{opacity:.45;cursor:default}
+.estpane{margin-top:18px}
+.stepnext{margin-top:14px}.note.xpass{border-color:var(--ok);background:var(--ok-soft)}
+@media (max-width:520px){.stepper{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style><link rel="stylesheet" href="tr-theme.css?v=20261020"></head><body class="tr-est"><nav class="trbar" aria-label="Where you are"><div><a href="./">Pranju OS</a><i>›</i><a href="apdcl-studio.html">Estimate Studio</a><i>›</i><b>Pole-to-BoQ Trainer</b></div></nav>
 
 <div class="wrap">
 <div class="toprow"><a class="backlink" href="apdcl-studio.html">← Estimate Studio</a><span id="syncBadge" class="sbadge off" title="">☁ Sync off</span></div>
 <header class="top">
-  <div class="brand"><h1>Pole-to-BoQ Trainer</h1><p>RDSS / REC drawings · QAM · APDCL SoR 2021-22</p>
-   <div class="stdbar"><span>Item pattern</span><div class="seg" role="group" aria-label="Item pattern" id="stdseg"><button data-std="rdss" aria-pressed="true">RDSS / REC drawing</button><button data-std="apdcl" aria-pressed="false">APDCL SoR</button></div></div></div>
+  <div class="brand"><h1>Pole-to-BoQ Trainer</h1><p>Lesson by lesson · APDCL SoR 2021-22</p>
+   <div class="stdbar"><span class="sorpill">Rates: APDCL SoR 2021-22</span></div></div>
   <nav class="tabs" role="tablist">
     <button role="tab" id="t-kits" aria-selected="true" data-view="kits">Structures</button>
-    <button role="tab" id="t-drill" aria-selected="false" data-view="drill">Estimate drill</button>
     <button role="tab" id="t-comp" aria-selected="false" data-view="comp">What goes with what</button>
     <button role="tab" id="t-cond" aria-selected="false" data-view="cond">Conductors</button>
     <button role="tab" id="t-build" aria-selected="false" data-view="build">Line builder</button>
@@ -355,16 +385,11 @@ table.sheet.abs tr.fin td{background:var(--accent-soft)}
 </header>
 
 <section class="view" id="v-kits">
-  <select class="railsel" id="railsel" aria-label="Choose structure"></select>
-  <div class="grid">
-    <aside class="rail" id="rail"></aside>
-    <article class="kit" id="kit"></article>
-  </div>
+  <div id="course"></div>
+  <article class="kit" id="kit" hidden></article>
 </section>
 
-<section class="view" id="v-drill" hidden>
-  <div id="drill"></div>
-</section>
+
 
 <div class="xpick" id="xpick" hidden role="dialog" aria-label="Pick an SoR item"><div class="xpsheet">
   <div class="xphead"><input id="xpq" type="search" placeholder="SoR no. or words, e.g. 746 or stay wire" autocomplete="off" inputmode="search"><button type="button" class="btn ghost" id="xpclose">Close</button></div>
@@ -431,7 +456,7 @@ table.sheet.abs tr.fin td{background:var(--accent-soft)}
   <div id="sbox"></div>
 </section>
 
-<footer id="foot">Built from: RDSS SBD Part-2 Technical Specification (2022), the RDSS/REC standard tender drawings (11KV, 33KV, DTR-SS, PSS, LT-ACC-ABC, GEN, LT-OH, Civil), REC construction-standard amendments (2004), the new specifications (Attachments I–M) and the DDUGJY Quality Assurance Manual. Rates are APDCL SoR 2021-22 ex-works, excluding GST; items shown “—” have no SoR rate here and need the approved or tender rate. In “RDSS / REC drawing” mode the kits follow the standard drawings; “APDCL SoR” mode swaps in the items APDCL estimates use (9.75 m PSC, T-arm, grouting jobs, CI pipes). The site, the circle's approved drawings and the GTPs decide the final count.</footer>
+<footer id="foot">Built from: RDSS SBD Part-2 Technical Specification (2022), the RDSS/REC standard tender drawings (11KV, 33KV, DTR-SS, PSS, LT-ACC-ABC, GEN, LT-OH, Civil), REC construction-standard amendments (2004), the new specifications (Attachments I–M) and the DDUGJY Quality Assurance Manual. Rates are APDCL SoR 2021-22 ex-works, excluding GST; items shown “—” have no SoR rate here and need the approved or tender rate. Every item and rate follows APDCL SoR 2021-22 (9.75 m PSC, T-arm, grouting jobs, CI pipes); the RDSS/REC drawings are used only for how a structure is built. The site, the circle's approved drawings and the GTPs decide the final count.</footer>
 </div>
 <script>
 /* ---------- Catalogue: id -> [SoR, item, unit, rate, group] ---------- */
@@ -1096,7 +1121,7 @@ const lsGet=(k,d)=>{try{const v=localStorage.getItem(k);return v==null?d:v}catch
 const lsSet=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
 let PROG={};try{PROG=JSON.parse(lsGet("p2b-prog","{}"))||{}}catch(e){PROG={}}
 function saveProg(){lsSet("p2b-prog",JSON.stringify(PROG))}
-let STD=lsGet("p2b-std","rdss")==="apdcl"?"apdcl":"rdss";
+let STD="apdcl"; /* rates and items always follow APDCL SoR 2021-22 */
 let cur=lsGet("p2b-cur","h1");{const m=location.hash.match(/^#s=(\w+)$/);if(m)cur=m[1];}if(!K[cur])cur="h1";
 let mode="study";
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
@@ -1808,32 +1833,71 @@ const FIGKEY={polerep:"polerep",hgt11:"hgt11",abcconv:"abcconv",aug:"aug",tmpdt:
 function draw(key,quiz){QUIZ=!!quiz;const f=FIG[FIGKEY[key]||K[key].fig];try{return f?f(key):""}catch(e){console.error(e);return ""}finally{QUIZ=false}}
 
 /* ---------- Structures view ---------- */
-function buildRail(){
- let h="",opts="";
- LEVELS.forEach(L=>{
-  const ks=ORDER.filter(k=>K[k].lv===L.id);
-  h+=`<div><h3>${L.name}</h3><ul>`+ks.map(k=>{const p=PROG[k];const cls=p&&p.best>=0.9?"done":p?"tried":"";
-   return `<li><button data-k="${k}" class="${k===cur?'on':''}"><span class="dot ${cls}"></span>${esc(K[k].t)}</button></li>`}).join("")+`</ul></div>`;
-  opts+=`<optgroup label="${L.name}">`+ks.map(k=>`<option value="${k}" ${k===cur?'selected':''}>${esc(K[k].t)}</option>`).join("")+`</optgroup>`;
- });
- $("#rail").innerHTML=h;$("#railsel").innerHTML=opts;
- $("#rail").querySelectorAll("button").forEach(b=>b.onclick=()=>pick(b.dataset.k));
+/* ---------- Course: one lesson at a time, like Guitar Studio ----------
+   Every structure is a lesson with four steps: Study, What goes on it?, How many?, Build the estimate.
+   Each level ends with a level estimate mixing its structures. A lesson opens only after the one before is complete. */
+const COURSE=[];LEVELS.forEach(L=>{ORDER.filter(k=>K[k].lv===L.id).forEach(k=>COURSE.push(k));COURSE.push("L:"+L.id)});
+const STEPN={s:"Study",c:"What goes on it?",q:"How many?",e:"Build the estimate"},STEPM={s:"study",c:"check",q:"qty",e:"est"};
+let STEPS={};try{STEPS=JSON.parse(lsGet("p2b-steps","{}"))||{}}catch(e){STEPS={}}
+let LEG=null;try{LEG=JSON.parse(lsGet("p2b-legacy","null"))}catch(e){}
+if(!LEG||typeof LEG!=="object"){LEG={};ORDER.forEach(k=>{if(PROG[k]&&PROG[k].best>=0.9)LEG[k]=1});lsSet("p2b-legacy",JSON.stringify(LEG))}
+const isLvl=k=>k.startsWith("L:"),lvOf=k=>isLvl(k)?k.slice(2):K[k].lv,lvName=k=>LEVELS.find(l=>l.id===lvOf(k)).name;
+const lvPool=id=>ORDER.filter(k=>K[k].lv===id&&!K[k].noqty);
+function stepsOf(k){return isLvl(k)?["e"]:K[k].noqty?["s","c"]:["s","c","q","e"]}
+function titleOf(k){return isLvl(k)?"Level estimate · "+lvName(k).replace(/^\d+ · /,""):K[k].t}
+function isDone(k){return !!((STEPS[k]&&STEPS[k].done)||LEG[k])}
+function stepDone(k,st){return isDone(k)||!!(STEPS[k]&&STEPS[k][st])}
+function idx(k){return COURSE.indexOf(k)}
+function unlocked(k){const i=idx(k);return i<=0||isDone(k)||isDone(COURSE[i-1])}
+function stepOpen(k,st){const ss=stepsOf(k),j=ss.indexOf(st);return unlocked(k)&&ss.slice(0,j).every(x=>stepDone(k,x))}
+function curLesson(){return COURSE.find(k=>!isDone(k))||null}
+function markStep(k,st){const o=STEPS[k]=STEPS[k]||{};o[st]=1;if(stepsOf(k).every(x=>o[x]))o.done=1;lsSet("p2b-steps",JSON.stringify(STEPS));if(typeof scheduleSync==="function")scheduleSync()}
+let view="home";
+function buildRail(){if(view==="home")renderCourse()}
+function renderCourse(){
+ const nDone=COURSE.filter(isDone).length,nx=curLesson();
+ let h=`<div class="ccard"><div class="cprog"><div><div class="eyebrow">The course</div><h2>${nDone} of ${COURSE.length} lessons complete</h2></div></div>
+  <div class="cbar"><i style="width:${nDone/COURSE.length*100}%"></i></div>
+  ${nx?`<button class="cgo" data-k="${nx}"><small>${STEPS[nx]?"Continue":"Next lesson"} · ${esc(lvName(nx))}</small><b>${esc(titleOf(nx))}</b><span>▸</span></button>`:`<p class="hint">Every lesson is complete. Open any one to revise.</p>`}</div>`;
+ LEVELS.forEach(L=>{const ks=COURSE.filter(k=>lvOf(k)===L.id),d=ks.filter(isDone).length,lock=!unlocked(ks[0]);
+  h+=`<section class="clvl${lock?" lock":""}${d===ks.length?" fin":""}"><div class="clh"><h3>${esc(L.name)}</h3><span>${d===ks.length?"✓ complete":lock?"🔒 finish the level before":`${d} of ${ks.length} done`}</span></div><ol>`+
+   ks.map(k=>{const un=unlocked(k),dn=isDone(k),cu=k===nx,ss=stepsOf(k);
+    return `<li><button data-k="${k}" ${un?"":"disabled"} class="${dn?"dn":cu?"cu":""}${isLvl(k)?" lvt":""}"><span class="cico">${dn?"✓":un?(cu?"▶":"○"):"🔒"}</span><span class="ctt">${esc(titleOf(k))}</span><span class="cst">${ss.map(x=>`<i class="${stepDone(k,x)?"y":""}"></i>`).join("")}</span></button></li>`}).join("")+`</ol></section>`});
+ $("#course").innerHTML=h;
+ $("#course").querySelectorAll("button[data-k]").forEach(b=>b.onclick=()=>openLesson(b.dataset.k));
 }
-$("#railsel").onchange=e=>pick(e.target.value);
-function pick(k){cur=k;lsSet("p2b-cur",k);buildRail();renderKit()}
+function openLesson(k,st){if(!unlocked(k))return;cur=k;lsSet("p2b-cur",k);view="lesson";
+ const ss=stepsOf(k);st=st||ss.find(x=>!stepDone(k,x))||ss[0];mode=STEPM[st];
+ $("#course").hidden=true;$("#kit").hidden=false;history.replaceState(null,"","#s="+k);renderKit();window.scrollTo(0,0)}
+function toCourse(){view="home";$("#kit").hidden=true;$("#course").hidden=false;history.replaceState(null,"",location.pathname+location.search);renderCourse();window.scrollTo(0,0)}
+function pick(k){openLesson(k)}
+function nextAfter(k){const i=idx(k);return COURSE[i+1]||null}
+function nextStepBtn(){const ss=stepsOf(cur),st=Object.keys(STEPM).find(x=>STEPM[x]===mode),j=ss.indexOf(st),nst=ss[j+1];
+ if(nst)return {label:`Next: ${STEPN[nst]} ▸`,go:()=>{mode=STEPM[nst];renderKit();$("#kit").scrollIntoView({block:"start"})}};
+ const nl=nextAfter(cur);return nl?{label:`Next lesson: ${titleOf(nl)} ▸`,go:()=>openLesson(nl)}:{label:"Back to the course",go:toCourse}}
+function stepFeedback(pass,need){const el=document.createElement("div");el.className="stepnext";
+ if(pass){const n=nextStepBtn();el.innerHTML=`<div class="note xpass"><b>Passed</b>${stepsOf(cur).every(x=>stepDone(cur,x))?"Lesson complete.":"Step complete."}</div><div class="actions"><button class="btn" type="button">${esc(n.label)}</button></div>`;el.querySelector("button").onclick=n.go}
+ else el.innerHTML=`<div class="note trap"><b>Not yet</b>Score ${Math.round(need*100)}% or more to move on. Try again.</div>`;
+ const old=$("#pane .stepnext");if(old)old.remove();$("#pane").appendChild(el)}
 function renderKit(){
- const k=K[cur],lvl=LEVELS.find(l=>l.id===k.lv).name;
- const noqty=!!k.noqty;if(noqty&&mode==="qty")mode="study";
- let h=`<div class="kit-head"><div><div class="eyebrow">${lvl}</div><h2>${esc(k.t)}</h2><p class="scenario">${esc(k.scen)}</p></div>
- <div class="seg" role="group" aria-label="Mode">
-  <button data-m="study" aria-pressed="${mode==='study'}">Study</button>
-  <button data-m="check" aria-pressed="${mode==='check'}">What goes on it?</button>
-  ${noqty?"":`<button data-m="qty" aria-pressed="${mode==='qty'}">How many?</button>`}</div></div>
- <div class="body"><div class="figure">${draw(cur,mode!=="study")}<div class="cap">${mode==="study"?"Sketch, not to scale. Each label names the part and its SoR item.":"Numbered parts: name each one from the list. Labels show in Study."}</div></div><div id="pane" style="min-width:0"></div></div>
- <p class="src"><b>Source</b> ${esc(k.src||"")}${STD==="apdcl"?" · items swapped to APDCL SoR equivalents":""}</p>`;
+ const lvl=isLvl(cur),k=lvl?null:K[cur],ss=stepsOf(cur),i=idx(cur),st=Object.keys(STEPM).find(x=>STEPM[x]===mode)||"s";
+ const scen=lvl?`Mixed work from this level's structures, priced the way the office sheet does it. Pass it to open the next level.`:k.scen;
+ let h=`<button class="backlink cback" type="button" id="toCourse">← Course</button>
+ <div class="kit-head"><div><div class="eyebrow">${esc(lvName(cur))} · Lesson ${i+1} of ${COURSE.length}</div><h2>${esc(titleOf(cur))}</h2><p class="scenario">${esc(scen)}</p></div></div>
+ <ol class="stepper">${ss.map((x,j)=>{const op=stepOpen(cur,x),dn=stepDone(cur,x);return `<li><button type="button" data-st="${x}" ${op?"":"disabled"} class="${x===st?"on":""}${dn?" dn":""}"><b>${dn?"✓":j+1}</b>${STEPN[x]}</button></li>`}).join("")}</ol>`;
+ if(st==="e")h+=`<div id="pane" class="estpane"></div>`;
+ else h+=`<div class="body"><div class="figure">${draw(cur,mode!=="study")}<div class="cap">${mode==="study"?"Sketch, not to scale. Each label names the part and its SoR item.":"Numbered parts: name each one from the list. Labels show in Study."}</div></div><div id="pane" style="min-width:0"></div></div>
+ <p class="src"><b>Source</b> ${esc(k.src||"")} · items as APDCL SoR 2021-22</p>`;
  $("#kit").innerHTML=h;
- $("#kit").querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{mode=b.dataset.m;renderKit()});
- if(mode==="study")study();else if(mode==="check")checklist();else qtyQuiz();
+ $("#toCourse").onclick=toCourse;
+ $("#kit").querySelectorAll(".stepper button").forEach(b=>b.onclick=()=>{mode=STEPM[b.dataset.st];renderKit()});
+ if(st==="s"){study();const el=document.createElement("div");el.className="stepnext";const n=nextStepBtn();
+  el.innerHTML=`<div class="actions"><button class="btn" type="button">I've studied this · ${esc(n.label.replace(/^Next: /,""))}</button></div>`;
+  el.querySelector("button").onclick=()=>{markStep(cur,"s");n.go()};$("#pane").appendChild(el)}
+ else if(st==="c")checklist();else if(st==="q")qtyQuiz();
+ else{const key=cur;Drill.mount($("#pane"),{key,pool:lvl?lvPool(lvOf(cur)):[cur],mix:lvl,pass:.8,
+   passMsg:lvl?"Level complete. The next level is open.":"Lesson complete. The next lesson is open.",
+   onPass:()=>markStep(key,"e"),next:(()=>{const nl=nextAfter(key);return nl?{label:`Next lesson: ${titleOf(nl)} ▸`,go:()=>openLesson(nl)}:{label:"Back to the course",go:toCourse}})()})}
 }
 function notesHtml(n){n=n||K[cur].notes||[];return n.length?`<div class="notes">`+n.map(([t,x])=>`<div class="note ${t==='trap'?'trap':''}"><b>${t==='trap'?'Watch out':'Note'}</b>${esc(x)}</div>`).join("")+`</div>`:""}
 function tagOf(r){return (r.opt?'<span class="opt">optional</span>':'')+(r.from?`<span class="opt" style="color:var(--accent);background:var(--accent-soft)">for ${esc(C[r.from][1].split(" (")[0].split(",")[0])}</span>`:'')+(r.apd?'<span class="opt">APDCL only</span>':'')}
@@ -1888,7 +1952,8 @@ function qtyQuiz(){
    if(good&&!r.opt)ok++;inp.className="qty "+(good?"ok":"bad");const a=$("#a-"+r.id);a.className="ans "+(good?"ok":"bad");a.textContent=(good?"✓ ":"✗ ")+(r.opt?"0 or 1":fq(r.q));$("#w-"+r.id).hidden=false});
   const s=n?ok/n:0;record(s);const e=$("#qsc");e.textContent=`${ok}/${n} right`;e.className="score "+(s>=.9?"good":s>=.6?"mid":"bad");$("#qnotes").hidden=false};
 }
-function record(s){const p=PROG[cur]||{best:0,n:0,upd:0};p.n++;p.best=Math.max(p.best,s);p.upd=Date.now();{const D=new Date(),dk=D.getFullYear()+"-"+String(D.getMonth()+1).padStart(2,"0")+"-"+String(D.getDate()).padStart(2,"0");p.d=p.d||{};p.d[dk]=(p.d[dk]||0)+1;}PROG[cur]=p;saveProg();buildRail();if(typeof scheduleSync==="function")scheduleSync()}
+function record(s){const p=PROG[cur]||{best:0,n:0,upd:0};p.n++;p.best=Math.max(p.best,s);p.upd=Date.now();{const D=new Date(),dk=D.getFullYear()+"-"+String(D.getMonth()+1).padStart(2,"0")+"-"+String(D.getDate()).padStart(2,"0");p.d=p.d||{};p.d[dk]=(p.d[dk]||0)+1;}PROG[cur]=p;saveProg();if(typeof scheduleSync==="function")scheduleSync();
+ if(view==="lesson"&&(mode==="check"||mode==="qty")){const pass=s>=0.9;if(pass)markStep(cur,mode==="check"?"c":"q");setTimeout(()=>stepFeedback(pass,0.9),0)}}
 
 /* ---------- Companions ---------- */
 function renderCards(){
@@ -2076,17 +2141,18 @@ function renderSpec(){
 }
 
 /* ---------- pattern toggle & tabs ---------- */
-function setStd(v){STD=v;lsSet("p2b-std",v);document.querySelectorAll("#stdseg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.std===v));renderKit();fillCond();build()}
+function setStd(v){v="apdcl";STD=v;lsSet("p2b-std",v);document.querySelectorAll("#stdseg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.std===v));renderKit();fillCond();build()}
 document.querySelectorAll("#stdseg button").forEach(b=>b.onclick=()=>setStd(b.dataset.std));
-const VIEWS=["kits","drill","comp","cond","build","qam","spec"];
+const VIEWS=["kits","comp","cond","build","qam","spec"];
 /* Trainer (default) teaches: Structures + Estimate drill. "?ref" opens the same page as BoQ Reference: the study-anytime sections. */
 const REF=/[?&]ref\b/.test(location.search);
-const TRAIN_V=["kits","drill"];
+const TRAIN_V=["kits"];
 (function(){const show=REF?VIEWS.filter(v=>!TRAIN_V.includes(v)):TRAIN_V;
  document.querySelectorAll("nav.tabs button").forEach(b=>{b.hidden=!show.includes(b.dataset.view)});
  const first=show.includes(lsGet(REF?"p2b-refv":"p2b-trv",""))?lsGet(REF?"p2b-refv":"p2b-trv",""):show[0];
  document.querySelectorAll("nav.tabs button").forEach(x=>x.setAttribute("aria-selected",x.dataset.view===first));
  VIEWS.forEach(v=>$("#v-"+v).hidden=v!==first);
+ if(!REF){const nv=$("nav.tabs");if(nv)nv.style.display="none";}
  if(REF){document.title="BoQ Reference · Pranju OS";$(".brand h1").textContent="BoQ Reference";
   $(".brand p").textContent="Study any time · RDSS / REC drawings · QAM · APDCL SoR 2021-22";
   const bc=$("nav.trbar b");if(bc)bc.textContent="BoQ Reference";}})();
@@ -2095,7 +2161,6 @@ document.querySelectorAll("nav.tabs button").forEach(b=>b.onclick=()=>{
  VIEWS.forEach(v=>$("#v-"+v).hidden=v!==b.dataset.view);
  lsSet(REF?"p2b-refv":"p2b-trv",b.dataset.view);
  if(b.dataset.view==="build")build();
- if(b.dataset.view==="drill"&&window.drillRefresh)window.drillRefresh();
 });
 document.querySelectorAll("#stdseg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.std===STD));
 /* ---------- Device sync (shares Pranju OS's sync code and encrypted cloud bridge) ---------- */
@@ -2127,9 +2192,9 @@ async function cloudSync(){const code=syncCode();if(!code){setSync("off");return
  catch(e){setSync("err",String(e&&e.message||e))}
  finally{SY.busy=false;if(SY.again){SY.again=false;scheduleSync()}}}
 
-buildRail();renderKit();renderCards();renderCond();fillCond();build();renderQ();renderSpec();
+if(!REF)document.addEventListener("DOMContentLoaded",()=>{const m=location.hash.match(/^#s=([\w:]+)$/);if(m&&COURSE.includes(m[1])&&unlocked(m[1]))openLesson(m[1]);else renderCourse()});renderCards();renderCond();fillCond();build();renderQ();renderSpec();
 setSync(syncCode()?"busy":"off");cloudSync();
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)cloudSync()});
 </script>
-<script src="estimate-drill.js?v=20261028"></script>
+<script src="estimate-drill.js?v=20261028b"></script>
 </body></html>
