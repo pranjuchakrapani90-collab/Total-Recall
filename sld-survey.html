@@ -399,6 +399,7 @@ const KINDS={
  exDP:{g:9,t:"Existing DP",d:"Double pole already standing. New line fittings are added for the line(s) you join to it",o:["exType","exEq","fit","db","stays"]},
  exTP:{g:9,t:"Existing 3-pole structure",d:"Three-pole structure already standing",o:["exType","exEq","fit","stays"]},
  ex4P:{g:9,t:"Existing 4-pole structure",d:"Four-pole structure already standing",o:["exType","exEq","fit","stays"]},
+ cont:{g:9,t:"Line continues beyond (end of drawing)",d:"Where an existing line carries on outside this work. Drawn solid from the structure, then dashed to here. No cost. Put the destination in Name / remark, e.g. TO 33/11 KV SAMAGURI S/S",kitOnly:true,o:[]},
  exDTR:{g:9,t:"Existing DTR S/S on the route",d:"New HT line taps or passes at an existing DTR substation; LT can start from it",o:["dtrNo","kva","fit","stays"]},
  sp2dp:{g:10,t:"Existing pole → DP (add 1 pole)",d:"One new pole beside the existing pole, tied with channels",o:["exType","poleLen","goab","dof","la","stays"]},
  dp2tp:{g:10,t:"Existing DP → 3-pole (add 1 pole)",d:"One new pole added to an existing DP; 3.2 m channels tie all three",o:["exType","poleLen","newCh","goab","dof","la","stays"]},
@@ -518,7 +519,7 @@ function compute(p){
  const addEx=(sor,q,w)=>add(sor,q,w+" (existing / O&M stock)",true);
  const dis=(sor,q,w)=>{if(!q)return;if(!RATES[sor]){warn.push("No rate for SoR "+sor);return}DM[sor]=(DM[sor]||0)+q;(dwhy[sor]=dwhy[sor]||[]);if(w&&!dwhy[sor].includes(w))dwhy[sor].push(w)};
  const segs=[];pts.forEach(b=>{if(!b.par)return;const a=byId[b.par];if(!a||isStand(b)){b.par=null;return}
-  const L=LINES[b.line]||LINES["11R"];segs.push({a,b,line:b.line,L,cls:L.cls,kv:L.kv||(L.cls==="HV"?11:0.4),len:+b.len>0?+b.len:hav(a,b),pole:b.pole||"",cross:b.cross||"",reuse:!!b.reuse,disOld:!!b.disOld,rmPoles:b.rmPoles!==false})});
+  let L=LINES[b.line]||LINES["11R"];if((a.kind==="cont"||b.kind==="cont")&&!L.ex)L=LINES[L.kv===33?"EX33":L.cls==="HV"?"EX11":"EXLT"];segs.push({a,b,line:b.line,L,cls:L.cls,kv:L.kv||(L.cls==="HV"?11:0.4),len:+b.len>0?+b.len:hav(a,b),pole:b.pole||"",cross:b.cross||"",reuse:!!b.reuse,disOld:!!b.disOld,rmPoles:b.rmPoles!==false})});
  const work=L=>!L.ex&&!L.dis;
  const maxSpan=L=>L.abc?S.sABC:L.kv===33?S.sEHV:L.mv?S.sMV:L.cls==="HV"?S.sHV:S.sLT;
  const poleOf=sg=>sg.pole||(sg.kv===33?"SP-76":sg.cls==="HV"?"9.75":"8.5");
@@ -529,8 +530,8 @@ function compute(p){
  segs.forEach(sg=>{const A=xy(sg.a,o),B=xy(sg.b,o),dx=B.x-A.x,dy=B.y-A.y,l=Math.hypot(dx,dy)||1;
   adj[sg.a.id].push({sg,ux:dx/l,uy:dy/l,other:sg.b});adj[sg.b.id].push({sg,ux:-dx/l,uy:-dy/l,other:sg.a})});
  const roots=pts.filter(x=>!x.par&&!isStand(x));
- if(roots.length&&!roots.some(isSrc))warn.push("The first point is not a source. Mark the tapping point (existing 11/33 kV pole), existing DTR or LT source first so power flow can be traced.");
- const loose=roots.filter(r=>!isSrc(r));if(roots.length>1&&loose.length)warn.push("Not connected to any line: "+loose.map(r=>"P"+r.no).join(", ")+". Open each and choose 'From point'.");
+ if(roots.length&&!roots.some(x=>isSrc(x)||x.kind==="cont"))warn.push("The first point is not a source. Mark the tapping point (existing 11/33 kV pole), existing DTR or LT source first so power flow can be traced.");
+ const loose=roots.filter(r=>!isSrc(r)&&r.kind!=="cont");if(roots.length>1&&loose.length)warn.push("Not connected to any line: "+loose.map(r=>"P"+r.no).join(", ")+". Open each and choose 'From point'.");
  const nodes={};let totStays=0,totEarth=0;
  const kvAt=x=>{const e=adj[x.id].filter(a=>a.sg.cls==="HV");return e.some(a=>a.sg.kv===33)||x.kind==="src33"||x.kind==="iso33"?33:e.length?11:0.4};
  const danger=kv=>kv===33?"720":kv===11?"721":"722";
@@ -672,7 +673,7 @@ function compute(p){
  const lab={},kids={};pts.forEach(x=>kids[x.id]=[]);segs.forEach(sg=>kids[sg.a.id].push(sg));
  const cnt={};const nx=k=>(cnt[k]=(cnt[k]||0)+1);
  function nameOf(x){switch(x.kind){case "dtr":case "dtrShift":return"DTR-"+nx("T");case "htc":return"S/S-"+nx("H");case "dtrAug":case "dtrTemp":return"DTR-"+nx("T");case "dp":case "iso33":case "ctpt":case "vcb11":case "exDP":case "sp2dp":case "ltdp":return"DP-"+nx("D");case "p4":case "ex4P":case "dp24p":return"4P-"+nx("4");case "tp":case "exTP":case "dp2tp":case "sp2tp":return"3P-"+nx("3");case "exDTR":return x.dtrNo?"DTR "+x.dtrNo:"DTR-"+nx("T");case "regrout":return"E-"+nx("E");
-  case "exPole":case "exFit":return"E-"+nx("E");case "src11":case "src33":return"TP-"+nx("S");case "srcLT":return"LS-"+nx("S");case "srcDTR":return x.dtrNo?"DTR "+x.dtrNo:"EX-DTR";case "xRail":return"RTC-"+nx("R");case "xBridge":return"BR-"+nx("B");default:return"N-"+nx("N")}}
+  case "cont":return"";case "exPole":case "exFit":return"E-"+nx("E");case "src11":case "src33":return"TP-"+nx("S");case "srcLT":return"LS-"+nx("S");case "srcDTR":return x.dtrNo?"DTR "+x.dtrNo:"EX-DTR";case "xRail":return"RTC-"+nx("R");case "xBridge":return"BR-"+nx("B");default:return"N-"+nx("N")}}
  function walk(x){lab[x.id]=nameOf(x);kids[x.id].forEach(sg=>{sg.mid.forEach(m=>{m.lab=m.exist?"E-"+nx("E"):"N-"+nx("N")});walk(sg.b)})}
  roots.forEach(walk);pts.filter(isStand).forEach(x=>lab[x.id]=x.kind==="rmPole"?"OLD-"+nx("O"):"");
  pts.forEach(x=>{if(!lab[x.id]&&!isStand(x))lab[x.id]=nameOf(x)});
@@ -750,7 +751,8 @@ function sldSVG(c,so){
  // a line ends on the outline of a 3-pole / 4-pole structure (DP: mid of the tie, single pole: the pole itself)
  // a line meets a 3-pole / 4-pole structure or a DTR exactly at the middle of the side facing it (DP: middle of the tie, single pole: the pole)
  const trimTo=(x,P,Q)=>{const n=NP(x);if(n!=="d"&&n<3)return P;const g=GEO[n],dx=Q[0]-P[0],dy=Q[1]-P[1],l=Math.hypot(dx,dy)||1;let best=null,bd=-2;
-  for(let i=0;i<g.length;i++){const a=g[i],b=g[(i+1)%g.length],mx=(a[0]+b[0])/2,my=(a[1]+b[1])/2,ml=Math.hypot(mx,my)||1,d=(mx*dx+my*dy)/(ml*l);if(d>bd){bd=d;best=[mx,my]}}
+  const cand=[];for(let i=0;i<g.length;i++){const a=g[i],b=g[(i+1)%g.length];cand.push([(a[0]+b[0])/2,(a[1]+b[1])/2]);if(n===3)cand.push(a)}
+  cand.forEach(([mx,my])=>{const ml=Math.hypot(mx,my)||1,d=(mx*dx+my*dy)/(ml*l);if(d>bd+1e-6){bd=d;best=[mx,my]}});
   return[P[0]+best[0],P[1]+best[1]]};
  const out=[],TB=[],LS=[];
  const tbox=(x,y,str,o={})=>{const fs=o.fs||7.5,w=String(str).length*fs*0.56,h=fs*1.05,a=o.a||"middle",x0=a==="start"?0:a==="end"?-w:-w/2,c=[[x0,-h*0.8],[x0+w,-h*0.8],[x0+w,h*0.25],[x0,h*0.25]],r=(o.rot||0)*D2R,cs=Math.cos(r),sn=Math.sin(r),P=c.map(([u,v])=>[x+u*cs-v*sn,y+u*sn+v*cs]);
@@ -795,9 +797,12 @@ function sldSVG(c,so){
  c.segs.forEach(sg=>{ctx("s:"+sg.b.id);const[a1,a2]=T(sg.a),[b1,b2]=T(sg.b),L=sg.L,SC=sg.b.lcol||col(sg.L),{nx,ny,l:len}=nrm(a1,a2,b1,b2),rot=rotOf(a1,a2,b1,b2);segN[sg.b.id]={nx,ny};
   const ta=trimTo(sg.a,[a1,a2],sg.mid.length?T(sg.mid[0]):[b1,b2]),tb=trimTo(sg.b,[b1,b2],sg.mid.length?T(sg.mid[sg.mid.length-1]):[a1,a2]);
   {const ps=[ta,...sg.mid.map(T),tb];for(let i=0;i<ps.length-1;i++)LS.push([ps[i][0],ps[i][1],ps[i+1][0],ps[i+1][1]])}
-  out.push(`<line x1="${ta[0].toFixed(1)}" y1="${ta[1].toFixed(1)}" x2="${tb[0].toFixed(1)}" y2="${tb[1].toFixed(1)}" stroke="${SC}" stroke-width="${L.cls==="HV"?2.2:1.6}" ${L.dis?'stroke-dasharray="2 3"':L.cls==="LT"&&!L.ex?'stroke-dasharray="6 3"':""} stroke-linecap="round"/>`);if(so.edit)out.push(`<line x1="${ta[0].toFixed(1)}" y1="${ta[1].toFixed(1)}" x2="${tb[0].toFixed(1)}" y2="${tb[1].toFixed(1)}" stroke="transparent" stroke-width="12" class="lhit" data-s="${sg.b.id}"/>`);
+  const cE=sg.b.kind==="cont"?1:sg.a.kind==="cont"?-1:0,SW=L.cls==="HV"?2.2:1.6;
+  if(cE){const k=cE>0?0.5:0.5,S=[ta[0]+(tb[0]-ta[0])*k,ta[1]+(tb[1]-ta[1])*k],near=cE>0?ta:tb,far=cE>0?tb:ta;
+   out.push(`<line x1="${near[0].toFixed(1)}" y1="${near[1].toFixed(1)}" x2="${S[0].toFixed(1)}" y2="${S[1].toFixed(1)}" stroke="${SC}" stroke-width="${SW}" stroke-linecap="round"/><line x1="${S[0].toFixed(1)}" y1="${S[1].toFixed(1)}" x2="${far[0].toFixed(1)}" y2="${far[1].toFixed(1)}" stroke="${SC}" stroke-width="${SW}" stroke-dasharray="7 4"/>`)}
+  else out.push(`<line x1="${ta[0].toFixed(1)}" y1="${ta[1].toFixed(1)}" x2="${tb[0].toFixed(1)}" y2="${tb[1].toFixed(1)}" stroke="${SC}" stroke-width="${SW}" ${L.dis?'stroke-dasharray="2 3"':L.cls==="LT"&&!L.ex?'stroke-dasharray="6 3"':""} stroke-linecap="round"/>`);if(so.edit)out.push(`<line x1="${ta[0].toFixed(1)}" y1="${ta[1].toFixed(1)}" x2="${tb[0].toFixed(1)}" y2="${tb[1].toFixed(1)}" stroke="transparent" stroke-width="12" class="lhit" data-s="${sg.b.id}"/>`);
   const mx=(a1+b1)/2,my=(a2+b2)/2;
-  if(sg.runLab!=null){if(len>70)t(mx-nx*21,my-ny*21+2.5,L.sh+" · "+(sg.runLab/1000).toFixed(3)+" KM",{fs:7,fw:700,c:SC,rot});else if(len>30)t(mx-nx*21,my-ny*21+2.5,L.sh.replace(/^(11 KV|33 KV|LT) /,"")+" · "+(sg.runLab/1000).toFixed(3)+" KM",{fs:6,fw:700,c:SC,rot})}
+  if(cE){if(len>40)t(mx-nx*14,my-ny*14+2.5,L.sh,{fs:6.6,fw:700,c:SC,rot})}else if(sg.runLab!=null){if(len>70)t(mx-nx*21,my-ny*21+2.5,L.sh+" · "+(sg.runLab/1000).toFixed(3)+" KM",{fs:7,fw:700,c:SC,rot});else if(len>30)t(mx-nx*21,my-ny*21+2.5,L.sh.replace(/^(11 KV|33 KV|LT) /,"")+" · "+(sg.runLab/1000).toFixed(3)+" KM",{fs:6,fw:700,c:SC,rot})}
   if(so.arrow!==false&&!L.ex&&!L.dis&&len>24){const ux=(b1-a1)/len,uy=(b2-a2)/len,ptsOn=[sg.a,...sg.mid,sg.b].map(T);let bi=0,bl=0;for(let i=0;i<ptsOn.length-1;i++){const d=Math.hypot(ptsOn[i+1][0]-ptsOn[i][0],ptsOn[i+1][1]-ptsOn[i][1]);if(d>bl){bl=d;bi=i}}
    const k=Math.floor(ptsOn.length/2)-1>=0?Math.floor((ptsOn.length-1)/2):0,P1=ptsOn[k],P2=ptsOn[k+1]||ptsOn[k],cx=(P1[0]+P2[0])/2,cy=(P1[1]+P2[1])/2,r=4.5;
    out.push(`<path d="M${(cx+ux*r).toFixed(1)},${(cy+uy*r).toFixed(1)} L${(cx-ux*r-uy*r*.8).toFixed(1)},${(cy-uy*r+ux*r*.8).toFixed(1)} L${(cx-ux*r+uy*r*.8).toFixed(1)},${(cy-uy*r-ux*r*.8).toFixed(1)} Z" fill="${SC}"/>`)}
@@ -856,6 +861,8 @@ function sldSVG(c,so){
    case "dp2tp":multiSym(X,Y,["n","e","e"],lb,"EXISTING "+exNm(x)+"DP → 3-POLE (+1 NEW "+(nwSq?spOf(x):"")+"POLE)"+(eqTxt(x)?", "+eqTxt(x):""),"#1e3a5f");break;
    case "sp2tp":multiSym(X,Y,["n","e","n"],lb,"EXISTING "+exNm(x)+"POLE → 3-POLE (+2 NEW "+(nwSq?spOf(x):"")+"POLES)"+(eqTxt(x)?", "+eqTxt(x):""),"#1e3a5f");break;
    case "dp24p":multiSym(X,Y,["n","n","e","e"],lb,"EXISTING "+exNm(x)+"DP → 4-POLE (+2 NEW "+(nwSq?spOf(x):"")+"POLES)","#1e3a5f");break;
+   case "cont":{noteDone=true;const e=(c.adj[x.id]||[])[0];if(!e)break;const[OX,OY]=T(e.other),l=Math.hypot(X-OX,Y-OY)||1,ux=(X-OX)/l,uy=(Y-OY)/l,a=ux>0.35?"start":ux<-0.35?"end":"middle";
+    t(X+ux*7,Y+uy*(a==="middle"?11:7)+2.4,(x.note||"LINE CONTINUES").toUpperCase(),{fs:6.6,fw:700,c:"#4b5563",a});break}
    case "exDTR":out.push(`<rect x="${X-13}" y="${Y-9}" width="26" height="18" fill="#e5e7eb" stroke="#111" stroke-width="1"/><circle cx="${X-3.4}" cy="${Y}" r="5.5" fill="none" stroke="#111"/><circle cx="${X+3.4}" cy="${Y}" r="5.5" fill="none" stroke="#111"/>`);block(X,Y,"d",[{txt:"EXISTING "+kva+" KVA DTR"+(x.dtrNo?" NO. "+x.dtrNo:""),fs:7.2,fw:700,c:"#1F4E9C"},{txt:"11/0.433 KV (NO NEW WORK ON DTR)",fs:6,c:"#1F4E9C"}]);break;
    case "shift":open();out.push(`<circle cx="${X}" cy="${Y}" r="6" fill="none" stroke="#b45309" stroke-width="0.9"/>`);plab();t(X-nn.nx*13,Y-nn.ny*13+2.4,opt(x,"reuseOld")?"POLE SHIFTED (OLD POLE RE-USED)":"POLE SHIFTED HERE",{fs:6,c:"#b45309"});break;
    case "regrout":filled();plab();t(X-nn.nx*12,Y-nn.ny*12+2.4,"STRAIGHTENED & RE-GROUTED",{fs:5.8,c:"#b45309"});break;
@@ -961,11 +968,11 @@ function renderKind(){const K=KINDS[draft.kind];$("#dKindD").textContent=K.d;
    if(draft.fpar===undefined){const last=cand[cand.length-1];draft.fpar=last?last.id:""}
    $("#dOpts").insertAdjacentHTML("beforeend",`<div class="f"><label>Continues from<select id="o_fpar"><option value="">— start of this ${ty.toLowerCase()} —</option>${cand.map(q=>`<option value="${q.id}" ${q.id===draft.fpar?"selected":""}>P${q.no}${q.note?" · "+q.note:""}</option>`).join("")}</select></label></div><p class="hint">Mark points along the ${ty.toLowerCase()}, each continuing from the last. Give the name once (e.g. Rupahi–Lawkhowa Road).</p>`)}
   const el=document.getElementById("o_lmType");if(el)el.onchange=()=>{readOpts();draft.fpar=undefined;renderKind()}}
- const ph={lm:"Name, e.g. Rupahi–Lawkhowa Road / Baghbar Ali LP School",xRoad:"Road name",xRail:"Railway section / station side",xRiver:"River / nallah name",xBridge:"Bridge / river name",xEHV:"EHV line name",xLine:"Line crossed, e.g. 11 kV Salna feeder"};
+ const ph={cont:"Where it goes, e.g. TO 33/11 KV SAMAGURI S/S",lm:"Name, e.g. Rupahi–Lawkhowa Road / Baghbar Ali LP School",xRoad:"Road name",xRail:"Railway section / station side",xRiver:"River / nallah name",xBridge:"Bridge / river name",xEHV:"EHV line name",xLine:"Line crossed, e.g. 11 kV Salna feeder"};
  $("#dNote").placeholder=ph[draft.kind]||"e.g. near Baghbar Ali LP school";
  if(K.src&&!edit)draft.par=null;
  renderDlgLine()}
-$("#dKind").onchange=e=>{readOpts();draft.kind=e.target.value;const K=KINDS[draft.kind];if(K.src||K.standalone)draft.par=null;else if(!draft.par){const lp=lastPt();if(lp&&lp.id!==draft.id)draft.par=lp.id}renderKind()};
+$("#dKind").onchange=e=>{readOpts();draft.kind=e.target.value;if(draft.kind==="cont"){const L=LINES[draft.line]||{};if(!L.ex)draft.line=L.kv===33?"EX33":L.cls==="LT"?"EXLT":"EX11"}const K=KINDS[draft.kind];if(K.src||K.standalone)draft.par=null;else if(!draft.par){const lp=lastPt();if(lp&&lp.id!==draft.id)draft.par=lp.id}renderKind()};
 function renderDlgLine(){const p=P(),K=KINDS[draft.kind];$("#dLineSec").hidden=!!K.standalone||(!!K.src&&!draft.par);
  const desc=new Set();(function mark(id){desc.add(id);p.pts.filter(q=>q.par===id).forEach(q=>mark(q.id))})(draft.id);
  $("#dPar").innerHTML=(K.src?'<option value="">— none (this is a source) —</option>':'<option value="">— not connected —</option>')+p.pts.filter(q=>!desc.has(q.id)&&!isStand(q)).map(q=>`<option value="${q.id}" ${q.id===draft.par?"selected":""}>P${q.no} · ${KINDS[q.kind].t}${q.note?" · "+q.note:""}</option>`).join("");
