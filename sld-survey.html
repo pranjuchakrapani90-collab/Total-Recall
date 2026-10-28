@@ -226,7 +226,7 @@ table.boq{border-collapse:collapse;width:100%;min-width:720px;font-size:12.5px}
    <button class="btn alt" id="printEstBtn" type="button">🖨 Print / save PDF</button>
    <button class="btn alt" id="printBothBtn" type="button">🖨 Estimate + SLD</button>
   </div>
-  <p class="hint">Quantities in blue are computed from the survey; hover a quantity to see how it was worked out. The Excel file keeps live formulas, plus a sheet explaining each quantity and a pole schedule with GPS.</p>
+  <p class="hint">The estimate below is built from the SLD in your own format. Every light-blue box can be changed: type another SoR No. and the item, unit and rate follow from SoR 2021-22; change quantities; tap the RDSS / O&amp;M column to mark stock material. The Excel file is laid out exactly like your workbook, with VLOOKUPs on the SoR sheet.</p>
  </div>
  <div id="estWarn"></div>
  <div class="est" id="estBox"></div>
@@ -1236,9 +1236,9 @@ function renderProj(){storeInfo();const L=live();$("#projList").innerHTML=L.map(
 const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
 function renderSel(){{const el=$("#survName");if(el&&document.activeElement!==el)el.value=P().name||""}$("#projSel").innerHTML=live().map(p=>`<option value="${p.id}" ${p.id===DB.cur?"selected":""}>${esc(p.name)} (${p.pts.length} pts)</option>`).join("")}
 let VIEW="survey";
-function renderAll(fit){P();renderSel();const c=compute(P());if(VIEW==="survey")renderSurvey(c,fit);else drawMapLater=c;if(VIEW==="sld")renderSLD(c);if(VIEW==="est")renderEst(c);if(VIEW==="proj")renderProj()}
+function renderAll(fit){P();renderSel();const c=compute(P());if(VIEW==="survey")renderSurvey(c,fit);else drawMapLater=c;if(VIEW==="sld")renderSLD(c);if(VIEW==="est")renderEst(c);if(VIEW==="fw"&&window.renderFw)renderFw(c);if(VIEW==="proj")renderProj()}
 let drawMapLater=null;
-function show(v){VIEW=v;document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.v===v));["survey","sld","est","proj"].forEach(k=>$("#v-"+k).hidden=k!==v);
+function show(v){VIEW=v;document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.v===v));["survey","sld","est","fw","proj"].forEach(k=>{const el=$("#v-"+k);if(el)el.hidden=k!==v});
  if(v==="survey"&&map)setTimeout(()=>map.invalidateSize(),50);renderAll(false)}
 document.querySelectorAll("nav.tabs button").forEach(b=>b.onclick=()=>show(b.dataset.v));
 $("#projSel").onchange=e=>{DB.cur=e.target.value;save(false);selId=null;renderAll(true)};
@@ -1263,7 +1263,7 @@ function dl(blob,name){const a=document.createElement("a");a.href=URL.createObje
 $("#svgBtn").onclick=()=>{const c=compute(P());dl(new Blob([sldSVG(c,P().opt)],{type:"image/svg+xml"}),fileBase()+"_SLD.svg")};
 function svgPng(svg,scale=3){return new Promise((res,rej)=>{const img=new Image();img.onload=()=>{const cv=document.createElement("canvas");cv.width=842*scale;cv.height=595*scale;const g=cv.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,cv.width,cv.height);g.drawImage(img,0,0,cv.width,cv.height);res(cv)};img.onerror=rej;img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg)})}
 $("#pngBtn").onclick=async()=>{const cv=await svgPng(sldSVG(compute(P()),P().opt));cv.toBlob(b=>dl(b,fileBase()+"_SLD.png"))};
-function doPrint(which){const c=compute(P());$("#printSld").innerHTML=sldSVG(c,P().opt);$("#printEst").innerHTML='<div class="est">'+estHTML(c)+"</div>";document.body.classList.remove("p-sld","p-est");if(which)document.body.classList.add("p-"+which);setTimeout(()=>window.print(),80)}
+function doPrint(which){const c=compute(P());$("#printSld").innerHTML=sldSVG(c,P().opt);$("#printEst").innerHTML='<div class="est">'+estHTML(c)+"</div>";if(window.fitEstHook)fitEstHook();document.body.classList.remove("p-sld","p-est");if(which)document.body.classList.add("p-"+which);setTimeout(()=>window.print(),80)}
 $("#printSldBtn").onclick=()=>doPrint("sld");$("#printEstBtn").onclick=()=>doPrint("est");$("#printBothBtn").onclick=()=>doPrint("");
 window.addEventListener("afterprint",()=>document.body.classList.remove("p-sld","p-est"));
 
@@ -1394,4 +1394,5 @@ setSync(syncCode()?"busy":"off");cloudSync();
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)cloudSync()});
 window.__test={compute,boq,P,DB,save,renderAll,sldSVG,buildXlsx,words};
 </script>
+<script src="drive.js?v=20261029"></script><script src="est-assets.js?v=20261029"></script><script src="est-doc.js?v=20261029"></script>
 </body></html>
