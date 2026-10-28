@@ -136,6 +136,7 @@ const CSS=`
 .xe td.ctl button{border:1px solid #cbd5e1;background:#fff;border-radius:6px;cursor:pointer;font:12px system-ui;padding:1px 5px;margin-right:2px}
 .xe td.ctl .pc,.xe tr.add .pc{font:12px system-ui;color:#334155}.xe td.ctl .pc input.ci{width:46px;display:inline-block;background:#eef6ff}
 .xe tr.add td{padding:4px 0 6px!important}.xe tr.add button{border:1px dashed #0f766e;background:#f0fdfa;color:#0f766e;border-radius:8px;font:600 12px system-ui;padding:4px 10px;cursor:pointer;margin-right:6px}
+.disbar{margin:12px 0 4px;padding:8px 12px;background:#f8fafc;border:1px dashed #94a3b8;border-radius:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:14px}
 .estbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 10px}
 .estnote{font-size:13px;background:#fef3c7;border:1px solid #f59e0b;border-radius:10px;padding:8px 12px;margin:0 0 10px}
 #sorDlg .dlg{max-width:760px}#sorList{max-height:56vh;overflow:auto;border:1px solid var(--line);border-radius:10px;margin-top:8px}
@@ -209,9 +210,9 @@ window.renderEst=function(c){const p=P(),m=p.meta;$("#mWork").value=m.work;$("#m
  if(!c.pts.length&&!(p.est&&p.est.rows.length)){box.innerHTML='<p class="muted" style="padding:16px">Mark points on the Survey tab or draw the SLD first — or add items straight into the estimate with ＋ below.</p>'+sheetHTML(p,c,true);return}
  const e=ensure(p,c);$("#estNote").innerHTML=e.edited&&e.sig!==sigOf(c)?`<div class="estnote">The SLD has changed since this estimate was made. Your edits are kept. Tap <b>↻ Rebuild from SLD</b> to start the estimate again from the current SLD (your edits will be lost).</div>`:"";
  const keep=document.activeElement&&document.activeElement.dataset?{f:document.activeElement.dataset.f||document.activeElement.dataset.m||document.activeElement.dataset.g,id:document.activeElement.dataset.id}:null;
- box.innerHTML=sheetHTML(p,c,true)+dismHTML(c);
+ box.innerHTML=sheetHTML(p,c,true)+disHTML(p,c,true);
  if(keep&&keep.f){const el=box.querySelector(`[data-${keep.id?"f":(document.activeElement&&document.activeElement.dataset.m?"m":"g")}="${keep.f}"]${keep.id?`[data-id="${keep.id}"]`:""}`);if(el)try{el.focus()}catch(_){}}};
-window.estHTML=function(c){return sheetHTML(P(),c,false)+dismHTML(c)};
+window.estHTML=function(c){return sheetHTML(P(),c,false)+disHTML(P(),c,false)};
 const rowById=(e,id)=>e.rows.find(r=>r.id===id);
 function edit(fn){const p=P(),c=compute(p),e=ensure(p,c);fn(p,e,c);e.edited=true;touch(p);renderAll()}
 box.addEventListener("change",ev=>{const t=ev.target,p=P();
@@ -326,11 +327,12 @@ function buildEstXlsx(p,c){const e=ensure(p,c),k=calc(p,e),rows=[],merges=[];let
   sx.push(`<row r="${rn}">${v("A",57,+k2)}${v("B",57,s[0])}${v("C",57,s[1])}${v("D",58,s[2])}${v("E",57,s[3])}${v("F",59,s[4])}${v("G",60,s[5])}${v("H",60,s[6])}</row>`)});
  const sh2=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><dimension ref="A1:H${rn}"/><sheetViews><sheetView workbookViewId="0"/></sheetViews><sheetFormatPr defaultColWidth="9.109375" defaultRowHeight="14.4"/><cols><col min="1" max="1" width="9.88671875" style="45" customWidth="1"/><col min="2" max="2" width="8.88671875" style="46" customWidth="1"/><col min="3" max="3" width="7.44140625" style="46" customWidth="1"/><col min="4" max="4" width="39.88671875" style="47" customWidth="1"/><col min="5" max="5" width="9" style="46" customWidth="1"/><col min="6" max="6" width="15.44140625" style="48" customWidth="1"/><col min="7" max="7" width="14.88671875" style="48" customWidth="1"/><col min="8" max="8" width="14.33203125" style="49" customWidth="1"/></cols><sheetData>${sx.join("")}</sheetData><pageMargins left="0.7" right="0.7" top="0.75" bottom="0.75" header="0.5" footer="0.5"/></worksheet>`;
- const ct=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`;
+ const DS=disOf(p,c).on?disSheet(p,c):null,WS=n=>`<Override PartName="/xl/worksheets/sheet${n}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`;
+ const ct=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>${WS(1)}${WS(2)}${DS?WS(3):""}<Override PartName="/xl/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`;
  const rels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`;
- const wb=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><workbookPr/><bookViews><workbookView activeTab="0"/></bookViews><sheets><sheet name="${xe(sname)}" sheetId="1" r:id="rId1"/><sheet name="SOR-21-22 (2)" sheetId="2" state="hidden" r:id="rId2"/></sheets><definedNames><definedName name="_xlnm.Print_Area" localSheetId="0">'${xe(sname)}'!$A$1:$I$${R}</definedName><definedName name="_xlnm.Print_Titles" localSheetId="1">'SOR-21-22 (2)'!$1:$1</definedName></definedNames><calcPr calcId="191029" fullCalcOnLoad="1"/></workbook>`;
- const wrel=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme" Target="theme/theme1.xml"/></Relationships>`;
- return zip([["[Content_Types].xml",ct],["_rels/.rels",rels],["xl/workbook.xml",wb],["xl/_rels/workbook.xml.rels",wrel],["xl/styles.xml",window.EST_STY],["xl/theme/theme1.xml",window.EST_THEME],["xl/worksheets/sheet1.xml",sh1],["xl/worksheets/sheet2.xml",sh2]])}
+ const wb=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><workbookPr/><bookViews><workbookView activeTab="0"/></bookViews><sheets><sheet name="${xe(sname)}" sheetId="1" r:id="rId1"/>${DS?`<sheet name="Dismantling" sheetId="3" r:id="rId5"/>`:""}<sheet name="SOR-21-22 (2)" sheetId="2" state="hidden" r:id="rId2"/></sheets><definedNames><definedName name="_xlnm.Print_Area" localSheetId="0">'${xe(sname)}'!$A$1:$I$${R}</definedName>${DS?`<definedName name="_xlnm.Print_Area" localSheetId="1">Dismantling!$A$1:$I$${DS.R}</definedName>`:""}<definedName name="_xlnm.Print_Titles" localSheetId="${DS?2:1}">'SOR-21-22 (2)'!$1:$1</definedName></definedNames><calcPr calcId="191029" fullCalcOnLoad="1"/></workbook>`;
+ const wrel=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme" Target="theme/theme1.xml"/>${DS?'<Relationship Id="rId5" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet3.xml"/>':""}</Relationships>`;
+ return zip([["[Content_Types].xml",ct],["_rels/.rels",rels],["xl/workbook.xml",wb],["xl/_rels/workbook.xml.rels",wrel],["xl/styles.xml",window.EST_STY],["xl/theme/theme1.xml",window.EST_THEME],["xl/worksheets/sheet1.xml",sh1],["xl/worksheets/sheet2.xml",sh2],...(DS?[["xl/worksheets/sheet3.xml",DS.xml]]:[])])}
 window.buildEstXlsx=buildEstXlsx;
 
 /* ---------- Application (basis of the estimate) ---------- */
@@ -389,7 +391,8 @@ function draft(p,c){const e=ensure(p,c),k=calc(p,e),a=app(p),tt=(p.meta.estTitle
   sub:"Submission of provisional estimate for "+work,paras,works,after:[],sorP:{t:sorP,ind:1},
   l2:[rd.length?"RDSS dismantled conductor":"",om.length?"O&M stock materials ("+om.map(x=>nm(x).replace(/^\d+ KVA /,"")).join(", ")+")":"",ru.length?"reusable materials ("+ru.map(x=>nm(x).replace(/^\d+ KVA /,"")).join(", ")+")":""].filter(Boolean).reduce((o,x,i,l)=>o+(i===0?"":i===l.length-1?" and ":", ")+x,""),
   close:"In this regard , you are requested to kindly accord approval of the aforementioned estimate. This is for favour of your kind information and necessary action.",
-  encl:"Enclosed: Provisional estimate"+(a.files.length?", application"+(a.name?" of "+a.name:""):"")+" and SLD as stated."}}
+  ...(()=>{const d=disOf(p,c);if(!d.on)return{};const dk=disCalc(p,d);return{after:["A separate provisional estimate for dismantling of the existing materials, amounting to "+rin(dk.P)+" (Rupees "+words(dk.P)+" only), is also enclosed. The dismantled materials will be returned to the APDCL store."]}})(),
+  encl:"Enclosed: Provisional estimate"+(disOf(p,c).on?", dismantling estimate":"")+(a.files.length?", application"+(a.name?" of "+a.name:""):"")+" and SLD as stated."}}
 function fwOf(p,c){if(!p.fw)p.fw=draft(p,c);return p.fw}
 function fwHTML(p,c,ed){const f=fwOf(p,c),k=calc(p,ensure(p,c)),CE=(key,tag="span",cls="")=>`<${tag} class="${cls}" ${ed?`contenteditable="true" data-k="${key}"`:""}>${esc(getK(f,key)).replace(/\n/g,"<br>")}</${tag}>`;
  const fx=(h)=>ed?`<span class="fx noprint">${h}</span>`:"";
@@ -422,8 +425,9 @@ $("#fwRedraft").onclick=()=>{const p=P();if(p.fw&&!confirm("Write the letter aga
 async function appImages(p){const a=app(p),out=[];for(const f of a.files){const b=await blobOf(f);if(!b)continue;
   if(/^image\//.test(f.type))out.push(`<img src="${URL.createObjectURL(b)}" alt="">`);else if(/pdf/.test(f.type)){try{const r=await pdfPages(b,2,40);r.pages.forEach(cv=>out.push(`<img src="${cv.toDataURL("image/jpeg",0.9)}" alt="">`))}catch(_){out.push(`<p style="font:14px serif;padding:20mm">Application (${esc(f.name)}) is a PDF and could not be added to this print here — please print it separately.</p>`)}}}return out.join("")}
 const _doPrint=window.doPrint;window.fitEstHook=()=>fitEst();
-function fitEst(){const pe=$("#printEst"),m=document.createElement("div");m.style.cssText="position:absolute;left:-9999px;top:0;width:190mm;visibility:hidden";m.innerHTML=pe.innerHTML;document.body.appendChild(m);
- const h=m.scrollHeight,lim=277*96/25.4;m.remove();const z=h>lim?Math.max(0.55,lim/h-0.01):1;pe.querySelectorAll(".xe").forEach(x=>x.style.zoom=z===1?"":z)}
+// each estimate (main and dismantling) on its own page, shrunk to fit like the workbook's fit-to-page
+function fitEst(){const pe=$("#printEst"),lim=277*96/25.4;pe.querySelectorAll(".xe").forEach(x=>{const m=document.createElement("div");m.style.cssText="position:absolute;left:-9999px;top:0;width:190mm;visibility:hidden";m.innerHTML=x.outerHTML;document.body.appendChild(m);
+ const h=m.scrollHeight;m.remove();const z=h>lim?Math.max(0.55,lim/h-0.01):1;x.style.zoom=z===1?"":z})}
 window.doPrint=async function(which){const p=P(),c=compute(p);$("#printFw").innerHTML="";$("#printApp").innerHTML="";$("#printEst").innerHTML='<div class="est">'+estHTML(c)+"</div>";fitEst();
  if(which==="fw"||which==="set"){$("#printFw").innerHTML=`<div class="fwwrap">${fwHTML(p,c,false)}</div>`}
  if(which==="set"){$("#printApp").innerHTML=await appImages(p)}
@@ -474,5 +478,89 @@ function zipBin(files){const enc=new TextEncoder(),parts=[],cen=[];let off=0;
  const cl=cen.reduce((s,x)=>s+x.length,0),end=new DataView(new ArrayBuffer(22));end.setUint32(0,0x06054b50,true);end.setUint16(8,files.length,true);end.setUint16(10,files.length,true);end.setUint32(12,cl,true);end.setUint32(16,off,true);
  const all=[...parts,...cen,new Uint8Array(end.buffer)],out=new Uint8Array(all.reduce((s,x)=>s+x.length,0));let o=0;all.forEach(x=>{out.set(x,o);o+=x.length});return out}
 window.buildDocx=buildDocx;
-window.EstDoc={calc,ensure,sheetHTML,words,genRows,draft,fwOf};
+
+/* ---------- Dismantling estimate (editable, same look; 85% of SoR for dismantled material) ---------- */
+function disSig(c){const d=dism(c);return JSON.stringify(d?d.rows.map(r=>[r.sor,r.q]):[])}
+function disGen(c){const d=dism(c);return d?d.rows.map(r=>{const k=/^\d+$/.test(r.sor)&&SOR[r.sor]?r.sor:"";return{id:uid(),sor:k,q:r.q,rem:"",...(k?{}:{cust:true,d:r.desc,u:r.unit,r:r.rate})}}):[]}
+function disOf(p,c){if(!p.dis){const rows=disGen(c);p.dis={on:rows.length>0,rows,sig:disSig(c),edited:false,ks:p.meta.pay==="dep"?0.15:0,kc:0}}
+ const d=p.dis;if(!d.edited){const sg=disSig(c);if(sg!==d.sig){d.rows=disGen(c);d.sig=sg;if(d.rows.length&&d.auto!==false)d.on=true}}return d}
+function disCalc(p,d){const rows=d.rows.map(r=>{const it=itemOf(r),r85=it.rate*0.85,amt=r85*(+r.q||0);return{r,it,r85,amt}});
+ const A=rows.reduce((s,x)=>s+x.amt,0),B=A*0.05,C=A+B,D=C*0.15,E=C*(+d.kc||0),F=D*(+d.ks||0),G=C+D+E+F,H=G-A,I=H*0.09,J=H*0.09,K=H+I+J,Pp=Math.ceil(K-1e-9),SG=F*1.18;
+ return{rows,A,B,C,D,E,F,G,H,I,J,K,P:Pp,SG,SGP:Math.ceil(SG-1e-9),dep:(+d.ks||0)>0}}
+const disTitleOf=(p,c)=>p.meta.disTitle||("Provisional Estimate for dismantling of existing materials in connection with "+(p.meta.estTitle?p.meta.estTitle.replace(/^\s*provisional estimate for\s*/i,"").replace(/\.\s*$/,""):lc(workOf(c))+" at "+locOf())+".");
+function disHTML(p,c,ed){const d=disOf(p,c);
+ if(!d.on)return ed?`<div class="disbar noprint"><label class="ck"><input type="checkbox" data-dg="on"> Include a dismantling estimate${d.rows.length?` (${d.rows.length} item${d.rows.length>1?"s":""} from the SLD)`:""}</label></div>`:"";
+ const k=disCalc(p,d),ctl=h=>ed?`<td class="ctl">${h||""}</td>`:"";let sl=0;
+ const row=x=>{const r=x.r,it=x.it,bad=r.sor&&!SOR[r.sor]&&!r.cust,vt=ed&&!r.cust&&SOR[r.sor]&&SOR[r.sor][9]?`<span class="vt noprint">${kvTag(SOR[r.sor][9])}</span>`:"";
+  return`<tr class="it"><td class="c">${++sl}</td><td class="c">${ed?`<input class="ci sor${bad?" bad":""}" data-df="sor" data-id="${r.id}" value="${esc(r.cust&&!r.sor?"":r.sor)}" inputmode="numeric">`:esc(r.sor)}</td>
+  <td class="l">${r.cust&&ed?`<textarea class="ci" data-df="d" data-id="${r.id}" rows="1">${esc(it.desc)}</textarea>`:esc(bad?"(not in SoR 2021-22)":it.desc)+vt}${ed?` <button type="button" class="pk" data-da="pick" data-id="${r.id}" title="Pick from SoR">🔍</button>`:""}</td>
+  <td class="c">${r.cust&&ed?`<input class="ci" data-df="u" data-id="${r.id}" value="${esc(it.unit)}">`:esc(it.unit)}</td><td class="c">${ed?`<input class="ci n" data-df="q" data-id="${r.id}" value="${fmtQ(r.q,it.unit)}" inputmode="decimal">`:fmtQ(r.q,it.unit)}</td>
+  <td class="l">${r.cust&&ed?`<input class="ci n" data-df="r" data-id="${r.id}" value="${it.rate}" inputmode="decimal">`:rup(it.rate)}</td><td class="c">${rup(x.r85)}</td><td class="c">${rup(x.amt)}</td><td class="i">${ed?`<input class="ci" data-df="rem" data-id="${r.id}" value="${esc(r.rem||"")}">`:esc(r.rem||"")}</td>
+  ${ctl(`<button type="button" data-da="up" data-id="${r.id}">↑</button><button type="button" data-da="dn" data-id="${r.id}">↓</button><button type="button" data-da="del" data-id="${r.id}">✕</button>`)}</tr>`};
+ const ab=(L,t,v,o={})=>`<tr class="ab${o.nb?" nb":""}"><td class="c">${L}</td><td class="l" colspan="6">${t}</td><td class="c">${rup(v)}</td><td></td>${ctl(o.ctl)}</tr>`;
+ const pct=(f,v)=>ed?`<label class="pc">@ <input class="ci n" data-dg="${f}" value="${Math.round((+v||0)*10000)/100}" inputmode="decimal">%</label>`:"";
+ const W2=[6.11,7,56,4.89,8.66,12.66,13.5,15.89,12],T2=W2.reduce((a,b)=>a+b,0);
+ return`${ed?`<div class="disbar noprint"><label class="ck"><input type="checkbox" data-dg="on" checked> Include the dismantling estimate</label>${d.edited?` <button type="button" class="btn alt sm" data-da="regen">↻ Rebuild from SLD</button>`:""}</div>`:""}
+ <div style="break-before:page;page-break-before:always;height:1px"></div>
+ <div class="xe${ed?" ed":""}"><table class="xs"><colgroup>${W2.map(w=>`<col style="width:${(w/T2*100).toFixed(3)}%">`).join("")}${ed?'<col class="ctlc">':""}</colgroup><tbody>
+ <tr style="height:29px"><td colspan="9" class="h1 c">ASSAM POWER DISTRIBUTION COMPANY LTD.</td>${ctl()}</tr>
+ <tr style="height:25px"><td colspan="9" class="h1 c">Samaguri Electrical Sub-Division, Nagaon ED-II, CAR</td>${ctl()}</tr>
+ <tr style="height:14px"><td colspan="6" rowspan="2" class="h2 c">PROVISIONAL ESTIMATE (DISMANTLING)</td><td colspan="3" class="ar b c">GSTIN :18AABCL1354J1ZJ</td>${ctl()}</tr>
+ <tr style="height:16px"><td colspan="3" class="ar b c">PROFORMA INVOICE</td>${ctl()}</tr>
+ <tr style="height:14px"><td colspan="4" class="cal">Document No : ${esc(docOf(p))}</td><td colspan="2" class="cal">Dt: ${esc(dtOf(p))}</td><td colspan="3" class="ar c">(not valid for Input Tax credit)</td>${ctl()}</tr>
+ <tr style="height:46px"><td colspan="6" class="ti">${ed?`<textarea class="ci" data-dm="disTitle" rows="3">${esc(disTitleOf(p,c))}</textarea>`:esc(disTitleOf(p,c))}</td><td colspan="3" class="sr c">Rates as per SoR 2021-22</td>${ctl()}</tr>
+ <tr class="hd" style="height:60px"><td class="c nb">Sl. No.</td><td class="c">SOR Sl. No.</td><td class="c">Item Description</td><td class="c">Unit</td><td class="c">Quantity</td><td class="c">Ex. Work Price in Rs.</td><td class="c">Dismantled material rate (85% of SoR)</td><td class="c">Amount<br>in Rs.</td><td class="c">Remarks</td>${ctl()}</tr>
+ ${k.rows.map(row).join("")}
+ ${ed?`<tr class="add"><td colspan="9"><button type="button" data-da="add">＋ Add item</button><button type="button" data-da="addpick">🔍 Add from SoR</button><button type="button" data-da="addcust">＋ Item without SoR No.</button></td>${ctl()}</tr>`:""}
+ ${ab("A","Value of dismantled materials (85% of SoR)",k.A)}${ab("B","Add: Transportation &amp; Storage (5% of A )",k.B)}${ab("C","Total ( A+B )",k.C)}${ab("D","Add: Labour Charge (15% of C )",k.D)}
+ ${ab("E","Add: Contingency charge (% of C )",k.E,{ctl:pct("kc",d.kc)})}${ab("F","Add: Supervision charge (% of D )",k.F,{ctl:pct("ks",d.ks)})}
+ ${ab("G","Gross total ( C+D+E+F )",k.G)}${ab("H","Dismantling charges ( G − A )",k.H)}${ab("I","CGST @ (9% on H)",k.I)}${ab("J","SGST @ (9% on H)",k.J)}${ab("K","Total Amount ( H+I+J )",k.K)}
+ ${ab("P","Total Estimated Amount ( ROUNDED OFF )",k.P,{nb:1})}
+ <tr class="wd"><td colspan="8">Rupees (${words(k.P)}) only.</td><td class="nob"></td>${ctl()}</tr>
+ <tr class="wd"><td colspan="9" style="font-weight:400;font-style:italic">${k.dep?`Amount to be deposited (supervision charge with GST): ${rup(k.F)} + GST 18% ${rup(k.SG-k.F)} = ${rup(k.SG)}, say ${rup(k.SGP)}. `:""}Dismantled materials to be returned to APDCL store.</td>${ctl()}</tr>
+ </tbody></table></div>`}
+function disEdit(fn){const p=P(),c=compute(p),d=disOf(p,c);fn(p,d,c);d.edited=true;touch(p);renderAll()}
+box.addEventListener("change",ev=>{const t=ev.target,p=P();
+ if(t.dataset.dm){const v=t.value.trim();p.meta.disTitle=v===disTitleOf({meta:{...p.meta,disTitle:""}},compute(p))?"":v;touch(p);renderAll();return}
+ if(t.dataset.dg){const k=t.dataset.dg,c=compute(p),d=disOf(p,c);if(k==="on"){d.on=t.checked;d.auto=false;touch(p);renderAll()}else disEdit((p,d)=>{d[k]=(+t.value||0)/100});return}
+ const id=t.dataset.id,f=t.dataset.df;if(!id||!f)return;
+ disEdit((p,d)=>{const r=d.rows.find(x=>x.id===id);if(!r)return;
+  if(f==="sor"){const v=t.value.trim();if(!v){r.sor="";if(!r.cust){r.cust=true;r.d=r.d||"";r.u=r.u||"";r.r=r.r||0}return}r.sor=v;if(SOR[v])delete r.cust}
+  else if(f==="q")r.q=+t.value||0;else if(f==="rem")r.rem=t.value.trim();else if(f==="d")r.d=t.value;else if(f==="u")r.u=t.value.trim();else if(f==="r")r.r=+t.value||0})});
+box.addEventListener("click",ev=>{const b=ev.target.closest("button[data-da]");if(!b)return;const a=b.dataset.da,id=b.dataset.id;
+ if(a==="regen"){if(!confirm("Start the dismantling estimate again from the SLD? Your changes to it will be lost."))return;const p=P(),c=compute(p),on=p.dis&&p.dis.on;delete p.dis;disOf(p,c).on=!!on||p.dis.on;touch(p);renderAll();return}
+ if(a==="pick"){openSor(k=>disEdit((p,d)=>{const r=d.rows.find(x=>x.id===id);if(r){r.sor=k;delete r.cust}}),"Change item");return}
+ if(a==="addpick"){openSor(k=>disEdit((p,d)=>{d.rows.push({id:uid(),sor:k,q:1,rem:""})}),"Add dismantled item");return}
+ disEdit((p,d)=>{const i=d.rows.findIndex(r=>r.id===id),r=d.rows[i];
+  if(a==="add")d.rows.push({id:uid(),sor:"",q:1,rem:""});else if(a==="addcust")d.rows.push({id:uid(),sor:"",cust:true,d:"",u:"No.",r:0,q:1,rem:""});
+  else if(!r)return;else if(a==="del"){if(confirm("Delete this row?"))d.rows.splice(i,1)}
+  else if(a==="up"&&i>0){d.rows[i]=d.rows[i-1];d.rows[i-1]=r}else if(a==="dn"&&i<d.rows.length-1){d.rows[i]=d.rows[i+1];d.rows[i+1]=r}})});
+function disSheet(p,c){const d=disOf(p,c),k=disCalc(p,d),rows=[],merges=[];let R=0;
+ const row=(h,cells,custom=true)=>{R++;rows.push(`<row r="${R}"${h?` ht="${h}"${custom?' customHeight="1"':""}`:""}>${cells.join("")}</row>`)};
+ const S=(col,st,v)=>`<c r="${col}${R+1}" s="${st}" t="inlineStr"><is><t xml:space="preserve">${xe(v)}</t></is></c>`,N=(col,st,v)=>`<c r="${col}${R+1}" s="${st}"><v>${v}</v></c>`,
+  F=(col,st,f,v,str)=>`<c r="${col}${R+1}" s="${st}"${str?' t="str"':""}><f>${xe(f)}</f><v>${str?xe(v):v}</v></c>`,E=(col,st)=>`<c r="${col}${R+1}" s="${st}"/>`,blank=(a,b,st)=>{let o="";for(let i=a;i<=b;i++)o+=E(colL(i),st);return o};
+ row(29.25,[S("A",131,"ASSAM POWER DISTRIBUTION COMPANY LTD."),blank(2,9,132)]);merges.push("A1:I1");
+ row(24.75,[S("A",131,"Samaguri Electrical Sub-Division, Nagaon ED-II, CAR"),blank(2,9,132)]);merges.push("A2:I2");
+ row(13.5,[S("A",145,"PROVISIONAL ESTIMATE (DISMANTLING)"),blank(2,6,145),S("G",133,"GSTIN :18AABCL1354J1ZJ"),blank(8,9,133)]);
+ row(15.75,[blank(1,6,145),S("G",133,"PROFORMA INVOICE"),blank(8,9,133)]);merges.push("A3:F4","G3:I3","G4:I4");
+ row(14.25,[S("A",143,"Document No : "+docOf(p)),blank(2,4,143),S("E",143,"Dt: "+dtOf(p)),E("F",143),S("G",134,"(not valid for Input Tax credit)"),blank(8,9,134)]);merges.push("A5:D5","E5:F5","G5:I5");
+ row(45.75,[S("A",144,disTitleOf(p,c)),blank(2,6,144),S("G",135,"Rates as per SoR 2021-22"),blank(8,9,135)]);merges.push("A6:F6","G6:I6");
+ row(60,[S("A",104,"Sl. No."),S("B",105,"SOR Sl. No."),S("C",105,"Item Description"),S("D",105,"Unit"),S("E",106,"Quantity"),S("F",107,"Ex. Work Price in Rs."),S("G",108,"Dismantled material rate (85% of SoR)"),S("H",108,"Amount\nin Rs."),S("I",130,"Remarks")]);
+ const VL=(r,col)=>`VLOOKUP(B${r},'SOR-21-22 (2)'!$A$2:$${colL(col)}$931,${col},0)`,htOf=t=>{const L=Math.max(1,Math.ceil(String(t).length/68));return L>1?+(L*14.4+1).toFixed(1):15};
+ const first=R+1;k.rows.forEach((x,i)=>{const r=x.r,it=x.it,rr=R+1,lk=!!(r.sor&&SOR[r.sor]&&!r.cust),h=htOf(it.desc);
+  row(h,[N("A",110,i+1),lk?N("B",111,+r.sor):(r.sor?S("B",111,r.sor):E("B",111)),lk?F("C",112,VL(rr,4),it.desc,true):S("C",112,it.desc),lk?F("D",110,VL(rr,5),it.unit,true):S("D",110,it.unit),
+   N("E",isKm(it.unit)||!Number.isInteger(+r.q)?158:157,+r.q||0),lk?F("F",113,VL(rr,6),it.rate):N("F",113,it.rate),F("G",114,`F${rr}*85%`,x.r85),F("H",114,`G${rr}*E${rr}`,x.amt),r.rem?S("I",129,r.rem):E("I",129)],h===15)});
+ const last=Math.max(R,first);
+ const ab=(L,lab,f,v,o={})=>{const rr=R+1,st=o.st||[116,138,117];row(o.h||15,[S("A",st[0],L),S("B",st[1],lab),blank(3,7,st[1]),f!=null?F("H",st[2],f,v):N("H",st[2],v),E("I",129),...(o.jk||[])]);merges.push(`B${rr}:G${rr}`);return rr};
+ const a=ab("A","Value of dismantled materials (85% of SoR)",`SUM(H${first}:H${last})`,k.A),b=ab("B","Add: Transportation & Storage (5% of A )",`H${a}*5%`,k.B),cc=ab("C","Total ( A+B )",`H${a}+H${b}`,k.C),dd=ab("D","Add: Labour Charge (15% of C )",`H${cc}*15%`,k.D);
+ const ee=ab("E","Add: Contingency charge (% in K of C )",`H${cc}*K${R+1}`,k.E,{jk:[`<c r="J${R+1}" t="inlineStr"><is><t>Contingency %</t></is></c>`,N("K",123,+d.kc||0)]});
+ const ff=ab("F","Add: Supervision charge (% in K of D )",`H${dd}*K${R+1}`,k.F,{jk:[`<c r="J${R+1}" t="inlineStr"><is><t>Supervision % (0 = departmental; 15% for deposit work)</t></is></c>`,N("K",123,+d.ks||0)]});
+ const gg=ab("G","Gross total ( C+D+E+F )",`H${cc}+H${dd}+H${ee}+H${ff}`,k.G),hh=ab("H","Dismantling charges ( G − A )",`H${gg}-H${a}`,k.H),ii=ab("I","CGST @ (9% on H)",`H${hh}*9%`,k.I),jj=ab("J","SGST @ (9% on H)",`H${hh}*9%`,k.J);
+ const kk=ab("K","Total Amount ( H+I+J )",`H${hh}+H${ii}+H${jj}`,k.K,{st:[124,139,125],h:14.25});ab("P","Total Estimated Amount ( ROUNDED OFF )",`ROUNDUP(H${kk},0)`,k.P,{st:[126,140,127],h:14.25});
+ row(15,[S("A",161,"Rupees ("+words(k.P)+") only."),blank(2,8,141)]);merges.push(`A${R}:H${R}`);
+ row(15,[S("A",136,(k.dep?"Amount to be deposited (supervision charge with GST): "+rup(k.SG)+", say "+rup(k.SGP)+". ":"")+"Dismantled materials to be returned to APDCL store."),blank(2,9,137)]);merges.push(`A${R}:I${R}`);
+ return{xml:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><dimension ref="A1:K${R}"/><sheetViews><sheetView workbookViewId="0"/></sheetViews><sheetFormatPr defaultColWidth="8.6640625" defaultRowHeight="14.4"/><cols><col min="1" max="1" width="6.109375" customWidth="1"/><col min="2" max="2" width="7" customWidth="1"/><col min="3" max="3" width="56" customWidth="1"/><col min="4" max="4" width="4.88671875" customWidth="1"/><col min="6" max="6" width="12.6640625" customWidth="1"/><col min="7" max="7" width="13.5" customWidth="1"/><col min="8" max="8" width="15.88671875" customWidth="1"/><col min="9" max="9" width="12" customWidth="1"/><col min="10" max="10" width="40" customWidth="1"/></cols><sheetData>${rows.join("")}</sheetData><mergeCells count="${merges.length}">${merges.map(m=>`<mergeCell ref="${m}"/>`).join("")}</mergeCells><pageMargins left="0.75" right="0.75" top="1" bottom="1" header="0.5" footer="0.5"/><pageSetup paperSize="9" orientation="portrait" horizontalDpi="300" verticalDpi="300"/></worksheet>`,R}}
+
+window.EstDoc={calc,ensure,sheetHTML,words,genRows,draft,fwOf,disOf,disCalc};
 })();
