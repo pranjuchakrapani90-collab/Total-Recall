@@ -35,6 +35,7 @@ css.textContent=".dlg{margin-top:14px;padding:12px;border:1px solid var(--tr-lin
 ".dlg .pc.on{background:var(--g);color:#fff}.dlg .pc.on i{background:#fff}.dlg .pc.on small{color:#ffffffcc}"+
 ".dlg .pc.add{border-style:dashed;border-color:#9a978e;color:#6b6a64}"+
 ".dlg .nw{display:grid;grid-template-columns:1fr 104px auto;gap:7px;margin-top:9px}.dlg .nw button{border:0;border-radius:10px;background:var(--tr-acc,#4f46e5);color:#fff;font:650 13px system-ui,sans-serif;padding:0 14px;cursor:pointer}"+
+".respApps{display:grid;grid-template-columns:repeat(2,84px);gap:6px 22px;justify-content:start;padding:4px 2px}.respApps a.app span{font-size:12.5px}"+
 ".dlgLink{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;padding:12px 14px;border:1px solid var(--tr-line,#e6e3db);border-radius:12px;background:var(--tr-paper,#fff);text-decoration:none;color:var(--tr-ink,#1c1b19);font-weight:650}"+
 "#done .dlgLink{text-align:left;margin:4px 0 14px}"+
 ".dlgLink small{display:block;font-weight:500;color:var(--tr-muted,#6b6a64);font-size:12px;margin-top:2px}.dlgLink span:last-child{color:var(--tr-acc-ink,#3730a3);font-size:18px}";
@@ -66,7 +67,7 @@ function paint(){var c=current();if(!c){box.classList.add("hidden");return}
 /* tap a name: the task goes on that member's card; tap the same name again to take it back */
 function give(t,tag,pid,forceOn){var D=load(),a=D.assign[t.id],kwEl=$("dlgKw"),kw=(kwEl&&kwEl.value.trim())||shortKw(t.title);
   if(a&&a.p===pid&&!forceOn){delete D.assign[t.id];toast("Taken back from "+D.people[pid].name)}
-  else{D.assign[t.id]={t:t.title,k:kw,p:pid,at:Date.now(),pr:tag||""};D.people[pid].u=Date.now();toast("→ "+D.people[pid].name)}
+  else{D.assign[t.id]={t:t.title,k:kw,p:pid,at:Date.now(),pr:tag||"",pj:t.projectId||""};D.people[pid].u=Date.now();toast("→ "+D.people[pid].name)}
   save(D);paint();summary();}
 var tt=0;function toast(m){var el=$("dlgToast");if(!el){el=document.createElement("div");el.id="dlgToast";
     el.style.cssText="position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:#1c1b19;color:#fff;border-radius:999px;padding:10px 18px;font:600 14px system-ui,sans-serif;z-index:9999;box-shadow:0 6px 20px #0004;transition:opacity .3s;pointer-events:none";
@@ -75,15 +76,21 @@ var tt=0;function toast(m){var el=$("dlgToast");if(!el){el=document.createElemen
 /* ---------- Delegation as a sub-segment of Today's Tasks ---------- */
 function linkHtml(){var D=load(),m=0,n=0;Object.keys(D.people).forEach(function(id){var k=pending(D,id);if(k){m++;n+=k}});
   return '<span>Delegation<small>'+(n?n+" pending with "+m+" member"+(m>1?"s":""):"Member-wise pendency")+'</small></span><span>›</span>';}
-function summary(){document.querySelectorAll(".dlgLink").forEach(function(a){a.innerHTML=linkHtml()});}
+function summary(){document.querySelectorAll(".dlgLink").forEach(function(a){a.innerHTML=linkHtml()});
+  var D=load(),n=0;Object.keys(D.people).forEach(function(id){n+=pending(D,id)});var b=$("bDeleg");if(b){b.hidden=!n;b.textContent=n>99?"99+":n}}
 function addLink(parent,before){if(!parent)return;var a=document.createElement("a");a.className="dlgLink";a.href="delegation.html";a.innerHTML=linkHtml();
   if(before)parent.insertBefore(a,before);else parent.appendChild(a);}
-addLink($("cardResp"));
+/* the two app tiles in Today's Tasks: Responsibility Recall (loads today's undelegated tasks) and Delegation */
+var rec=$("appRecall");if(rec)rec.addEventListener("click",function(e){e.preventDefault();var s=$("startResp");if(s)s.click()});
+window.addEventListener("tr-today",function(e){var b=$("bRecall");if(!b)return;var n=(e.detail&&e.detail.count)||0;b.hidden=!n;b.textContent=n>99?"99+":n});
+function sessionOpen(){var s=$("session");return s&&!s.classList.contains("hidden")}
+function refilter(){if(!sessionOpen()&&window.TRToday&&window.TRToday.refilter)window.TRToday.refilter()}
 var doneHome=$("doneHome");if(doneHome)addLink(doneHome.parentNode,doneHome);
 
 /* redraw the row whenever Today's Tasks moves to another card */
 window.addEventListener("tr-draw",function(){adding=false;try{paint()}catch(e){}});
-["homeBtn","doneHome"].forEach(function(id){var b=$(id);if(b)b.addEventListener("click",function(){box.classList.add("hidden");summary()})});
-window.addEventListener("kvsync",function(e){if((e.detail||[]).indexOf(KEY)>=0){paint();summary()}});
-document.addEventListener("visibilitychange",function(){if(!document.hidden){paint();summary()}});
+["homeBtn","doneHome"].forEach(function(id){var b=$(id);if(b)b.addEventListener("click",function(){box.classList.add("hidden");summary();setTimeout(refilter,0)})});
+window.addEventListener("kvsync",function(e){if((e.detail||[]).indexOf(KEY)>=0){paint();summary();refilter()}});
+document.addEventListener("visibilitychange",function(){if(!document.hidden){paint();summary();refilter()}});
+summary();
 })();

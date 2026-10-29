@@ -108,6 +108,46 @@ input,select{font:inherit;width:100%;padding:10px 12px;border:1px solid var(--tr
 .seg{display:inline-flex;border:1px solid var(--tr-line);border-radius:10px;overflow:hidden}
 .seg button{border:0;background:var(--tr-paper);color:var(--tr-muted);font:600 13px system-ui,sans-serif;padding:6px 12px;cursor:pointer}
 .seg button.on{background:var(--tr-ink);color:#fff}
+
+/* ---------- a task as a flip card (same feel as Today's Tasks) ---------- */
+.tflash{position:fixed;inset:0;z-index:40;background:var(--tr-bg);overflow:auto;padding:calc(12px + env(safe-area-inset-top,0px)) 16px calc(20px + env(safe-area-inset-bottom,0px))}
+.tflash[hidden]{display:none}
+.tfIn{max-width:640px;margin:0 auto}
+.tfTop{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
+.tfTop .btn{padding:7px 12px;font-size:13px}
+.tfCard{height:min(430px,calc(100vh - 230px));min-height:320px;perspective:1200px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.tfInner{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .5s ease}
+.tfCard.flipped .tfInner{transform:rotateY(180deg)}
+.tfFace{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:20px;background:var(--tr-paper);border:1px solid var(--tr-line);border-top:4px solid var(--g);box-shadow:var(--tr-shadow);overflow:hidden}
+.tfFront{display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:24px 20px}
+.tfBackFace{transform:rotateY(180deg);display:flex;flex-direction:column}
+.tfReveal{flex:1;overflow:auto}
+.tfFlipHint{flex:0 0 auto;font-size:12px;color:var(--tr-muted);padding:10px 14px;border-top:1px solid var(--tr-line);background:#fafaf8;text-align:center}
+.tfSrc{position:absolute;top:14px;right:14px;font-size:11px;font-weight:600;color:var(--g);border:1px solid var(--g);border-radius:999px;padding:3px 9px;opacity:.85}
+.tfCounter{font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--tr-muted)}
+.tfKw{margin-top:14px;font-size:15px;font-weight:700;color:var(--g)}
+.tfName{margin-top:6px;font-size:26px;font-weight:800;line-height:1.2;word-break:break-word}
+.tfName.dn{text-decoration:line-through;color:var(--tr-muted)}
+.tfHint{margin-top:12px;font-size:13px;color:var(--tr-muted)}
+.tfActs{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.tfNav{display:flex;justify-content:space-between;gap:10px;margin-top:14px}
+.tfNav .btn{min-width:110px}
+.taskHead{padding:16px 16px 12px;border-bottom:1px solid var(--tr-line)}
+.taskHead h4{margin:0;font-size:16px;word-break:break-word}
+.tfHeadRow{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:6px}
+.taskOpenLink{display:inline-flex;padding:6px 9px;border:1px solid #c7d2fe;border-radius:8px;background:#eef2ff;color:#3730a3;text-decoration:none;font-size:12px;font-weight:700;white-space:nowrap}
+.taskMeta{display:flex;flex-wrap:wrap;gap:6px;font-size:12px;color:var(--tr-muted)}
+.taskPill{padding:4px 8px;border-radius:999px;background:var(--tr-soft)}
+.taskBody{padding:14px 16px}.taskContent{font-size:15px;line-height:1.55}.taskContent p{margin:0 0 8px}
+.tickList{margin:0 0 6px;padding-left:20px}
+.taskSection{padding:0 16px 14px}.taskSectionTitle{font-size:13px;font-weight:700;color:#4b5563;margin-bottom:7px}
+.taskSubtask{font-size:14px;padding:3px 0}.taskSubtask.done{color:var(--tr-muted);text-decoration:line-through}
+.taskComment{padding:10px 11px;border:1px solid var(--tr-line);border-radius:10px;margin-top:7px;font-size:14px}.taskComment p{margin:0 0 4px}.taskComment small{color:var(--tr-muted);font-size:11px}
+.taskAttachment{display:flex;align-items:center;gap:10px;background:#eef8f0;border:1px solid #d9eedc;border-radius:10px;padding:8px 10px;margin:6px 0}
+.taskAttachmentIcon{width:30px;height:30px;border-radius:7px;background:#43a047;color:#fff;display:grid;place-items:center;font-weight:800;flex:0 0 auto}
+.taskAttachmentName{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.taskAttachmentSize{font-size:12px;color:#8a929e}
+.taskEmpty{color:var(--tr-muted);font-size:13px}
+.taskFooter{padding:10px 16px;border-top:1px solid var(--tr-line);font-size:12px;color:var(--tr-muted)}
 </style>
 <link rel="stylesheet" href="tr-theme.css?v=20261020">
 </head><body>
@@ -117,6 +157,10 @@ input,select{font:inherit;width:100%;padding:10px 12px;border:1px solid var(--tr
   <p class="eyebrow" style="margin:0 0 12px;font-size:13px">Member-wise pendency · tasks are given from Today's Tasks</p>
 </div></header>
 <main><section id="cards"></section></main>
+<div class="tflash" id="tflash" hidden><div class="tfIn"><div class="tfTop" id="tfTop"></div>
+  <div class="tfCard" id="tfCard"><div class="tfInner"><div class="tfFace tfFront" id="tfFront"></div><div class="tfFace tfBackFace"><div class="tfReveal" id="tfReveal"></div><div class="tfFlipHint">Tap to flip back</div></div></div></div>
+  <div class="tfActs" id="tfActs"></div>
+  <div class="tfNav"><button class="btn" type="button" id="tfBack">← Back</button><button class="btn pri" type="button" id="tfNext">Next →</button></div></div></div>
 <div class="scrim" id="scrim" hidden><div class="sheet" id="sheet" role="dialog"></div></div>
 <script>
 "use strict";
@@ -150,9 +194,9 @@ function addPerson(name,g){name=String(name||"").trim();if(!name)return null;
 
 /* ---------- TickTick: a delegated task that is no longer open there shows as done ---------- */
 function wurl(q){let u=null;try{u=localStorage.getItem("totalRecallTickTickUrl")}catch(e){}u=u||window.TOTAL_RECALL_TICKTICK_URL||"https://total-recall-ticktick.pranjuchakrapani90.workers.dev";return u+(u.indexOf("?")>=0?"&":"?")+q;}
-let loaded=false,openIds=new Set(),openTitles=new Set();
+let loaded=false,openIds=new Set(),openTitles=new Set(),projById={};
 async function fetchOpen(){try{const r=await fetch(wurl("mode=wa-review&list=tasks"),{cache:"no-store"});const d=await r.json();if(!r.ok||d.error)return;
-  const T=(d.tasks||[]).filter(t=>t&&t.id);openIds=new Set(T.map(t=>t.id));openTitles=new Set(T.map(t=>tkey(t.title)));loaded=T.length>0;render();}catch(e){}}
+  const T=(d.tasks||[]).filter(t=>t&&t.id);openIds=new Set(T.map(t=>t.id));T.forEach(t=>{if(t.projectId)projById[t.id]=t.projectId});openTitles=new Set(T.map(t=>tkey(t.title)));loaded=T.length>0;render();}catch(e){}}
 const closedTT=(id,a)=>loaded&&!openIds.has(id)&&!openTitles.has(tkey(a.t));
 /* ---------- cards ---------- */
 let lastNew=null,filterG="all",fi=0;
@@ -187,7 +231,7 @@ function renderCards(){const el=$("cards"),show=!!D.prefs.showDone,view=D.prefs.
   const pv=$("fPrev"),nx=$("fNext");if(pv)pv.onclick=()=>{fi--;render()};if(nx)nx.onclick=()=>{fi++;render()};
   const fw=$("flashwrap");if(fw){let x0=null;fw.addEventListener("touchstart",e=>{x0=e.touches[0].clientX},{passive:true});
     fw.addEventListener("touchend",e=>{if(x0==null)return;const dx=e.changedTouches[0].clientX-x0;x0=null;if(Math.abs(dx)<60)return;if(dx<0&&fi<ppl.length-1){fi++;render()}else if(dx>0&&fi>0){fi--;render()}},{passive:true});}
-  el.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>taskSheet(b.dataset.t));
+  el.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{const c=b.closest("[data-card]");openFlash(c?c.dataset.card:(D.assign[b.dataset.t]||{}).p,b.dataset.t)});
   el.querySelectorAll("[data-person]").forEach(b=>b.onclick=()=>personSheet(b.dataset.person));
   el.querySelectorAll("[data-share]").forEach(b=>b.onclick=()=>share(b.dataset.share));
   requestAnimationFrame(drawLines);}
@@ -238,8 +282,60 @@ function personSheet(pid){const p=pid?D.people[pid]:null,n=pid?tasksOf(pid).leng
       s.querySelector("#pClose").onclick=closeSheet;
       const del=s.querySelector("#pDel");if(del)del.onclick=()=>{if(n&&!confirm(`Delete ${p.name}? Their ${n} delegated task${n>1?"s":""} will be removed.`))return;
         Object.keys(D.assign).forEach(id=>{if(D.assign[id].p===pid)delete D.assign[id]});delete D.people[pid];save();closeSheet();render();};});}
+/* ---------- a task opens as a flash card, like Today's Tasks: tap to flip for its TickTick details ---------- */
+let TF=null;/* {pid, ids:[taskId…], i} */
+function openFlash(pid,id){const ids=tasksOf(pid).filter(a=>D.prefs.showDone||!isDone(a.id,a)||a.id===id).map(a=>a.id);
+  TF={pid,ids,i:Math.max(0,ids.indexOf(id))};drawFlash();$("tflash").hidden=false;document.body.style.overflow="hidden";}
+function closeFlash(){$("tflash").hidden=true;document.body.style.overflow="";TF=null;render();}
+function drawFlash(){if(!TF)return;const p=D.people[TF.pid];TF.ids=TF.ids.filter(id=>D.assign[id]);
+  if(!p||!TF.ids.length){closeFlash();return}TF.i=Math.min(TF.i,TF.ids.length-1);
+  const id=TF.ids[TF.i],a=D.assign[id],g=GROUPS[p.g]||GROUPS.other,dn=isDone(id,a);
+  $("tfTop").innerHTML=`<button class="btn" type="button" id="tfClose">← ${esc(p.name)}'s card</button><span class="muted">${TF.i+1} / ${TF.ids.length}</span>`;
+  $("tfCard").style.setProperty("--g",g.c);$("tfCard").classList.remove("flipped");
+  $("tfFront").innerHTML=`<span class="tfSrc">${esc(a.pr||"TickTick")}</span><div class="tfCounter">${esc(p.name)} • TASK ${TF.i+1} OF ${TF.ids.length}</div>
+    <div class="tfKw">${esc(a.k||shortKw(a.t))}</div><div class="tfName${dn?" dn":""}">${esc(a.t)}</div>
+    <div class="tfHint">${dn?"✓ Done · ":""}Given ${esc(fmtDate(a.at))} · tap for details</div>`;
+  $("tfReveal").innerHTML='<div class="taskBody"><div class="taskEmpty">Loading the latest details from TickTick…</div></div>';
+  $("tfActs").innerHTML=`<button class="btn" type="button" id="tfDone">${a.d?"Mark not done":(closedTT(id,a)?"✓ Done in TickTick":"✓ Mark done")}</button><button class="btn" type="button" id="tfMore">Move / edit</button>`;
+  $("tfBack").disabled=TF.i===0;$("tfNext").disabled=TF.i>=TF.ids.length-1;
+  $("tfClose").onclick=closeFlash;
+  const dbt=$("tfDone");if(closedTT(id,a)&&!a.d)dbt.disabled=true;dbt.onclick=()=>{if(a.d)delete a.d;else a.d=1;save();drawFlash();toast(a.d?"Marked done":"Back to pending")};
+  $("tfMore").onclick=()=>taskSheet(id);
+  TF.loaded=null;}
+async function revealFlash(){if(!TF)return;const id=TF.ids[TF.i],a=D.assign[id];if(!a||TF.loaded===id)return;TF.loaded=id;
+  const box=$("tfReveal"),pj=a.pj||projById[id]||"";
+  if(!pj){box.innerHTML=`<div class="taskHead"><h4>${esc(a.t)}</h4></div><div class="taskBody"><div class="taskEmpty">TickTick details aren't available for this task (it may be finished or moved).</div></div>`;return}
+  try{const r=await fetch(wurl("mode=task-detail&projectId="+encodeURIComponent(pj)+"&taskId="+encodeURIComponent(id)),{cache:"no-store"});
+    const d=await r.json();if(!r.ok||d.error)throw new Error(d.error||("HTTP "+r.status));
+    if(!TF||TF.ids[TF.i]!==id)return;box.innerHTML=detailHtml(d.task||{},Array.isArray(d.comments)?d.comments:[],pj,id);
+  }catch(e){if(TF&&TF.ids[TF.i]===id){box.innerHTML=`<div class="taskBody"><div class="err">Couldn't load TickTick details: ${esc(e.message||e)}</div></div>`;TF.loaded=null;}}}
+function richText(raw){const files=[];let s=String(raw||"").replace(/\r/g,"").replace(/!?\[file\]\(([^)]*)\)/g,(m,p)=>{files.push(p);return "\u0000"+(files.length-1)+"\u0000"});
+  const lines=s.split(/\n/).map(x=>x.trim()).filter(Boolean);
+  return lines.map(x=>{if(/^-{3,}$/.test(x))return "<hr>";
+    let h=esc(x.replace(/^[-*]\s+/,"")).replace(/(https?:\/\/[^\s<]+)/g,'<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>').replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>");
+    h=h.replace(/\u0000(\d+)\u0000/g,(m,n)=>{let nm=files[+n]||"";try{nm=decodeURIComponent(nm)}catch(e){}nm=nm.split("/").pop()||"Attachment";
+      return `<div class="taskAttachment"><div class="taskAttachmentIcon">C</div><div style="min-width:0"><div class="taskAttachmentName">${esc(nm)}</div><div class="taskAttachmentSize">TickTick attachment</div></div></div>`});
+    return /^[-*]\s+/.test(x)?`<ul class="tickList"><li>${h}</li></ul>`:`<p>${h}</p>`}).join("");}
+function detailHtml(t,comments,pj,id){const url="https://ticktick.com/webapp/#p/"+encodeURIComponent(pj)+"/tasks/"+encodeURIComponent(id);
+  const content=t.content||t.desc||"",items=Array.isArray(t.items)?t.items:[],atts=Array.isArray(t.attachments)?t.attachments:(Array.isArray(t.files)?t.files:[]);
+  let h=`<div class="taskHead"><div class="tfHeadRow"><h4>${esc(t.title||"TickTick task")}</h4><a class="taskOpenLink" href="${url}" target="_blank" rel="noopener noreferrer">Open in TickTick ↗</a></div>
+    <div class="taskMeta">${t.dueDate?`<span class="taskPill">Due ${esc(String(t.dueDate).slice(0,10))}</span>`:""}${(t.tags||[]).map(x=>`<span class="taskPill">#${esc(x)}</span>`).join("")}</div></div>`;
+  if(content)h+=`<div class="taskBody"><div class="taskContent">${richText(content)}</div></div>`;
+  if(items.length)h+=`<div class="taskSection"><div class="taskSectionTitle">Checklist</div>${items.map(x=>{const ok=x.status===1||x.status===2;return `<div class="taskSubtask${ok?" done":""}">${ok?"☑":"☐"} ${esc(x.title||"")}</div>`}).join("")}</div>`;
+  if(atts.length)h+=`<div class="taskSection"><div class="taskSectionTitle">Attachments</div>${atts.map(x=>`<div class="taskAttachment"><div class="taskAttachmentIcon">C</div><div style="min-width:0"><div class="taskAttachmentName">${esc(x.name||x.fileName||x.title||"Attachment")}</div></div></div>`).join("")}</div>`;
+  if(comments.length)h+=`<div class="taskSection"><div class="taskSectionTitle">Latest comments</div>${comments.map(x=>`<div class="taskComment">${richText(x.content||x.text||x.title||"")}${x.createdTime?`<small>${esc(String(x.createdTime).slice(0,16).replace("T"," "))}</small>`:""}</div>`).join("")}</div>`;
+  if(!content&&!items.length&&!atts.length&&!comments.length)h+='<div class="taskBody"><div class="taskEmpty">No description, checklist, attachment or comment in TickTick for this task.</div></div>';
+  return h+`<div class="taskFooter">Live from TickTick · ${esc(new Date().toLocaleTimeString())}</div>`;}
+$("tfCard").addEventListener("click",e=>{if(e.target.closest("a"))return;const f=$("tfCard").classList.toggle("flipped");if(f)revealFlash();});
+$("tfBack").onclick=()=>{if(TF&&TF.i>0){TF.i--;drawFlash()}};
+$("tfNext").onclick=()=>{if(TF&&TF.i<TF.ids.length-1){TF.i++;drawFlash()}};
+(()=>{let x0=null;const c=$("tfCard");c.addEventListener("touchstart",e=>{x0=e.touches[0].clientX},{passive:true});
+  c.addEventListener("touchend",e=>{if(x0==null||!TF)return;const dx=e.changedTouches[0].clientX-x0;x0=null;if(Math.abs(dx)<60||c.classList.contains("flipped"))return;
+    if(dx<0&&TF.i<TF.ids.length-1){TF.i++;drawFlash()}else if(dx>0&&TF.i>0){TF.i--;drawFlash()}},{passive:true});})();
+document.addEventListener("keydown",e=>{if(!TF||!$("scrim").hidden)return;if(e.key==="Escape")closeFlash();if(e.key==="ArrowRight")$("tfNext").click();if(e.key==="ArrowLeft")$("tfBack").click();});
+
 /* ---------- shell ---------- */
-function render(){renderCards();}
+function render(){renderCards();if(TF&&!$("tflash").hidden)drawFlash();}
 let tt=0;function toast(m){let t=document.querySelector(".toast");if(!t){t=document.createElement("div");t.className="toast";document.body.appendChild(t)}
   t.textContent=m;t.style.opacity=1;clearTimeout(tt);tt=setTimeout(()=>t.style.opacity=0,1600);}
 /* the other phone delegated something: take the change in place */
