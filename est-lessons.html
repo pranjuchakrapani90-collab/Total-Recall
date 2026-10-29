@@ -1,0 +1,258 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="kvsync.js?v=20261029l" data-reload="est-lesson-dec"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
+<title>Estimate Lessons · Pranju OS</title>
+<link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="icon" href="icon-192.png" sizes="192x192"><link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Same field-notebook look as the T&C Handbook: level rail on the left, one lesson at a time. Light only, like the app shell. */
+:root{
+  --bg:#eef1ef; --panel:#fbfcfb; --ink:#18221f; --muted:#5b6964; --line:#d3dad6;
+  --accent:#0f6b5a; --accent-soft:#d8ebe5; --warn:#b5651d; --warn-soft:#f6e6d4;
+  --danger:#b3261e; --danger-soft:#f7dcd9; --ok:#2f7a3a; --ok-soft:#dcefdc; --later:#3d5a99; --later-soft:#e1e8f6;
+  --f-display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 var(--f-body);padding-block:0 48px;padding-inline:16px}
+.wrap{max-width:1180px;margin:0 auto}
+.toprow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding-top:14px}
+.backlink{color:var(--accent);text-decoration:none;font-size:.88rem;font-weight:500}
+.sync{font:500 .76rem var(--f-mono);color:var(--muted);text-align:right}
+.sync button{font:inherit;color:var(--accent);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline}
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;padding-block:10px 14px;border-bottom:2px solid var(--ink)}
+.brand .eyebrow{font:500 .75rem var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.brand h1{font:700 2.1rem/1 var(--f-display);letter-spacing:.01em;margin:2px 0 0;text-transform:uppercase}
+.brand p{margin:6px 0 0;color:var(--muted);font-size:.84rem;max-width:62ch}
+.prog{font:500 .8rem var(--f-mono);color:var(--muted);display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.pbar{width:180px;height:6px;background:var(--line);border-radius:3px;overflow:hidden;display:flex}.pbar i{display:block;height:100%}
+.filters{display:flex;flex-wrap:wrap;gap:6px;padding-top:14px}
+.filters button{font:600 .95rem var(--f-display);letter-spacing:.05em;text-transform:uppercase;background:none;border:1px solid var(--line);color:var(--muted);padding:5px 12px;border-radius:3px;cursor:pointer}
+.filters button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.filters b{font-family:var(--f-mono);font-weight:500;margin-left:4px}
+.grid{display:grid;grid-template-columns:250px minmax(0,1fr);gap:20px;padding-top:16px}
+.railsel{display:none;width:100%;padding:9px;font:inherit;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:3px;margin:14px 0 0}
+.rail{display:flex;flex-direction:column;gap:2px;position:sticky;top:12px;align-self:start}
+.rail h3{font:600 .76rem var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+.rail button{width:100%;text-align:left;background:none;border:0;padding:7px 8px;border-radius:3px;color:var(--ink);font:inherit;font-size:.9rem;cursor:pointer;display:flex;gap:8px;align-items:center}
+.rail button:hover{background:var(--accent-soft)}.rail button.on{background:var(--ink);color:var(--bg)}
+.rail .n{font:600 .72rem var(--f-mono);width:20px;height:20px;border-radius:50%;display:grid;place-items:center;border:1.5px solid currentColor;flex:none}
+.rail .c{margin-left:auto;font:500 .78rem var(--f-mono);opacity:.75}
+@media (max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}.rail{display:none!important}.railsel{display:block}}
+article.sec{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:20px;min-width:0}
+@media (max-width:640px){article.sec{padding:14px}body{padding-inline:12px}}
+.eyebrow{font:500 .75rem var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.sec h2{font:700 1.8rem/1.1 var(--f-display);margin:2px 0 8px;text-wrap:balance}
+.sec h3{font:700 1.1rem var(--f-display);letter-spacing:.04em;text-transform:uppercase;margin:22px 0 8px;border-bottom:1px solid var(--line);padding-bottom:4px;display:flex;gap:8px;align-items:baseline}
+.sec h3 small{font:500 .7rem var(--f-mono);letter-spacing:.06em;color:var(--muted)}
+.lead{margin:0;max-width:70ch;color:var(--muted)}
+.list{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+.item{display:flex;gap:12px;align-items:flex-start;text-align:left;width:100%;background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:11px 12px;cursor:pointer;font:inherit;color:inherit}
+.item:hover{border-color:var(--accent)}
+.item .num{font:600 .8rem var(--f-mono);color:var(--muted);min-width:28px;padding-top:2px}
+.item b{display:block;font-weight:600}
+.item span.s{display:block;font-size:.88rem;color:var(--muted);margin-top:2px}
+.item .tags{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex:none}
+.badge{font:600 .68rem var(--f-mono);letter-spacing:.06em;text-transform:uppercase;padding:3px 7px;border-radius:3px;white-space:nowrap}
+.v-Correct{background:var(--ok-soft);color:var(--ok)}.v-Wrong{background:var(--danger-soft);color:var(--danger)}.v-Unsure{background:var(--warn-soft);color:var(--warn)}
+.s-new{background:var(--accent-soft);color:var(--accent)}.s-later{background:var(--later-soft);color:var(--later)}.s-approved{background:var(--ok);color:#fff}.s-rejected{background:var(--line);color:var(--muted);text-decoration:line-through}
+.empty{color:var(--muted);padding:18px 4px}
+.box{border-left:3px solid var(--accent);background:var(--accent-soft);padding:10px 14px;border-radius:0 3px 3px 0;max-width:72ch}
+.box.wrong{border-color:var(--danger);background:var(--danger-soft)}.box.unsure{border-color:var(--warn);background:var(--warn-soft)}.box.right{border-color:var(--ok);background:var(--ok-soft)}
+.box b.k{display:block;font:600 .72rem var(--f-mono);letter-spacing:.08em;text-transform:uppercase;margin-bottom:2px}
+.txt{max-width:72ch}.txt p{margin:0 0 8px}.txt ul{margin:0 0 8px;padding-left:20px}.txt li{margin:3px 0}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:.9rem}th{text-align:left;font:600 .72rem var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border-bottom:1.5px solid var(--ink);padding:6px 8px}
+td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}td.m{font-family:var(--f-mono);white-space:nowrap}
+.src a{color:var(--accent)}
+.decide{margin:26px -20px -20px;padding:14px 20px;background:var(--panel);border-top:2px solid var(--ink);display:flex;flex-direction:column;gap:10px}
+@media (max-width:640px){.decide{margin:22px -14px -14px;padding:12px 14px}}
+.decide textarea{width:100%;min-height:58px;font:inherit;font-size:.9rem;padding:8px 10px;border:1px solid var(--line);border-radius:3px;background:var(--bg);color:var(--ink);resize:vertical}
+.btns{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{font:600 1rem var(--f-display);letter-spacing:.05em;text-transform:uppercase;border:1px solid var(--line);background:var(--bg);color:var(--ink);padding:8px 14px;border-radius:3px;cursor:pointer}
+.btn.ok{background:var(--ok);border-color:var(--ok);color:#fff}.btn.later{background:var(--later);border-color:var(--later);color:#fff}.btn.no{color:var(--danger);border-color:var(--danger)}
+.btn[aria-pressed="true"]{box-shadow:0 0 0 3px var(--ink) inset}
+.nav{margin-left:auto;display:flex;gap:6px}
+.status{font-size:.85rem;color:var(--muted)}
+.note{font-size:.85rem;color:var(--muted);margin-top:14px}
+</style><link rel="stylesheet" href="tr-theme.css?v=20261020"></head><body class="tr-est">
+<div class="wrap">
+  <div class="toprow"><a class="backlink" href="apdcl-studio.html">← Estimate Studio</a><div class="sync" id="sync">Loading…</div></div>
+  <header class="top">
+    <div class="brand"><div class="eyebrow">Learned from your past estimates</div><h1>Estimate Lessons</h1>
+      <p>Each lesson comes from an estimate in your Drive, checked against SoR 2021-22 and APDCL norms. Read it, then approve, reject, or save it for more research.</p></div>
+    <div class="prog"><span id="pTxt">0 of 0 decided</span><div class="pbar" id="pBar"></div></div>
+  </header>
+  <div class="filters" id="filters"></div>
+  <select class="railsel" id="railsel" aria-label="Level"></select>
+  <div class="grid"><nav class="rail" id="rail" aria-label="Levels"></nav><main id="main"></main></div>
+</div>
+<script src="drive.js?v=20261029b"></script>
+<script>
+"use strict";
+/* Data:
+   - Lessons come from a Google Sheet this page creates in Drive (Pranju OS / "Estimate Lessons feed", appProperties pos=est-lessons-feed).
+     The daily estimate-register task fills its first tab: id | level | order | lesson (the lesson as JSON). Cached in "est-lessons-cache".
+   - Decisions live in "est-lesson-dec" ({id:{s:"new|later|approved|rejected",note,t}}), synced between phones by kvsync.js,
+     and copied to "Estimate lesson decisions.json" (pos=est-lesson-decisions) so the daily task can read them. */
+const LEVELS=[
+  [1,"Building blocks","What each item is and what comes with it"],
+  [2,"Quantities","How much per pole, span, structure and km"],
+  [3,"SoR and rates","Choosing the right SoR item and rate"],
+  [4,"Abstract and money","Transport, labour, contingency, supervision, GST, credits"],
+  [5,"Special works","Deposit, utility shifting, crossings, dismantling, schemes"]];
+const STAT={new:"To review",later:"Saved for later",approved:"Approved",rejected:"Rejected"};
+const SEED=[{id:"L1",level:1,order:1,topic:"Insulators",title:"Polymeric pin insulators come with the GI pin fitted",
+  summary:"Take the polymeric pin insulator alone. A separate GI pin is only for porcelain pin insulators.",verdict:"Correct",
+  estimateDid:"Polymeric pin insulator (SoR 613 / 626) taken with no separate GI pin (SoR 840 / 841).",
+  basics:"A pin insulator holds the conductor on top of the cross-arm. It needs a steel pin to bolt it to the arm.\n- Porcelain pin insulators come as the insulator only, so the GI pin is a separate SoR item.\n- Polymeric pin insulators are supplied with the GI pin already fitted.",
+  rule:"With polymeric pin insulators, do not add GI pins. Add GI pins (840 / 841) only when the estimate uses porcelain pin insulators, one pin per insulator.",
+  why:"The SoR description of the polymeric pin insulator includes the pin. Adding SoR 840 / 841 as well pays for the pin twice and leaves spare pins in stock.",
+  inEstimate:[{sor:"613",item:"Polymeric pin insulator (pin fitted)",unit:"No.",qty:"1 per phase per pin position",note:"₹735 each, SoR 2021-22"},
+    {sor:"840 / 841",item:"GI pin (for porcelain pin insulators only)",unit:"No.",qty:"0 with polymeric insulators",note:"leave out"}],
+  example:"An 11 kV intermediate pole with 3 polymeric pin insulators: 3 × SoR 613. No SoR 840 / 841 lines.",
+  mistake:"Copying a BoQ written for porcelain insulators and only changing the insulator line, so the GI pins stay in.",
+  advanced:"If a store supplies polymeric insulators without pins (check the material code and supply note), the pin becomes a separate item again. Record the reason in the estimate notes.",
+  checkedAgainst:"SoR 2021-22 item descriptions; your instruction (Oct 2026)",openQuestion:"",sources:[],learnedOn:"2026-10-29"}];
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const jget=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k)||"null");return v==null?d:v}catch(e){return d}};
+const jset=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+let lessons=jget("est-lessons-cache",null)||SEED,fileIds=jget("est-lessons-files",{}),filt=jget("est-lessons-ui",{}).f||"new",lvl=jget("est-lessons-ui",{}).l||0,cur=null;
+const dec=()=>jget("est-lesson-dec",{});
+const st=id=>(dec()[id]||{}).s||"new";
+const order=()=>lessons.slice().sort((a,b)=>(a.level||9)-(b.level||9)||(a.order||999)-(b.order||999)||String(a.id).localeCompare(String(b.id),undefined,{numeric:true}));
+const shown=()=>order().filter(L=>filt==="all"||st(L.id)===filt);
+function saveUi(){jset("est-lessons-ui",{f:filt,l:lvl})}
+
+/* text: blank lines split paragraphs, lines starting "- " become bullets */
+function fmt(t){if(!t)return "";const out=[];let ul=null,p=[];
+  const flushP=()=>{if(p.length){out.push("<p>"+p.map(esc).join("<br>")+"</p>");p=[]}},flushU=()=>{if(ul){out.push("<ul>"+ul.map(x=>"<li>"+esc(x)+"</li>").join("")+"</ul>");ul=null}};
+  String(t).split(/\n/).forEach(line=>{const m=line.match(/^\s*[-•]\s+(.*)$/);
+    if(m){flushP();(ul=ul||[]).push(m[1])}else if(!line.trim()){flushP();flushU()}else{flushU();p.push(line)}});
+  flushP();flushU();return out.join("")}
+
+function render(){
+  const all=order(),counts={new:0,later:0,approved:0,rejected:0};all.forEach(L=>counts[st(L.id)]++);
+  const decided=counts.approved+counts.rejected;
+  $("pTxt").textContent=`${decided} of ${all.length} decided · ${counts.later} saved for later`;
+  $("pBar").innerHTML=[["approved","var(--ok)"],["rejected","var(--muted)"],["later","var(--later)"]].map(([k,c])=>`<i style="width:${all.length?counts[k]/all.length*100:0}%;background:${c}"></i>`).join("");
+  $("filters").innerHTML=[["new","To review"],["later","Saved for later"],["approved","Approved"],["rejected","Rejected"],["all","All"]]
+    .map(([k,n])=>`<button type="button" data-f="${k}" aria-pressed="${filt===k}">${n}<b>${k==="all"?all.length:counts[k]}</b></button>`).join("");
+  const list=shown(),per=l=>list.filter(L=>(L.level||1)===l).length;
+  $("rail").innerHTML=`<h3>Basics to advanced</h3><button type="button" data-l="0" class="${lvl===0?"on":""}"><span class="n">∗</span>All levels<span class="c">${list.length}</span></button>`+
+    LEVELS.map(([n,name])=>`<button type="button" data-l="${n}" class="${lvl===n?"on":""}"><span class="n">${n}</span>${esc(name)}<span class="c">${per(n)}</span></button>`).join("");
+  $("railsel").innerHTML=`<option value="0">All levels (${list.length})</option>`+LEVELS.map(([n,name])=>`<option value="${n}"${lvl===n?" selected":""}>${n}. ${esc(name)} (${per(n)})</option>`).join("");
+  cur?renderLesson():renderList();}
+
+function renderList(){
+  const list=shown().filter(L=>!lvl||(L.level||1)===lvl),lv=LEVELS.find(x=>x[0]===lvl);
+  const head=lv?`<div class="eyebrow">Level ${lv[0]} of 5</div><h2>${esc(lv[1])}</h2><p class="lead">${esc(lv[2])}.</p>`:
+    `<div class="eyebrow">${esc(filt==="all"?"Every lesson":STAT[filt])}</div><h2>${filt==="new"?"Work through them in order":filt==="later"?"Lessons you are researching":"Lessons"}</h2><p class="lead">Lessons are ordered from basic items up to special works. Start at the top; each one takes a few minutes.</p>`;
+  let body="";
+  if(!list.length)body=`<div class="empty">${filt==="new"&&lessons.length?"Nothing waiting here. New lessons arrive each morning after the estimate register run.":"No lessons here yet."}</div>`;
+  else{let lastL=0;body='<div class="list">'+list.map(L=>{let h="";
+      if(!lvl&&(L.level||1)!==lastL){lastL=L.level||1;const v=LEVELS.find(x=>x[0]===lastL)||[lastL,"Level "+lastL];h+=`<div class="eyebrow" style="margin-top:10px">Level ${lastL} · ${esc(v[1])}</div>`}
+      return h+`<button type="button" class="item" data-id="${esc(L.id)}"><span class="num">${esc(L.id)}</span><span><b>${esc(L.title)}</b><span class="s">${esc(L.summary||L.rule||"")}</span></span>
+        <span class="tags"><span class="badge v-${esc(L.verdict)}">${esc(L.verdict||"")}</span><span class="badge s-${st(L.id)}">${STAT[st(L.id)]}</span></span></button>`}).join("")+"</div>";}
+  $("main").innerHTML=`<article class="sec">${head}${body}</article>`;}
+
+function sec(title,sub,html){return html?`<h3>${esc(title)}${sub?`<small>${esc(sub)}</small>`:""}</h3>${html}`:""}
+function renderLesson(){
+  const L=lessons.find(x=>x.id===cur);if(!L){cur=null;return renderList()}
+  const seq=shown(),i=seq.findIndex(x=>x.id===L.id),d=dec()[L.id]||{},s=d.s||"new",lv=LEVELS.find(x=>x[0]===(L.level||1))||[L.level,""];
+  const vbox=L.verdict==="Wrong"?"wrong":L.verdict==="Unsure"?"unsure":"right";
+  const rows=(L.inEstimate||[]).filter(r=>r&&(r.sor||r.item));
+  const tbl=rows.length?`<div class="tbl"><table><thead><tr><th>SoR</th><th>Item</th><th>Unit</th><th>Quantity</th><th>Note</th></tr></thead><tbody>`+
+    rows.map(r=>`<tr><td class="m">${esc(r.sor)}</td><td>${esc(r.item)}</td><td>${esc(r.unit)}</td><td>${esc(r.qty)}</td><td>${esc(r.note)}</td></tr>`).join("")+"</tbody></table></div>":"";
+  const srcs=(L.sources||[]).filter(x=>x&&(x.title||x.link));
+  const src=srcs.length?`<ul class="txt src">`+srcs.map(x=>`<li>${x.sl?"Register no. "+esc(x.sl)+": ":""}${x.link?`<a href="${esc(x.link)}" target="_blank" rel="noopener">${esc(x.title||"Open in Drive")}</a>`:esc(x.title)}</li>`).join("")+"</ul>":"";
+  $("main").innerHTML=`<article class="sec">
+    <div class="eyebrow">Level ${esc(lv[0])} · ${esc(lv[1])} · ${esc(L.topic||"")} · ${esc(L.id)}</div>
+    <h2>${esc(L.title)}</h2>
+    <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="badge v-${esc(L.verdict)}">Estimate was ${esc((L.verdict||"").toLowerCase())}</span><span class="badge s-${s}">${STAT[s]}</span>${L.learnedOn?`<span class="badge" style="background:var(--bg);color:var(--muted)">Learned ${esc(L.learnedOn)}</span>`:""}</div>
+    ${sec("1. In plain words","the basics",`<div class="txt">${fmt(L.basics||L.summary)}</div>`)}
+    ${sec("2. What the estimate did","",L.estimateDid?`<div class="box ${vbox}"><b class="k">${L.verdict==="Wrong"?"This was wrong":L.verdict==="Unsure"?"Not yet verified":"This was right"}</b>${fmt(L.estimateDid)}</div>`:"")}
+    ${sec("3. The right practice","",L.rule?`<div class="box right"><b class="k">Rule</b>${fmt(L.rule)}</div>`:"")}
+    ${sec("4. Why","",L.why?`<div class="txt">${fmt(L.why)}</div>`:"")}
+    ${sec("5. In the BoQ","SoR 2021-22",tbl)}
+    ${sec("6. Worked example","",L.example?`<div class="txt">${fmt(L.example)}</div>`:"")}
+    ${sec("7. Watch out","common mistake",L.mistake?`<div class="txt">${fmt(L.mistake)}</div>`:"")}
+    ${sec("8. Going further","advanced",L.advanced?`<div class="txt">${fmt(L.advanced)}</div>`:"")}
+    ${sec("Still open","what would settle it",L.openQuestion?`<div class="box unsure">${fmt(L.openQuestion)}</div>`:"")}
+    ${sec("Checked against","",L.checkedAgainst?`<div class="txt">${fmt(L.checkedAgainst)}</div>`:"")}
+    ${sec("Source estimate","",src)}
+    <div class="decide">
+      <textarea id="note" placeholder="Your notes: what to check, who to ask, what you found…">${esc(d.note||"")}</textarea>
+      <div class="btns">
+        <button type="button" class="btn ok" data-s="approved" aria-pressed="${s==="approved"}">Approve</button>
+        <button type="button" class="btn later" data-s="later" aria-pressed="${s==="later"}">Save for later</button>
+        <button type="button" class="btn no" data-s="rejected" aria-pressed="${s==="rejected"}">Reject</button>
+        ${s!=="new"?`<button type="button" class="btn" data-s="new">Undo</button>`:""}
+        <span class="nav"><button type="button" class="btn" id="bk">← List</button>${i>=0&&i<seq.length-1?`<button type="button" class="btn" id="nx">Next →</button>`:""}</span>
+      </div>
+      <div class="status" id="dstat">${d.t?STAT[s]+" on "+new Date(d.t).toLocaleDateString("en-IN",{day:"numeric",month:"short"}):"Not decided yet."}</div>
+    </div></article>`;
+  $("note").addEventListener("input",()=>{const D=dec(),o=D[L.id]||{s:"new"};o.note=$("note").value;o.t=Date.now();D[L.id]=o;jset("est-lesson-dec",D);queuePush()});
+  window.scrollTo({top:0});}
+
+function decide(s){
+  const L=cur,D=dec(),o=D[L]||{};const seq=shown(),i=seq.findIndex(x=>x.id===L);
+  D[L]={s:s,note:($("note")||{}).value||o.note||"",t:Date.now()};jset("est-lesson-dec",D);queuePush();
+  /* after a decision in "To review", go straight to the next lesson waiting */
+  if(filt==="new"&&s!=="new"){const nx=seq.slice(i+1).find(x=>st(x.id)==="new")||shown()[0];cur=nx?nx.id:null}
+  render();}
+
+document.addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
+  if(b.dataset.f){filt=b.dataset.f;cur=null;saveUi();render()}
+  else if(b.dataset.l!=null){lvl=+b.dataset.l;cur=null;saveUi();render()}
+  else if(b.dataset.id){cur=b.dataset.id;render()}
+  else if(b.dataset.s&&cur){decide(b.dataset.s)}
+  else if(b.id==="bk"){cur=null;render()}
+  else if(b.id==="nx"){const seq=shown(),i=seq.findIndex(x=>x.id===cur);cur=seq[i+1]?seq[i+1].id:null;render()}
+  else if(b.id==="retry"){pull()}});
+$("railsel").addEventListener("change",()=>{lvl=+$("railsel").value;cur=null;saveUi();render()});
+window.addEventListener("kvsync",e=>{if((e.detail||[]).indexOf("est-lesson-dec")>=0&&!cur)render()});
+
+/* ---- Drive ---- */
+function parseCSV(t){const rows=[];let r=[],f="",q=false;
+  for(let i=0;i<t.length;i++){const c=t[i];
+    if(q){if(c==='"'){if(t[i+1]==='"'){f+='"';i++}else q=false}else f+=c}
+    else if(c==='"')q=true;else if(c===","){r.push(f);f=""}else if(c==="\n"||c==="\r"){if(c==="\r"&&t[i+1]==="\n")i++;r.push(f);rows.push(r);r=[];f=""}else f+=c}
+  if(f!==""||r.length){r.push(f);rows.push(r)}return rows}
+function syncMsg(h){$("sync").innerHTML=h}
+async function ensure(props,make){
+  if(fileIds[props.pos]){return fileIds[props.pos]}
+  const found=await PosDrive.find(props);let id=found[0]&&found[0].id;
+  if(!id)id=(await make()).id;
+  fileIds[props.pos]=id;jset("est-lessons-files",fileIds);return id}
+async function pull(){
+  const P=window.PosDrive;if(!P){syncMsg("Offline copy");return}
+  if(!P.connected()){syncMsg(`Drive not connected · <a class="backlink" href="./#travel">connect in Travel Trace</a>`);return}
+  syncMsg("Checking Drive…");
+  try{
+    const feed=await ensure({pos:"est-lessons-feed"},()=>P.create("root","Estimate Lessons feed","application/vnd.google-apps.spreadsheet",{pos:"est-lessons-feed"}));
+    let csv;try{csv=await P.exportText(feed,"text/csv")}catch(e){delete fileIds["est-lessons-feed"];jset("est-lessons-files",fileIds);throw e}
+    const got=[];parseCSV(csv).forEach((r,k)=>{if(k===0&&/^id$/i.test((r[0]||"").trim()))return;const raw=(r[3]||"").trim();if(!raw)return;
+      try{const L=JSON.parse(raw);L.id=L.id||(r[0]||"").trim();if(!L.level)L.level=+r[1]||1;if(!L.order)L.order=+r[2]||k;if(L.id&&L.title)got.push(L)}catch(e){console.warn("Lesson row "+(k+1)+" is not valid JSON")}});
+    if(got.length){lessons=got;jset("est-lessons-cache",got)}
+    await pushDec(true);
+    syncMsg(`${got.length?got.length+" lessons from Drive":"No lessons in Drive yet"} · <button type="button" id="retry">refresh</button>`);
+    render();
+  }catch(e){console.warn("Estimate Lessons Drive",e);syncMsg(`Drive: ${esc(e.message||e)} · <button type="button" id="retry">retry</button>`)}}
+/* decisions: merge the Drive copy with this phone's, newer change per lesson wins, then save back */
+async function pushDec(merge){
+  const P=window.PosDrive;if(!P||!P.connected())return;
+  const id=await ensure({pos:"est-lesson-decisions"},()=>P.upload("root","Estimate lesson decisions.json",new Blob([JSON.stringify({v:1,decisions:dec()})],{type:"application/json"}),{pos:"est-lesson-decisions"}));
+  const D=dec();let changed=false,remote={};
+  if(merge){try{remote=(JSON.parse(await (await P.download(id)).text()).decisions)||{}}catch(e){remote={}}
+    Object.keys(remote).forEach(k=>{if(!D[k]||(remote[k].t||0)>(D[k].t||0)){D[k]=remote[k];changed=true}});
+    if(changed)jset("est-lesson-dec",D);}
+  const out=JSON.stringify({v:1,updated:new Date().toISOString(),decisions:D});
+  if(!merge||JSON.stringify(remote)!==JSON.stringify(D))await P.put(id,new Blob([out],{type:"application/json"}));}
+let pt=0;function queuePush(){clearTimeout(pt);pt=setTimeout(()=>pushDec(true).catch(e=>console.warn("Estimate Lessons save",e)),1200)}
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden"){clearTimeout(pt);pushDec(true).catch(()=>{})}});
+
+render();pull();
+</script>
+</body></html>

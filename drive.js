@@ -58,9 +58,24 @@ async function upload(folder,name,blob,props,again){
   var put=await fetch(loc,{method:"PUT",headers:{"Content-Type":type},body:blob});
   if(!put.ok)throw await fail(put,"Drive upload");
   return put.json()}
+/* Estimate Lessons (29 Oct 2026): make an empty Google file (e.g. a Sheet) in a Pranju OS folder, replace a file's
+   content, and read a Google file as text (a Sheet exports its first tab as CSV). */
+async function create(folder,name,mime,props,again){
+  var t=await token(again),parent=t.folders[folder];
+  if(!parent)throw new Error("the Drive folder for "+folder+" is missing");
+  var r=await gfetch(API+"/files?fields=id,name",{method:"POST",headers:{"Content-Type":"application/json; charset=UTF-8"},
+    body:JSON.stringify({name:name,mimeType:mime,parents:[parent],appProperties:props||{}})});
+  if(r.status===404&&!again)return create(folder,name,mime,props,true);
+  if(!r.ok)throw await fail(r,"Drive create");return r.json()}
+async function put(id,blob){
+  var r=await gfetch(UP+"/files/"+encodeURIComponent(id)+"?uploadType=media&fields=id,name,size",{method:"PATCH",headers:{"Content-Type":blob.type||"application/octet-stream"},body:blob});
+  if(!r.ok)throw await fail(r,"Drive save");return r.json()}
+async function exportText(id,mime){
+  var r=await gfetch(API+"/files/"+encodeURIComponent(id)+"/export?mimeType="+encodeURIComponent(mime||"text/csv"));
+  if(!r.ok)throw await fail(r,"Drive read");return r.text()}
 async function download(id){var r=await gfetch(API+"/files/"+encodeURIComponent(id)+"?alt=media");if(!r.ok)throw await fail(r,"Drive download");return r.blob()}
 async function trash(id){var r=await gfetch(API+"/files/"+encodeURIComponent(id),{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({trashed:true})});if(!r.ok&&r.status!==404)throw await fail(r,"Drive delete")}
-window.PosDrive={status:status,connected:connected,connect:connect,disconnect:disconnect,find:find,upload:upload,download:download,trash:trash,
+window.PosDrive={status:status,connected:connected,connect:connect,disconnect:disconnect,find:find,upload:upload,download:download,trash:trash,create:create,put:put,exportText:exportText,
   viewUrl:function(id){return "https://drive.google.com/file/d/"+encodeURIComponent(id)+"/view"},
   get result(){var r=result;result="";return r}};
 })();
