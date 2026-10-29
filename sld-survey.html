@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="kvsync.js?v=20261029l"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
+<html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="kvsync.js?v=20261029m"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
 <title>Line Survey · Pranju OS</title>
 <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="icon" href="icon-192.png" sizes="192x192"><link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
@@ -1394,6 +1394,13 @@ if(DB.pending&&DB.projects[DB.pending.pid]&&!DB.projects[DB.pending.pid].del){co
 setSync(syncCode()?"busy":"off");cloudSync();
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)cloudSync()});
 window.__test={compute,boq,P,DB,save,renderAll,sldSVG,buildXlsx,words};
+</script>
+<script>
+/* Estimate Practice: a survey started from a practice task shows a way back to the task and its check */
+(function(){const _ra=renderAll;renderAll=function(f){_ra(f);try{const p=P();let a=document.getElementById("pracChip");
+  if(!p.practice){if(a)a.remove();return}
+  if(!a){a=document.createElement("a");a.id="pracChip";a.style.cssText="position:fixed;right:14px;bottom:16px;z-index:1200;background:#18221f;color:#fff;text-decoration:none;border-radius:999px;padding:10px 16px;font:650 14px system-ui,sans-serif;box-shadow:0 6px 20px #0004";document.body.appendChild(a)}
+  a.href="est-practice.html?t="+encodeURIComponent(p.practice);a.textContent="Practice "+p.practice+" · check my estimate ›"}catch(e){}};renderAll(false)})();
 </script>
 <script src="drive.js?v=20261029"></script><script src="est-assets.js?v=20261029c"></script><script src="est-doc.js?v=20261029e"></script>
 </body></html>

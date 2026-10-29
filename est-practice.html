@@ -1,0 +1,216 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="kvsync.js?v=20261029m" data-reload="est-practice"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
+<title>Estimate Practice · Pranju OS</title>
+<link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="icon" href="icon-192.png" sizes="192x192"><link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Same field-notebook look as the T&C Handbook. One real estimate a day, turned into a job to do in Line Survey. */
+:root{
+  --bg:#eef1ef; --panel:#fbfcfb; --ink:#18221f; --muted:#5b6964; --line:#d3dad6;
+  --accent:#0f6b5a; --accent-soft:#d8ebe5; --warn:#b5651d; --warn-soft:#f6e6d4;
+  --danger:#b3261e; --danger-soft:#f7dcd9; --ok:#2f7a3a; --ok-soft:#dcefdc;
+  --f-display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 var(--f-body);padding-block:0 48px;padding-inline:16px}
+.wrap{max-width:1000px;margin:0 auto}
+.toprow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding-top:14px}
+.backlink{color:var(--accent);text-decoration:none;font-size:.88rem;font-weight:500}
+.sync{font:500 .76rem var(--f-mono);color:var(--muted);text-align:right}
+.sync button,.sync a{font:inherit;color:var(--accent);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline}
+header.top{padding-block:10px 14px;border-bottom:2px solid var(--ink)}
+.eyebrow{font:500 .75rem var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+header h1{font:700 2.1rem/1 var(--f-display);letter-spacing:.01em;margin:2px 0 0;text-transform:uppercase}
+header p{margin:6px 0 0;color:var(--muted);font-size:.86rem;max-width:66ch}
+main{padding-top:16px;display:flex;flex-direction:column;gap:14px}
+article.sec{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:20px;min-width:0}
+@media (max-width:640px){article.sec{padding:14px}body{padding-inline:12px}}
+.sec h2{font:700 1.8rem/1.1 var(--f-display);margin:2px 0 8px;text-wrap:balance}
+.sec h3{font:700 1.1rem var(--f-display);letter-spacing:.04em;text-transform:uppercase;margin:22px 0 8px;border-bottom:1px solid var(--line);padding-bottom:4px}
+.txt{max-width:72ch}.txt p{margin:0 0 8px}.txt ul,.txt ol{margin:0 0 8px;padding-left:20px}.txt li{margin:3px 0}
+.list{display:flex;flex-direction:column;gap:8px}
+.item{display:flex;gap:12px;align-items:flex-start;text-align:left;width:100%;background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:12px 14px;cursor:pointer;font:inherit;color:inherit}
+.item:hover{border-color:var(--accent)}
+.item .num{font:600 .8rem var(--f-mono);color:var(--muted);min-width:30px;padding-top:2px}
+.item b{display:block;font-weight:600}.item span.s{display:block;font-size:.86rem;color:var(--muted);margin-top:2px}
+.item .tags{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex:none}
+.badge{font:600 .68rem var(--f-mono);letter-spacing:.06em;text-transform:uppercase;padding:3px 7px;border-radius:3px;white-space:nowrap;background:var(--bg);color:var(--muted)}
+.b-new{background:var(--accent);color:#fff}.b-started{background:var(--warn-soft);color:var(--warn)}.b-checked{background:var(--ok-soft);color:var(--ok)}
+.lvl{letter-spacing:.12em;color:var(--warn)}
+.box{border-left:3px solid var(--accent);background:var(--accent-soft);padding:10px 14px;border-radius:0 3px 3px 0;max-width:74ch}
+.box.warn{border-color:var(--warn);background:var(--warn-soft)}.box.bad{border-color:var(--danger);background:var(--danger-soft)}
+.box b.k{display:block;font:600 .72rem var(--f-mono);letter-spacing:.08em;text-transform:uppercase;margin-bottom:2px}
+.btns{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:16px}
+.btn{font:600 1rem var(--f-display);letter-spacing:.05em;text-transform:uppercase;border:1px solid var(--line);background:var(--bg);color:var(--ink);padding:9px 15px;border-radius:3px;cursor:pointer;text-decoration:none;display:inline-block}
+.btn.go{background:var(--accent);border-color:var(--accent);color:#fff}.btn.chk{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+details.hint{border:1px dashed var(--line);border-radius:4px;padding:8px 12px;margin-top:12px;max-width:74ch}details.hint summary{cursor:pointer;font-weight:600;color:var(--muted)}
+.score{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-top:6px}
+.score div{background:var(--bg);border-radius:4px;padding:10px 12px}.score b{display:block;font:700 1.35rem var(--f-mono)}.score span{font-size:.8rem;color:var(--muted)}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:4px;background:#fff}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:.86rem}
+th{text-align:left;font:600 .7rem var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border-bottom:1.5px solid var(--ink);padding:6px 8px;background:var(--panel)}
+td{padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}td.n{font-family:var(--f-mono);text-align:right;white-space:nowrap}td.m{font-family:var(--f-mono);white-space:nowrap}
+tr.ok td:first-child{box-shadow:inset 3px 0 var(--ok)}tr.diff td:first-child{box-shadow:inset 3px 0 var(--warn)}tr.miss td:first-child{box-shadow:inset 3px 0 var(--danger)}tr.extra td:first-child{box-shadow:inset 3px 0 #3d5a99}
+.st{font:600 .68rem var(--f-mono);text-transform:uppercase;letter-spacing:.05em}.st.ok{color:var(--ok)}.st.diff{color:var(--warn)}.st.miss{color:var(--danger)}.st.extra{color:#3d5a99}
+tr.tot td{font-weight:600;border-top:1.5px solid var(--ink)}
+table.abs{min-width:0}
+@media (max-width:640px){table.cmp{min-width:520px;font-size:.8rem}table.cmp th:nth-child(3),table.cmp td:nth-child(3){display:none}table.cmp td:nth-child(2){min-width:140px}}
+.muted{color:var(--muted)}.small{font-size:.85rem}
+textarea{width:100%;min-height:70px;font:inherit;font-size:.9rem;padding:8px 10px;border:1px solid var(--line);border-radius:3px;background:var(--bg);color:var(--ink);resize:vertical;max-width:74ch;display:block}
+</style><link rel="stylesheet" href="tr-theme.css?v=20261020"></head><body class="tr-est">
+<div class="wrap">
+  <div class="toprow"><a class="backlink" href="apdcl-studio.html">← Estimate Studio</a><div class="sync" id="sync">Loading…</div></div>
+  <header class="top"><div class="eyebrow">One real estimate a day</div><h1>Estimate Practice</h1>
+    <p>Each task is a real estimate from your Drive, written as the job you'd get. Survey it and draw the SLD in Line Survey, prepare the estimate there, then check it against the original.</p></header>
+  <main id="main"></main>
+</div>
+<script src="drive.js?v=20261029b"></script>
+<script src="est-assets.js?v=20261029c"></script>
+<script>
+"use strict";
+/* Tasks come from a Google Sheet this page creates in Drive: Pranju OS / "Estimate Practice feed" (appProperties pos=est-practice-feed).
+   The daily estimate task fills its first tab: id | date | title | task (JSON, answer key included). Cached in "est-practice-cache".
+   Progress per task in "est-practice" ({P3:{pid,st:"started"|"checked",score,myP,note,t}}), synced between phones by kvsync.js.
+   "Start in Line Survey" adds a project to Line Survey's own store ("sld-survey-v1") and opens it; the check reads that project's estimate (p.est). */
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const jget=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k)||"null");return v==null?d:v}catch(e){return d}};
+const jset=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+const SOR=window.SOR2122||{},r2=v=>Math.round((v+Number.EPSILON)*100)/100;
+const inr=v=>"₹ "+(+v||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
+const inr0=v=>"₹ "+Math.round(+v||0).toLocaleString("en-IN");
+const LV=["","Simple","Basic","Moderate","Involved","Complex"];
+let tasks=jget("est-practice-cache",[]),fileIds=jget("est-practice-files",{}),cur=null,showKey=false;
+const prog=()=>jget("est-practice",{}),stOf=id=>(prog()[id]||{}).st||"new";
+function setProg(id,o){const P=prog();P[id]={...(P[id]||{}),...o,t:Date.now()};jset("est-practice",P)}
+const sorted=()=>tasks.slice().sort((a,b)=>String(b.date||"").localeCompare(String(a.date||""))||String(b.id).localeCompare(String(a.id),undefined,{numeric:true}));
+function fmt(t){if(!t)return "";if(Array.isArray(t))return "<ul>"+t.map(x=>"<li>"+esc(x)+"</li>").join("")+"</ul>";const out=[];let ul=null,p=[];
+  const fp=()=>{if(p.length){out.push("<p>"+p.map(esc).join("<br>")+"</p>");p=[]}},fu=()=>{if(ul){out.push("<ul>"+ul.map(x=>"<li>"+esc(x)+"</li>").join("")+"</ul>");ul=null}};
+  String(t).split(/\n/).forEach(l=>{const m=l.match(/^\s*[-•]\s+(.*)$/);if(m){fp();(ul=ul||[]).push(m[1])}else if(!l.trim()){fp();fu()}else{fu();p.push(l)}});fp();fu();return out.join("")}
+
+/* ---------- list ---------- */
+function renderList(){
+  const L=sorted(),P=prog();
+  if(!L.length){$("main").innerHTML=`<article class="sec"><h2>No tasks yet</h2><div class="txt"><p>A new task arrives each morning after the daily estimate run reads one of your estimates.</p>
+    <p class="muted small">This page needs Google Drive connected (Travel Trace → Google Drive). The first time it opens with Drive connected, it creates the "Estimate Practice feed" sheet in your Pranju OS folder for the daily run to fill.</p></div></article>`;return}
+  const done=L.filter(t=>stOf(t.id)==="checked"),avg=done.length?Math.round(done.reduce((s,t)=>s+(P[t.id].score||0),0)/done.length):null;
+  $("main").innerHTML=`<article class="sec"><div class="score"><div><b>${L.length}</b><span>tasks</span></div><div><b>${L.filter(t=>stOf(t.id)==="new").length}</b><span>not started</span></div><div><b>${done.length}</b><span>checked</span></div><div><b>${avg==null?"–":avg+"%"}</b><span>average match</span></div></div></article>
+  <div class="list">`+L.map(t=>{const s=stOf(t.id),p=P[t.id]||{};
+    return `<button type="button" class="item" data-id="${esc(t.id)}"><span class="num">${esc(t.id)}</span><span><b>${esc(t.title)}</b><span class="s">${esc(t.workType||"")}${t.date?" · "+esc(t.date):""}</span></span>
+      <span class="tags"><span class="badge lvl">${"●".repeat(t.level||1)}${"○".repeat(5-(t.level||1))}</span><span class="badge b-${s}">${s==="new"?"New":s==="started"?"In progress":"Checked · "+(p.score||0)+"%"}</span></span></button>`}).join("")+`</div>`;}
+
+/* ---------- one task ---------- */
+function renderTask(){
+  const t=tasks.find(x=>x.id===cur);if(!t){cur=null;return renderList()}
+  const p=prog()[t.id]||{},proj=projOf(p.pid);
+  $("main").innerHTML=`<article class="sec">
+    <div class="eyebrow">${esc(t.id)} · ${esc(t.workType||"")} · ${esc(LV[t.level||1]||"")}${t.date?" · "+esc(t.date):""}</div>
+    <h2>${esc(t.title)}</h2>
+    <div class="box"><b class="k">The job</b>${fmt(t.brief)}</div>
+    ${t.site?`<h3>On site</h3><div class="txt">${fmt(t.site)}</div>`:""}
+    ${t.given&&t.given.length?`<h3>Given</h3><div class="txt">${fmt(t.given)}</div>`:""}
+    <h3>Your task</h3><div class="txt">${fmt(t.todo&&t.todo.length?t.todo:["Mark the route and structures in Line Survey and draw the SLD.","Prepare the estimate in the Estimate tab: items by SoR number and quantity, with the right abstract for this kind of work.","Then come back here and check it against the original."])}</div>
+    ${t.hints?`<details class="hint"><summary>Hints (open only if stuck)</summary><div class="txt" style="margin-top:8px">${fmt(t.hints)}</div></details>`:""}
+    <div class="btns">
+      ${proj?`<button type="button" class="btn go" id="open">Open my survey</button>`:`<button type="button" class="btn go" id="start">Start in Line Survey</button>`}
+      <button type="button" class="btn chk" id="check">${p.st==="checked"?"Check again":"Check my estimate"}</button>
+      <button type="button" class="btn" id="bk">← All tasks</button>
+    </div>
+    <p class="muted small" style="margin-top:8px">${proj?`Survey: “${esc(proj.name)}” · ${(proj.pts||[]).length} points marked${proj.est?" · estimate started":" · estimate not opened yet"}`:"Starting creates a new survey in Line Survey named after this task."}</p>
+    <div id="result"></div>
+  </article>`;
+  if(p.st==="checked"&&proj)check(false);
+  window.scrollTo({top:0});}
+
+/* ---------- Line Survey link ---------- */
+const LS="sld-survey-v1";
+function projOf(pid){if(!pid)return null;const D=jget(LS,null),p=D&&D.projects&&D.projects[pid];return p&&!p.del?p:null}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
+function start(){const t=tasks.find(x=>x.id===cur);if(!t)return;const D=jget(LS,{projects:{},cur:null});D.projects=D.projects||{};
+  const g=t.setup||{},id=uid();
+  D.projects[id]={id,name:"Practice "+t.id+" · "+t.title,upd:Date.now(),practice:t.id,
+    meta:{work:"",loc:g.loc||"",pay:g.pay==="dep"?"dep":"dept",doc:"SESD/"+new Date().getFullYear()+"/",date:new Date().toISOString().slice(0,10),ss:g.ss||"",fdr:g.fdr||"",fee:0,title:""},
+    opt:{north:false,gps:false,span:true,sign:false},set:{},pts:[]};
+  D.cur=id;jset(LS,D);setProg(t.id,{pid:id,st:"started"});location.href="sld-survey.html"}
+function openProj(){const p=prog()[cur]||{},D=jget(LS,null);if(!D||!projOf(p.pid))return renderTask();D.cur=p.pid;jset(LS,D);location.href="sld-survey.html"}
+
+/* ---------- the check ---------- */
+const kOf=r=>/^\d+$/.test(String(r.sor||"").trim())?String(r.sor).trim():"#"+String(r.d||"").trim().toLowerCase().slice(0,40);
+function mine(p){const e=p.est;if(!e||!e.rows)return null;
+  const rows=e.rows.filter(r=>+r.q).map(r=>{const s=r.sor&&SOR[r.sor];const it=s&&!r.cust?{d:s[2],u:s[3],r:+s[4]}:{d:r.d||"",u:r.u||"",r:+r.r||0};return{sor:r.sor||"",d:it.d,u:it.u,r:it.r,q:+r.q,job:!!r.job,st:!!r.st}});
+  /* same abstract as Line Survey's estimate sheet (est-doc.js calc) */
+  const mat=rows.filter(r=>!r.job),job=rows.filter(r=>r.job),A=mat.reduce((s,r)=>s+r.r*r.q,0),HA=e.stockCol===false?0:mat.filter(r=>r.st).reduce((s,r)=>s+r.r*r.q,0),
+    B=A*0.05,C=A+B,D=C*0.15,E=job.reduce((s,r)=>s+r.r*r.q,0),F=C*(+e.kc||0),G=(D+E)*(+e.ks||0),H=C+D+E+F+G,I=+(p.meta&&p.meta.fee||0),L=H+I+H*0.18,M=HA*1.18,N=+(e.meter||0),O=L-M-N;
+  return{rows,abs:{A,B,C,D,E,F,G,H,L,M,O,P:Math.ceil(O-1e-9)}}}
+function check(save){
+  const t=tasks.find(x=>x.id===cur),p=prog()[cur]||{},proj=projOf(p.pid),box=$("result");
+  if(!proj){box.innerHTML=`<div class="box warn" style="margin-top:16px"><b class="k">Nothing to check yet</b>Start the task in Line Survey first.</div>`;return}
+  const me=mine(proj);
+  if(!me){box.innerHTML=`<div class="box warn" style="margin-top:16px"><b class="k">No estimate yet</b>Open the Estimate tab of your survey once, so Line Survey builds the estimate from your survey, then edit it there.</div>`;return}
+  const ans=t.answer||{},orig=(ans.rows||[]).map(r=>({sor:String(r.sor||""),d:r.d||(SOR[r.sor]?SOR[r.sor][2]:""),u:r.u||(SOR[r.sor]?SOR[r.sor][3]:""),r:+r.r||(SOR[r.sor]?+SOR[r.sor][4]:0),q:+r.q||0}));
+  const keys=[],O={},Mn={};orig.forEach(r=>{const k=kOf(r);if(!O[k]){O[k]={...r,q:0};keys.push(k)}O[k].q+=r.q});
+  me.rows.forEach(r=>{const k=kOf(r);if(!Mn[k]){Mn[k]={...r,q:0};if(!O[k])keys.push(k)}Mn[k].q+=r.q});
+  let overlap=0,tO=0,tM=0;const rows=keys.map(k=>{const o=O[k],m=Mn[k],rate=(o||m).r,oq=o?o.q:0,mq=m?m.q:0,oa=oq*(o?o.r:rate),ma=mq*(m?m.r:rate);
+    tO+=oa;tM+=ma;overlap+=Math.min(oa,ma);
+    const st=!m?"miss":!o?"extra":Math.abs(oq-mq)<1e-6?"ok":"diff";return{k,sor:(o||m).sor,d:(o||m).d,u:(o||m).u,oq,mq,oa,ma,st}});
+  const score=Math.round(100*overlap/Math.max(tO,tM,1)),cnt=s=>rows.filter(r=>r.st===s).length,oP=ans.abs&&ans.abs.P?+ans.abs.P:null;
+  const lab={ok:"Same",diff:"Quantity differs",miss:"Missing in yours",extra:"Not in original"},ord={miss:0,diff:1,extra:2,ok:3};
+  rows.sort((a,b)=>ord[a.st]-ord[b.st]||b.oa+b.ma-a.oa-a.ma);
+  const fq=(q,u)=>/^k\.?m/i.test(u||"")?(+q).toFixed(3):(+q%1?(+q).toFixed(2):String(q));
+  box.innerHTML=`<h3>Your estimate against the original</h3>
+    <div class="score"><div><b>${score}%</b><span>match by amount</span></div><div><b>${cnt("ok")}/${keys.length-cnt("extra")}</b><span>original items exactly right</span></div>
+      <div><b>${inr0(me.abs.P)}</b><span>your net amount</span></div><div><b>${oP!=null?inr0(oP):"–"}</b><span>original net amount${oP!=null?` (${me.abs.P>=oP?"+":"−"}${inr0(Math.abs(me.abs.P-oP)).replace("₹ ","₹")})`:""}</span></div></div>
+    <p class="muted small">${cnt("diff")} quantities differ · ${cnt("miss")} items missing · ${cnt("extra")} items the original didn't have.</p>
+    <div class="tbl"><table class="cmp"><thead><tr><th>SoR</th><th>Item</th><th>Unit</th><th style="text-align:right">Original</th><th style="text-align:right">Yours</th><th style="text-align:right">Original ₹</th><th style="text-align:right">Yours ₹</th><th>Result</th></tr></thead><tbody>`+
+    rows.map(r=>`<tr class="${r.st}"><td class="m">${esc(/^\d+$/.test(r.sor)?r.sor:"—")}</td><td>${esc(r.d)}</td><td>${esc(r.u)}</td><td class="n">${r.oq?fq(r.oq,r.u):"–"}</td><td class="n">${r.mq?fq(r.mq,r.u):"–"}</td><td class="n">${r.oa?inr(r.oa):"–"}</td><td class="n">${r.ma?inr(r.ma):"–"}</td><td><span class="st ${r.st}">${lab[r.st]}</span></td></tr>`).join("")+
+    `<tr class="tot"><td></td><td colspan="4" class="tl">Items total (before abstract)</td><td class="n">${inr(tO)}</td><td class="n">${inr(tM)}</td><td></td></tr></tbody></table></div>
+    ${ans.abs?`<h3>Abstract</h3><div class="tbl"><table class="abs"><thead><tr><th>Line</th><th style="text-align:right">Original</th><th style="text-align:right">Yours</th></tr></thead><tbody>`+
+      [["A","Material"],["B","Transport and storage"],["D","Erection / labour"],["E","Civil works"],["F","Contingency"],["G","Supervision"],["H","Gross"],["L","Total with GST"],["M","Less stock / party supply"],["P","Net (rounded)"]]
+      .filter(([k])=>ans.abs[k]!=null||me.abs[k]).map(([k,n])=>`<tr${k==="P"?' class="tot"':""}><td>${k} · ${n}</td><td class="n">${ans.abs[k]!=null?inr(ans.abs[k]):"–"}</td><td class="n">${inr(me.abs[k])}</td></tr>`).join("")+`</tbody></table></div>`:""}
+    ${ans.issues?`<h3>Where the original may be wrong</h3><div class="box bad">${fmt(ans.issues)}</div><p class="muted small">A difference on these items may mean you were right.</p>`:""}
+    ${ans.approach?`<h3>How the original was built</h3><div class="txt">${fmt(ans.approach)}</div>`:""}
+    ${ans.sld?`<h3>The original SLD</h3><div class="txt">${fmt(ans.sld)}</div><p class="muted small">Compare with your SLD in Line Survey.</p>`:""}
+    <h3>Original estimate</h3><div class="txt">${esc(ans.title||"")}${ans.ref?" · "+esc(ans.ref):""}${ans.link?` · <a href="${esc(ans.link)}" target="_blank" rel="noopener" style="color:var(--accent)">open in Drive</a>`:""}</div>
+    <h3>Your notes</h3><textarea id="note" placeholder="What you missed, what to remember next time…">${esc(p.note||"")}</textarea>`;
+  $("note").addEventListener("change",()=>setProg(cur,{note:$("note").value}));
+  if(save)setProg(cur,{st:"checked",score,myP:me.abs.P});}
+
+document.addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
+  if(b.dataset.id){cur=b.dataset.id;renderTask()}
+  else if(b.id==="bk"){cur=null;renderList();window.scrollTo({top:0})}
+  else if(b.id==="start")start();
+  else if(b.id==="open")openProj();
+  else if(b.id==="check"){check(true);const r=$("result");if(r&&r.firstElementChild)r.scrollIntoView({behavior:"smooth",block:"start"})}
+  else if(b.id==="retry")pull()});
+window.addEventListener("kvsync",()=>{if(!cur)renderList()});
+
+/* ---------- Drive feed ---------- */
+function parseCSV(t){const rows=[];let r=[],f="",q=false;
+  for(let i=0;i<t.length;i++){const c=t[i];
+    if(q){if(c==='"'){if(t[i+1]==='"'){f+='"';i++}else q=false}else f+=c}
+    else if(c==='"')q=true;else if(c===","){r.push(f);f=""}else if(c==="\n"||c==="\r"){if(c==="\r"&&t[i+1]==="\n")i++;r.push(f);rows.push(r);r=[];f=""}else f+=c}
+  if(f!==""||r.length){r.push(f);rows.push(r)}return rows}
+const syncMsg=h=>{$("sync").innerHTML=h};
+async function pull(){
+  const P=window.PosDrive;if(!P){syncMsg("Offline copy");return}
+  if(!P.connected()){syncMsg(`Drive not connected · <a href="./#travel">connect in Travel Trace</a>`);return}
+  syncMsg("Checking Drive…");
+  try{
+    let id=fileIds.feed;
+    if(!id){const f=await P.find({pos:"est-practice-feed"});id=f[0]&&f[0].id;
+      if(!id)id=(await P.create("root","Estimate Practice feed","application/vnd.google-apps.spreadsheet",{pos:"est-practice-feed"})).id;
+      fileIds.feed=id;jset("est-practice-files",fileIds)}
+    let csv;try{csv=await P.exportText(id,"text/csv")}catch(e){delete fileIds.feed;jset("est-practice-files",fileIds);throw e}
+    const got=[];parseCSV(csv).forEach((r,k)=>{if(k===0&&/^id$/i.test((r[0]||"").trim()))return;const raw=(r[3]||"").trim();if(!raw)return;
+      try{const T=JSON.parse(raw);T.id=T.id||(r[0]||"").trim();T.date=T.date||(r[1]||"").trim();T.title=T.title||(r[2]||"").trim();if(T.id&&T.title)got.push(T)}catch(e){console.warn("Practice row "+(k+1)+" is not valid JSON")}});
+    tasks=got;jset("est-practice-cache",got);
+    syncMsg(`${got.length} task${got.length===1?"":"s"} · <button type="button" id="retry">refresh</button>`);
+    cur?renderTask():renderList();
+  }catch(e){console.warn("Estimate Practice Drive",e);syncMsg(`Drive: ${esc(e.message||e)} · <button type="button" id="retry">retry</button>`)}}
+
+try{const q=new URLSearchParams(location.search).get("t");if(q&&tasks.some(x=>x.id===q))cur=q}catch(e){}
+cur?renderTask():renderList();pull();
+</script>
+</body></html>
