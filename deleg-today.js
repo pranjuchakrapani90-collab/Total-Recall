@@ -35,6 +35,7 @@ css.textContent=".dlg{margin-top:14px;padding:12px;border:1px solid var(--tr-lin
 ".dlg .pc.on{background:var(--g);color:#fff}.dlg .pc.on i{background:#fff}.dlg .pc.on small{color:#ffffffcc}"+
 ".dlg .pc.add{border-style:dashed;border-color:#9a978e;color:#6b6a64}"+
 ".dlg .nw{display:grid;grid-template-columns:1fr 104px auto;gap:7px;margin-top:9px}.dlg .nw button{border:0;border-radius:10px;background:var(--tr-acc,#4f46e5);color:#fff;font:650 13px system-ui,sans-serif;padding:0 14px;cursor:pointer}"+
+".recallPane{display:flex;flex-direction:column;gap:12px}.recallPane[hidden]{display:none}.recallHead{display:flex;align-items:center;gap:10px}.recallHead b{flex:1;font-size:16px}"+
 ".respApps{display:grid;grid-template-columns:repeat(2,84px);gap:6px 22px;justify-content:start;padding:4px 2px}.respApps a.app span{font-size:12.5px}"+
 ".dlgLink{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;padding:12px 14px;border:1px solid var(--tr-line,#e6e3db);border-radius:12px;background:var(--tr-paper,#fff);text-decoration:none;color:var(--tr-ink,#1c1b19);font-weight:650}"+
 "#done .dlgLink{text-align:left;margin:4px 0 14px}"+
@@ -81,7 +82,12 @@ function summary(){document.querySelectorAll(".dlgLink").forEach(function(a){a.i
 function addLink(parent,before){if(!parent)return;var a=document.createElement("a");a.className="dlgLink";a.href="delegation.html";a.innerHTML=linkHtml();
   if(before)parent.insertBefore(a,before);else parent.appendChild(a);}
 /* the two app tiles in Today's Tasks: Responsibility Recall (loads today's undelegated tasks) and Delegation */
-var rec=$("appRecall");if(rec)rec.addEventListener("click",function(e){e.preventDefault();var s=$("startResp");if(s)s.click()});
+/* Task Recall opens its own pane (tag-wise tasks inside it); "← Today's Tasks" goes back to the two icons */
+function recallOpen(on){var p=$("recallPane"),apps=document.querySelector(".respApps");if(p)p.hidden=!on;if(apps)apps.style.display=on?"none":"";try{sessionStorage.setItem("trRecallOpen",on?"1":"")}catch(e){}}
+var rec=$("appRecall");if(rec)rec.addEventListener("click",function(e){e.preventDefault();recallOpen(true);var s=$("startResp");if(s)s.click()});
+var rb=$("recallBack");if(rb)rb.onclick=function(){recallOpen(false)};
+var rr=$("recallRefresh");if(rr)rr.onclick=function(){var s=$("startResp");if(s)s.click()};
+try{if(sessionStorage.getItem("trRecallOpen")&&location.hash==="#resp"){recallOpen(true);setTimeout(function(){var s=$("startResp");if(s)s.click()},0)}}catch(e){}
 window.addEventListener("tr-today",function(e){var b=$("bRecall");if(!b)return;var n=(e.detail&&e.detail.count)||0;b.hidden=!n;b.textContent=n>99?"99+":n});
 function sessionOpen(){var s=$("session");return s&&!s.classList.contains("hidden")}
 function refilter(){if(!sessionOpen()&&window.TRToday&&window.TRToday.refilter)window.TRToday.refilter()}

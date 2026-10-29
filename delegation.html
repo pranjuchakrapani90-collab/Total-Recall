@@ -115,7 +115,7 @@ input,select{font:inherit;width:100%;padding:10px 12px;border:1px solid var(--tr
 .tfIn{max-width:640px;margin:0 auto}
 .tfTop{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
 .tfTop .btn{padding:7px 12px;font-size:13px}
-.tfCard{height:min(430px,calc(100vh - 230px));min-height:320px;perspective:1200px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.tfCard{height:calc(100dvh - 205px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));min-height:300px;perspective:1200px;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .tfInner{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .5s ease}
 .tfCard.flipped .tfInner{transform:rotateY(180deg)}
 .tfFace{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:20px;background:var(--tr-paper);border:1px solid var(--tr-line);border-top:4px solid var(--g);box-shadow:var(--tr-shadow);overflow:hidden}
@@ -126,7 +126,7 @@ input,select{font:inherit;width:100%;padding:10px 12px;border:1px solid var(--tr
 .tfSrc{position:absolute;top:14px;right:14px;font-size:11px;font-weight:600;color:var(--g);border:1px solid var(--g);border-radius:999px;padding:3px 9px;opacity:.85}
 .tfCounter{font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--tr-muted)}
 .tfKw{margin-top:14px;font-size:15px;font-weight:700;color:var(--g)}
-.tfName{margin-top:6px;font-size:26px;font-weight:800;line-height:1.2;word-break:break-word}
+.tfName{margin-top:6px;font-size:28px;max-width:100%;font-weight:800;line-height:1.2;word-break:break-word}
 .tfName.dn{text-decoration:line-through;color:var(--tr-muted)}
 .tfHint{margin-top:12px;font-size:13px;color:var(--tr-muted)}
 .tfActs{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
@@ -148,6 +148,21 @@ input,select{font:inherit;width:100%;padding:10px 12px;border:1px solid var(--tr
 .taskAttachmentName{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.taskAttachmentSize{font-size:12px;color:#8a929e}
 .taskEmpty{color:var(--tr-muted);font-size:13px}
 .taskFooter{padding:10px 16px;border-top:1px solid var(--tr-line);font-size:12px;color:var(--tr-muted)}
+
+/* ---------- one member at a time, full screen ---------- */
+.mflash{position:fixed;inset:0;z-index:35;background:var(--tr-bg);display:flex;flex-direction:column;padding:calc(10px + env(safe-area-inset-top,0px)) 14px calc(14px + env(safe-area-inset-bottom,0px))}
+.mflash[hidden]{display:none}
+.mfTop{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.mfTop .btn{padding:7px 11px;font-size:13px;text-decoration:none;white-space:nowrap}
+.mfCount{text-align:center;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--tr-muted)}
+.mfCount small{display:block;font-weight:600;letter-spacing:0;text-transform:none;font-size:11px}
+.mfCard{flex:1;min-height:0;max-width:720px;width:100%;margin:0 auto;touch-action:pan-y}
+.mfCard .fc{height:100%;overflow:hidden;display:flex;flex-direction:column;padding:12px 12px 16px}
+.mfCard .map{flex:1;gap:16px 10px;align-content:center}
+.mfCard .hub{font-size:calc(var(--cf,15px) + 6px);min-width:110px;min-height:72px;max-width:150px}
+.mfCard .chip{word-break:normal;overflow-wrap:normal;overflow:hidden;font-size:var(--cf,15px);padding:calc(var(--cf,15px)*.5) calc(var(--cf,15px)*.8)}
+.mflash .tfNav{max-width:720px;width:100%;margin:12px auto 0}
+.tfCard{touch-action:pan-y}
 </style>
 <link rel="stylesheet" href="tr-theme.css?v=20261020">
 </head><body>
@@ -157,6 +172,8 @@ input,select{font:inherit;width:100%;padding:10px 12px;border:1px solid var(--tr
   <p class="eyebrow" style="margin:0 0 12px;font-size:13px">Member-wise pendency · tasks are given from Today's Tasks</p>
 </div></header>
 <main><section id="cards"></section></main>
+<div class="mflash" id="mflash" hidden><div class="mfTop" id="mfTop"></div><div class="mfCard" id="mfCard"></div>
+  <div class="tfNav"><button class="btn" type="button" id="mfPrev">← Back</button><button class="btn pri" type="button" id="mfNext">Next →</button></div></div>
 <div class="tflash" id="tflash" hidden><div class="tfIn"><div class="tfTop" id="tfTop"></div>
   <div class="tfCard" id="tfCard"><div class="tfInner"><div class="tfFace tfFront" id="tfFront"></div><div class="tfFace tfBackFace"><div class="tfReveal" id="tfReveal"></div><div class="tfFlipHint">Tap to flip back</div></div></div></div>
   <div class="tfActs" id="tfActs"></div>
@@ -200,7 +217,7 @@ async function fetchOpen(){try{const r=await fetch(wurl("mode=wa-review&list=tas
 const closedTT=(id,a)=>loaded&&!openIds.has(id)&&!openTitles.has(tkey(a.t));
 /* ---------- cards ---------- */
 let lastNew=null,filterG="all",fi=0;
-const isDone=(id,a)=>!!a.d||closedTT(id,a);
+const isDone=(id,a)=>a.d===todayIST()||closedTT(id,a);
 function tasksOf(pid){return Object.entries(D.assign).filter(([,a])=>a.p===pid).map(([id,a])=>({id,...a})).sort((a,b)=>a.at-b.at);}
 function openCount(pid){return tasksOf(pid).filter(a=>!isDone(a.id,a)).length;}
 function layout(items){/* top one, then right, left, bottom, then the sides take turns; overflow goes to the top and bottom rows */
@@ -221,25 +238,53 @@ function renderCards(){const el=$("cards"),show=!!D.prefs.showDone,view=D.prefs.
   /* members with something delegated, most pending first */
   const ppl=peopleSorted().filter(p=>(filterG==="all"||p.g===filterG)&&tasksOf(p.id).length).map(p=>({...p,items:tasksOf(p.id).filter(a=>show||!isDone(a.id,a))}))
     .sort((a,b)=>openCount(b.id)-openCount(a.id)||a.name.localeCompare(b.name));
-  if(!ppl.length){h+=`<div class="nocards">Nothing delegated${filterG!=="all"?" in this group":""} yet. In Today's Tasks, open a task card and tap a name under it — that member's card builds up here.</div>`;el.innerHTML=h;bindTools(el);return;}
-  if(view==="one"){fi=Math.min(Math.max(fi,0),ppl.length-1);
-    h+=`<div class="fnav"><span>Member ${fi+1} of ${ppl.length}</span><span>${ppl.reduce((n,p)=>n+openCount(p.id),0)} pending in all</span></div>
-      <div class="flashwrap" id="flashwrap">${cardHtml(ppl[fi])}</div>
-      <div class="fbtns"><button class="btn" type="button" id="fPrev" ${fi?"":"disabled"}>← Back</button><button class="btn pri" type="button" id="fNext" ${fi<ppl.length-1?"":"disabled"}>Next →</button></div>`;}
-  else h+='<div class="deck">'+ppl.map(cardHtml).join("")+"</div>";
-  el.innerHTML=h;lastNew=null;bindTools(el);
-  const pv=$("fPrev"),nx=$("fNext");if(pv)pv.onclick=()=>{fi--;render()};if(nx)nx.onclick=()=>{fi++;render()};
-  const fw=$("flashwrap");if(fw){let x0=null;fw.addEventListener("touchstart",e=>{x0=e.touches[0].clientX},{passive:true});
-    fw.addEventListener("touchend",e=>{if(x0==null)return;const dx=e.changedTouches[0].clientX-x0;x0=null;if(Math.abs(dx)<60)return;if(dx<0&&fi<ppl.length-1){fi++;render()}else if(dx>0&&fi>0){fi--;render()}},{passive:true});}
-  el.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{const c=b.closest("[data-card]");openFlash(c?c.dataset.card:(D.assign[b.dataset.t]||{}).p,b.dataset.t)});
-  el.querySelectorAll("[data-person]").forEach(b=>b.onclick=()=>personSheet(b.dataset.person));
-  el.querySelectorAll("[data-share]").forEach(b=>b.onclick=()=>share(b.dataset.share));
-  requestAnimationFrame(drawLines);}
+  if(!ppl.length){h+=`<div class="nocards">Nothing delegated${filterG!=="all"?" in this group":""} yet. In Today's Tasks, open a task card and tap a name under it — that member's card builds up here.</div>`;}
+  else if(view==="all")h+='<div class="deck">'+ppl.map(cardHtml).join("")+"</div>";
+  el.innerHTML=h;bindTools(el);bindCards(el);
+  /* one by one: each member's card fills the screen, swipe or Back/Next to move */
+  const mf=$("mflash");MF.n=ppl.length;
+  if(view==="one"&&ppl.length){fi=Math.min(Math.max(fi,0),ppl.length-1);
+    const pend=ppl.reduce((n,p)=>n+openCount(p.id),0);
+    $("mfTop").innerHTML=`<a class="btn" href="./#resp">← Today's Tasks</a><span class="mfCount">Member ${fi+1} of ${ppl.length}<small>${pend} pending in all</small></span><button class="btn" type="button" id="mfAll">All cards</button>`;
+    $("mfCard").innerHTML=cardHtml(ppl[fi]);$("mfPrev").disabled=!fi;$("mfNext").disabled=fi>=ppl.length-1;
+    $("mfAll").onclick=()=>{D.prefs.view="all";save();render()};
+    mf.hidden=false;document.body.style.overflow="hidden";bindCards(mf);
+  }else{mf.hidden=true;if($("tflash").hidden)document.body.style.overflow="";}
+  lastNew=null;requestAnimationFrame(()=>{if(!mf.hidden)fitMember();drawLines()});}
+const MF={n:0};
+function bindCards(root){root.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{const c=b.closest("[data-card]");openFlash(c?c.dataset.card:(D.assign[b.dataset.t]||{}).p,b.dataset.t)});
+  root.querySelectorAll("[data-person]").forEach(b=>b.onclick=()=>personSheet(b.dataset.person));
+  root.querySelectorAll("[data-share]").forEach(b=>b.onclick=()=>share(b.dataset.share));}
+/* shrink the task bubbles until the whole card fits the screen */
+function fitMember(){const fc=$("mfCard").querySelector(".fc");if(!fc)return;let f=15;fc.style.setProperty("--cf",f+"px");
+  const over=()=>fc.scrollHeight>fc.clientHeight+1||[...fc.querySelectorAll(".chip")].some(c=>c.scrollWidth>c.clientWidth+1);
+  while(f>10&&over()){f-=.5;fc.style.setProperty("--cf",f+"px");}
+  if(over())fc.querySelectorAll(".chip").forEach(c=>c.style.overflowWrap="anywhere");}
+/* shrink a title until it fits its card */
+function fitText(box,el,max,min){let f=max;el.style.fontSize=f+"px";while(f>min&&box.scrollHeight>box.clientHeight+1){f-=1;el.style.fontSize=f+"px";}}
+$("mfPrev").onclick=()=>{if(fi>0){fi--;render()}};$("mfNext").onclick=()=>{if(fi<MF.n-1){fi++;render()}};
+(()=>{let x0=null,y0=0;const c=$("mfCard");c.addEventListener("touchstart",e=>{x0=e.touches[0].clientX;y0=e.touches[0].clientY},{passive:true});
+  c.addEventListener("touchend",e=>{if(x0==null)return;const dx=e.changedTouches[0].clientX-x0,dy=e.changedTouches[0].clientY-y0;x0=null;if(Math.abs(dx)<60||Math.abs(dy)>Math.abs(dx))return;
+    if(dx<0&&fi<MF.n-1){fi++;render()}else if(dx>0&&fi>0){fi--;render()}},{passive:true});})();
+
+/* ---------- done for the day: the app marks it, and TickTick moves a repeating task to its next date ---------- */
+const todayIST=()=>new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Kolkata",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+const fmtDay=iso=>{try{return new Date(iso+"T12:00:00").toLocaleDateString("en-IN",{day:"numeric",month:"short"})}catch(e){return iso}};
+async function markDone(id){const a=D.assign[id];if(!a)return;
+  if(a.d===todayIST()){delete a.d;save();render();toast("Back to pending here — TickTick is not changed back",3000);return}
+  a.d=todayIST();save();render();
+  const pj=a.pj||projById[id];if(!pj){toast("Done for today",2000);return}
+  try{const r=await fetch(wurl("mode=deleg-done"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({projectId:pj,taskId:id})});
+    const d=await r.json().catch(()=>({}));if(!r.ok||d.error)throw new Error(d.error||("HTTP "+r.status));
+    toast(d.completed?"Done for today · TickTick moved it to "+(d.next?fmtDay(d.next):"its next date"):
+      d.reason==="not-repeating"?"Done for today · not a repeating task, so TickTick is left as it is":
+      d.reason==="already-done-today"?"Done for today · TickTick already shows it done today":"Done for today",3200);
+  }catch(e){toast("Done here, but TickTick couldn't be updated: "+(e.message||e),3600)}}
 function bindTools(el){el.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{filterG=b.dataset.g;fi=0;render()});
   el.querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>{D.prefs.view=b.dataset.v;save();render()});
   $("showDone").onchange=e=>{D.prefs.showDone=e.target.checked?1:0;save();render()};
   $("newPerson").onclick=()=>personSheet(null);}
-function drawLines(){document.querySelectorAll("#cards .map").forEach(m=>{const svg=m.querySelector("svg"),hub=m.querySelector(".hub");if(!svg||!hub)return;
+function drawLines(){document.querySelectorAll(".map").forEach(m=>{const svg=m.querySelector("svg"),hub=m.querySelector(".hub");if(!svg||!hub)return;
   const R=m.getBoundingClientRect(),H=hub.getBoundingClientRect(),cx=H.left+H.width/2-R.left,cy=H.top+H.height/2-R.top;
   svg.setAttribute("viewBox",`0 0 ${R.width} ${R.height}`);
   svg.innerHTML=[...m.querySelectorAll(".chip")].map(c=>{const r=c.getBoundingClientRect();return `<line x1="${cx}" y1="${cy}" x2="${r.left+r.width/2-R.left}" y2="${r.top+r.height/2-R.top}"/>`}).join("");});}
@@ -259,12 +304,12 @@ function taskSheet(id){const a=D.assign[id];if(!a)return;const p=D.people[a.p]||
   const others=peopleSorted().filter(x=>x.id!==a.p);
   openSheet(`<div class="meta">${esc(a.pr||"TickTick")} · given to ${esc(p.name)} on ${esc(fmtDate(a.at))}${tt?" · completed in TickTick":""}</div><h3>${esc(a.t)}</h3>
     <label class="lbl" for="sk">Keyword on the card</label><input id="sk" value="${esc(a.k||"")}" maxlength="40">
-    <div class="row2"><button class="btn pri" id="sSave" type="button">Save</button>${tt?"":`<button class="btn" id="sDone" type="button">${a.d?"Mark not done":"✓ Mark done"}</button>`}</div>
+    <div class="row2"><button class="btn pri" id="sSave" type="button">Save</button>${tt?"":`<button class="btn" id="sDone" type="button">${a.d===todayIST()?"Mark not done":"✓ Done for today"}</button>`}</div>
     ${others.length?`<span class="lbl">Move to</span><div class="people">${others.map(x=>`<button type="button" class="pchip" data-mv="${esc(x.id)}" style="--g:${(GROUPS[x.g]||GROUPS.other).c}"><i></i>${esc(x.name)}</button>`).join("")}</div>`:""}
     <div class="row2" style="margin-top:18px"><button class="btn danger" id="sBack" type="button">Remove from card</button><span style="flex:1"></span><button class="btn ghost" id="sClose" type="button">Close</button></div>`,s=>{
       const sk=s.querySelector("#sk");
       s.querySelector("#sSave").onclick=()=>{a.k=sk.value.trim()||shortKw(a.t);save();closeSheet();render()};
-      const dn=s.querySelector("#sDone");if(dn)dn.onclick=()=>{if(a.d)delete a.d;else a.d=1;a.k=sk.value.trim()||a.k;save();closeSheet();render()};
+      const dn=s.querySelector("#sDone");if(dn)dn.onclick=()=>{a.k=sk.value.trim()||a.k;save();closeSheet();markDone(id)};
       s.querySelectorAll("[data-mv]").forEach(b=>b.onclick=()=>{a.p=b.dataset.mv;a.k=sk.value.trim()||a.k;D.people[a.p].u=Date.now();lastNew=id;save();closeSheet();render();toast("Moved to "+D.people[a.p].name)});
       s.querySelector("#sBack").onclick=()=>{delete D.assign[id];save();closeSheet();render();toast("Removed from the card")};
       s.querySelector("#sClose").onclick=closeSheet;});}
@@ -285,8 +330,8 @@ function personSheet(pid){const p=pid?D.people[pid]:null,n=pid?tasksOf(pid).leng
 /* ---------- a task opens as a flash card, like Today's Tasks: tap to flip for its TickTick details ---------- */
 let TF=null;/* {pid, ids:[taskId…], i} */
 function openFlash(pid,id){const ids=tasksOf(pid).filter(a=>D.prefs.showDone||!isDone(a.id,a)||a.id===id).map(a=>a.id);
-  TF={pid,ids,i:Math.max(0,ids.indexOf(id))};drawFlash();$("tflash").hidden=false;document.body.style.overflow="hidden";}
-function closeFlash(){$("tflash").hidden=true;document.body.style.overflow="";TF=null;render();}
+  TF={pid,ids,i:Math.max(0,ids.indexOf(id))};$("tflash").hidden=false;drawFlash();document.body.style.overflow="hidden";}
+function closeFlash(){$("tflash").hidden=true;TF=null;render();}
 function drawFlash(){if(!TF)return;const p=D.people[TF.pid];TF.ids=TF.ids.filter(id=>D.assign[id]);
   if(!p||!TF.ids.length){closeFlash();return}TF.i=Math.min(TF.i,TF.ids.length-1);
   const id=TF.ids[TF.i],a=D.assign[id],g=GROUPS[p.g]||GROUPS.other,dn=isDone(id,a);
@@ -295,11 +340,12 @@ function drawFlash(){if(!TF)return;const p=D.people[TF.pid];TF.ids=TF.ids.filter
   $("tfFront").innerHTML=`<span class="tfSrc">${esc(a.pr||"TickTick")}</span><div class="tfCounter">${esc(p.name)} • TASK ${TF.i+1} OF ${TF.ids.length}</div>
     <div class="tfKw">${esc(a.k||shortKw(a.t))}</div><div class="tfName${dn?" dn":""}">${esc(a.t)}</div>
     <div class="tfHint">${dn?"✓ Done · ":""}Given ${esc(fmtDate(a.at))} · tap for details</div>`;
+  requestAnimationFrame(()=>{const f=$("tfFront"),n=f.querySelector(".tfName");if(n)fitText(f,n,28,13)});
   $("tfReveal").innerHTML='<div class="taskBody"><div class="taskEmpty">Loading the latest details from TickTick…</div></div>';
-  $("tfActs").innerHTML=`<button class="btn" type="button" id="tfDone">${a.d?"Mark not done":(closedTT(id,a)?"✓ Done in TickTick":"✓ Mark done")}</button><button class="btn" type="button" id="tfMore">Move / edit</button>`;
+  $("tfActs").innerHTML=`<button class="btn" type="button" id="tfDone">${a.d===todayIST()?"Mark not done":(closedTT(id,a)?"✓ Done in TickTick":"✓ Done for today")}</button><button class="btn" type="button" id="tfMore">Move / edit</button>`;
   $("tfBack").disabled=TF.i===0;$("tfNext").disabled=TF.i>=TF.ids.length-1;
   $("tfClose").onclick=closeFlash;
-  const dbt=$("tfDone");if(closedTT(id,a)&&!a.d)dbt.disabled=true;dbt.onclick=()=>{if(a.d)delete a.d;else a.d=1;save();drawFlash();toast(a.d?"Marked done":"Back to pending")};
+  const dbt=$("tfDone");if(closedTT(id,a)&&a.d!==todayIST())dbt.disabled=true;dbt.onclick=()=>markDone(id);
   $("tfMore").onclick=()=>taskSheet(id);
   TF.loaded=null;}
 async function revealFlash(){if(!TF)return;const id=TF.ids[TF.i],a=D.assign[id];if(!a||TF.loaded===id)return;TF.loaded=id;
@@ -336,8 +382,8 @@ document.addEventListener("keydown",e=>{if(!TF||!$("scrim").hidden)return;if(e.k
 
 /* ---------- shell ---------- */
 function render(){renderCards();if(TF&&!$("tflash").hidden)drawFlash();}
-let tt=0;function toast(m){let t=document.querySelector(".toast");if(!t){t=document.createElement("div");t.className="toast";document.body.appendChild(t)}
-  t.textContent=m;t.style.opacity=1;clearTimeout(tt);tt=setTimeout(()=>t.style.opacity=0,1600);}
+let tt=0;function toast(m,ms){let t=document.querySelector(".toast");if(!t){t=document.createElement("div");t.className="toast";document.body.appendChild(t)}
+  t.textContent=m;t.style.opacity=1;clearTimeout(tt);tt=setTimeout(()=>t.style.opacity=0,ms||1600);}
 /* the other phone delegated something: take the change in place */
 window.addEventListener("kvsync",e=>{if((e.detail||[]).indexOf(KEY)<0)return;D=load();if($("scrim").hidden)render();});
 window.addEventListener("storage",e=>{if(e.key===KEY){D=load();if($("scrim").hidden)render();}});

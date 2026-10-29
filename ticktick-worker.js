@@ -438,6 +438,29 @@ async function handleSync(request,env){
    Pranju OS lists them (GET ?mode=wa-review) and, per item, approves it into its destination project with the
    edited title/tags/date/notes (POST action=approve) or discards it (POST action=discard).
    Writes only ever touch tasks that are inside the WA REVIEW project. */
+/* Delegation (Pranju OS, 29 Oct 2026): a delegated task marked done in the app is done FOR THE DAY in TickTick.
+   POST ?mode=deleg-done {projectId, taskId}
+   - repeating task due today or earlier -> TickTick's complete, which moves it to its next date (that day it shows as usual)
+   - repeating task already moved past today -> nothing (already done today)
+   - task without a repeat -> nothing: closing a task for good stays his own step inside TickTick */
+async function handleDelegDone(request,env,origin){
+  const json=(o,st)=>new Response(JSON.stringify(o),{status:st||200,headers:{...corsHeaders(origin),'Content-Type':'application/json'}});
+  const token=env.TICKTICK_ACCESS_TOKEN;if(!token)return json({error:'TICKTICK_ACCESS_TOKEN secret is not configured'},500);
+  if(request.method!=='POST')return json({error:'Method not allowed'},405);
+  let body={};try{body=await request.json()}catch(_){return json({error:'Invalid JSON'},400)}
+  const pid=String(body.projectId||''),tid=String(body.taskId||'');if(!pid||!tid)return json({error:'projectId and taskId are required'},400);
+  const tz=env.TIME_ZONE||'Asia/Kolkata',today=todayInZone(tz);
+  const t=await tick('/project/'+encodeURIComponent(pid)+'/task/'+encodeURIComponent(tid),token);
+  if(!t||!t.id)return json({error:'Task not found in TickTick'},404);
+  if(t.status)return json({ok:true,completed:false,reason:'closed'});
+  if(!t.repeatFlag)return json({ok:true,completed:false,reason:'not-repeating'});
+  const due=dateInZone(t.dueDate||t.startDate||'',tz);
+  if(due&&due>today)return json({ok:true,completed:false,reason:'already-done-today',next:due});
+  const r=await fetch(API+'/project/'+encodeURIComponent(pid)+'/task/'+encodeURIComponent(tid)+'/complete',{method:'POST',headers:{Authorization:'Bearer '+token}});
+  if(!r.ok)return json({error:'TickTick refused to complete it (HTTP '+r.status+')'},502);
+  let next='';try{const t2=await tick('/project/'+encodeURIComponent(pid)+'/task/'+encodeURIComponent(tid),token);next=dateInZone(t2&&(t2.dueDate||t2.startDate)||'',tz)}catch(_){}
+  return json({ok:true,completed:true,next});
+}
 const WA_PROJECT='wa review';
 const WA_TARGETS=['inbox','reference','schedule','projects','checklists'];
 function waMeta(content){const s=String(content||'');const line=(s.match(/\[wa\][^\n]*$/i)||[''])[0];const g=k=>{const m=line.match(new RegExp('(?:^|\\s)'+k+'=([^\\s]+)','i'));if(!m)return '';try{return decodeURIComponent(m[1])}catch(_){return m[1]}};const t=g('target'),r=g('repeat');
@@ -535,6 +558,7 @@ export default {async fetch(request,env){const origin=request.headers.get('Origi
  if(url.pathname==='/sync'||url.searchParams.get('mode')==='sync'){try{return await handleSync(request,env)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.searchParams.get('mode')==='nav'){try{return await handleNav(request)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.searchParams.get('mode')==='quotes'||url.pathname==='/quotes'){try{return await handleQuotes(request)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
+ if(url.searchParams.get('mode')==='deleg-done'){try{return await handleDelegDone(request,env,origin)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.searchParams.get('mode')==='money-review'||url.pathname==='/money-review'){try{return await handleMoneyReview(request,env,origin)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.searchParams.get('mode')==='wa-review'||url.pathname==='/wa-review'){try{return await handleWaReview(request,env,origin)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.searchParams.get('mode')==='live'||url.searchParams.get('mode')==='live-log'){try{return await handleLive(request,env,origin)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}

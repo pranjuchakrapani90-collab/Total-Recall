@@ -134,10 +134,11 @@ a.app.folder i{background:linear-gradient(150deg,#6d6af0 0%,#4f46e5 48%,#3c32c4 
   <a class="tvback" href="#">← Home</a>
   <div class="panel tool" id="cardResp">
     <h3>Today's Tasks</h3>
-    <div class="respApps"><a class="app" href="#resp" id="appRecall"><i><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 9l2 2 4-4M8 15.5h8"/></svg><b class="badge" id="bRecall" hidden></b></i><span>Responsibility Recall</span></a><a class="app" href="delegation.html" id="appDeleg"><i><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.3"/><circle cx="4.5" cy="5" r="1.9"/><circle cx="19.5" cy="5" r="1.9"/><circle cx="4.5" cy="19" r="1.9"/><circle cx="19.5" cy="19" r="1.9"/><path d="M9.6 9.7 6 6.4M14.4 9.7 18 6.4M9.6 14.3 6 17.6M14.4 14.3 18 17.6"/></svg><b class="badge" id="bDeleg" hidden></b></i><span>Delegation</span></a></div>
+    <div class="respApps"><a class="app" href="#resp" id="appRecall"><i><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 9l2 2 4-4M8 15.5h8"/></svg><b class="badge" id="bRecall" hidden></b></i><span>Task Recall</span></a><a class="app" href="delegation.html" id="appDeleg"><i><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.3"/><circle cx="4.5" cy="5" r="1.9"/><circle cx="19.5" cy="5" r="1.9"/><circle cx="4.5" cy="19" r="1.9"/><circle cx="19.5" cy="19" r="1.9"/><path d="M9.6 9.7 6 6.4M14.4 9.7 18 6.4M9.6 14.3 6 17.6M14.4 14.3 18 17.6"/></svg><b class="badge" id="bDeleg" hidden></b></i><span>Delegation</span></a></div>
     <div class="row" style="display:none"><button id="startResp">Refresh TickTick &amp; start ▸</button></div>
+    <div id="recallPane" class="recallPane" hidden><div class="recallHead"><button type="button" class="secondary small" id="recallBack">← Today's Tasks</button><b>Task Recall</b><button type="button" class="secondary small" id="recallRefresh" title="Reload today's tasks from TickTick">↻</button></div>
     <div id="tickStatus" class="smart">TickTick tasks load when you start.</div>
-    <div id="responsibilityTags" class="row tags"></div>
+    <div id="responsibilityTags" class="row tags"></div></div>
   </div>
   <div class="panel tool" id="cardPeople">
     <h3>People Recall</h3>
@@ -331,7 +332,7 @@ function draw(){
   if(mode==='resp'){
     var arr=taskGroups[p.key]||[];
     $('card').textContent=sub?(arr[subIdx]&&arr[subIdx].title||'Task'):p.name;
-    $('counter').textContent=sub?p.name+' • TASK '+(subIdx+1)+' OF '+arr.length:'RESPONSIBILITY '+(idx+1)+' OF '+cards.length;
+    $('counter').textContent=sub?p.name+' • TASK '+(subIdx+1)+' OF '+arr.length:'TASK RECALL '+(idx+1)+' OF '+cards.length;
     $('progress').textContent=(idx+1)+' / '+cards.length+(sub?' • task '+(subIdx+1)+' / '+arr.length:'');
     $('hint').textContent=sub?(arr[subIdx]&&arr[subIdx].due?'Due '+arr[subIdx].due:"Today’s TickTick task"):(arr.length?arr.length+' TickTick task'+(arr.length===1?'':'s')+' • click to open them':'No TickTick tasks tagged to this responsibility today');
     if(sub&&arr[subIdx]&&arr[subIdx].tags){$('source').textContent='TickTick • '+arr[subIdx].tags.join(', ');show('source')}
@@ -1390,7 +1391,7 @@ window.TRToday.refilter=function(){try{var D=JSON.parse(localStorage.getItem('de
 <script src="cinematic-review.js"></script>
 <script src="plan.js?v=20261025"></script>
 <script src="wa-review.js?v=20261028d"></script>
-<script src="deleg-today.js?v=20261029d"></script>
+<script src="deleg-today.js?v=20261029e"></script>
 <script>
 /* home: the app grid. Badges from this phone's saved data; #resp, #people, #done, #ref open a tool, the back gesture returns. */
 (function(){"use strict";
