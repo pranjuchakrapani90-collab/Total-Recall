@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="kvsync.js?v=20261029n"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
+<title>Delegation · Pranju OS</title>
+<link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="icon" href="icon-192.png" sizes="192x192"><link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+/* Delegation (29 Oct 2026): review open TickTick tasks one by one, give each to a person,
+   and every person becomes a flash card — their name in the middle, their tasks around it,
+   the way he draws them in his diary. Data lives in localStorage "deleg", synced by kvsync.js. */
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100vh}
+body>header{padding:calc(10px + env(safe-area-inset-top,0px)) 16px 0;position:sticky;top:0;z-index:20}
+.hin{max-width:1100px;margin:0 auto}
+.backlink{font-size:13px;text-decoration:none}
+h1{margin:4px 0 8px;font-size:22px}
+.tabs{display:flex;gap:4px}
+.tabs button{flex:1;max-width:180px;border:0;background:transparent;color:var(--tr-head-mute);font:650 14px system-ui,sans-serif;padding:10px 6px 11px;border-bottom:3px solid transparent;margin-bottom:-3px;cursor:pointer}
+.tabs button.on{color:var(--tr-head-ink);border-bottom-color:var(--tr-head-ink)}
+.tabs b{font-weight:600;font-size:12px;opacity:.75;margin-left:4px}
+main{max-width:1100px;margin:0 auto;padding:16px 16px 90px}
+.muted{color:var(--tr-muted)}
+.err{background:#fdf0ee;color:#8a1f11;border-radius:12px;padding:12px 14px;margin-bottom:12px}
+.btn{border:1px solid var(--tr-line);background:var(--tr-paper);color:var(--tr-ink);border-radius:10px;padding:10px 14px;font:600 14px system-ui,sans-serif;cursor:pointer}
+.btn.pri{background:var(--tr-acc);border-color:var(--tr-acc);color:#fff}
+.btn.ghost{background:transparent}
+.btn.danger{color:#b42318;border-color:#f3c7c0}
+.btn:disabled{opacity:.45;cursor:default}
+input,select{font:inherit;width:100%;padding:10px 12px;border:1px solid var(--tr-line);border-radius:10px;background:#fff;color:var(--tr-ink)}
+
+/* ---------- review ---------- */
+.prog{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--tr-muted);margin-bottom:10px}
+.prog .bar{flex:1;height:6px;border-radius:9px;background:var(--tr-soft);overflow:hidden}
+.prog .bar i{display:block;height:100%;background:var(--tr-acc);border-radius:9px}
+.lists{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.lists button{border:1px solid var(--tr-line);background:var(--tr-paper);color:var(--tr-muted);border-radius:999px;padding:5px 11px;font:600 12px system-ui,sans-serif;cursor:pointer}
+.lists button.on{background:var(--tr-ink);border-color:var(--tr-ink);color:#fff}
+.rv{background:var(--tr-paper);border:1px solid var(--tr-line);border-radius:18px;box-shadow:var(--tr-shadow);padding:18px;max-width:640px}
+.rv .proj{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--tr-muted)}
+.rv .ttl{font-size:19px;font-weight:700;line-height:1.35;margin:6px 0 4px;word-break:break-word}
+.rv .tags{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px}
+.rv .tags span{font-size:11px;background:var(--tr-soft);color:var(--tr-muted);border-radius:6px;padding:2px 7px}
+.lbl{display:block;font-size:12px;font-weight:700;color:var(--tr-muted);margin:14px 0 6px}
+.people{display:flex;gap:8px;flex-wrap:wrap}
+.pchip{display:inline-flex;align-items:center;gap:7px;border:1.5px solid var(--g);background:#fff;color:var(--tr-ink);border-radius:999px;padding:9px 14px;font:650 14px system-ui,sans-serif;cursor:pointer}
+.pchip i{width:9px;height:9px;border-radius:50%;background:var(--g)}
+.pchip small{font-weight:600;color:var(--tr-muted);font-size:11px}
+.pchip:active{background:var(--tr-soft)}
+.pchip.add{border-style:dashed;border-color:var(--tr-muted);color:var(--tr-muted)}
+.newp{display:grid;grid-template-columns:1fr 120px auto;gap:8px;margin-top:10px}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px;padding-top:14px;border-top:1px solid var(--tr-line)}
+.acts .sp{flex:1}
+.done-all{text-align:center;padding:40px 16px;background:var(--tr-paper);border:1px solid var(--tr-line);border-radius:18px;max-width:640px}
+.done-all h2{margin:0 0 6px}
+.aside-link{margin-top:14px;font-size:13px}
+.aside-link button{border:0;background:none;color:var(--tr-acc-ink);font:600 13px system-ui,sans-serif;cursor:pointer;padding:0}
+
+/* ---------- cards ---------- */
+.ctools{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.ctools .sp{flex:1}
+.ctools label{font-size:13px;color:var(--tr-muted);display:flex;gap:6px;align-items:center}
+.ctools input[type=checkbox]{width:auto}
+.deck{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,460px),1fr));gap:14px}
+.fc{background:var(--tr-paper);border:1px solid var(--tr-line);border-top:4px solid var(--g);border-radius:18px;box-shadow:var(--tr-shadow);padding:10px 12px 14px;position:relative}
+.fc-h{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--tr-muted)}
+.fc-h .grp{font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--g)}
+.fc-h .sp{flex:1}
+.fc-h button{border:0;background:var(--tr-soft);color:var(--tr-ink);border-radius:8px;padding:5px 9px;font:600 12px system-ui,sans-serif;cursor:pointer}
+.map{position:relative;display:grid;grid-template-columns:1fr auto 1fr;grid-template-areas:"t t t" "l c r" "b b b";gap:14px 10px;align-items:center;padding:10px 0 2px;min-height:150px}
+.map svg.ln{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.map svg.ln line{stroke:var(--g);stroke-width:1.4;opacity:.55}
+.row{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.row.t{grid-area:t}.row.b{grid-area:b}
+.col{display:flex;flex-direction:column;gap:10px}
+.col.l{grid-area:l;align-items:flex-end}.col.r{grid-area:r;align-items:flex-start}
+.hub{grid-area:c;position:relative;z-index:1;border:2px solid var(--g);background:#fff;border-radius:50%;min-width:96px;max-width:130px;min-height:62px;padding:10px 14px;display:flex;align-items:center;justify-content:center;text-align:center;font:750 16px/1.15 system-ui,sans-serif;cursor:pointer;word-break:break-word}
+.chip{position:relative;z-index:1;border:1.5px solid var(--g);background:#fff;color:var(--tr-ink);border-radius:16px;padding:6px 11px;font:600 13px/1.25 system-ui,sans-serif;text-align:center;cursor:pointer;max-width:100%;word-break:break-word}
+.col .chip{max-width:100%}
+.row .chip{max-width:78%}
+.chip.dn{text-decoration:line-through;color:var(--tr-muted);border-style:dashed;background:var(--tr-soft)}
+.chip.dn::before{content:"✓ ";text-decoration:none;color:#15803d;font-weight:800}
+.chip.new{animation:pop .5s ease}
+@keyframes pop{0%{transform:scale(.6);opacity:0}70%{transform:scale(1.06)}100%{transform:scale(1);opacity:1}}
+.empty-card{grid-column:1/-1;text-align:center;color:var(--tr-muted);font-size:13px;padding:6px 0}
+.nocards{padding:30px 16px;text-align:center;color:var(--tr-muted);background:var(--tr-paper);border:1px dashed var(--tr-line);border-radius:18px}
+
+/* ---------- sheet ---------- */
+.scrim{position:fixed;inset:0;background:#1c1b1966;z-index:50;display:flex;align-items:flex-end;justify-content:center}
+.scrim[hidden]{display:none}
+.sheet{background:var(--tr-paper);width:100%;max-width:560px;max-height:88vh;overflow:auto;border-radius:20px 20px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 30px #0003}
+@media(min-width:700px){.scrim{align-items:center}.sheet{border-radius:20px}}
+.sheet h3{margin:0 0 4px;font-size:17px;word-break:break-word}
+.sheet .row2{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.sheet .meta{font-size:12px;color:var(--tr-muted)}
+.alist{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.alist div{display:flex;gap:10px;align-items:center;border:1px solid var(--tr-line);border-radius:12px;padding:9px 10px;font-size:13px}
+.alist div span{flex:1;word-break:break-word}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--tr-ink);color:#fff;border-radius:999px;padding:10px 18px;font:600 14px system-ui,sans-serif;z-index:60;box-shadow:0 6px 20px #0004;transition:opacity .3s;pointer-events:none}
+</style>
+<link rel="stylesheet" href="tr-theme.css?v=20261020">
+</head><body>
+<header><div class="hin">
+  <a class="backlink" href="./#f-tasks">← Tasks</a>
+  <h1>Delegation</h1>
+  <nav class="tabs" role="tablist"><button data-tab="review" class="on" type="button">Review<b id="nQ"></b></button><button data-tab="cards" type="button">Cards<b id="nC"></b></button></nav>
+</div></header>
+<main>
+  <section id="review"></section>
+  <section id="cards" hidden></section>
+</main>
+<div class="scrim" id="scrim" hidden><div class="sheet" id="sheet" role="dialog"></div></div>
+<script>
+"use strict";
+const KEY="deleg",$=id=>document.getElementById(id);
+const GROUPS={me:{n:"Me",c:"#4f46e5"},office:{n:"Office",c:"#0f766e"},family:{n:"Family",c:"#b45309"},other:{n:"Other",c:"#64748b"}};
+const PROJ_ORDER=["inbox","schedule","projects","checklists","reference"];
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const uid=()=>"p"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const tkey=t=>String(t||"").trim().toLowerCase().replace(/\s+/g," ");
+const fmtDate=ms=>{try{return new Date(ms).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})}catch(e){return ""}};
+
+/* ---------- data ----------
+   people: {id:{name,g,u}}   g = me|office|family|other, u = last used (orders the review chips)
+   assign: {taskId:{t,k,p,at,pr,d}}   t full title, k keyword, p person id, pr TickTick list, d = marked done here
+   aside:  {taskId:{t,at}}   reviewed but not given to anyone
+   prefs:  {lists:{name:1|0}, showDone:1|0} */
+function load(){let d={};try{d=JSON.parse(localStorage.getItem(KEY)||"{}")||{}}catch(e){}
+  const D={people:d.people||{},assign:d.assign||{},aside:d.aside||{},prefs:d.prefs||{}};
+  if(!D.people.me)D.people.me={name:"Me",g:"me",u:0};
+  D.prefs.lists=D.prefs.lists||{};return D;}
+let D=load();
+function save(){try{localStorage.setItem(KEY,JSON.stringify(D))}catch(e){toast("Could not save on this device")}}
+
+/* ---------- TickTick (through the Pranju OS Worker; pos-guard.js adds the key) ---------- */
+function wurl(q){let u=null;try{u=localStorage.getItem("totalRecallTickTickUrl")}catch(e){}u=u||window.TOTAL_RECALL_TICKTICK_URL||"https://total-recall-ticktick.pranjuchakrapani90.workers.dev";return u+(u.indexOf("?")>=0?"&":"?")+q;}
+let TASKS=[],loaded=false,loading=false,loadErr="",openIds=new Set(),openTitles=new Set();
+async function fetchTasks(){loading=true;loadErr="";render();
+  try{const r=await fetch(wurl("mode=wa-review&list=tasks"),{cache:"no-store"});
+    const d=await r.json().catch(()=>({}));if(!r.ok||d.error)throw new Error(d.error||("HTTP "+r.status));
+    TASKS=(d.tasks||[]).filter(t=>t&&t.id&&t.title);
+    TASKS.sort((a,b)=>rank(a.project)-rank(b.project));
+    openIds=new Set(TASKS.map(t=>t.id));openTitles=new Set(TASKS.map(t=>tkey(t.title)));loaded=true;
+    const names=projects();if(!Object.keys(D.prefs.lists).length){names.forEach(n=>D.prefs.lists[n]=n.toLowerCase()==="reference"?0:1);save();}
+  }catch(e){loadErr=String(e&&e.message||e);if(/401|403|key/i.test(loadErr))loadErr+=" — open ☁ Sync on the home screen and check your sync code.";}
+  loading=false;buildQueue();render();}
+const rank=p=>{const i=PROJ_ORDER.indexOf(String(p||"").toLowerCase());return i<0?PROJ_ORDER.length:i};
+function projects(){const s=[];TASKS.forEach(t=>{if(s.indexOf(t.project)<0)s.push(t.project)});return s.sort((a,b)=>rank(a)-rank(b));}
+const listOn=n=>D.prefs.lists[n]!==0;
+/* a delegated task counts as finished in TickTick once it is no longer among the open tasks */
+const closedTT=(id,a)=>loaded&&!openIds.has(id)&&!openTitles.has(tkey(a.t));
+const handled=t=>D.assign[t.id]||D.aside[t.id]||Object.keys(D.assign).some(id=>tkey(D.assign[id].t)===tkey(t.title));
+
+/* ---------- review queue ---------- */
+let queue=[],cur=null,later=[],hist=[],kwDraft={},adding=false;
+function buildQueue(){
+  const ok=TASKS.filter(t=>listOn(t.project)&&!D.assign[t.id]&&!D.aside[t.id]);
+  const titles=new Set(Object.values(D.assign).map(a=>tkey(a.t)));
+  const fresh=ok.filter(t=>!titles.has(tkey(t.title)));
+  queue=fresh.filter(t=>later.indexOf(t.id)<0).concat(later.map(id=>fresh.find(t=>t.id===id)).filter(Boolean));
+  if(!cur||!queue.some(t=>t.id===cur))cur=queue.length?queue[0].id:null;}
+function curTask(){return queue.find(t=>t.id===cur)||null;}
+function advance(fromId){const i=queue.findIndex(t=>t.id===fromId);buildQueue();if(!queue.length){cur=null;return}
+  cur=(queue[Math.min(Math.max(i,0),queue.length-1)]||queue[0]).id;}
+function shortKw(title){
+  const STOP=new Set("A AN THE TO OF FOR AND OR IN ON AT BY FROM WITH REG REGARDING ABOUT RE PLEASE PLS KINDLY IS ARE BE INTO THIS THAT".split(" "));
+  const w=String(title).replace(/[^\w\s\/&.\-]/g," ").split(/\s+/).filter(Boolean);
+  let k=w.filter(x=>!STOP.has(x.toUpperCase()));if(!k.length)k=w;
+  const WORD=new Set("PAY NEW OLD GET SET PUT BUY FIX RUN CAR BOX DAY ALL ONE TWO OUT OFF END MAP BAG FEE TAX SEE ASK USE ADD CUT TOP LOW HIGH BIG RED DUE NOT YET SEND CALL".split(" "));
+  return k.slice(0,3).map(x=>/\d/.test(x)||(x.length<=3&&x===x.toUpperCase()&&!WORD.has(x))?x:x.charAt(0).toUpperCase()+x.slice(1).toLowerCase()).join(" ");}
+function peopleSorted(){return Object.entries(D.people).map(([id,p])=>({id,...p})).sort((a,b)=>(b.u||0)-(a.u||0)||a.name.localeCompare(b.name));}
+
+function delegate(pid){const t=curTask();if(!t)return;const kw=(($("kw")||{}).value||kwDraft[t.id]||shortKw(t.title)).trim()||shortKw(t.title);
+  D.assign[t.id]={t:t.title,k:kw,p:pid,at:Date.now(),pr:t.project||""};D.people[pid].u=Date.now();
+  later=later.filter(x=>x!==t.id);hist.push({id:t.id,kind:"assign"});save();lastNew=t.id;advance(t.id);render();toast("→ "+D.people[pid].name);}
+function setAside(){const t=curTask();if(!t)return;D.aside[t.id]={t:t.title,at:Date.now()};later=later.filter(x=>x!==t.id);hist.push({id:t.id,kind:"aside"});save();advance(t.id);render();toast("Set aside");}
+function putLater(){const t=curTask();if(!t)return;if(queue.length<2){toast("This is the last one");return}
+  const i=queue.findIndex(x=>x.id===t.id);later=later.filter(x=>x!==t.id);later.push(t.id);hist.push({id:t.id,kind:"later"});buildQueue();cur=(queue[i]&&queue[i].id!==t.id?queue[i]:queue[0]).id;render();}
+function undo(){const h=hist.pop();if(!h)return;
+  if(h.kind==="assign")delete D.assign[h.id];if(h.kind==="aside")delete D.aside[h.id];if(h.kind==="later")later=later.filter(x=>x!==h.id);
+  save();buildQueue();if(queue.some(t=>t.id===h.id))cur=h.id;render();toast("Undone");}
+function addPerson(name,g,andDelegate){name=String(name||"").trim();if(!name)return null;
+  const ex=Object.entries(D.people).find(([,p])=>p.name.toLowerCase()===name.toLowerCase());
+  const id=ex?ex[0]:uid();if(!ex)D.people[id]={name,g:g||"office",u:Date.now()};save();adding=false;
+  if(andDelegate)delegate(id);else render();return id;}
+
+function renderReview(){const el=$("review");
+  if(loading&&!loaded){el.innerHTML='<p class="muted">Loading your open TickTick tasks…</p>';return}
+  let h=loadErr?`<div class="err">Couldn't load TickTick tasks: ${esc(loadErr)} <button class="btn" id="retry" type="button" style="margin-left:6px">Retry</button></div>`:"";
+  if(!loaded){el.innerHTML=h;bindRetry();return}
+  const inScope=TASKS.filter(t=>listOn(t.project)),done=inScope.filter(handled).length,total=inScope.length;
+  h+=`<div class="prog"><span>${done} of ${total} reviewed</span><span class="bar"><i style="width:${total?Math.round(done*100/total):0}%"></i></span><button class="btn ghost" id="reload" type="button" title="Reload from TickTick" style="padding:4px 9px">↻</button></div>`;
+  h+='<div class="lists">'+projects().map(n=>`<button type="button" data-list="${esc(n)}" class="${listOn(n)?"on":""}">${esc(n)} <span style="opacity:.7">${TASKS.filter(t=>t.project===n&&!handled(t)).length}</span></button>`).join("")+"</div>";
+  const t=curTask(),asideN=Object.keys(D.aside).length;
+  if(!t){h+=`<div class="done-all"><h2>All reviewed</h2><p class="muted">Every open task in the chosen lists has been given to someone or set aside.</p><button class="btn pri" type="button" data-go="cards">See the cards</button></div>`;}
+  else{const kw=kwDraft[t.id]!=null?kwDraft[t.id]:shortKw(t.title),ppl=peopleSorted();
+    h+=`<div class="rv"><div class="proj">${esc(t.project||"")}${later.indexOf(t.id)>=0?" · from Later":""}</div><div class="ttl">${esc(t.title)}</div>
+      ${t.tags&&t.tags.length?`<div class="tags">${t.tags.map(x=>`<span>#${esc(x)}</span>`).join("")}</div>`:""}
+      <label class="lbl" for="kw">Keyword for the card</label><input id="kw" value="${esc(kw)}" maxlength="40" autocomplete="off">
+      <span class="lbl">Delegate to</span><div class="people">${ppl.map(p=>`<button type="button" class="pchip" data-p="${esc(p.id)}" style="--g:${GROUPS[p.g]?GROUPS[p.g].c:GROUPS.other.c}"><i></i>${esc(p.name)}<small>${openCount(p.id)||""}</small></button>`).join("")}
+      <button type="button" class="pchip add" id="addP">+ New person</button></div>
+      ${adding?`<div class="newp"><input id="npName" placeholder="Name" autocomplete="off"><select id="npG">${["office","family","other"].map(g=>`<option value="${g}">${GROUPS[g].n}</option>`).join("")}</select><button class="btn pri" id="npGo" type="button">Add</button></div>`:""}
+      <div class="acts"><button class="btn" id="later" type="button">Later</button><button class="btn" id="aside" type="button">Set aside</button><span class="sp"></span><button class="btn ghost" id="undo" type="button" ${hist.length?"":"disabled"}>↶ Undo</button></div></div>`;}
+  if(asideN)h+=`<div class="aside-link"><button type="button" id="showAside">Set aside (${asideN})</button></div>`;
+  el.innerHTML=h;bindRetry();
+  el.querySelectorAll("[data-list]").forEach(b=>b.onclick=()=>{const n=b.dataset.list;D.prefs.lists[n]=listOn(n)?0:1;save();buildQueue();render();});
+  el.querySelectorAll("[data-p]").forEach(b=>b.onclick=()=>delegate(b.dataset.p));
+  el.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>tab(b.dataset.go));
+  const kwEl=$("kw");if(kwEl&&t)kwEl.oninput=()=>{kwDraft[t.id]=kwEl.value};
+  const on=(id,f)=>{const x=$(id);if(x)x.onclick=f};
+  on("reload",fetchTasks);on("later",putLater);on("aside",setAside);on("undo",undo);on("showAside",asideSheet);
+  on("addP",()=>{adding=!adding;render();if(adding)setTimeout(()=>{const n=$("npName");if(n)n.focus()},30)});
+  on("npGo",()=>addPerson($("npName").value,$("npG").value,true));
+  const np=$("npName");if(np)np.onkeydown=e=>{if(e.key==="Enter")addPerson(np.value,$("npG").value,true)};}
+function bindRetry(){const r=$("retry");if(r)r.onclick=fetchTasks;}
+
+/* ---------- cards ---------- */
+let lastNew=null,filterG="all";
+const isDone=(id,a)=>!!a.d||closedTT(id,a);
+function tasksOf(pid){return Object.entries(D.assign).filter(([,a])=>a.p===pid).map(([id,a])=>({id,...a})).sort((a,b)=>a.at-b.at);}
+function openCount(pid){return tasksOf(pid).filter(a=>!isDone(a.id,a)).length;}
+function layout(items){/* top one, then right, left, bottom, then the sides take turns; overflow goes to the top and bottom rows */
+  const L={t:[],r:[],l:[],b:[]},order=["t","r","l","b"];const cap=items.length>10?Math.ceil((items.length-2)/2.6):99;
+  items.forEach((x,i)=>{let s=i<4?order[i]:(i%2?"l":"r");if((s==="l"||s==="r")&&L[s].length>=cap)s=L.t.length<=L.b.length?"t":"b";L[s].push(x);});return L;}
+function chip(a){return `<button type="button" class="chip${isDone(a.id,a)?" dn":""}${a.id===lastNew?" new":""}" data-t="${esc(a.id)}" title="${esc(a.t)}">${esc(a.k||shortKw(a.t))}</button>`;}
+function renderCards(){const el=$("cards"),show=!!D.prefs.showDone;
+  let h=`<div class="ctools">${["all","office","family","me","other"].map(g=>`<button type="button" class="btn${filterG===g?" pri":""}" data-g="${g}" style="padding:6px 12px;font-size:13px">${g==="all"?"All":GROUPS[g].n}</button>`).join("")}
+    <span class="sp"></span><label><input type="checkbox" id="showDone" ${show?"checked":""}> Show done</label><button class="btn" type="button" id="newPerson" style="padding:6px 12px;font-size:13px">+ Person</button></div>`;
+  const ppl=peopleSorted().filter(p=>filterG==="all"||p.g===filterG).map(p=>({...p,items:tasksOf(p.id).filter(a=>show||!isDone(a.id,a))}))
+    .sort((a,b)=>(b.items.length?1:0)-(a.items.length?1:0)||openCount(b.id)-openCount(a.id)||a.name.localeCompare(b.name));
+  if(!ppl.some(p=>p.items.length))h+=`<div class="nocards">No delegated tasks yet${filterG!=="all"?" in this group":""}. Give tasks to people in Review and their cards build up here.</div>`;
+  h+='<div class="deck">'+ppl.filter(p=>p.items.length||!Object.values(D.assign).some(a=>a.p===p.id)).map(p=>{
+    const g=GROUPS[p.g]||GROUPS.other,L=layout(p.items),all=tasksOf(p.id),dn=all.filter(a=>isDone(a.id,a)).length;
+    return `<div class="fc" style="--g:${g.c}" data-card="${esc(p.id)}"><div class="fc-h"><span class="grp">${esc(g.n)}</span><span>${all.length-dn} open${dn?" · "+dn+" done":""}</span><span class="sp"></span>${all.length-dn?`<button type="button" data-share="${esc(p.id)}">Share</button>`:""}</div>
+      <div class="map"><svg class="ln" aria-hidden="true"></svg>
+        <div class="row t">${L.t.map(chip).join("")}</div><div class="col l">${L.l.map(chip).join("")}</div>
+        <div class="hub" data-person="${esc(p.id)}">${esc(p.name)}</div>
+        <div class="col r">${L.r.map(chip).join("")}</div><div class="row b">${L.b.map(chip).join("")}</div>
+        ${p.items.length?"":'<div class="empty-card">No tasks yet</div>'}</div></div>`;}).join("")+"</div>";
+  el.innerHTML=h;lastNew=null;
+  el.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{filterG=b.dataset.g;render()});
+  $("showDone").onchange=e=>{D.prefs.showDone=e.target.checked?1:0;save();render()};
+  $("newPerson").onclick=()=>personSheet(null);
+  el.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>taskSheet(b.dataset.t));
+  el.querySelectorAll("[data-person]").forEach(b=>b.onclick=()=>personSheet(b.dataset.person));
+  el.querySelectorAll("[data-share]").forEach(b=>b.onclick=()=>share(b.dataset.share));
+  requestAnimationFrame(drawLines);}
+function drawLines(){document.querySelectorAll("#cards .map").forEach(m=>{const svg=m.querySelector("svg"),hub=m.querySelector(".hub");if(!svg||!hub)return;
+  const R=m.getBoundingClientRect(),H=hub.getBoundingClientRect(),cx=H.left+H.width/2-R.left,cy=H.top+H.height/2-R.top;
+  svg.setAttribute("viewBox",`0 0 ${R.width} ${R.height}`);
+  svg.innerHTML=[...m.querySelectorAll(".chip")].map(c=>{const r=c.getBoundingClientRect();return `<line x1="${cx}" y1="${cy}" x2="${r.left+r.width/2-R.left}" y2="${r.top+r.height/2-R.top}"/>`}).join("");});}
+let rz=0;window.addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(drawLines,120)});
+
+async function share(pid){const p=D.people[pid];if(!p)return;const open=tasksOf(pid).filter(a=>!isDone(a.id,a));
+  const text=`${p.name} — tasks\n`+open.map((a,i)=>`${i+1}. ${a.k} — ${a.t}`).join("\n");
+  try{if(navigator.share){await navigator.share({text});return}}catch(e){if(e&&e.name==="AbortError")return}
+  try{await navigator.clipboard.writeText(text);toast("Copied — paste it in WhatsApp")}catch(e){toast("Could not copy")}}
+
+/* ---------- sheets ---------- */
+function openSheet(html,bind){$("sheet").innerHTML=html;$("scrim").hidden=false;bind&&bind($("sheet"));}
+function closeSheet(){$("scrim").hidden=true;$("sheet").innerHTML="";}
+$("scrim").addEventListener("click",e=>{if(e.target.id==="scrim")closeSheet()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("scrim").hidden)closeSheet()});
+function taskSheet(id){const a=D.assign[id];if(!a)return;const p=D.people[a.p]||{name:"?"},tt=closedTT(id,a);
+  const others=peopleSorted().filter(x=>x.id!==a.p);
+  openSheet(`<div class="meta">${esc(a.pr||"TickTick")} · given to ${esc(p.name)} on ${esc(fmtDate(a.at))}${tt?" · completed in TickTick":""}</div><h3>${esc(a.t)}</h3>
+    <label class="lbl" for="sk">Keyword on the card</label><input id="sk" value="${esc(a.k||"")}" maxlength="40">
+    <div class="row2"><button class="btn pri" id="sSave" type="button">Save</button>${tt?"":`<button class="btn" id="sDone" type="button">${a.d?"Mark not done":"✓ Mark done"}</button>`}</div>
+    ${others.length?`<span class="lbl">Move to</span><div class="people">${others.map(x=>`<button type="button" class="pchip" data-mv="${esc(x.id)}" style="--g:${(GROUPS[x.g]||GROUPS.other).c}"><i></i>${esc(x.name)}</button>`).join("")}</div>`:""}
+    <div class="row2" style="margin-top:18px"><button class="btn danger" id="sBack" type="button">Back to review</button><span style="flex:1"></span><button class="btn ghost" id="sClose" type="button">Close</button></div>`,s=>{
+      const sk=s.querySelector("#sk");
+      s.querySelector("#sSave").onclick=()=>{a.k=sk.value.trim()||shortKw(a.t);save();closeSheet();render()};
+      const dn=s.querySelector("#sDone");if(dn)dn.onclick=()=>{if(a.d)delete a.d;else a.d=1;a.k=sk.value.trim()||a.k;save();closeSheet();render()};
+      s.querySelectorAll("[data-mv]").forEach(b=>b.onclick=()=>{a.p=b.dataset.mv;a.k=sk.value.trim()||a.k;D.people[a.p].u=Date.now();lastNew=id;save();closeSheet();render();toast("Moved to "+D.people[a.p].name)});
+      s.querySelector("#sBack").onclick=()=>{delete D.assign[id];save();closeSheet();buildQueue();render();toast("Back in the review queue")};
+      s.querySelector("#sClose").onclick=closeSheet;});}
+function personSheet(pid){const p=pid?D.people[pid]:null,n=pid?tasksOf(pid).length:0;
+  openSheet(`<h3>${p?"Edit person":"New person"}</h3>
+    <label class="lbl" for="pn">Name</label><input id="pn" value="${esc(p?p.name:"")}" autocomplete="off">
+    ${pid==="me"?"":`<label class="lbl" for="pg">Group</label><select id="pg">${["office","family","other"].map(g=>`<option value="${g}" ${p&&p.g===g?"selected":""}>${GROUPS[g].n}</option>`).join("")}</select>`}
+    <div class="row2"><button class="btn pri" id="pSave" type="button">Save</button><button class="btn ghost" id="pClose" type="button">Close</button>
+    ${p&&pid!=="me"?`<span style="flex:1"></span><button class="btn danger" id="pDel" type="button">Delete</button>`:""}</div>
+    ${p&&pid!=="me"&&n?`<p class="meta" style="margin-top:10px">Deleting sends ${n} task${n>1?"s":""} back to the review queue.</p>`:""}`,s=>{
+      const pn=s.querySelector("#pn");setTimeout(()=>pn.focus(),30);
+      const go=()=>{const name=pn.value.trim();if(!name)return;const g=s.querySelector("#pg");
+        if(p){p.name=name;if(g)p.g=g.value;save();}else addPerson(name,g?g.value:"office",false);closeSheet();render();};
+      s.querySelector("#pSave").onclick=go;pn.onkeydown=e=>{if(e.key==="Enter")go()};
+      s.querySelector("#pClose").onclick=closeSheet;
+      const del=s.querySelector("#pDel");if(del)del.onclick=()=>{if(n&&!confirm(`Delete ${p.name}? Their ${n} task${n>1?"s":""} go back to review.`))return;
+        Object.keys(D.assign).forEach(id=>{if(D.assign[id].p===pid)delete D.assign[id]});delete D.people[pid];save();closeSheet();buildQueue();render();};});}
+function asideSheet(){const list=Object.entries(D.aside).sort((a,b)=>b[1].at-a[1].at);
+  openSheet(`<h3>Set aside</h3><p class="meta">Reviewed but not given to anyone. Restore one to review it again.</p>
+    <div class="alist">${list.map(([id,x])=>`<div><span>${esc(x.t)}</span><button class="btn" type="button" data-rs="${esc(id)}" style="padding:6px 10px;font-size:12px">Restore</button></div>`).join("")}</div>
+    <div class="row2"><button class="btn ghost" id="aClose" type="button">Close</button></div>`,s=>{
+      s.querySelectorAll("[data-rs]").forEach(b=>b.onclick=()=>{delete D.aside[b.dataset.rs];save();buildQueue();cur=b.dataset.rs;if(!queue.some(t=>t.id===cur))buildQueue();b.closest("div").remove();render();toast("Restored")});
+      s.querySelector("#aClose").onclick=closeSheet;});}
+
+/* ---------- shell ---------- */
+let tabNow="review";
+function tab(t){tabNow=t;document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("on",b.dataset.tab===t));$("review").hidden=t!=="review";$("cards").hidden=t!=="cards";
+  try{history.replaceState(null,"","#"+t)}catch(e){}render();window.scrollTo(0,0);}
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>tab(b.dataset.tab));
+function render(){$("nQ").textContent=loaded?" "+queue.length:"";
+  const nc=Object.keys(D.people).filter(id=>openCount(id)>0).length;$("nC").textContent=nc?" "+nc:"";
+  if(tabNow==="review")renderReview();else renderCards();}
+let tt=0;function toast(m){let t=document.querySelector(".toast");if(!t){t=document.createElement("div");t.className="toast";document.body.appendChild(t)}
+  t.textContent=m;t.style.opacity=1;clearTimeout(tt);tt=setTimeout(()=>t.style.opacity=0,1600);}
+/* the other phone delegated something: take its changes in place */
+window.addEventListener("kvsync",e=>{if((e.detail||[]).indexOf(KEY)<0)return;D=load();buildQueue();if($("scrim").hidden)render();});
+if(location.hash==="#cards")tab("cards");else render();
+fetchTasks();
+</script>
+</body></html>
