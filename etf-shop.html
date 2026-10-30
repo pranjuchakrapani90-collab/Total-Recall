@@ -242,7 +242,7 @@ function uniForm(u){u=u||{};const S={...DEF,...(I.load(KEY).settings||{})};
     onDelete:u.code?()=>{I.setSettings(KEY,{universe:S.universe.filter(x=>x.code!==u.code)});draw();}:null,delLabel:"Remove"});}
 
 /* ---------- drawing ---------- */
-const TABS=[["hold","Holdings"],["watch","Watchlist"],["booked","Booked"]];
+const TABS=[["hold","Holdings"],["buys","Buy Log"],["watch","Watchlist"],["booked","Booked"]];
 let tab=I.rememberTab(KEY,"hold");
 function tonight(M){
   const t=I.ist(),gt=M.gtts.filter(x=>x.todo),sells=M.sells.filter(o=>!M.amo.some(a=>!a.buy&&a.lot===o.l.id)),asks=M.amo.filter(a=>a.ask),tot=sells.length+(M.avg?1:0)+M.buys.length;
@@ -296,6 +296,29 @@ function watch(M){
        <div class="sub">${esc(c.group)}</div></span>
        <span class="r"><span class="${zone?"dn":""}">${pct(c.fall*100,1)}</span><div class="sub">${price(c.close)} · <span class="${tone(c.chg)}">${pct(c.chg,1)}</span></div></span></div>`;}).join("")}</div>
    ${L.length>10?`<button class="more" type="button" id="wAll">${showAll?"Show fewer":"Show all "+L.length}</button>`:""}`;}
+/* Buy Log: every purchase ever recorded (held or since sold), newest first, by month.
+   A buy is "average" when another lot of the same ETF was still held on that date, else "new". */
+let buysAll=false;
+function buyLog(M){
+  const all=[...M.open,...M.sold];if(!all.length)return `<p class="nothing">No purchases yet.</p>`;
+  const asc=all.slice().sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.t||0)-(b.t||0));
+  /* part-sales split one buy into two records; join them back so each purchase shows once */
+  const root=l=>l.split||l.id,P={};
+  asc.forEach(l=>{const k=root(l),p=P[k];if(p){p.qty+=l.qty;p.sold+=ok(l.sellPrice)?l.qty:0;}
+    else P[k]={id:k,code:l.code,date:l.date,price:l.price,qty:l.qty,sold:ok(l.sellPrice)?l.qty:0,disc:!!l.dbuy,t:l.t||0,lot:l};});
+  const L=Object.values(P).sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:a.t-b.t);
+  L.forEach((b,i)=>{b.avg=all.some(o=>o.code===b.code&&root(o)!==b.id&&(o.date<b.date||(o.date===b.date&&(o.t||0)<b.t))&&!(ok(o.sellPrice)&&o.sellDate<=b.date));
+    b.amt=b.price*b.qty;b.st=b.sold>=b.qty?"sold":b.sold?"part sold":"held";});
+  const D=L.slice().reverse(),show=buysAll?D:D.slice(0,15),mon=today().slice(0,7);
+  const tot=L.reduce((a,b)=>a+b.amt,0),thisM=L.filter(b=>b.date.slice(0,7)===mon),nNew=L.filter(b=>!b.avg).length;
+  let lastM="";
+  return `<p class="line"><b>${L.length}</b> buys · <b>${inr(tot)}</b> · ${nNew} new, ${L.length-nNew} average${L.length-nNew===1?"":"s"}${thisM.length?` · this month ${thisM.length} (${inr(thisM.reduce((a,b)=>a+b.amt,0))})`:""}</p>
+   <div class="rows">${show.map(b=>{const m=b.date.slice(0,7),hd=m!==lastM?`<p class="small muted" style="margin:10px 0 2px"><b>${new Date(m+"-01T00:00:00").toLocaleDateString("en-IN",{month:"long",year:"numeric"})}</b></p>`:"";lastM=m;
+     return hd+`<button class="rowbtn" type="button" data-blog="${esc(b.lot.id)}"><span><b>${esc(b.code)}</b> <span class="tag ${b.avg?"":"ok"}">${b.avg?"average":"new"}</span>${b.disc?` <span class="tag">own call</span>`:""}
+       <div class="sub">${esc(dshort(b.date))} · ${b.qty} × ${price(b.price)}</div></span>
+       <span class="r mono">${inr(b.amt)}<div class="sub ${b.st==="held"?"":"muted"}">${b.st}</div></span></button>`;}).join("")}</div>
+   ${D.length>15?`<button class="more" type="button" id="bAll">${buysAll?"Show fewer":"Show all "+D.length}</button>`:""}
+   <p class="small muted" style="margin-top:8px">Tap a buy to edit it.</p>`;}
 let soldAll=false;
 function booked(M){
   if(!M.sold.length)return `<p class="nothing">Nothing sold yet.</p>`;
@@ -310,7 +333,7 @@ function booked(M){
    <div class="rows" style="margin-top:6px">${show.map(l=>`<button class="rowbtn" type="button" data-sold="${esc(l.id)}"><span><b>${esc(l.code)}</b>${isDisc(l)?` <span class="tag">own call</span>`:""}<div class="sub">${esc(dshort(l.sellDate))} · ${l.days} d · ${l.qty} × ${price(l.sellPrice)}</div></span><span class="r"><span class="${tone(l.p)}">${signInr(l.p)}</span><div class="sub">${pct(l.pp,1)}</div></span></button>`).join("")}</div>
    ${S.length>6?`<button class="more" type="button" id="sAll">${soldAll?"Show fewer":"Show all "+S.length}</button>`:""}
    <p class="small muted" style="margin-top:8px">Charges ${inr(ch)} · tax ${inr(tax)}${disc.length?` · own-call sells ${disc.length}, net ${signInr(disc.reduce((a,l)=>a+l.net,0))}`:""}</p>`;}
-function details(M){return `<section class="card">${I.tabs(TABS,tab)}<div class="panel">${tab==="watch"?watch(M):tab==="booked"?booked(M):holdings(M)}</div></section>`;}
+function details(M){return `<section class="card">${I.tabs(TABS,tab)}<div class="panel">${tab==="watch"?watch(M):tab==="booked"?booked(M):tab==="buys"?buyLog(M):holdings(M)}</div></section>`;}
 function setup(M){const S=M.S;
   return `<details class="card sec more"><summary>More · money, rules, data</summary>
    <p class="small"><b>Money in / out</b> <button class="more" type="button" id="aMoney">+ add</button></p><div class="rows">${M.cap.map(c=>`<button class="rowbtn" type="button" data-cap="${esc(c.id)}"><span>${esc(dshort(c.date))}</span><span class="r ${c.amount<0?"dn":""}">${signInr(c.amount)}</span></button>`).join("")||`<p class="small muted">None yet.</p>`}</div>
@@ -343,7 +366,7 @@ function draw(){
   const on=(id,f)=>{const e=$(id);if(e)e.onclick=f;};
   on("kFund",()=>I.fundForm(draw));on("liqSold",()=>I.liqForm(draw,{units:M.liqSell}));
   on("aBuy",()=>buyForm());on("qBuy",()=>buyForm({disc:true}));on("qSell",pickSell);on("aMoney",()=>moneyForm());on("eRules",()=>settingsForm(M.S));on("aUni",()=>uniForm());
-  on("wAll",()=>{showAll=!showAll;draw();});on("sAll",()=>{soldAll=!soldAll;draw();});
+  on("wAll",()=>{showAll=!showAll;draw();});on("sAll",()=>{soldAll=!soldAll;draw();});on("bAll",()=>{buysAll=!buysAll;draw();});
   document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{tab=b.dataset.tab;I.saveTab(KEY,tab);draw();});
   on("dImp",()=>I.pickImport((e,done)=>{if(e){showErr(e.message);return;}showErr("");$("st").textContent="Imported "+done.join(" and ").toUpperCase()+" records.";draw();refresh();}));
   on("dExp",()=>I.exportData());on("dSync",()=>syncNow(true));
@@ -360,6 +383,8 @@ function draw(){
   document.querySelectorAll("[data-gtt]").forEach(b=>b.onclick=()=>gttForm(b.dataset.gtt));
   document.querySelectorAll("[data-lot]").forEach(r=>r.onclick=()=>{const l=I.load(KEY).lots[r.dataset.lot];if(l)buyForm({id:r.dataset.lot,...l});});
   document.querySelectorAll("[data-sold]").forEach(r=>r.onclick=()=>{const l=I.load(KEY).lots[r.dataset.sold];if(l)soldForm({id:r.dataset.sold,...l});});
+  document.querySelectorAll("[data-blog]").forEach(r=>r.onclick=()=>{const id=r.dataset.blog,l=I.load(KEY).lots[id];if(!l)return;
+    if(ok(l.sellPrice))soldForm({id,...l});else buyForm({id,...l});});
   document.querySelectorAll("[data-cap]").forEach(r=>r.onclick=()=>{const c=I.load(KEY).cap[r.dataset.cap];if(c)moneyForm({id:r.dataset.cap,...c});});
   document.querySelectorAll("[data-uni]").forEach(r=>r.onclick=()=>{const u=M.S.universe.find(x=>x.code===r.dataset.uni);if(u)uniForm(u);});
   status();}
