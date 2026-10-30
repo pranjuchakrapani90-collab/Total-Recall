@@ -476,41 +476,6 @@ async function appendToTask(token,projectId,taskId,text){
   const t=await tick('/project/'+encodeURIComponent(projectId)+'/task/'+encodeURIComponent(taskId),token);
   if(!t||!t.id)throw new Error('That task is no longer in TickTick');const f=taskNoteField(t),old=String(t[f]||'').trim();
   await tick('/task/'+encodeURIComponent(t.id),token,{method:'POST',body:{...t,[f]:(old?old+'\n\n---\n':'')+text}});return true;}
-/* Merge two tasks into ONE (30 Oct 2026): the merged task's title, notes, checklist and tags go into the kept task's
-   description, then the merged task is deleted (it goes to TickTick's Trash). No parent/sub-task link is made.
-   dry=true only reports what would happen, for the preview. */
-async function handleMerge(request,env,origin){
-  const json=(o,st)=>new Response(JSON.stringify(o),{status:st||200,headers:{...corsHeaders(origin),'Content-Type':'application/json'}});
-  const token=env.TICKTICK_ACCESS_TOKEN;if(!token)return json({error:'TICKTICK_ACCESS_TOKEN secret is not configured'},500);
-  if(request.method!=='POST')return json({error:'Method not allowed'},405);
-  let body={};try{body=await request.json()}catch(_){return json({error:'Invalid JSON'},400)}
-  const f=body.from||{},k=body.into||{};if(!f.id||!f.projectId||!k.id||!k.projectId)return json({error:'Both tasks are needed'},400);
-  if(f.id===k.id)return json({error:'Pick two different tasks'},400);
-  const get=o=>tick('/project/'+encodeURIComponent(o.projectId)+'/task/'+encodeURIComponent(o.id),token);
-  let A,B;try{A=await get(f)}catch(_){return json({error:'The task to merge was not found in TickTick'},404)}
-  try{B=await get(k)}catch(_){return json({error:'The task to keep was not found in TickTick'},404)}
-  if(B.parentId&&B.parentId===A.id)return json({error:'The task you keep is a sub-task of the other one. Keep the main task instead (tap ⇄ Swap).'},400);
-  const kids=(Array.isArray(A.childIds)?A.childIds:[]).filter(id=>id!==B.id);
-  if(kids.length)return json({error:'"'+A.title+'" has '+kids.length+' sub-task'+(kids.length>1?'s':'')+' of its own in TickTick. Keep that one instead (tap ⇄ Swap), or move its sub-tasks first.'},400);
-  const bList=String(B.kind||'').toUpperCase()==='CHECKLIST';
-  const items=Array.isArray(A.items)?A.items.filter(i=>i&&i.title):[];
-  const notes=String(A[taskNoteField(A)]||A.content||A.desc||'').trim();
-  const att=Array.isArray(A.attachments)?A.attachments.length:0;
-  const lines=['MERGED '+waDateLabel()+': '+String(A.title||'').trim()];
-  if(notes)lines.push(notes);
-  if(items.length&&!bList)items.forEach(i=>lines.push((i.status?'- [done] ':'- ')+i.title));
-  const block=lines.join('\n');
-  const tags=[...new Set([].concat(B.tags||[],A.tags||[]).map(t=>String(t).toLowerCase()))];
-  const summary={keep:{id:B.id,title:B.title},merge:{id:A.id,title:A.title},block,tags,attachments:att,checklist:items.length};
-  if(body.dry)return json({ok:true,dry:true,...summary});
-  const fld=taskNoteField(B),old=String(B[fld]||'').trim();
-  const upd={...B,[fld]:(old?old+'\n\n---\n':'')+block,tags,priority:Math.max(+B.priority||0,+A.priority||0)};
-  if(items.length&&bList)upd.items=(B.items||[]).concat(items.map(i=>({title:i.title,status:i.status?1:0})));
-  if(!B.dueDate&&A.dueDate){upd.dueDate=A.dueDate;if(A.startDate)upd.startDate=A.startDate;upd.isAllDay=A.isAllDay;if(A.timeZone)upd.timeZone=A.timeZone;}
-  await tick('/task/'+encodeURIComponent(B.id),token,{method:'POST',body:upd});
-  const d=await fetch(API+'/project/'+encodeURIComponent(A.projectId||f.projectId)+'/task/'+encodeURIComponent(A.id),{method:'DELETE',headers:{Authorization:'Bearer '+token}});
-  if(!d.ok)return json({ok:true,merged:true,deleted:false,warning:'Notes were added, but TickTick would not delete "'+A.title+'". Delete it yourself.',...summary});
-  return json({ok:true,merged:true,deleted:true,...summary});}
 async function waProjects(token){const projects=await tick('/project',token);const list=Array.isArray(projects)?projects:((projects&&projects.projects)||[]);return list;}
 async function handleWaReview(request,env,origin){
   const json=(o,st)=>new Response(JSON.stringify(o),{status:st||200,headers:{...corsHeaders(origin),'Content-Type':'application/json'}});
@@ -603,7 +568,6 @@ export default {async fetch(request,env){const origin=request.headers.get('Origi
  if(url.searchParams.get('mode')==='quotes'||url.pathname==='/quotes'){try{return await handleQuotes(request)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.searchParams.get('mode')==='deleg-done'){try{return await handleDelegDone(request,env,origin)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.searchParams.get('mode')==='money-review'||url.pathname==='/money-review'){try{return await handleMoneyReview(request,env,origin)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
- if(url.searchParams.get('mode')==='merge'){try{return await handleMerge(request,env,origin)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.searchParams.get('mode')==='wa-review'||url.pathname==='/wa-review'){try{return await handleWaReview(request,env,origin)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.searchParams.get('mode')==='live'||url.searchParams.get('mode')==='live-log'){try{return await handleLive(request,env,origin)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.searchParams.get('mode')==='drive'){try{return await handleDrive(request,env,origin)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
