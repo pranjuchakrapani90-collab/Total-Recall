@@ -239,9 +239,12 @@ function renderCards(){const el=$("cards"),show=!!D.prefs.showDone,view=D.prefs.
     <span class="sp"></span><span class="seg"><button type="button" data-v="one" class="${view==="one"?"on":""}">One by one</button><button type="button" data-v="all" class="${view==="all"?"on":""}">All</button></span>
     <label><input type="checkbox" id="showDone" ${show?"checked":""}> Show done</label><button class="btn" type="button" id="newPerson" style="padding:6px 12px;font-size:13px">+ Person</button></div>`;
   /* members with something delegated, most pending first */
-  const ppl=peopleSorted().filter(p=>(filterG==="all"||p.g===filterG)&&tasksOf(p.id).length).map(p=>({...p,items:tasksOf(p.id).filter(a=>show||!isDone(a.id,a))}))
+  /* a member with nothing pending gets no card, unless Show done is on */
+  const ppl=peopleSorted().filter(p=>(filterG==="all"||p.g===filterG)&&(show?tasksOf(p.id).length:openCount(p.id))).map(p=>({...p,items:tasksOf(p.id).filter(a=>show||!isDone(a.id,a))}))
     .sort((a,b)=>openCount(b.id)-openCount(a.id)||a.name.localeCompare(b.name));
-  if(!ppl.length){h+=`<div class="nocards">Nothing delegated${filterG!=="all"?" in this group":""} yet. In Today's Tasks, open a task card and tap a name under it — that member's card builds up here.</div>`;}
+  if(!ppl.length){const any=peopleSorted().some(p=>(filterG==="all"||p.g===filterG)&&tasksOf(p.id).length);
+    h+=any?`<div class="nocards">Nothing pending${filterG!=="all"?" in this group":""} — every delegated task is done. Tick “Show done” to see the finished cards.</div>`
+      :`<div class="nocards">Nothing delegated${filterG!=="all"?" in this group":""} yet. In Today's Tasks, open a task card and tap a name under it — that member's card builds up here.</div>`;}
   else if(view==="all")h+='<div class="deck">'+ppl.map(cardHtml).join("")+"</div>";
   el.innerHTML=h;bindTools(el);bindCards(el);
   /* one by one: each member's card fills the screen, swipe or Back/Next to move */
