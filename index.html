@@ -169,7 +169,7 @@ a.app.folder i{background:linear-gradient(150deg,#6d6af0 0%,#4f46e5 48%,#3c32c4 
 <section id="session" class="hidden"><div class="panel"><div class="row" style="justify-content:space-between"><button id="homeBtn" class="secondary small">← Dashboard</button><span id="progress" class="muted"></span></div><div id="flash" class="flash" style="margin-top:15px"><div class="flashInner"><div class="flashFace flashFront"><span id="source" class="source hidden"></span><div id="counter" class="counter"></div><div id="card" class="name"></div><div id="hint" class="hint"></div></div><div class="flashFace flashBack"><div id="taskReveal" class="taskReveal hidden"></div><div class="flashBackHint">Click to flip back</div></div></div></div><div class="row" style="margin-top:10px"><button id="hookBtn" class="secondary small hidden">✎ Hooks</button><button id="deleteBtn" class="danger small hidden">Delete this name</button></div><div id="hookEdit" class="hidden"></div><div class="row" style="justify-content:space-between;margin-top:18px"><button id="back" class="secondary">← Back</button><button id="next">Next →</button></div></div></section>
 <section id="completedSession" class="hidden"><div class="panel"><div class="row" style="justify-content:space-between"><button id="completedHomeBtn" class="secondary small">← Dashboard</button><span id="completedProgress" class="muted"></span></div><div id="completedFlash" class="flash" style="margin-top:15px"><div class="flashInner"><div class="flashFace flashFront"><div id="completedCounter" class="counter"></div><div id="completedCard" class="name"></div><div id="completedHint" class="hint"></div></div><div class="flashFace flashBack"><div id="completedTaskReveal" class="taskReveal hidden"></div><div class="flashBackHint">Click to flip back</div></div></div></div><button id="completedDeleteBtn" class="danger small" style="margin-top:10px">Delete this task</button><div class="row" style="justify-content:space-between;margin-top:18px"><button id="completedBack" class="secondary">← Back</button><button id="completedNext">Next →</button></div></div></section>
 <section id="travelSession" class="hidden"><div class="panel tvpanel">
-<div class="tvtop"><button id="travelHomeBtn" class="secondary small">← Home</button><h2>Travel Trace</h2><button id="travelSyncBtn" class="secondary small" title="Sync devices">☁</button></div>
+<div class="tvtop"><button id="travelHomeBtn" class="secondary small">← Home</button><h2>Travel Trace</h2><button id="travelCineBtn" class="secondary small" title="Week in Motion — cinematic review of a week">🎬</button><button id="travelSyncBtn" class="secondary small" title="Sync devices">☁</button></div>
 <div class="tvctl">
   <select id="travelDate" disabled aria-label="Travel date"><option>No saved dates</option></select>
   <label class="tvadd">＋ GPX<input id="travelFile" type="file" accept=".gpx,application/gpx+xml,.xml,text/xml"></label>
@@ -1378,6 +1378,26 @@ $('travelSyncBtn').addEventListener('click',async function(){
 });
 travelPopulateDates();
 window.TotalRecallBridge={periodRange:periodRange,esc:esc,tickContentHtml:tickContentHtml,save:save,tickUrl:function(){return TICK_URL},getDb:function(){return db},suppressed:function(){return COMPLETED_SUPPRESS}};
+/* Travel Trace "Week in Motion" (travel-cinema.js): read-only access to saved days, memories and photos */
+window.TravelBridge={
+  esc:esc,dates:function(){return travelDates()},today:function(){return travelToday()},
+  maps:function(){return loadTravelMaps()},
+  day:async function(date){
+    var items=travelFilesForDate(date);
+    for(var i=0;i<items.length;i++){
+      if(travelParsedCache[items[i].id])continue;
+      var text=await travelEnsureLocalFile(items[i]),parsed=await travelParseAsync(text);
+      travelParsedCache[items[i].id]=travelIndexParsedForDate(parsed,(items[i].dates&&items[i].dates[0])||travelFileDateFromName(items[i].name)||Object.keys(parsed.byDay||{})[0]);
+      travelParsedCache[items[i].id].__travelIndexedDate=true
+    }
+    var data=travelAggregateForDate(date,items);
+    if(travelIsLiveDate(date)){try{await travelLiveFetch()}catch(e){}travelLiveMerge(data,date)}
+    return (data.byDay[date]||[]).map(travelCleanSegment).filter(function(s){return s.length})
+  },
+  notes:function(date){return Object.keys(db.travelNotes||{}).map(function(id){return db.travelNotes[id]}).filter(function(n){return n&&!n.deleted&&n.date===date&&isFinite(n.lat)&&isFinite(n.lng)}).sort(function(a,b){return String(a.createdAt||'').localeCompare(String(b.createdAt||''))})},
+  photo:function(ph){return tpUrl(ph)}
+};
+$('travelCineBtn').addEventListener('click',function(){if(window.TravelCinema)TravelCinema.open($('travelDate').value);else alert('Week in Motion is still loading.')});
 window.PeopleBridge={get db(){return db},save:save,render:render,esc:esc,get cards(){return cards},get idx(){return idx}};
 /* Delegation row under Today's Tasks cards (deleg-today.js): read-only view of the session and a signal on every card change */
 window.TRToday={state:function(){return {mode:mode,sub:sub,idx:idx,subIdx:subIdx,cards:cards,taskGroups:taskGroups}}};
@@ -1389,6 +1409,7 @@ window.TRToday.refilter=function(){try{var D=JSON.parse(localStorage.getItem('de
 </script>
 <script src="people-hooks.js?v=20261021a"></script>
 <script src="cinematic-review.js"></script>
+<script src="travel-cinema.js?v=20261030a"></script>
 <script src="plan.js?v=20261025"></script>
 <script src="wa-review.js?v=20261030a"></script>
 <script src="deleg-today.js?v=20261029e"></script>
