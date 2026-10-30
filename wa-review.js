@@ -43,7 +43,7 @@ document.head.appendChild(css);
 /* the editor sheet, shared by the startup popup and the list */
 var modal=document.createElement("div");modal.className="wam";modal.hidden=true;modal.setAttribute("role","dialog");modal.setAttribute("aria-label","WhatsApp Review");
 modal.innerHTML='<div class="was"><div class="wah"><h3>WhatsApp Review</h3><span id="waPos"></span></div>'+
-'<div class="waup" id="waUp" hidden><b>Update to an existing task</b><span id="waUpT"></span><small>Approve adds the notes below to that task as a dated comment. No new task is made.</small><label class="wach"><input type="checkbox" id="waNew"> Create a new task instead</label></div>'+
+'<div class="waup" id="waUp" hidden><b>Update to an existing task</b><span id="waUpT"></span><small>Approve adds the notes below to that task&#39;s description, dated. It stays one task: no new task, no sub-task.</small><label class="wach"><input type="checkbox" id="waNew"> Create a new task instead</label></div>'+
 '<button type="button" class="secondary wapick" id="waPick">＋ Add to an existing task…</button>'+
 '<div class="wapk" id="waPk" hidden><input id="waPkQ" type="search" placeholder="Search your tasks (place, consumer no., name…)" autocomplete="off"><div class="wapkl" id="waPkL"></div><button type="button" class="secondary" id="waPkX">Cancel</button></div>'+
 '<div id="waTaskF"><label>Title<input id="waTitle" autocomplete="off"></label>'+
@@ -104,7 +104,7 @@ function paint(){var n=items.length,b=$("bWa");if(b){b.hidden=!n;b.textContent=n
   var l=$("waList");if(!l)return;$("waStatus").textContent=n?n+" item"+(n>1?"s":"")+" waiting. Tap one to edit, retag and approve.":"Nothing waiting. New WhatsApp items appear here after Claude's review.";
   $("waAll").hidden=!n;$("waOne").hidden=!n;
   l.innerHTML=items.map(function(it,i){var dest=(DEST.filter(function(d){return d[0]===it.target})[0]||DEST[0])[1].replace(" (task)","");
-    if(it.update)return '<button type="button" class="wai" data-i="'+i+'"><span class="wad upd">Update</span><span><b>'+esc(it.update.title||it.title)+'</b><small>adds a dated comment</small></span></button>';
+    if(it.update)return '<button type="button" class="wai" data-i="'+i+'"><span class="wad upd">Update</span><span><b>'+esc(it.update.title||it.title)+'</b><small>adds a dated note to this task</small></span></button>';
     return '<button type="button" class="wai" data-i="'+i+'"><span class="wad'+(it.target==="reference"?" ref":"")+'">'+esc(dest)+'</span><span><b>'+esc(it.title)+'</b><small>'+
       esc((it.tags||[]).join(" · ").toUpperCase())+(it.repeat==="daily"?" · daily":"")+(it.due?" · from "+esc(it.due):"")+'</small></span></button>'}).join("");}
 async function load(){try{var r=await fetch(URLB(),{cache:"no-store"});var d=await r.json();if(d.error)throw new Error(d.error);items=d.items||[];paint();return true}
