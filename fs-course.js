@@ -79,13 +79,13 @@ CHG.push(
 /* Warm-up chord chain: every open shape from lessons s1–s5 in one logical order (falling fifths, ii–V–I,
    relative minors, the circle of dominants), each chord held for REP bars of p-i-m-a, then on to the next on its own.
    Part 1 ends on D, which leads back to Em, so the parts join into one unbroken full chain. */
-const REP=6,CHAIN=[
+const REP=2,CHAIN=[
   ["Part 1 · open minors and majors",["Em","Am","Dm","G","C","Am","E","A","D"]],
   ["Part 2 · Em to B7, round the sevenths",["Em","B7","E7","A7","D7","G7","C7","Fmaj7"]],
   ["Part 3 · m7 and maj7 colours",["Cmaj7","Am7","Dm7","G7","Gmaj7","Em7","Bm7","E7","Amaj7","Dmaj7","Emaj7"]]];
 const WARMUP={id:"wu",t:`Warm-up: the chord chain (each chord ${REP} bars)`,chain:CHAIN,rep:REP,free:1,meter:4,tempo:[60,60],pat:"1:B 2:3 3:2 4:1",
-  w:`Every open shape you have learned, in a logical order where each chord leads naturally to the next: Em, Am, Dm, G, C… through B7 and the seventh chords to the m7 and maj7 colours. Each chord is played ${REP} times, one bar each: thumb on the root, then i, m, a up the G, B and high e strings. After the ${REP}th bar the next chord comes on its own, so the left hand learns to find shapes in time and the right hand keeps going without a break. Use a part as a short warm-up, or the full chain on longer days.`,
-  tip:"The on-screen line under the Play button shows the chord you are on, which of its six bars, and the chord coming next. Start moving the left hand while the a finger plays beat 4 of the sixth bar, and land all fingers together on beat 1."};
+  w:`Every open shape you have learned, in a logical order where each chord leads naturally to the next: Em, Am, Dm, G, C… through B7 and the seventh chords to the m7 and maj7 colours. Each chord is played ${REP} times, one bar each: thumb on the root, then i, m, a up the G, B and high e strings. After the second bar the next chord comes on its own, so the left hand learns to find shapes in time and the right hand keeps going without a break. Use a part as a short warm-up, or the full chain on longer days.`,
+  tip:"The on-screen line under the Play button shows the chord you are on, which of its two bars, and the chord coming next. Start moving the left hand while the a finger plays beat 4 of the second bar, and land all fingers together on beat 1."};
 const LEVELS=[
  {n:"Chord shapes, one string at a time",zero:1,d:"Before any picking pattern, get each chord shape into your fingers. Hold the shape and pluck its strings one by one, lowest to highest and back down, so you hear at once if a note is buzzing or dead. Then change between shapes in every key, and run the everyday progressions, all before the thumb-and-fingers work. No goal tempo here: set any speed you like on the slider and change it whenever you want.",ls:[
   {id:"s1",t:"Minor shapes: Em, Am, Dm",shapes:["Em","Am","Dm"],scan:1,free:1,meter:4,tempo:[40,40],w:"Place the shape, then pluck every string it uses, one at a time, from the lowest to the highest and back down. Thumb (p) plays the bass strings, i-m-a the G, B and high e. Every note should ring clearly: no buzz, no dead note.",tip:"A dead note means a finger is leaning on the next string. Arch the fingers, press with the very tips, and sit each tip just behind its fret."},
