@@ -499,7 +499,6 @@ async function handleMerge(request,env,origin){
   const lines=['MERGED '+waDateLabel()+': '+String(A.title||'').trim()];
   if(notes)lines.push(notes);
   if(items.length&&!bList)items.forEach(i=>lines.push((i.status?'- [done] ':'- ')+i.title));
-  if(att)lines.push('('+att+' file'+(att>1?'s were':' was')+' attached to the merged task; find it in TickTick Trash if needed)');
   const block=lines.join('\n');
   const tags=[...new Set([].concat(B.tags||[],A.tags||[]).map(t=>String(t).toLowerCase()))];
   const summary={keep:{id:B.id,title:B.title},merge:{id:A.id,title:A.title},block,tags,attachments:att,checklist:items.length};

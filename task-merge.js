@@ -82,7 +82,6 @@ async function preview(){var a=st.from.id,b=st.into.id;
   try{var d=await post({dry:true});if(!st.from||st.from.id!==a||!st.into||st.into.id!==b)return;
     $("mgInfo").textContent="This note is added to the task that stays"+(d.tags&&d.tags.length?" (tags: "+d.tags.join(", ").toUpperCase()+")":"")+":";
     $("mgPv").hidden=false;$("mgPv").textContent=d.block;
-    if(d.attachments)$("mgE").textContent="The removed task has "+d.attachments+" file"+(d.attachments>1?"s":"")+" attached in TickTick. Files can't be moved. They stay in TickTick's Trash.";
     $("mgGo").disabled=false;}
   catch(e){if(st.from&&st.from.id===a){$("mgInfo").textContent="";$("mgE").textContent=e.message;}}}
 async function go(){if(st.busy)return;st.busy=true;var b=$("mgGo");b.textContent="Merging…";b.disabled=true;
