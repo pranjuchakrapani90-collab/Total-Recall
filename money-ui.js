@@ -227,8 +227,11 @@ function pickYono(){const i=document.createElement("input");i.type="file";i.acce
     try{await loadXlsx();const wb=await openWorkbook(f);$("st").textContent="Reading "+f.name+"…";
       let rows=null,lastErr=null;for(const n of wb.SheetNames){try{rows=M.readStatement(XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:true,defval:""}));break;}catch(e){lastErr=e;}}
       if(!rows)throw lastErr||new Error("No sheet in the file.");
+      /* bring in what the other phones approved or discarded first, so their rows count as already in */
+      let unsynced=false;if(I.hasSync()){$("st").textContent="Syncing before checking "+f.name+"…";
+        try{const s=await I.sync(KEY);unsynced=!s.ok;}catch(e){unsynced=true;}}
       const r=M.importRows(rows);showErr("");draw();
-      $("st").textContent=`${f.name}: ${r.added} new${r.dup?`, ${r.dup} already in`:""}${r.cp?` · bank ${inr(r.cp.amt,2)} on ${I.dshort(r.cp.date)}`:""}`;
+      $("st").textContent=`${f.name}: ${r.added} new${r.dup?`, ${r.dup} already in`:""}${r.cp?` · bank ${inr(r.cp.amt,2)} on ${I.dshort(r.cp.date)}`:""}${unsynced&&r.added?" · couldn't sync first, so rows approved on another phone may show again":""}`;
       if(r.added)review(0);else toast("Nothing new in this statement.");}
     catch(e){showErr("YONO file: "+e.message);$("st").textContent="";}};
   i.click();}

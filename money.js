@@ -127,12 +127,19 @@ function draft(x){const s=x.raw.toUpperCase(),L=I.load(KEY).learn[learnKey(x.raw
 /* add a statement's rows to the review list, skipping rows already logged or waiting; returns counts */
 /* a statement row's identity: day, amount, direction, SBI's description and reference (the description carries the UPI number) */
 const dirOf=x=>x.dir||(x.kind==="in"||(x.kind==="move"&&x.to==="bank")?"cr":"dr");
-const rowKey=x=>[x.date,x.amt,dirOf(x),String(x.raw||"").replace(/\s+/g," ").trim().toUpperCase(),String(x.ref||"").trim().toUpperCase()].join("|");
+/* SBI wraps and pads the description differently in every download (e.g. "SBIN/ surjya586@" one time, "SBIN/s urjya586@"
+   the next), so the text itself can't be compared. A UPI row is identified by its 12-digit UPI transaction number; any
+   other row by its description and ref with all spaces and line breaks taken out. */
+const squash=s=>String(s||"").replace(/\s+/g,"").toUpperCase();
+function idOf(raw,ref){const m=squash(raw).match(/UPI\/(?:DR|CR)\/(\d{9,})/);return m?"UPI"+m[1]:squash(raw)+"#"+squash(ref);}
+const rowKey=x=>[x.date,x.amt,dirOf(x),idOf(x.raw,x.ref)].join("|");
+/* discarded rows saved before 30 Oct 2026 hold the old key (date|amt|dir|DESCRIPTION|REF): rebuild it the new way */
+function skipKeyOf(k){const p=String(k).split("|");return p.length>=5?[p[0],p[1],p[2],idOf(p.slice(3,-1).join("|"),p[p.length-1])].join("|"):k;}
 /* add a statement's rows to the review list. Statements may overlap (yesterday + today uploaded again at night): a row is new
    only if the file has more copies of it than are already logged, waiting or discarded, so overlapping ranges add nothing
    twice while two genuinely identical payments on one day both come in. Returns counts. */
 function importRows(rows){const s=I.load(KEY),have={};
-  [...Object.values(s.tx),...Object.values(s.pend),...Object.values(s.skip)].forEach(x=>{if(x&&(x.src==="yono"||x.skipKey)){const k=x.skipKey||rowKey(x);have[k]=(have[k]||0)+1;}});
+  [...Object.values(s.tx),...Object.values(s.pend),...Object.values(s.skip)].forEach(x=>{if(x&&(x.src==="yono"||x.skipKey)){const k=x.skipKey?skipKeyOf(x.skipKey):rowKey(x);have[k]=(have[k]||0)+1;}});
   const fileN={},fresh=rows.filter(x=>{const k=rowKey(x);fileN[k]=(fileN[k]||0)+1;return fileN[k]>(have[k]||0);});
   const base=Date.now();fresh.forEach((x,i)=>{s.pend[I.uid()+i]={...draft(x),t:base+i};});
   /* the statement's last balance is the bank's real balance on that day */
