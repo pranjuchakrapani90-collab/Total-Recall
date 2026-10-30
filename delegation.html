@@ -65,7 +65,7 @@ input,select{font:inherit;width:100%;padding:10px 12px;border:1px solid var(--tr
 .fc-h .grp{font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--g)}
 .fc-h .sp{flex:1}
 .fc-h button{border:0;background:var(--tr-soft);color:var(--tr-ink);border-radius:8px;padding:5px 9px;font:600 12px system-ui,sans-serif;cursor:pointer}
-.map{position:relative;display:grid;grid-template-columns:1fr auto 1fr;grid-template-areas:"t t t" "l c r" "b b b";gap:14px 10px;align-items:center;padding:10px 0 2px;min-height:150px}
+.map{position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);grid-template-areas:"t t t" "l c r" "b b b";gap:14px 10px;align-items:center;padding:10px 0 2px;min-height:150px}
 .map svg.ln{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
 .map svg.ln line{stroke:var(--g);stroke-width:1.4;opacity:.55}
 .row{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
@@ -156,12 +156,15 @@ input,select{font:inherit;width:100%;padding:10px 12px;border:1px solid var(--tr
 .mfTop .btn{padding:7px 11px;font-size:13px;text-decoration:none;white-space:nowrap}
 .mfCount{text-align:center;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--tr-muted)}
 .mfCount small{display:block;font-weight:600;letter-spacing:0;text-transform:none;font-size:11px}
-.mfCard{flex:1;min-height:0;max-width:720px;width:100%;margin:0 auto;touch-action:pan-y}
-.mfCard .fc{height:100%;overflow:hidden;display:flex;flex-direction:column;padding:12px 12px 16px}
-.mfCard .map{flex:1;gap:16px 10px;align-content:center}
-.mfCard .hub{font-size:calc(var(--cf,15px) + 6px);min-width:110px;min-height:72px;max-width:150px}
+.mfCard{flex:1;min-height:0;max-width:720px;width:100%;margin:0 auto;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+.mfCard .fc{height:100%;overflow:hidden;display:flex;flex-direction:column;padding:12px 12px 14px}
+.mfCard .map{flex:1;min-height:0;gap:calc(var(--cf,15px)*.9) calc(var(--cf,15px)*.6);align-content:center;transform-origin:50% 50%}
+.mfCard.in-l .fc{animation:slideL .28s ease}.mfCard.in-r .fc{animation:slideR .28s ease}
+@keyframes slideL{from{transform:translateX(-40px);opacity:.2}to{transform:none;opacity:1}}
+@keyframes slideR{from{transform:translateX(40px);opacity:.2}to{transform:none;opacity:1}}
+.mfHint{text-align:center;font-size:11px;color:var(--tr-muted);margin-top:8px;opacity:.8}
+.mfCard .hub{font-size:calc(var(--cf,15px) + 5px);min-width:calc(var(--cf,15px)*6);min-height:calc(var(--cf,15px)*4);max-width:150px;padding:calc(var(--cf,15px)*.5) calc(var(--cf,15px)*.8)}
 .mfCard .chip{word-break:normal;overflow-wrap:normal;overflow:hidden;font-size:var(--cf,15px);padding:calc(var(--cf,15px)*.5) calc(var(--cf,15px)*.8)}
-.mflash .tfNav{max-width:720px;width:100%;margin:12px auto 0}
 .tfCard{touch-action:pan-y}
 </style>
 <link rel="stylesheet" href="tr-theme.css?v=20261020">
@@ -172,12 +175,11 @@ input,select{font:inherit;width:100%;padding:10px 12px;border:1px solid var(--tr
   <p class="eyebrow" style="margin:0 0 12px;font-size:13px">Member-wise pendency · tasks are given from Today's Tasks</p>
 </div></header>
 <main><section id="cards"></section></main>
-<div class="mflash" id="mflash" hidden><div class="mfTop" id="mfTop"></div><div class="mfCard" id="mfCard"></div>
-  <div class="tfNav"><button class="btn" type="button" id="mfPrev">← Back</button><button class="btn pri" type="button" id="mfNext">Next →</button></div></div>
+<div class="mflash" id="mflash" hidden><div class="mfTop" id="mfTop"></div><div class="mfCard" id="mfCard"></div><div class="mfHint" id="mfHint">Swipe left or right to move between members</div></div>
 <div class="tflash" id="tflash" hidden><div class="tfIn"><div class="tfTop" id="tfTop"></div>
   <div class="tfCard" id="tfCard"><div class="tfInner"><div class="tfFace tfFront" id="tfFront"></div><div class="tfFace tfBackFace"><div class="tfReveal" id="tfReveal"></div><div class="tfFlipHint">Tap to flip back</div></div></div></div>
   <div class="tfActs" id="tfActs"></div>
-  <div class="tfNav"><button class="btn" type="button" id="tfBack">← Back</button><button class="btn pri" type="button" id="tfNext">Next →</button></div></div></div>
+  <div class="mfHint">Swipe left or right for the next task · tap the card to flip</div></div></div>
 <div class="scrim" id="scrim" hidden><div class="sheet" id="sheet" role="dialog"></div></div>
 <script>
 "use strict";
@@ -220,11 +222,12 @@ let lastNew=null,filterG="all",fi=0;
 const isDone=(id,a)=>a.d===todayIST()||closedTT(id,a);
 function tasksOf(pid){return Object.entries(D.assign).filter(([,a])=>a.p===pid).map(([id,a])=>({id,...a})).sort((a,b)=>a.at-b.at);}
 function openCount(pid){return tasksOf(pid).filter(a=>!isDone(a.id,a)).length;}
-function layout(items){/* top one, then right, left, bottom, then the sides take turns; overflow goes to the top and bottom rows */
-  const L={t:[],r:[],l:[],b:[]},order=["t","r","l","b"];const cap=items.length>10?Math.ceil((items.length-2)/2.6):99;
+const defCap=n=>n>10?Math.ceil((n-2)/2.6):99;
+function layout(items,cap){/* top one, then right, left, bottom, then the sides take turns; overflow goes to the top and bottom rows */
+  const L={t:[],r:[],l:[],b:[]},order=["t","r","l","b"];if(cap==null)cap=defCap(items.length);
   items.forEach((x,i)=>{let s=i<4?order[i]:(i%2?"l":"r");if((s==="l"||s==="r")&&L[s].length>=cap)s=L.t.length<=L.b.length?"t":"b";L[s].push(x);});return L;}
 function chip(a){return `<button type="button" class="chip${isDone(a.id,a)?" dn":""}${a.id===lastNew?" new":""}" data-t="${esc(a.id)}" title="${esc(a.t)}">${esc(a.k||shortKw(a.t))}</button>`;}
-function cardHtml(p){const g=GROUPS[p.g]||GROUPS.other,L=layout(p.items),all=tasksOf(p.id),dn=all.filter(a=>isDone(a.id,a)).length;
+function cardHtml(p,cap){const g=GROUPS[p.g]||GROUPS.other,L=layout(p.items,cap),all=tasksOf(p.id),dn=all.filter(a=>isDone(a.id,a)).length;
   return `<div class="fc" style="--g:${g.c}" data-card="${esc(p.id)}"><div class="fc-h"><span class="grp">${esc(g.n)}</span><span>${all.length-dn} pending${dn?" · "+dn+" done":""}</span><span class="sp"></span>${all.length-dn?`<button type="button" data-share="${esc(p.id)}">Share</button>`:""}</div>
     <div class="map"><svg class="ln" aria-hidden="true"></svg>
       <div class="row t">${L.t.map(chip).join("")}</div><div class="col l">${L.l.map(chip).join("")}</div>
@@ -246,26 +249,54 @@ function renderCards(){const el=$("cards"),show=!!D.prefs.showDone,view=D.prefs.
   if(view==="one"&&ppl.length){fi=Math.min(Math.max(fi,0),ppl.length-1);
     const pend=ppl.reduce((n,p)=>n+openCount(p.id),0);
     $("mfTop").innerHTML=`<a class="btn" href="./#resp">← Today's Tasks</a><span class="mfCount">Member ${fi+1} of ${ppl.length}<small>${pend} pending in all</small></span><button class="btn" type="button" id="mfAll">All cards</button>`;
-    $("mfCard").innerHTML=cardHtml(ppl[fi]);$("mfPrev").disabled=!fi;$("mfNext").disabled=fi>=ppl.length-1;
-    $("mfAll").onclick=()=>{D.prefs.view="all";save();render()};
-    mf.hidden=false;document.body.style.overflow="hidden";bindCards(mf);
-  }else{mf.hidden=true;if($("tflash").hidden)document.body.style.overflow="";}
-  lastNew=null;requestAnimationFrame(()=>{if(!mf.hidden)fitMember();drawLines()});}
-const MF={n:0};
+    MF.p=ppl[fi];$("mfCard").innerHTML=cardHtml(MF.p);
+    $("mfAll").onclick=()=>{D.prefs.view="all";save();leaveFull();render()};
+    $("mfTop").querySelector("a").onclick=leaveFull;
+    $("mfHint").hidden=ppl.length<2;
+    mf.hidden=false;document.body.style.overflow="hidden";
+  }else{MF.p=null;mf.hidden=true;if($("tflash").hidden)document.body.style.overflow="";}
+  const nw=lastNew;requestAnimationFrame(()=>{if(MF.p)fitMember(nw);drawLines()});lastNew=null;}
+const MF={n:0,p:null};
 function bindCards(root){root.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{const c=b.closest("[data-card]");openFlash(c?c.dataset.card:(D.assign[b.dataset.t]||{}).p,b.dataset.t)});
   root.querySelectorAll("[data-person]").forEach(b=>b.onclick=()=>personSheet(b.dataset.person));
   root.querySelectorAll("[data-share]").forEach(b=>b.onclick=()=>share(b.dataset.share));}
-/* shrink the task bubbles until the whole card fits the screen */
-function fitMember(){const fc=$("mfCard").querySelector(".fc");if(!fc)return;let f=15;fc.style.setProperty("--cf",f+"px");
-  const over=()=>fc.scrollHeight>fc.clientHeight+1||[...fc.querySelectorAll(".chip")].some(c=>c.scrollWidth>c.clientWidth+1);
-  while(f>10&&over()){f-=.5;fc.style.setProperty("--cf",f+"px");}
-  if(over())fc.querySelectorAll(".chip").forEach(c=>c.style.overflowWrap="anywhere");}
+/* fit the whole member card on the screen, like a slide: try a few ways of spreading the bubbles
+   (more on the sides / more in the top and bottom rows), pick the one that allows the biggest text,
+   and only if even the smallest text won't fit, scale the whole map down */
+function fitMember(nw){const box=$("mfCard"),p=MF.p;if(!p||!box.offsetHeight)return;
+  const n=p.items.length,caps=[...new Set([defCap(n),99,Math.ceil(n/3),Math.ceil(n/4),Math.ceil(n/6),1].filter(c=>c>0))];
+  const put=cap=>{lastNew=nw;box.innerHTML=cardHtml(p,cap);lastNew=null;return box.querySelector(".fc");};
+  const fits=fc=>{const R=fc.getBoundingClientRect(),hd=fc.querySelector(".fc-h"),top=hd?hd.getBoundingClientRect().bottom+2:R.top;
+    for(const el of fc.querySelectorAll(".map .chip,.map .hub")){const r=el.getBoundingClientRect();
+      if(r.left<R.left+1||r.right>R.right-1||r.top<top||r.bottom>R.bottom-2||el.scrollWidth>el.clientWidth+1||el.scrollHeight>el.clientHeight+1)return false;}
+    return true;};
+  const MAX=20,MIN=9,setF=(fc,f)=>fc.style.setProperty("--cf",f+"px");
+  let best={cap:caps[0],f:0};
+  for(const cap of n>4?caps:[caps[0]]){const fc=put(cap);setF(fc,MAX);let f;
+    if(fits(fc))f=MAX;else{let lo=MIN,hi=MAX;setF(fc,lo);if(!fits(fc))f=0;else{while(hi-lo>.5){const m=(lo+hi)/2;setF(fc,m);if(fits(fc))lo=m;else hi=m;}f=lo;}}
+    if(f>best.f+.25)best={cap,f};if(f>=MAX)break;}
+  const fc=put(best.cap);setF(fc,best.f||MIN);
+  if(!best.f){/* still too much: shrink the whole map to the space below the header */
+    const map=fc.querySelector(".map"),els=[...map.querySelectorAll(".chip,.hub")];els.forEach(c=>c.style.overflowWrap="anywhere");
+    const R=fc.getBoundingClientRect(),hd=fc.querySelector(".fc-h").getBoundingClientRect(),M=map.getBoundingClientRect();
+    let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;els.forEach(c=>{const r=c.getBoundingClientRect();x0=Math.min(x0,r.left);y0=Math.min(y0,r.top);x1=Math.max(x1,r.right);y1=Math.max(y1,r.bottom)});
+    const availW=R.width-26,availH=R.bottom-hd.bottom-16,sc=Math.min(1,availW/(x1-x0),availH/(y1-y0));
+    const cx=(x0+x1)/2-(M.left+M.width/2),cy=(y0+y1)/2-(M.top+M.height/2),tx=(R.left+R.width/2)-(M.left+M.width/2),ty=(hd.bottom+availH/2+8)-(M.top+M.height/2);
+    map.style.transform=`translate(${tx-cx*sc}px,${ty-cy*sc}px) scale(${sc})`;}
+  bindCards(box);drawLines();}
 /* shrink a title until it fits its card */
 function fitText(box,el,max,min){let f=max;el.style.fontSize=f+"px";while(f>min&&box.scrollHeight>box.clientHeight+1){f-=1;el.style.fontSize=f+"px";}}
-$("mfPrev").onclick=()=>{if(fi>0){fi--;render()}};$("mfNext").onclick=()=>{if(fi<MF.n-1){fi++;render()}};
+/* slideshow: no buttons — swipe to move, like a presentation; the page goes true full screen on first touch */
+let swipedAt=0;
+function goFull(){try{const d=document.documentElement;if(!document.fullscreenElement&&d.requestFullscreen)d.requestFullscreen({navigationUI:"hide"}).catch(()=>{})}catch(e){}}
+function leaveFull(){try{if(document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen().catch(()=>{})}catch(e){}}
+function slide(dir){const c=$("mfCard");c.classList.remove("in-l","in-r");void c.offsetWidth;c.classList.add(dir>0?"in-r":"in-l");}
+function mfGo(d){const j=fi+d;if(j<0||j>=MF.n){slide(-d);return}fi=j;render();slide(d);}
+document.addEventListener("click",e=>{if(Date.now()-swipedAt<400&&e.target.closest("#mfCard,#tfCard")){e.stopPropagation();e.preventDefault();}},true);
 (()=>{let x0=null,y0=0;const c=$("mfCard");c.addEventListener("touchstart",e=>{x0=e.touches[0].clientX;y0=e.touches[0].clientY},{passive:true});
-  c.addEventListener("touchend",e=>{if(x0==null)return;const dx=e.changedTouches[0].clientX-x0,dy=e.changedTouches[0].clientY-y0;x0=null;if(Math.abs(dx)<60||Math.abs(dy)>Math.abs(dx))return;
-    if(dx<0&&fi<MF.n-1){fi++;render()}else if(dx>0&&fi>0){fi--;render()}},{passive:true});})();
+  c.addEventListener("touchend",e=>{goFull();if(x0==null)return;const dx=e.changedTouches[0].clientX-x0,dy=e.changedTouches[0].clientY-y0;x0=null;if(Math.abs(dx)<50||Math.abs(dy)>Math.abs(dx))return;
+    swipedAt=Date.now();mfGo(dx<0?1:-1);},{passive:true});})();
+document.addEventListener("keydown",e=>{if(!MF.p||TF||!$("scrim").hidden)return;if(e.key==="ArrowRight"||e.key===" "||e.key==="PageDown")mfGo(1);if(e.key==="ArrowLeft"||e.key==="PageUp")mfGo(-1);});
 
 /* ---------- done for the day: the app marks it, and TickTick moves a repeating task to its next date ---------- */
 const todayIST=()=>new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Kolkata",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
@@ -285,10 +316,10 @@ function bindTools(el){el.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>
   $("showDone").onchange=e=>{D.prefs.showDone=e.target.checked?1:0;save();render()};
   $("newPerson").onclick=()=>personSheet(null);}
 function drawLines(){document.querySelectorAll(".map").forEach(m=>{const svg=m.querySelector("svg"),hub=m.querySelector(".hub");if(!svg||!hub)return;
-  const R=m.getBoundingClientRect(),H=hub.getBoundingClientRect(),cx=H.left+H.width/2-R.left,cy=H.top+H.height/2-R.top;
-  svg.setAttribute("viewBox",`0 0 ${R.width} ${R.height}`);
-  svg.innerHTML=[...m.querySelectorAll(".chip")].map(c=>{const r=c.getBoundingClientRect();return `<line x1="${cx}" y1="${cy}" x2="${r.left+r.width/2-R.left}" y2="${r.top+r.height/2-R.top}"/>`}).join("");});}
-let rz=0;window.addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(drawLines,120)});
+  const R=m.getBoundingClientRect(),k=m.offsetWidth?R.width/m.offsetWidth:1,H=hub.getBoundingClientRect(),cx=(H.left+H.width/2-R.left)/k,cy=(H.top+H.height/2-R.top)/k;
+  svg.setAttribute("viewBox",`0 0 ${m.offsetWidth} ${m.offsetHeight}`);
+  svg.innerHTML=[...m.querySelectorAll(".chip")].map(c=>{const r=c.getBoundingClientRect();return `<line x1="${cx}" y1="${cy}" x2="${(r.left+r.width/2-R.left)/k}" y2="${(r.top+r.height/2-R.top)/k}"/>`}).join("");});}
+let rz=0;window.addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(()=>{if(MF.p&&!$("mflash").hidden)fitMember();else drawLines()},150)});
 
 async function share(pid){const p=D.people[pid];if(!p)return;const open=tasksOf(pid).filter(a=>!isDone(a.id,a));
   const text=`${p.name} — tasks\n`+open.map((a,i)=>`${i+1}. ${a.k} — ${a.t}`).join("\n");
@@ -343,7 +374,6 @@ function drawFlash(){if(!TF)return;const p=D.people[TF.pid];TF.ids=TF.ids.filter
   requestAnimationFrame(()=>{const f=$("tfFront"),n=f.querySelector(".tfName");if(n)fitText(f,n,28,13)});
   $("tfReveal").innerHTML='<div class="taskBody"><div class="taskEmpty">Loading the latest details from TickTick…</div></div>';
   $("tfActs").innerHTML=`<button class="btn" type="button" id="tfDone">${a.d===todayIST()?"Mark not done":(closedTT(id,a)?"✓ Done in TickTick":"✓ Done for today")}</button><button class="btn" type="button" id="tfMore">Move / edit</button>`;
-  $("tfBack").disabled=TF.i===0;$("tfNext").disabled=TF.i>=TF.ids.length-1;
   $("tfClose").onclick=closeFlash;
   const dbt=$("tfDone");if(closedTT(id,a)&&a.d!==todayIST())dbt.disabled=true;dbt.onclick=()=>markDone(id);
   $("tfMore").onclick=()=>taskSheet(id);
@@ -373,12 +403,11 @@ function detailHtml(t,comments,pj,id){const url="https://ticktick.com/webapp/#p/
   if(!content&&!items.length&&!atts.length&&!comments.length)h+='<div class="taskBody"><div class="taskEmpty">No description, checklist, attachment or comment in TickTick for this task.</div></div>';
   return h+`<div class="taskFooter">Live from TickTick · ${esc(new Date().toLocaleTimeString())}</div>`;}
 $("tfCard").addEventListener("click",e=>{if(e.target.closest("a"))return;const f=$("tfCard").classList.toggle("flipped");if(f)revealFlash();});
-$("tfBack").onclick=()=>{if(TF&&TF.i>0){TF.i--;drawFlash()}};
-$("tfNext").onclick=()=>{if(TF&&TF.i<TF.ids.length-1){TF.i++;drawFlash()}};
+const tfGo=d=>{if(!TF)return;const j=TF.i+d;if(j<0||j>=TF.ids.length)return;TF.i=j;drawFlash();};
 (()=>{let x0=null;const c=$("tfCard");c.addEventListener("touchstart",e=>{x0=e.touches[0].clientX},{passive:true});
-  c.addEventListener("touchend",e=>{if(x0==null||!TF)return;const dx=e.changedTouches[0].clientX-x0;x0=null;if(Math.abs(dx)<60||c.classList.contains("flipped"))return;
-    if(dx<0&&TF.i<TF.ids.length-1){TF.i++;drawFlash()}else if(dx>0&&TF.i>0){TF.i--;drawFlash()}},{passive:true});})();
-document.addEventListener("keydown",e=>{if(!TF||!$("scrim").hidden)return;if(e.key==="Escape")closeFlash();if(e.key==="ArrowRight")$("tfNext").click();if(e.key==="ArrowLeft")$("tfBack").click();});
+  c.addEventListener("touchend",e=>{if(x0==null||!TF)return;const dx=e.changedTouches[0].clientX-x0;x0=null;if(Math.abs(dx)<50||c.classList.contains("flipped"))return;
+    swipedAt=Date.now();tfGo(dx<0?1:-1);},{passive:true});})();
+document.addEventListener("keydown",e=>{if(!TF||!$("scrim").hidden)return;if(e.key==="Escape")closeFlash();if(e.key==="ArrowRight")tfGo(1);if(e.key==="ArrowLeft")tfGo(-1);});
 
 /* ---------- shell ---------- */
 function render(){renderCards();if(TF&&!$("tflash").hidden)drawFlash();}
