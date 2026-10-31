@@ -166,6 +166,24 @@ input,select{font:inherit;width:100%;padding:10px 12px;border:1px solid var(--tr
 .mfCard .hub{font-size:calc(var(--cf,15px) + 5px);min-width:calc(var(--cf,15px)*6);min-height:calc(var(--cf,15px)*4);max-width:150px;padding:calc(var(--cf,15px)*.5) calc(var(--cf,15px)*.8)}
 .mfCard .chip{word-break:normal;overflow-wrap:normal;overflow:hidden;font-size:var(--cf,15px);padding:calc(var(--cf,15px)*.5) calc(var(--cf,15px)*.8)}
 .tfCard{touch-action:pan-y}
+/* ---------- four outcomes under a task card (31 Oct 2026) ---------- */
+.tfCard{height:calc(100dvh - 300px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));min-height:260px}
+#tfOc{width:100%}
+.oc{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.oc button{text-align:left;border:1.5px solid var(--c);background:var(--tr-paper);color:var(--tr-ink);border-radius:13px;padding:9px 11px;min-height:58px;cursor:pointer;font:650 14px/1.25 system-ui,sans-serif}
+.oc button b{display:block;color:var(--c);font-weight:750}
+.oc button small{display:block;margin-top:2px;font-weight:500;font-size:11.5px;color:var(--tr-muted)}
+.oc button.on{background:var(--c)}.oc button.on b,.oc button.on small{color:#fff}
+.oc button.arm{background:#eef2ff;box-shadow:0 0 0 3px #c7d2fe}.oc button.arm small{color:#3730a3;font-weight:650}
+.ocNote{text-align:center;color:#15803d;font-weight:650;padding:14px;border:1px dashed var(--tr-line);border-radius:12px}
+.ocLater{border:1.5px solid #0369a1;border-radius:13px;padding:10px;background:var(--tr-paper)}
+.ocLater>b{font-size:13px;color:#0369a1}
+.ocQ{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:8px 0}
+.ocQ .btn{padding:7px 9px;font-size:13px;text-align:left}.ocQ .btn small{display:block;font-weight:500;color:var(--tr-muted);font-size:11px}
+.ocPick{display:grid;grid-template-columns:1fr auto auto;gap:6px}.ocPick input{padding:8px 10px}
+.chip.fn::before{content:"✔✔ "}
+.chip.ps{border-style:dashed;border-color:#b45309;background:#fff7ed}.chip.ps::before{content:"↷ ";color:#b45309;font-weight:800}
+.chip.lt{border-style:dotted;color:var(--tr-muted)}.chip.lt small{display:block;font-size:.75em;font-weight:700;color:#0369a1}
 </style>
 <link rel="stylesheet" href="tr-theme.css?v=20261020">
 </head><body>
@@ -192,7 +210,11 @@ const fmtDate=ms=>{try{return new Date(ms).toLocaleDateString("en-IN",{day:"nume
 
 /* ---------- data (shared with Today's Tasks through localStorage "deleg", synced by kvsync.js) ----------
    people: {id:{name,g,u}}   g = me|office|family|other, u = last used
-   assign: {taskId:{t,k,p,at,pr,d}}   t full title, k keyword, p person id, pr TickTick list/tag, d = marked done
+   assign: {taskId:{t,k,p,at,pr,d,s,on,until,np}}   t full title, k keyword, p person id, pr TickTick list/tag,
+           d = day marked "done today, continues" (older entries only have this), s = outcome chosen on the task card:
+           cont = work done today, continues tomorrow · fin = done and dusted, never repeats ·
+           push = not done, pushed to tomorrow · later = pushed to `until`, then daily until done;
+           on = the day the outcome was chosen, np = how many times it has been pushed
    aside:  {taskId:{t,at}}   (from the first version's review; kept as it was)
    prefs:  {showDone:1|0, view:"one"|"all"} */
 function load(){let d={};try{d=JSON.parse(localStorage.getItem(KEY)||"{}")||{}}catch(e){}
@@ -219,16 +241,25 @@ async function fetchOpen(){try{const r=await fetch(wurl("mode=wa-review&list=tas
 const closedTT=(id,a)=>loaded&&!openIds.has(id)&&!openTitles.has(tkey(a.t));
 /* ---------- cards ---------- */
 let lastNew=null,filterG="all",fi=0;
-const isDone=(id,a)=>a.d===todayIST()||closedTT(id,a);
+/* where a delegated task stands today: open · cont · fin · push · later */
+function stOf(id,a){const td=todayIST();
+  if(a.s==="fin"||closedTT(id,a))return "fin";
+  if(a.s==="later"&&a.until&&a.until>td)return "later";
+  if(a.s==="push"&&a.on===td)return "push";
+  if(a.d===td)return "cont";
+  return "open";}
+const isDone=(id,a)=>{const x=stOf(id,a);return x==="fin"||x==="cont"};
 function tasksOf(pid){return Object.entries(D.assign).filter(([,a])=>a.p===pid).map(([id,a])=>({id,...a})).sort((a,b)=>a.at-b.at);}
 function openCount(pid){return tasksOf(pid).filter(a=>!isDone(a.id,a)).length;}
 const defCap=n=>n>10?Math.ceil((n-2)/2.6):99;
 function layout(items,cap){/* top one, then right, left, bottom, then the sides take turns; overflow goes to the top and bottom rows */
   const L={t:[],r:[],l:[],b:[]},order=["t","r","l","b"];if(cap==null)cap=defCap(items.length);
   items.forEach((x,i)=>{let s=i<4?order[i]:(i%2?"l":"r");if((s==="l"||s==="r")&&L[s].length>=cap)s=L.t.length<=L.b.length?"t":"b";L[s].push(x);});return L;}
-function chip(a){return `<button type="button" class="chip${isDone(a.id,a)?" dn":""}${a.id===lastNew?" new":""}" data-t="${esc(a.id)}" title="${esc(a.t)}">${esc(a.k||shortKw(a.t))}</button>`;}
-function cardHtml(p,cap){const g=GROUPS[p.g]||GROUPS.other,L=layout(p.items,cap),all=tasksOf(p.id),dn=all.filter(a=>isDone(a.id,a)).length;
-  return `<div class="fc" style="--g:${g.c}" data-card="${esc(p.id)}"><div class="fc-h"><span class="grp">${esc(g.n)}</span><span>${all.length-dn} pending${dn?" · "+dn+" done":""}</span><span class="sp"></span>${all.length-dn?`<button type="button" data-share="${esc(p.id)}">Share</button>`:""}</div>
+const CHIPC={cont:" dn",fin:" dn fn",push:" ps",later:" lt",open:""};
+function chip(a){const x=stOf(a.id,a);return `<button type="button" class="chip${CHIPC[x]}${a.id===lastNew?" new":""}" data-t="${esc(a.id)}" title="${esc(a.t)}">${esc(a.k||shortKw(a.t))}${x==="later"?`<small>${esc(fmtDay(a.until))}</small>`:""}</button>`;}
+function cardHtml(p,cap){const g=GROUPS[p.g]||GROUPS.other,L=layout(p.items,cap),all=tasksOf(p.id),dn=all.filter(a=>isDone(a.id,a)).length,
+    ps=all.filter(a=>stOf(a.id,a)==="push").length,lt=all.filter(a=>stOf(a.id,a)==="later").length;
+  return `<div class="fc" style="--g:${g.c}" data-card="${esc(p.id)}"><div class="fc-h"><span class="grp">${esc(g.n)}</span><span>${all.length-dn} pending${ps?" · "+ps+" pushed":""}${lt?" · "+lt+" later":""}${dn?" · "+dn+" done":""}</span><span class="sp"></span>${all.length-dn?`<button type="button" data-share="${esc(p.id)}">Share</button>`:""}</div>
     <div class="map"><svg class="ln" aria-hidden="true"></svg>
       <div class="row t">${L.t.map(chip).join("")}</div><div class="col l">${L.l.map(chip).join("")}</div>
       <div class="hub" data-person="${esc(p.id)}">${esc(p.name)}</div>
@@ -301,19 +332,58 @@ document.addEventListener("click",e=>{if(Date.now()-swipedAt<400&&e.target.close
     swipedAt=Date.now();mfGo(dx<0?1:-1);},{passive:true});})();
 document.addEventListener("keydown",e=>{if(!MF.p||TF||!$("scrim").hidden)return;if(e.key==="ArrowRight"||e.key===" "||e.key==="PageDown")mfGo(1);if(e.key==="ArrowLeft"||e.key==="PageUp")mfGo(-1);});
 
-/* ---------- done for the day: the app marks it, and TickTick moves a repeating task to its next date ---------- */
+/* ---------- the four outcomes on a task card ----------
+   In TickTick he ticks a daily task "done" both when the work is done and just to push it on, so the app keeps which one it was.
+   The worker then does the matching step in TickTick (see handleDelegDone in ticktick-worker.js). */
 const todayIST=()=>new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Kolkata",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
 const fmtDay=iso=>{try{return new Date(iso+"T12:00:00").toLocaleDateString("en-IN",{day:"numeric",month:"short"})}catch(e){return iso}};
-async function markDone(id){const a=D.assign[id];if(!a)return;
-  if(a.d===todayIST()){delete a.d;save();render();toast("Back to pending here — TickTick is not changed back",3000);return}
-  a.d=todayIST();save();render();
-  const pj=a.pj||projById[id];if(!pj){toast("Done for today",2000);return}
-  try{const r=await fetch(wurl("mode=deleg-done"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({projectId:pj,taskId:id})});
+const addDay=(iso,n)=>{const d=new Date(iso+"T12:00:00Z");d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)};
+const OUT={cont:{i:"✓",n:"Done · continues",h:"Work done today, back tomorrow",c:"#15803d"},
+  fin:{i:"✔✔",n:"Done & dusted",h:"Finished, never repeats",c:"#4338ca"},
+  push:{i:"↷",n:"Push to tomorrow",h:"Not done, back tomorrow",c:"#b45309"},
+  later:{i:"📅",n:"Push to a date",h:"Then daily until done",c:"#0369a1"}};
+function clearOutcome(a){delete a.s;delete a.on;delete a.until;delete a.d;}
+async function setOutcome(id,s,date){const a=D.assign[id];if(!a)return;const td=todayIST(),cur=stOf(id,a);
+  if(cur===s&&(s!=="later"||!date||date===a.until)){clearOutcome(a);save();render();toast("Back to pending here — TickTick is not changed back",3000);return}
+  clearOutcome(a);a.s=s;a.on=td;
+  if(s==="cont")a.d=td;
+  if(s==="push"||s==="later")a.np=(a.np||0)+1;
+  if(s==="later")a.until=date;
+  save();render();
+  const pj=a.pj||projById[id],label=OUT[s].n;if(!pj){toast(label+" · saved here",2000);return}
+  try{const r=await fetch(wurl("mode=deleg-done"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({projectId:pj,taskId:id,action:s,date:date||""})});
     const d=await r.json().catch(()=>({}));if(!r.ok||d.error)throw new Error(d.error||("HTTP "+r.status));
-    toast(d.completed?"Done for today · TickTick moved it to "+(d.next?fmtDay(d.next):"its next date"):
-      d.reason==="not-repeating"?"Done for today · not a repeating task, so TickTick is left as it is":
-      d.reason==="already-done-today"?"Done for today · TickTick already shows it done today":"Done for today",3200);
-  }catch(e){toast("Done here, but TickTick couldn't be updated: "+(e.message||e),3600)}}
+    let m=label;
+    if(s==="fin")m+=d.closed?" · closed for good in TickTick":(d.reason==="closed"?" · already closed in TickTick":" · TickTick kept its repeat, close it there");
+    else if(s==="later")m+=" · TickTick starts it on "+fmtDay(d.next||date)+(d.repeatAdded?", repeating daily":"");
+    else if(d.completed||d.moved)m+=" · TickTick moved it to "+(d.next?fmtDay(d.next):"its next date");
+    else if(d.reason==="not-repeating")m+=" · not a repeating task, so TickTick is left as it is";
+    else if(d.reason==="already-done-today"||d.reason==="already-later")m+=" · TickTick already shows it on "+(d.next?fmtDay(d.next):"a later date");
+    toast(m,3400);
+  }catch(e){toast(label+" here, but TickTick couldn't be updated: "+(e.message||e),3800)}}
+function outcomeHtml(id,a){const x=stOf(id,a),tt=closedTT(id,a)&&a.s!=="fin";
+  if(tt)return `<div class="ocNote">✓ Completed in TickTick</div>`;
+  return `<div class="oc">${Object.keys(OUT).map(k=>{const o=OUT[k],on=x===k;
+    const sub=on?(k==="later"?"From "+fmtDay(a.until)+" · tap to undo":"Chosen · tap to undo"):o.h;
+    return `<button type="button" class="${on?"on":""}" data-oc="${k}" style="--c:${o.c}"><b>${o.i} ${o.n}</b><small>${esc(sub)}</small></button>`}).join("")}</div>`;}
+function laterHtml(a){const td=todayIST(),pick=a.s==="later"&&a.until>td?a.until:addDay(td,2);
+  const wd=new Date(td+"T12:00:00Z").getUTCDay(),toMon=((8-wd)%7)||7;
+  const q=[[2,"Day after tomorrow"],[3,"In 3 days"],[toMon,"Next Monday"],[7,"In a week"]].filter((v,i,arr)=>arr.findIndex(w=>w[0]===v[0])===i);
+  return `<div class="ocLater"><b>Push to which day?</b><div class="ocQ">${q.map(([n,l])=>`<button type="button" class="btn" data-qd="${addDay(td,n)}">${l}<small>${fmtDay(addDay(td,n))}</small></button>`).join("")}</div>
+    <div class="ocPick"><input type="date" id="ocDate" min="${addDay(td,1)}" value="${pick}"><button type="button" class="btn pri" id="ocSet">Set</button><button type="button" class="btn ghost" id="ocCancel">Cancel</button></div></div>`;}
+function bindOutcome(box,id){const a=D.assign[id];if(!a)return;let armed=0;
+  box.querySelectorAll("[data-oc]").forEach(b=>b.onclick=e=>{e.stopPropagation();const k=b.dataset.oc,cur=stOf(id,a);
+    if(k==="later"&&cur!=="later"){box.innerHTML=laterHtml(a);bindLater(box,id);return}
+    /* closing for good removes the daily repeat in TickTick, so it takes a second tap */
+    if(k==="fin"&&cur!=="fin"&&!armed){armed=1;b.querySelector("small").textContent="Tap again — closes it for good in TickTick";b.classList.add("arm");
+      setTimeout(()=>{if(b.isConnected&&armed){armed=0;b.classList.remove("arm");b.querySelector("small").textContent=OUT.fin.h}},3500);return}
+    setOutcome(id,k);advance(id);});}
+function bindLater(box,id){const go=d=>{if(!d||d<=todayIST()){toast("Pick a day after today");return}setOutcome(id,"later",d);advance(id);};
+  box.querySelectorAll("[data-qd]").forEach(b=>b.onclick=e=>{e.stopPropagation();go(b.dataset.qd)});
+  box.querySelector("#ocSet").onclick=e=>{e.stopPropagation();go(box.querySelector("#ocDate").value)};
+  box.querySelector("#ocCancel").onclick=e=>{e.stopPropagation();if(TF)drawFlash()};}
+/* after choosing, the next task of the member comes up (unless it was the last one or an undo) */
+function advance(id){if(!TF)return;const a=D.assign[id];if(!a||!a.s)return;setTimeout(()=>{if(TF&&TF.ids[TF.i]===id&&TF.i<TF.ids.length-1){TF.i++;drawFlash();}},650);}
 function bindTools(el){el.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{filterG=b.dataset.g;fi=0;render()});
   el.querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>{D.prefs.view=b.dataset.v;save();render()});
   $("showDone").onchange=e=>{D.prefs.showDone=e.target.checked?1:0;save();render()};
@@ -325,7 +395,7 @@ function drawLines(){document.querySelectorAll(".map").forEach(m=>{const svg=m.q
 let rz=0;window.addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(()=>{if(MF.p&&!$("mflash").hidden)fitMember();else drawLines()},150)});
 
 async function share(pid){const p=D.people[pid];if(!p)return;const open=tasksOf(pid).filter(a=>!isDone(a.id,a));
-  const text=`${p.name} — tasks\n`+open.map((a,i)=>`${i+1}. ${a.k} — ${a.t}`).join("\n");
+  const text=`${p.name} — tasks\n`+open.map((a,i)=>`${i+1}. ${a.k} — ${a.t}${stOf(a.id,a)==="later"?" (from "+fmtDay(a.until)+")":""}`).join("\n");
   try{if(navigator.share){await navigator.share({text});return}}catch(e){if(e&&e.name==="AbortError")return}
   try{await navigator.clipboard.writeText(text);toast("Copied — paste it in WhatsApp")}catch(e){toast("Could not copy")}}
 
@@ -338,12 +408,11 @@ function taskSheet(id){const a=D.assign[id];if(!a)return;const p=D.people[a.p]||
   const others=peopleSorted().filter(x=>x.id!==a.p);
   openSheet(`<div class="meta">${esc(a.pr||"TickTick")} · given to ${esc(p.name)} on ${esc(fmtDate(a.at))}${tt?" · completed in TickTick":""}</div><h3>${esc(a.t)}</h3>
     <label class="lbl" for="sk">Keyword on the card</label><input id="sk" value="${esc(a.k||"")}" maxlength="40">
-    <div class="row2"><button class="btn pri" id="sSave" type="button">Save</button>${tt?"":`<button class="btn" id="sDone" type="button">${a.d===todayIST()?"Mark not done":"✓ Done for today"}</button>`}</div>
+    <div class="row2"><button class="btn pri" id="sSave" type="button">Save</button></div>
     ${others.length?`<span class="lbl">Move to</span><div class="people">${others.map(x=>`<button type="button" class="pchip" data-mv="${esc(x.id)}" style="--g:${(GROUPS[x.g]||GROUPS.other).c}"><i></i>${esc(x.name)}</button>`).join("")}</div>`:""}
     <div class="row2" style="margin-top:18px"><button class="btn danger" id="sBack" type="button">Remove from card</button><span style="flex:1"></span><button class="btn ghost" id="sClose" type="button">Close</button></div>`,s=>{
       const sk=s.querySelector("#sk");
       s.querySelector("#sSave").onclick=()=>{a.k=sk.value.trim()||shortKw(a.t);save();closeSheet();render()};
-      const dn=s.querySelector("#sDone");if(dn)dn.onclick=()=>{a.k=sk.value.trim()||a.k;save();closeSheet();markDone(id)};
       s.querySelectorAll("[data-mv]").forEach(b=>b.onclick=()=>{a.p=b.dataset.mv;a.k=sk.value.trim()||a.k;D.people[a.p].u=Date.now();lastNew=id;save();closeSheet();render();toast("Moved to "+D.people[a.p].name)});
       s.querySelector("#sBack").onclick=()=>{delete D.assign[id];save();closeSheet();render();toast("Removed from the card")};
       s.querySelector("#sClose").onclick=closeSheet;});}
@@ -368,17 +437,18 @@ function openFlash(pid,id){const ids=tasksOf(pid).filter(a=>D.prefs.showDone||!i
 function closeFlash(){$("tflash").hidden=true;TF=null;render();}
 function drawFlash(){if(!TF)return;const p=D.people[TF.pid];TF.ids=TF.ids.filter(id=>D.assign[id]);
   if(!p||!TF.ids.length){closeFlash();return}TF.i=Math.min(TF.i,TF.ids.length-1);
-  const id=TF.ids[TF.i],a=D.assign[id],g=GROUPS[p.g]||GROUPS.other,dn=isDone(id,a);
+  const id=TF.ids[TF.i],a=D.assign[id],g=GROUPS[p.g]||GROUPS.other,dn=isDone(id,a),x=stOf(id,a);
+  const stLine=x==="open"?"":(x==="later"?"📅 Pushed to "+fmtDay(a.until):(OUT[x].i+" "+OUT[x].n))+" · ";
   $("tfTop").innerHTML=`<button class="btn" type="button" id="tfClose">← ${esc(p.name)}'s card</button><span class="muted">${TF.i+1} / ${TF.ids.length}</span>`;
   $("tfCard").style.setProperty("--g",g.c);$("tfCard").classList.remove("flipped");
   $("tfFront").innerHTML=`<span class="tfSrc">${esc(a.pr||"TickTick")}</span><div class="tfCounter">${esc(p.name)} • TASK ${TF.i+1} OF ${TF.ids.length}</div>
     <div class="tfKw">${esc(a.k||shortKw(a.t))}</div><div class="tfName${dn?" dn":""}">${esc(a.t)}</div>
-    <div class="tfHint">${dn?"✓ Done · ":""}Given ${esc(fmtDate(a.at))} · tap for details</div>`;
+    <div class="tfHint">${esc(stLine)}Given ${esc(fmtDate(a.at))}${a.np?" · pushed "+a.np+"×":""} · tap for details</div>`;
   requestAnimationFrame(()=>{const f=$("tfFront"),n=f.querySelector(".tfName");if(n)fitText(f,n,28,13)});
   $("tfReveal").innerHTML='<div class="taskBody"><div class="taskEmpty">Loading the latest details from TickTick…</div></div>';
-  $("tfActs").innerHTML=`<button class="btn" type="button" id="tfDone">${a.d===todayIST()?"Mark not done":(closedTT(id,a)?"✓ Done in TickTick":"✓ Done for today")}</button><button class="btn" type="button" id="tfMore">Move / edit</button>`;
-  $("tfClose").onclick=closeFlash;
-  const dbt=$("tfDone");if(closedTT(id,a)&&a.d!==todayIST())dbt.disabled=true;dbt.onclick=()=>markDone(id);
+  $("tfActs").innerHTML=`<div id="tfOc">${outcomeHtml(id,a)}</div>`;
+  $("tfTop").insertAdjacentHTML("beforeend",`<button class="btn" type="button" id="tfMore">Move / edit</button>`);
+  $("tfClose").onclick=closeFlash;bindOutcome($("tfOc"),id);
   $("tfMore").onclick=()=>taskSheet(id);
   TF.loaded=null;}
 async function revealFlash(){if(!TF)return;const id=TF.ids[TF.i],a=D.assign[id];if(!a||TF.loaded===id)return;TF.loaded=id;

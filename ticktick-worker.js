@@ -438,29 +438,55 @@ async function handleSync(request,env){
    Pranju OS lists them (GET ?mode=wa-review) and, per item, approves it into its destination project with the
    edited title/tags/date/notes (POST action=approve) or discards it (POST action=discard).
    Writes only ever touch tasks that are inside the WA REVIEW project. */
-/* Delegation (Pranju OS, 29 Oct 2026): a delegated task marked done in the app is done FOR THE DAY in TickTick.
-   POST ?mode=deleg-done {projectId, taskId}
-   - repeating task due today or earlier -> TickTick's complete, which moves it to its next date (that day it shows as usual)
-   - repeating task already moved past today -> nothing (already done today)
-   - task without a repeat -> nothing: closing a task for good stays his own step inside TickTick */
+/* Delegation (Pranju OS, 29 Oct 2026; four outcomes 31 Oct 2026). In TickTick he ticks a daily task "done" both when the work is
+   really done and just to push it to the next day; Delegation records which one it was, and does the matching step in TickTick.
+   POST ?mode=deleg-done {projectId, taskId, action, date}
+   action "cont"  (default) work done today, task continues   -> repeating: complete until its next date is after today
+   action "push"  not done, pushed to tomorrow                 -> repeating: same complete; not repeating: due date moved to tomorrow
+   action "later" pushed to a later date, then daily until done -> start/due moved to `date` (time of day kept), daily repeat set if it had none
+   action "fin"   done and dusted, never repeats               -> repeat removed, then completed once (closed for good) */
 async function handleDelegDone(request,env,origin){
   const json=(o,st)=>new Response(JSON.stringify(o),{status:st||200,headers:{...corsHeaders(origin),'Content-Type':'application/json'}});
   const token=env.TICKTICK_ACCESS_TOKEN;if(!token)return json({error:'TICKTICK_ACCESS_TOKEN secret is not configured'},500);
   if(request.method!=='POST')return json({error:'Method not allowed'},405);
   let body={};try{body=await request.json()}catch(_){return json({error:'Invalid JSON'},400)}
   const pid=String(body.projectId||''),tid=String(body.taskId||'');if(!pid||!tid)return json({error:'projectId and taskId are required'},400);
+  const action=['cont','push','later','fin'].indexOf(body.action)>=0?body.action:'cont';
   const tz=env.TIME_ZONE||'Asia/Kolkata',today=todayInZone(tz);
-  const t=await tick('/project/'+encodeURIComponent(pid)+'/task/'+encodeURIComponent(tid),token);
+  const path='/project/'+encodeURIComponent(pid)+'/task/'+encodeURIComponent(tid);
+  const get=()=>tick(path,token);
+  const complete=()=>fetch(API+path+'/complete',{method:'POST',headers:{Authorization:'Bearer '+token}});
+  const t=await get();
   if(!t||!t.id)return json({error:'Task not found in TickTick'},404);
   if(t.status)return json({ok:true,completed:false,reason:'closed'});
-  if(!t.repeatFlag)return json({ok:true,completed:false,reason:'not-repeating'});
   const due=dateInZone(t.dueDate||t.startDate||'',tz);
+  /* move start and due to a day, keeping the task's time of day (all-day tasks stay all-day) */
+  const moveTo=async(day,repeat)=>{let hm='00:00:00';
+    if(!t.isAllDay&&t.dueDate){const d=new Date(t.dueDate);if(!Number.isNaN(d.getTime()))hm=new Intl.DateTimeFormat('en-GB',{timeZone:tz,hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).format(d);}
+    const stamp=day+'T'+hm+'.000+0530',out={...t,startDate:stamp,dueDate:stamp,timeZone:t.timeZone||tz};
+    if(repeat&&!t.repeatFlag)out.repeatFlag='RRULE:FREQ=DAILY;INTERVAL=1';
+    await tick('/task/'+encodeURIComponent(t.id),token,{method:'POST',body:out});
+    let now='';try{const t2=await get();now=dateInZone(t2&&(t2.dueDate||t2.startDate)||'',tz)}catch(_){}
+    return now||day;};
+  if(action==='fin'){
+    if(t.repeatFlag)await tick('/task/'+encodeURIComponent(t.id),token,{method:'POST',body:{...t,repeatFlag:''}});
+    const r=await complete();if(!r.ok)return json({error:'TickTick refused to complete it (HTTP '+r.status+')'},502);
+    let t2=null;try{t2=await get()}catch(_){}
+    if(t2&&!t2.status)return json({ok:true,completed:true,closed:false,next:dateInZone(t2.dueDate||t2.startDate||'',tz),reason:'repeat-kept'});
+    return json({ok:true,completed:true,closed:true});}
+  if(action==='later'){
+    const day=String(body.date||'');if(!/^\d{4}-\d{2}-\d{2}$/.test(day)||day<=today)return json({error:'Pick a date after today'},400);
+    const next=await moveTo(day,true);return json({ok:true,moved:true,next,repeatAdded:!t.repeatFlag});}
+  if(!t.repeatFlag){
+    if(action==='push'){const day=addDays(today,1);if(due&&due>today)return json({ok:true,completed:false,reason:'already-later',next:due});
+      const next=await moveTo(day,false);return json({ok:true,moved:true,next});}
+    return json({ok:true,completed:false,reason:'not-repeating'});}
   if(due&&due>today)return json({ok:true,completed:false,reason:'already-done-today',next:due});
   /* an overdue repeating task (missed days) is completed until its next date is after today */
   let next='';for(let n=0;n<15;n++){
-    const r=await fetch(API+'/project/'+encodeURIComponent(pid)+'/task/'+encodeURIComponent(tid)+'/complete',{method:'POST',headers:{Authorization:'Bearer '+token}});
+    const r=await complete();
     if(!r.ok){if(n)break;return json({error:'TickTick refused to complete it (HTTP '+r.status+')'},502);}
-    try{const t2=await tick('/project/'+encodeURIComponent(pid)+'/task/'+encodeURIComponent(tid),token);next=dateInZone(t2&&(t2.dueDate||t2.startDate)||'',tz)}catch(_){next='';}
+    try{const t2=await get();next=dateInZone(t2&&(t2.dueDate||t2.startDate)||'',tz)}catch(_){next='';}
     if(!next||next>today)break;}
   return json({ok:true,completed:true,next});
 }
