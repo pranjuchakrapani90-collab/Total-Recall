@@ -105,6 +105,40 @@ function importTick(data){var d=raw(),n=0,skip=0;(data.lists||[]).forEach(functi
     if(d.t[x.id]){skip++;return}var o=clean(fromTick(x,L.key));d.t[x.id]=enc(o);n++;});});
   d.meta.on=1;d.meta.imported=d.meta.imported||nowIso();d.meta.lastImport=nowIso();writeRaw(d);emit([]);return {added:n,kept:skip,total:Object.keys(d.t).length,bytes:(ls.getItem(KEY)||"").length};}
 
+/* ---------- TickTick's backup file (Settings → Account → Generate Backup, CSV) ----------
+   Brings in what the API can't give: completed tasks and the days each task was ticked. Its taskIds are only row numbers,
+   so rows are matched by title (same list first). A completion is "tick" (a daily task pushed on, as the old Completed
+   review counted it) when the same title was due again the next day; otherwise "done". Safe to run again: dates merge,
+   closed tasks get fixed ids. Long notes of closed tasks are cut to 600 characters (the full file is kept in Drive). */
+function istDate(v){if(!v)return "";var d=new Date(v);return isNaN(d)?"":new Intl.DateTimeFormat("en-CA",{timeZone:TZ,year:"numeric",month:"2-digit",day:"2-digit"}).format(d)}
+function hashStr(x){var h=5381;for(var i=0;i<x.length;i++)h=((h<<5)+h+x.charCodeAt(i))>>>0;return h.toString(36)}
+function norm(x){return String(x||"").trim().toLowerCase().replace(/\s+/g," ")}
+function checklistOf(c){var parts=String(c||"").split(/(?=[▫▪])/),items=[],rest=[];parts.forEach(function(p){var m=p.match(/^([▫▪])([\s\S]*)$/);
+  if(m){var ti=m[2].trim();if(ti)items.push({ti:ti,d:m[1]==="▪"?1:0})}else if(p.trim())rest.push(p.trim())});return {items:items,notes:rest.join("\n")};}
+function importBackup(rows){var d=raw(),T=all(),byTitle={};Object.keys(T).forEach(function(id){var t=T[id],k=norm(t.ti);(byTitle[k]=byTitle[k]||[]).push(t)});
+  var listKey=function(n){n=norm(n);return LISTNAME[n]?n:(n==="inbox"?"inbox":"inbox")};
+  var dueSet={};rows.forEach(function(r){var k=norm(r["Title"]),dd=istDate(r["Due Date"]||r["Start Date"]);if(dd)(dueSet[k]=dueSet[k]||{})[dd]=1});
+  var groups={},added=0,closed=0,dates=0,openAdded=0;
+  rows.forEach(function(r){var k=norm(r["Title"]);if(!k)return;var lk=listKey(r["List Name"]);
+    if(String(r["Status"])==="0"){/* open: only add it if Pranju OS doesn't have it */
+      var have=(byTitle[k]||[]).filter(function(t){return t.st!==2});if(have.length)return;
+      var id="b"+hashStr(lk+"|"+k+"|open");if(d.t[id])return;var cl=r["Kind"]==="CHECKLIST"?checklistOf(r["Content"]):{items:[],notes:r["Content"]};
+      var due=istDate(r["Due Date"]||r["Start Date"]),tm="";if(due&&r["Is All Day"]!=="true"){tm=new Intl.DateTimeFormat("en-GB",{timeZone:TZ,hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).format(new Date(r["Due Date"]||r["Start Date"]));if(tm==="00:00")tm="";}
+      var o=clean({ti:r["Title"],pj:lk,tg:String(r["Tags"]||"").split(",").map(function(x){return x.trim()}),c:cl.notes,it:cl.items,du:due,tm:tm,rp:r["Repeat"]?"RRULE:"+r["Repeat"]:"",pr:+r["Priority"]||0,cr:r["Created Time"]||nowIso(),src:"ttb"});
+      d.t[id]=enc(o);(byTitle[k]=byTitle[k]||[]).push(Object.assign({id:id},o));openAdded++;return;}
+    (groups[lk+"|"+k]=groups[lk+"|"+k]||{k:k,lk:lk,rows:[]}).rows.push(r);});
+  Object.keys(groups).forEach(function(gk){var g=groups[gk],h={};
+    g.rows.forEach(function(r){var cd=istDate(r["Completed Time"]);if(!cd)return;h[cd]=(dueSet[g.k]||{})[addDays(cd,1)]?"tick":"done";});
+    if(!Object.keys(h).length)return;
+    var open=(byTitle[g.k]||[]).filter(function(t){return t.st!==2}),target=open.filter(function(t){return t.pj===g.lk})[0]||open[0];
+    if(target){var t=dec(d.t[target.id])||target;t.h=Object.assign({},h,t.h||{});dates+=Object.keys(h).length;d.t[target.id]=enc(t);return;}
+    var last=g.rows.reduce(function(a,b){return String(b["Completed Time"])>String(a["Completed Time"])?b:a}),id="b"+hashStr(gk),cl=last["Kind"]==="CHECKLIST"?checklistOf(last["Content"]):{items:[],notes:last["Content"]};
+    var notes=String(cl.notes||"");if(notes.length>600)notes=notes.slice(0,600)+"\n… (shortened; the full text is in the TickTick backup file in Drive)";
+    var prev=dec(d.t[id]),hh=Object.assign({},h,prev&&prev.h||{}),days=Object.keys(hh).sort();
+    var o=clean({ti:last["Title"],pj:g.lk,tg:String(last["Tags"]||"").split(",").map(function(x){return x.trim()}),c:notes,it:cl.items,du:"",rp:"",pr:+last["Priority"]||0,st:2,cr:last["Created Time"]||nowIso(),h:hh,src:"ttb"});
+    o.cd=days[days.length-1];d.t[id]=enc(o);dates+=Object.keys(h).length;if(prev)return;closed++;});
+  d.meta.backup=nowIso();writeRaw(d);emit([]);return {openAdded:openAdded,closed:closed,dates:dates,total:Object.keys(d.t).length,bytes:(ls.getItem(KEY)||"").length};}
+
 /* ---------- answers to the Worker's TickTick requests ---------- */
 function upTags(t){return (t.tg||[]).map(function(x){return x.toUpperCase()})}
 function item(t,td){return {id:t.id,title:t.ti,due:t.du+(t.tm?"T"+t.tm:""),projectId:t.pj,tags:upTags(t),overdue:!!t.du&&t.du<td}}
@@ -121,7 +155,7 @@ function referenceRes(s,e){var T=all(),tags={},n=0;Object.keys(T).forEach(functi
     var cd=String(t.cr||"").slice(0,10);if((s||e)&&!inRange(cd,s,e))return;n++;var tg=upTags(t);
     tg.forEach(function(g){(tags[g]=tags[g]||[]).push({id:t.id,title:t.ti,due:t.du,projectId:"reference",tags:tg})});});
   return {section:"Reference",projectId:"reference",projectName:"REFERENCE",start:s||null,end:e||null,taskCount:n,tags:tags};}
-function completedRes(s,e){var T=all(),out=[];Object.keys(T).forEach(function(id){var t=T[id],ds=Object.keys(t.h||{}).filter(function(d){var k=t.h[d];return inRange(d,s,e)&&k!=="push"&&k!=="later"}).sort();
+function completedRes(s,e){var T=all(),out=[];Object.keys(T).forEach(function(id){var t=T[id],ds=Object.keys(t.h||{}).filter(function(d){var k=t.h[d];return inRange(d,s,e)&&k!=="push"&&k!=="later"&&k!=="tick"}).sort();
     if(ds.length)out.push({id:t.id,title:t.ti,projectId:t.pj,tags:upTags(t),completionDates:ds,completionCount:ds.length});});
   out.sort(function(a,b){return a.title.localeCompare(b.title)});return {start:s,end:e,timeZone:TZ,uniqueCount:out.length,tasks:out};}
 function listRes(){var T=all(),out=[];Object.keys(T).forEach(function(id){var t=T[id];if(t.st===2||t.pj==="archive")return;
@@ -212,5 +246,5 @@ setTimeout(function(){requests(false);if(Date.now()-(+(lget("pos-tasks-mirror-at
 document.addEventListener("visibilitychange",function(){if(!document.hidden)requests(false)});
 
 window.PosTasks={KEY:KEY,LISTS:LISTS,LISTNAME:LISTNAME,DAILY:DAILY,on:on,meta:meta,all:all,get:get,put:put,del:del,act:act,today:today,addDays:addDays,
-  nextOcc:nextOcc,advance:advance,repeatLabel:repeatLabel,parseRule:parseRule,importTick:importTick,todayRes:todayRes,mirror:mirror,requests:requests};
+  nextOcc:nextOcc,advance:advance,repeatLabel:repeatLabel,parseRule:parseRule,importTick:importTick,importBackup:importBackup,todayRes:todayRes,mirror:mirror,requests:requests};
 })();

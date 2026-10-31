@@ -53,11 +53,16 @@ function merge(m,R){var changed=[];Object.keys((R&&R.keys)||{}).forEach(function
   return changed;}
 
 /* ---- the same encryption every section uses: AES-GCM with SHA-256(code + slot) ---- */
-var b64=function(a){var s="";new Uint8Array(a).forEach(function(x){s+=String.fromCharCode(x);});return btoa(s);};
+var b64=function(a){var u=new Uint8Array(a),s="";for(var i=0;i<u.length;i+=32768)s+=String.fromCharCode.apply(null,u.subarray(i,i+32768));return btoa(s);};
 var unb64=function(s){var r=atob(s),u=new Uint8Array(r.length);for(var i=0;i<r.length;i++)u[i]=r.charCodeAt(i);return u;};
 function key(c){return crypto.subtle.digest("SHA-256",new TextEncoder().encode(c+SLOT)).then(function(h){return crypto.subtle.importKey("raw",h,{name:"AES-GCM"},false,["encrypt","decrypt"]);});}
-async function enc(o,c){var iv=crypto.getRandomValues(new Uint8Array(12)),k=await key(c),ct=await crypto.subtle.encrypt({name:"AES-GCM",iv:iv},k,new TextEncoder().encode(JSON.stringify(o)));return JSON.stringify({v:1,iv:b64(iv),data:b64(ct)});}
-async function dec(blob,c){var x=JSON.parse(blob),k=await key(c),p=await crypto.subtle.decrypt({name:"AES-GCM",iv:unb64(x.iv)},k,unb64(x.data));return JSON.parse(new TextDecoder().decode(p));}
+/* gzip before encrypting (31 Oct 2026: tasks made the payload ~1.4 MB; compressed it is a fraction of that). Blobs say z:1. */
+async function pipe(bytes,stream){return new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(stream)).arrayBuffer());}
+var GZ=typeof CompressionStream==="function"&&typeof DecompressionStream==="function";
+async function enc(o,c){var iv=crypto.getRandomValues(new Uint8Array(12)),k=await key(c),plain=new TextEncoder().encode(JSON.stringify(o));if(GZ)plain=await pipe(plain,new CompressionStream("gzip"));
+  var ct=await crypto.subtle.encrypt({name:"AES-GCM",iv:iv},k,plain);return JSON.stringify(GZ?{v:1,z:1,iv:b64(iv),data:b64(ct)}:{v:1,iv:b64(iv),data:b64(ct)});}
+async function dec(blob,c){var x=JSON.parse(blob),k=await key(c),p=new Uint8Array(await crypto.subtle.decrypt({name:"AES-GCM",iv:unb64(x.iv)},k,unb64(x.data)));
+  if(x.z){if(!GZ)throw new Error("this browser can't read compressed sync data");p=await pipe(p,new DecompressionStream("gzip"));}return JSON.parse(new TextDecoder().decode(p));}
 
 var busy=false,again=false,timer=0,lastPull=0,touched=false,loadedAt=Date.now();
 async function sync(){var c=code();if(!c)return [];

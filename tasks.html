@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="kvsync.js?v=20261031t" data-reload=""></script><script src="tasks-local.js?v=20261031b"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
+<html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="kvsync.js?v=20261031z" data-reload=""></script><script src="tasks-local.js?v=20261031d"></script><script src="drive.js?v=20261027"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
 <title>Tasks · Pranju OS</title>
 <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="icon" href="icon-192.png" sizes="192x192"><link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>
@@ -94,7 +94,7 @@ textarea{min-height:110px;resize:vertical}
   <nav class="tabs" id="tabs"></nav>
 </div></header>
 <main id="main"></main>
-<button class="fab" id="fab" type="button" hidden>＋ Task</button>
+<button class="fab" id="fab" type="button" hidden>＋ Task</button><input type="file" id="bkfile" accept=".csv,text/csv" hidden>
 <div class="scrim" id="scrim" hidden><div class="sheet" id="sheet" role="dialog"></div></div>
 <script>
 "use strict";
@@ -139,7 +139,9 @@ function render(){
     if(tdy.length)h+=`<div class="sec">Today · ${tdy.length}</div><div class="list">${tdy.map(row).join("")}</div>`;}
   else{h+=`<div class="list">${list.slice(0,limit).map(row).join("")}</div>`;if(list.length>limit)h+=`<button class="btn more" id="more" type="button">Show ${Math.min(150,list.length-limit)} more of ${list.length-limit}</button>`;}
   const m=P.meta();h+=`<div class="foot"><span>${arr.filter(t=>t.st!==2).length} open tasks · kept in Pranju OS${m.imported?" since "+fmtDay(String(m.imported).slice(0,10)):""}, synced to your phones through Google Drive.</span>
-    <button class="btn sm ghost" id="reimp" type="button">Copy anything new from TickTick</button></div>`;
+    <button class="btn sm ghost" id="reimp" type="button">Copy anything new from TickTick</button>
+    <button class="btn sm ghost" id="bkimp" type="button">${m.backup?"Add a TickTick backup file again":"Add history from a TickTick backup file (CSV)"}</button>
+    ${m.backup?`<span>Completed history added from a TickTick backup on ${fmtDay(String(m.backup).slice(0,10))}.</span>`:""}</div>`;
   const main=$("main"),focus=document.activeElement&&document.activeElement.id==="q",pos=focus?document.activeElement.selectionStart:0;
   main.innerHTML=h;
   const qi=$("q");qi.oninput=()=>{q=qi.value;limit=150;render()};if(focus){qi.focus();try{qi.setSelectionRange(pos,pos)}catch(e){}}
@@ -147,7 +149,7 @@ function render(){
   main.querySelectorAll(".row").forEach(r=>r.onclick=e=>{if(e.target.closest(".ck"))return;edit(r.dataset.id)});
   main.querySelectorAll(".ck").forEach(b=>b.onclick=e=>{e.stopPropagation();tick(b.closest(".row").dataset.id)});
   const more=$("more");if(more)more.onclick=()=>{limit+=150;render()};
-  $("reimp").onclick=()=>doImport(true);}
+  $("reimp").onclick=()=>doImport(true);$("bkimp").onclick=()=>$("bkfile").click();}
 function row(t){const td=P.today(),od=t.du&&t.du<td&&t.st!==2,meta=[];
   if(tab==="today"||q)meta.push(`<span>${esc(P.LISTNAME[t.pj])}</span>`);
   if(t.du)meta.push(`<span class="${od?"od":""}">${t.du===td?"Today":fmtDay(t.du)}${t.tm?" "+t.tm:""}</span>`);
@@ -233,6 +235,21 @@ async function doImport(again){const msg=$("impMsg"),btn=again?$("reimp"):$("go"
   catch(e){if(msg)msg.innerHTML=`<div class="err">Couldn't import: ${esc(e.message||e)}</div>`;else toast("Couldn't copy: "+(e.message||e),3500);
     if(btn){btn.disabled=false;btn.textContent=again?"Copy anything new from TickTick":"Import from TickTick"}}}
 
+/* ---------- TickTick backup file: completed history ---------- */
+function parseCSV(text){const out=[];let row=[],f="",q=false;for(let i=0;i<text.length;i++){const c=text[i];
+  if(q){if(c==='"'){if(text[i+1]==='"'){f+='"';i++}else q=false}else f+=c;continue}
+  if(c==='"')q=true;else if(c===","){row.push(f);f=""}else if(c==="\n"){row.push(f);out.push(row);row=[];f=""}else if(c!=="\r")f+=c;}
+  if(f!==""||row.length){row.push(f);out.push(row)}return out;}
+$("bkfile").onchange=async e=>{const file=e.target.files[0];e.target.value="";if(!file)return;
+  try{toast("Reading the backup…",4000);let text=await file.text();text=text.replace(/^﻿/,"");const at=text.indexOf('"Folder Name"');if(at<0)throw new Error("This doesn't look like a TickTick backup file.");
+    const rows=parseCSV(text.slice(at)),head=rows.shift();const recs=rows.filter(r=>r.length>=head.length-2).map(r=>{const o={};head.forEach((h,i)=>o[h]=r[i]||"");return o});
+    if(!recs.length||!("Completed Time" in recs[0]))throw new Error("No tasks found in the file.");
+    const res=P.importBackup(recs);
+    toast(`Added ${res.dates} completion dates, ${res.closed} finished tasks${res.openAdded?` and ${res.openAdded} open tasks that were missing`:""} ✓`,4500);
+    if(window.PosKV)PosKV.sync();render();
+    /* keep the original file in Drive, Pranju OS folder */
+    try{if(window.PosDrive&&PosDrive.connected()){await PosDrive.upload("root",file.name,file,{pos:"ticktick-backup"});toast("Backup file saved in Drive › Pranju OS",3000);}}catch(x){console.warn("backup upload",x)}
+  }catch(x){toast("Couldn't read the backup: "+(x.message||x),4500)}};
 window.addEventListener("pos-tasks",()=>{if($("scrim").hidden)render()});
 render();
 const m=location.hash.match(/^#t=(.+)$/);if(m&&P.on())edit(decodeURIComponent(m[1]));
