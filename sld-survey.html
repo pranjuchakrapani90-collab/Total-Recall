@@ -68,6 +68,14 @@ dialog::backdrop{background:#0006}
 .xtra .f{grid-template-columns:repeat(3,minmax(0,1fr))}
 .drow{display:flex;gap:8px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap}
 .dlg .drow{position:sticky;bottom:-16px;background:#fff;padding:10px 0 12px;margin-bottom:-4px;border-top:1px solid var(--line)}
+.qr{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin:0 0 12px}
+.qr .qh{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}.qr .qh b{font-size:15px}
+.qr select{padding:7px 9px;border:1px solid #d1d5db;border-radius:9px;background:#fff;max-width:100%}
+.qbtns{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.qbtns .btn{justify-content:center;flex-direction:column;gap:2px;padding:12px 4px;font-size:14px;line-height:1.15}.qbtns .btn small{font-weight:400;font-size:11px;opacity:.85}
+.qrow{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px;font-size:13px}
+.qchip{background:var(--brass-soft);color:var(--brass);border-radius:999px;padding:4px 10px;font-weight:650;font-size:12px}
+.qgps{background:var(--steel-soft);border-radius:10px;padding:8px 10px;margin-top:8px;font-size:13px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.pend{background:var(--brass-soft);color:var(--brass);border-radius:6px;padding:1px 6px;font-size:11px;font-weight:650;margin-left:4px}
 .acc{font:700 14px var(--mono)}.acc.good{color:var(--good)}.acc.bad{color:var(--bad)}
 .sec{border-top:1px solid var(--line);margin-top:10px;padding-top:10px}
 .hint{font-size:12px;color:var(--muted)}
@@ -140,6 +148,23 @@ table.boq{border-collapse:collapse;width:100%;min-width:720px;font-size:12.5px}
    <button class="btn alt" id="typeBtn" type="button">⌨ Coordinates</button>
    <button class="btn alt" id="fitBtn" type="button">⤢</button>
   </div>
+ </div>
+ <div class="qr" id="qr">
+  <div class="qh"><b>⚡ Quick route</b><span class="small muted">one tap per key point, no form</span><span style="flex:1"></span>
+   <label class="small">Line <select id="qLine"></select></label></div>
+  <div class="qbtns">
+   <button class="btn" type="button" data-q="src">① Tapping<small>start</small></button>
+   <button class="btn" type="button" data-q="bend">② Bend<small>corner</small></button>
+   <button class="btn" type="button" data-q="tee">③ Tee-off<small>branch later</small></button>
+   <button class="btn" type="button" data-q="end">④ End<small>line end / DTR</small></button>
+  </div>
+  <div class="qrow">
+   <button class="btn alt sm" type="button" id="qCross">⚠ Crossing</button>
+   <button class="btn alt sm" type="button" id="qUndo">↶ Undo last</button>
+   <label class="ck small"><input type="checkbox" id="qMap"> Tap on map instead of GPS</label>
+  </div>
+  <div class="qrow" id="qFromRow"><span class="small muted">Next point joins from</span><select id="qFrom"></select><span id="qChip"></span></div>
+  <div class="qgps" id="qGps" hidden></div>
  </div>
  <div class="f" style="margin:8px 0 4px"><label>Survey name<input id="survName" placeholder="e.g. Amoni DP to 3-pole conversion"></label></div>
  <p class="status" id="status">Start at the tapping point (existing 11 kV pole or LT source), then walk the route and mark each turning point, DP, DTR and line end.</p>
@@ -323,6 +348,12 @@ table.boq{border-collapse:collapse;width:100%;min-width:720px;font-size:12.5px}
  </div>
 </div></dialog>
 
+<dialog id="qEndDlg"><div class="dlg"><h3>What is at the end?</h3><p class="small muted">Details (kVA, GOAB, fencing…) can be changed later.</p>
+ <div class="kinds"><button type="button" data-e="pole"><b>Line end pole</b><span>Dead-end, one stay</span></button><button type="button" data-e="dtr"><b>New DTR</b><span>100 kVA on a DP (default)</span></button></div>
+ <div class="drow"><button class="btn alt" type="button" onclick="this.closest('dialog').close()">Cancel</button></div></div></dialog>
+<dialog id="qXDlg"><div class="dlg"><h3>Crossing on the next span</h3><p class="small muted">Guarding is added to the span from the point you just marked to the next one.</p>
+ <div class="kinds"><button type="button" data-x="road"><b>Road</b><span>Guarding across the road</span></button><button type="button" data-x="line"><b>Other line</b><span>Cradle guard</span></button><button type="button" data-x=""><b>No crossing</b><span>Clear it</span></button></div>
+ <div class="drow"><button class="btn alt" type="button" onclick="this.closest('dialog').close()">Cancel</button></div></div></dialog>
 <!-- GPS dialog -->
 <dialog id="gpsDlg"><div class="dlg">
  <h3>Getting your position…</h3>
@@ -928,7 +959,7 @@ function initMap(){if(typeof L==="undefined"){$("#map").innerHTML='<p style="pad
  layerOSM=L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:20,maxNativeZoom:19,attribution:"© OpenStreetMap"}).addTo(map);
  layerSat=L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{maxZoom:20,maxNativeZoom:19,attribution:"© Esri"});
  grp=L.layerGroup().addTo(map);
- map.on("click",e=>{if(!tapMode)return;setTap(false);openPoint(null,{lat:e.latlng.lat,lng:e.latlng.lng,src:"map"})});
+ map.on("click",e=>{if(QR.mapKind){const k=QR.mapKind;QR.mapKind=null;$("#mapwrap").classList.remove("tapping");qPlace(k,{lat:e.latlng.lat,lng:e.latlng.lng,src:"map"});return}if(!tapMode)return;setTap(false);openPoint(null,{lat:e.latlng.lat,lng:e.latlng.lng,src:"map"})});
 }
 function setTap(on){tapMode=on;$("#mapwrap").classList.toggle("tapping",on);$("#tapBtn").textContent=on?"✕ Cancel tap":"✚ Tap on map";$("#status").textContent=on?"Tap the map where the point goes.":statusText()}
 function drawMap(c,fit){if(!map)return;grp.clearLayers();const col=L2=>L2.dis?"#C92A2A":L2.ex?"#1F4E9C":L2.cls==="HV"?"#2B8A3E":"#C2410C";
@@ -995,7 +1026,7 @@ function readDlg(){readOpts();readSeg();draft.kind=$("#dKind").value;draft.note=
 $("#ptDlg").addEventListener("input",keepPending);$("#ptDlg").addEventListener("change",keepPending);
 $("#ptDlg").addEventListener("close",()=>{if(DB.pending&&!keepOpen){delete DB.pending;save(false)}});let keepOpen=false;
 function keepPending(){try{readDlg()}catch(e){return}DB.pending={pid:P().id,editId:edit?edit.id:null,draft:JSON.parse(JSON.stringify(draft))};save(false)}
-$("#dSave").onclick=()=>{readDlg();if(EDIT&&!HIST.length)snap();delete DB.pending;const p=P();if(edit){Object.keys(edit).forEach(k=>delete edit[k]);Object.assign(edit,draft)}else p.pts.push(draft);selId=draft.id;touch(p);$("#ptDlg").close();renderAll(!edit&&p.pts.length<=2)};
+$("#dSave").onclick=()=>{readDlg();delete draft.qk;delete draft.qt;if(EDIT&&!HIST.length)snap();delete DB.pending;const p=P();if(edit){Object.keys(edit).forEach(k=>delete edit[k]);Object.assign(edit,draft)}else p.pts.push(draft);selId=draft.id;touch(p);$("#ptDlg").close();renderAll(!edit&&p.pts.length<=2)};
 $("#dCancel").onclick=()=>$("#ptDlg").close();
 $("#dDel").onclick=()=>{const p=P();if(!confirm("Delete point P"+edit.no+"? Points connected after it will be joined to the point before it."))return;
  p.pts.forEach(q=>{if(q.par===edit.id){q.par=edit.par}if(q.fpar===edit.id){q.fpar=edit.fpar||""}});p.pts=p.pts.filter(q=>q!==edit);selId=null;touch(p);$("#ptDlg").close();renderAll()};
@@ -1019,14 +1050,60 @@ $("#tapBtn").onclick=()=>setTap(!tapMode);
 $("#fitBtn").onclick=()=>drawMap(compute(P()),true);
 $("#layerBtn").onclick=()=>{if(!map)return;sat=!sat;if(sat){map.removeLayer(layerOSM);layerSat.addTo(map)}else{map.removeLayer(layerSat);layerOSM.addTo(map)}$("#layerBtn").textContent=sat?"Map":"Satellite"};
 
+
+/* ================= Quick route: one tap per key point ================= */
+const QR={busy:false,watch:null,best:null,timer:0,mapKind:null,end:null};
+const qState=p=>{p.q=p.q||{};if(!p.q.tees)p.q.tees=[];return p.q};
+function qLineOf(p){const q=qState(p);return q.line&&LINES[q.line]?q.line:defaultLine()}
+function qCur(p){const q=qState(p);const c=q.cur&&p.pts.find(x=>x.id===q.cur&&!isStand(x));if(c)return c;if(q.cur===null)return null;return[...p.pts].reverse().find(x=>!isStand(x))||null}
+function qRender(){const p=P(),q=qState(p),ln=qLineOf(p);
+ $("#qLine").innerHTML=Object.entries(LINES).filter(([,v])=>!v.ex&&!v.dis).map(([k,v])=>`<option value="${k}" ${k===ln?"selected":""}>${v.t}</option>`).join("");
+ const cur=qCur(p),cand=p.pts.filter(x=>!isStand(x));
+ $("#qFromRow").hidden=!cand.length;
+ $("#qFrom").innerHTML='<option value="">— nothing (start a new route) —</option>'+cand.map(x=>`<option value="${x.id}" ${cur&&cur.id===x.id?"selected":""}>P${x.no} · ${x.qt||KINDS[x.kind].t}${x.note?" · "+x.note:""}</option>`).join("");
+ const tees=q.tees.map(id=>p.pts.find(x=>x.id===id)).filter(Boolean);
+ $("#qChip").innerHTML=(q.cross?`<span class="qchip">${q.cross==="road"?"Road":"Line"} crossing on next span</span> `:"")+(tees.length?`<span class="qchip">Branch to do from ${tees.map(x=>"P"+x.no).join(", ")}</span>`:"");
+ $("#qUndo").disabled=!p.pts.some(x=>x.qk)}
+$("#qLine").onchange=e=>{const p=P();qState(p).line=e.target.value;touch(p);qRender()};
+$("#qFrom").onchange=e=>{const p=P(),q=qState(p);q.cur=e.target.value||null;const c=qCur(p);
+ if(c&&["dtr","srcLT","srcDTR","exDTR"].includes(c.kind)&&LINES[qLineOf(p)].cls==="HV")q.line=lastLine("LT")||"AB3b";touch(p);qRender()};
+$("#qr").querySelectorAll("[data-q]").forEach(b=>b.onclick=()=>{const k=b.dataset.q;if(k==="end"){$("#qEndDlg").showModal();return}qGo(k)});
+$("#qEndDlg").querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>{$("#qEndDlg").close();QR.end=b.dataset.e;qGo("end")});
+$("#qCross").onclick=()=>$("#qXDlg").showModal();
+$("#qXDlg").querySelectorAll("[data-x]").forEach(b=>b.onclick=()=>{const p=P();qState(p).cross=b.dataset.x;$("#qXDlg").close();touch(p);qRender()});
+$("#qUndo").onclick=()=>{const p=P(),x=[...p.pts].reverse().find(y=>y.qk);if(!x||!confirm("Remove P"+x.no+" ("+(x.qt||KINDS[x.kind].t)+")?"))return;
+ const q=qState(p);delPoint(p,x);q.tees=q.tees.filter(id=>id!==x.id);if(x.qpop&&p.pts.some(y=>y.id===x.qpop))q.tees.push(x.qpop);q.cur=x.par||undefined;if(!x.par&&KINDS[x.kind].src)q.cur=undefined;touch(p);renderAll()};
+function qGo(k){const p=P();if(k!=="src"&&!qCur(p)){alert("Start with ① Tapping, or choose the point this joins from.");return}
+ if($("#qMap").checked||!navigator.geolocation){if(!map){alert("Map not available. Use GPS or the Coordinates button.");return}
+  if(VIEW!=="survey")return;QR.mapKind=k;$("#mapwrap").classList.add("tapping");$("#status").textContent="Tap the map where the "+qName(k)+" is.";return}
+ qStop();QR.busy=true;QR.best=null;let n=0;const box=$("#qGps");box.hidden=false;
+ const show=()=>{const b=QR.best;box.innerHTML=`📡 <b>${qName(k)}</b>: ${b?`<span class="acc ${b.acc<=10?"good":b.acc>30?"bad":""}">±${Math.round(b.acc)} m</span> <span class="muted">(${n} reading${n>1?"s":""})</span>`:"getting GPS…"} <span style="flex:1"></span><button class="btn sm" type="button" id="qNow" ${b?"":"disabled"}>Save now</button><button class="btn alt sm" type="button" id="qStop">Cancel</button>`;
+  $("#qNow").onclick=()=>qFix(k);$("#qStop").onclick=()=>{qStop();box.hidden=true}};show();
+ QR.watch=navigator.geolocation.watchPosition(pos=>{n++;const c=pos.coords;if(!QR.best||c.accuracy<QR.best.acc)QR.best={lat:c.latitude,lng:c.longitude,acc:c.accuracy};show();if(QR.best.acc<=5)qFix(k)},
+  err=>{qStop();box.innerHTML="GPS not available ("+(err.message||"permission?")+"). Tick “Tap on map instead of GPS” to mark it on the map.";},{enableHighAccuracy:true,maximumAge:0,timeout:20000});
+ QR.timer=setTimeout(()=>{if(QR.best)qFix(k)},8000)}
+function qStop(){if(QR.watch!=null)navigator.geolocation.clearWatch(QR.watch);QR.watch=null;clearTimeout(QR.timer);QR.busy=false}
+function qFix(k){const b=QR.best;qStop();$("#qGps").hidden=true;if(!b)return;if(b.acc>30&&!confirm("GPS is only ±"+Math.round(b.acc)+" m here. Save anyway? (You can drag the point on the map later.)"))return;qPlace(k,{...b,src:"gps"})}
+const qName=k=>({src:"tapping point",bend:"bend",tee:"tee-off",end:"end"})[k];
+function qPlace(k,pos){const p=P(),q=qState(p),ln=qLineOf(p),L=LINES[ln],cur=qCur(p);
+ const x={id:uid(),no:Math.max(0,...p.pts.map(y=>y.no))+1,lat:pos.lat,lng:pos.lng,acc:pos.acc||null,src:pos.src,par:null,line:ln,pole:"",cross:"",note:"",qk:true};
+ if(k==="src"){x.kind=L.cls==="LT"?"srcLT":L.kv===33?"src33":"src11";x.qt="Tapping point";q.tees=[]}
+ else{x.par=cur.id;x.cross=q.cross||"";q.cross="";
+  if(k==="bend"){x.kind="pole";x.qt="Bend"}
+  else if(k==="tee"){x.kind="pole";x.qt="Tee-off";q.tees.push(x.id)}
+  else{x.kind=QR.end==="dtr"&&L.cls==="HV"?"dtr":"pole";x.qt=x.kind==="dtr"?"End, new DTR":"Line end"}}
+ p.pts.push(x);selId=x.id;
+ if(k==="end"){const t=q.tees.pop();if(t)x.qpop=t;q.cur=t||null}else q.cur=x.id;
+ touch(p);renderAll(p.pts.length<=2);
+ const nx=qCur(p);$("#status").textContent="Saved P"+x.no+" ("+x.qt+")."+(k==="end"?(nx?" Next point continues the branch from P"+nx.no+".":" Route done. Tap ① for another route or choose a point to continue from."):"")}
 /* ================= Rendering ================= */
 function statusText(){const p=P();return p.pts.length?"Tap a point to edit it, drag it to adjust. Marked: "+p.pts.length+" point"+(p.pts.length>1?"s":"")+".":"Start at the tapping point (existing 11 kV pole or LT source), then walk the route and mark each turning point, DP, DTR and line end."}
 function warnBox(c){const w=[...c.warn];return w.length?`<div class="warns"><b>Check before printing</b><ul>${w.map(x=>`<li>${x}</li>`).join("")}</ul></div>`:""}
-function renderSurvey(c,fit){const p=P();$("#status").textContent=statusText();$("#surveyWarn").innerHTML=warnBox(c);
+function renderSurvey(c,fit){const p=P();qRender();$("#status").textContent=statusText();$("#surveyWarn").innerHTML=warnBox(c);
  const b=c.pts.length?boq(c):null,newPoles=["746","747","748","751","752","753","754"].reduce((a,k)=>a+(c.Q[k]||0),0);
  $("#surveySum").innerHTML=c.pts.length?[["11 kV",((c.km.HV+c.km.MV)/1000).toFixed(3)+" km"],...(c.km.EHV?[["33 kV",(c.km.EHV/1000).toFixed(3)+" km"]]:[]),["LT",(c.km.LT/1000).toFixed(3)+" km"],["New poles",Math.round(newPoles)],["Computed",c.nGen+" interm."],["Stays",c.totStays],["Estimate","₹"+(b?b.P.toLocaleString("en-IN"):0)]].map(([k,v])=>`<div><b>${v}</b><span>${k}</span></div>`).join(""):"";
  $("#plist").innerHTML=p.pts.map(x=>{const nd=c.nodes[x.id]||{},sg=c.segs.find(s=>s.b===x),r=Object.entries(nd.roles||{}).map(([k,v])=>v).join(" / ");
-  return`<div class="pt ${x.id===selId?"sel":""}" data-id="${x.id}"><span class="no">P${x.no}</span><div><b>${KINDS[x.kind].t}${(KINDS[x.kind].o||[]).includes("kva")?" "+opt(x,"kva")+" kVA":""}${x.kind==="lm"?": "+(x.note||opt(x,"lmType")):""}</b> <span class="small muted">${c.lab[x.id]||""}${r?" · "+r:""}${nd.dev?" · "+nd.dev+"°":""}${nd.stays?" · "+nd.stays+" stay"+(nd.stays>1?"s":""):""}${x.db?" · DB "+x.db+" cons.":""}</span>
+  return`<div class="pt ${x.id===selId?"sel":""}" data-id="${x.id}"><span class="no">P${x.no}</span><div><b>${KINDS[x.kind].t}${(KINDS[x.kind].o||[]).includes("kva")?" "+opt(x,"kva")+" kVA":""}${x.kind==="lm"?": "+(x.note||opt(x,"lmType")):""}</b>${x.qk?'<span class="pend">details pending</span>':""} <span class="small muted">${c.lab[x.id]||""}${r?" · "+r:""}${nd.dev?" · "+nd.dev+"°":""}${nd.stays?" · "+nd.stays+" stay"+(nd.stays>1?"s":""):""}${x.db?" · DB "+x.db+" cons.":""}</span>
    <div class="meta">${sg?"from P"+sg.a.no+" · "+LINES[x.line].t+" · "+Math.round(sg.len)+" m"+(sg.mid.length?" · +"+sg.mid.length+" pole"+(sg.mid.length>1?"s":""):""):KINDS[x.kind].src?"source":isStand(x)?"no line":"not connected"}${x.note?" · "+x.note:""}${x.acc?" · ±"+Math.round(x.acc)+" m":x.src?" · "+x.src:""}</div></div>
    <button class="btn alt sm" type="button">Edit</button></div>`}).join("")||'<div class="card muted">No points yet.</div>';
  $("#plist").querySelectorAll(".pt").forEach(el=>{el.onclick=()=>{const x=p.pts.find(q=>q.id===el.dataset.id);selId=x.id;if(map)map.panTo([x.lat,x.lng]);openPoint(x)}});
