@@ -41,6 +41,22 @@ function nextGaps(p){var s=sched(p),l=s.lvl;return {1:1,2:IV[Math.max(l,0)],3:IV
 function hasInfo(p){var i=p&&p.info;return !!(i&&(i.desig||i.duty||i.phone||i.emp))}
 function hasClue(p){return hasInfo(p)||groupsOf(p).length||!!(p&&p.note)}
 
+/* ---------- hook list (synced as db.peopleGroups) ---------- */
+function cleanHook(x){return String(x||'').trim().replace(/\s+/g,' ').slice(0,40)}
+function findHook(n){n=n.toLowerCase();for(var i=0;i<GROUPS.length;i++)if(GROUPS[i].toLowerCase()===n)return GROUPS[i];return ''}
+function applyGroups(){var pg=PR.db.peopleGroups;if(pg&&Array.isArray(pg.list)){var used={};Object.values(PR.db.people).forEach(function(p){groupsOf(p).forEach(function(g){used[g]=1})});Object.keys(used).forEach(function(g){if(pg.list.indexOf(g)<0)pg.list.push(g)})}else{var extra=[];Object.values(PR.db.people).forEach(function(p){groupsOf(p).forEach(function(g){if(GROUPS.indexOf(g)<0&&extra.indexOf(g)<0)extra.push(g)})});if(extra.length)GROUPS.push.apply(GROUPS,extra)}if(pg&&Array.isArray(pg.list)&&pg.list.join('|')!==GROUPS.join('|'))GROUPS.splice.apply(GROUPS,[0,GROUPS.length].concat(pg.list));var bg=$('bulkGroup');if(bg&&bg.options.length!==GROUPS.length+1)bg.innerHTML='<option value="">Choose a hook…</option>'+GROUPS.map(function(g){return '<option>'+esc(g)+'</option>'}).join('')}
+function setGroups(list){PR.db.peopleGroups={list:list.slice(),at:nowIso()};applyGroups()}
+function addHook(name){name=cleanHook(name);if(!name)return '';var have=findHook(name);if(have)return have;setGroups(GROUPS.concat([name]));PR.save();return name}
+function renameHook(old,nw){nw=cleanHook(nw);if(!nw||nw===old)return;var into=findHook(nw);if(into&&into!==old&&!confirm('“'+into+'” already exists. Merge “'+old+'” into it?'))return;var target=into&&into!==old?into:nw,ts=nowIso(),n=0;
+  Object.values(PR.db.people).forEach(function(p){var gs=groupsOf(p);if(gs.indexOf(old)<0)return;var out=[];gs.forEach(function(g){g=g===old?target:g;if(out.indexOf(g)<0)out.push(g)});p.groups=out;p.groupsAt=ts;n++});
+  var list=GROUPS.slice();if(into&&into!==old)list.splice(list.indexOf(old),1);else list[list.indexOf(old)]=target;setGroups(list);
+  if(lsGet(K_FOCUS,'')===old)lsSet(K_FOCUS,target);PR.save();PR.render();return n}
+function removeHook(g){var n=Object.values(PR.db.people).filter(function(p){return groupsOf(p).indexOf(g)>=0}).length;if(!confirm('Remove the hook “'+g+'”?'+(n?' It comes off '+n+' name'+(n===1?'':'s')+'; the names stay.':'')))return;var ts=nowIso();
+  Object.values(PR.db.people).forEach(function(p){var gs=groupsOf(p);if(gs.indexOf(g)>=0){p.groups=gs.filter(function(x){return x!==g});p.groupsAt=ts}});
+  setGroups(GROUPS.filter(function(x){return x!==g}));if(lsGet(K_FOCUS,'')===g)lsSet(K_FOCUS,'');PR.save();PR.render()}
+function hooksAdmin(){var box=$('prHooksAdmin');if(!box)return;var all=Object.values(PR.db.people);
+  box.innerHTML='<div class="prLbl">Hooks</div>'+GROUPS.map(function(g){var n=all.filter(function(p){return groupsOf(p).indexOf(g)>=0}).length;return '<div class="prHk"><span>'+esc(g)+' <small>'+n+'</small></span><button class="prGhost" data-ren="'+encodeURIComponent(g)+'">Rename</button><button class="prGhost prDanger" data-rm="'+encodeURIComponent(g)+'">Remove</button></div>'}).join('')+'<button class="prGhost prAddTop" id="prHkAdd">＋ Add a hook</button>'}
+
 /* ---------- focus (which names) ---------- */
 function focusList(){
   var f=lsGet(K_FOCUS,''),a=Object.values(PR.db.people);
@@ -82,7 +98,7 @@ function buildPanel(){
     '<div class="prLbl">Practise</div><div class="prChips" id="prFocus"></div>'+
     '<div class="prDir" id="prDir"><button data-dir="name">Name → who</button><button data-dir="clue">Clue → name</button></div>'+
     '<div class="prBar"><i id="prBarFill"></i></div><div class="prL2" id="prProg"></div>'+
-    '<details class="prMore"><summary>Manage names · daily goal</summary><label class="prGoal">Names per day <input id="prGoalIn" type="number" min="5" max="200" step="5"></label><div id="prToolsSlot"></div></details>';
+    '<details class="prMore"><summary>Manage names · daily goal</summary><label class="prGoal">Names per day <input id="prGoalIn" type="number" min="5" max="200" step="5"></label><div id="prHooksAdmin"></div><div id="prToolsSlot"></div></details>';
   card.appendChild(home);card.appendChild(keep);
   if(tools){tools.classList.remove('hidden');$('prToolsSlot').appendChild(tools)}
   $('prGoalIn').value=goal();
@@ -90,11 +106,14 @@ function buildPanel(){
   $('prStart').addEventListener('click',function(){startSession(false)});
   $('prFocus').addEventListener('click',function(e){var b=e.target.closest('[data-f]');if(!b)return;lsSet(K_FOCUS,decodeURIComponent(b.dataset.f));renderPanel()});
   $('prDir').addEventListener('click',function(e){var b=e.target.closest('[data-dir]');if(!b)return;lsSet(K_DIR,b.dataset.dir);renderPanel()});
+  $('prHooksAdmin').addEventListener('click',function(e){var t=e.target;if(t.id==='prHkAdd'){var n=prompt('New hook name (e.g. Family Friends)');if(n&&addHook(n)){PR.render()}return}
+    if(t.dataset.ren){var o=decodeURIComponent(t.dataset.ren),nw=prompt('Rename “'+o+'” to:',o);if(nw!=null)renameHook(o,nw);return}
+    if(t.dataset.rm)removeHook(decodeURIComponent(t.dataset.rm))});
   $('prQ').addEventListener('input',quickSearch);
   $('prQOut').addEventListener('click',onQuickClick);
 }
 function renderPanel(){
-  if(!$('prHome'))return;
+  applyGroups();if(!$('prHome'))return;hooksAdmin();
   var all=Object.values(PR.db.people),t=window.PeopleToday(),g=goal(),st=streak(),f=lsGet(K_FOCUS,''),dir=lsGet(K_DIR,'name');
   var learned=0,strong=0;all.forEach(function(p){var s=sched(p);if(!s.isNew){learned++;if(s.lvl>=4)strong++}});
   $('prLeft').textContent=t.left;$('prLeftLbl').textContent=t.left?'left today':(t.done?'goal done':'all clear');
@@ -130,11 +149,12 @@ function onQuickClick(e){
 }
 
 /* ---------- editor: hooks (tap = saved), note, office details ---------- */
-function editorHtml(p,full){
+function chipsHtml(p){var gs=groupsOf(p);return '<div class="prChips prHooks">'+GROUPS.map(function(g){return '<button type="button" class="prChip'+(gs.indexOf(g)>=0?' on':'')+'" data-g="'+esc(g)+'">'+esc(g)+'</button>'}).join('')+'<button type="button" class="prChip prNew">＋ New hook</button></div>'}
+function editorHtml(p,full,noHooks){
   var gs=groupsOf(p),i=p.info||{},k=esc(keyOf(p.name));
   var h='<div class="prEd" data-k="'+k+'">';
   if(hasInfo(p))h+='<div class="prInfo">'+(i.desig?'<div><b>'+esc(i.desig)+'</b>'+(i.emp?' <span>· '+esc(i.emp)+'</span>':'')+'</div>':'')+(i.duty?'<div>'+esc(i.duty)+'</div>':'')+(i.phone?'<div class="prCall"><a href="tel:'+esc(i.phone.replace(/\s/g,''))+'">📞 '+esc(i.phone)+'</a><a href="https://wa.me/91'+esc(i.phone.replace(/\D/g,'').slice(-10))+'" target="_blank" rel="noopener">WhatsApp</a></div>':'')+'</div>';
-  h+='<div class="prChips prHooks">'+GROUPS.map(function(g){return '<button type="button" class="prChip'+(gs.indexOf(g)>=0?' on':'')+'" data-g="'+esc(g)+'">'+esc(g)+'</button>'}).join('')+'</div>';
+  if(!noHooks)h+=chipsHtml(p);
   h+='<textarea class="prNote" rows="2" placeholder="How you know them — place, relation, last met…">'+esc(p.note||'')+'</textarea>';
   if(full)h+='<details class="prInfoEd"><summary>Office details</summary><input data-i="desig" placeholder="Designation" value="'+esc(i.desig||'')+'"><input data-i="duty" placeholder="Duty / place" value="'+esc(i.duty||'')+'"><input data-i="phone" placeholder="Phone" inputmode="tel" value="'+esc(i.phone||'')+'"></details>';
   h+='<div class="prSaved"></div></div>';return h;
@@ -143,6 +163,8 @@ function flash(ed,msg){var s=ed.querySelector('.prSaved');if(s){s.textContent=ms
 document.addEventListener('click',function(e){
   var c=e.target.closest('.prEd .prHooks .prChip');if(!c)return;
   var ed=c.closest('.prEd'),p=PR.db.people[ed.dataset.k];if(!p)return;
+  if(c.classList.contains('prNew')){var n=prompt('New hook name (e.g. Family Friends)');n=n&&addHook(n);if(!n)return;if(groupsOf(p).indexOf(n)<0){p.groups=groupsOf(p).concat([n]);p.groupsAt=nowIso()}PR.save();
+    Array.prototype.forEach.call(document.querySelectorAll('.prEd'),function(x){var q=PR.db.people[x.dataset.k],hk=x.querySelector('.prHooks');if(q&&hk)hk.outerHTML=chipsHtml(q)});flash(ed,'Added “'+n+'” ✓');renderPanel();return}
   c.classList.toggle('on');p.groups=Array.prototype.map.call(ed.querySelectorAll('.prHooks .prChip.on'),function(x){return x.dataset.g});p.groupsAt=nowIso();
   PR.save();flash(ed,'Saved ✓');var hn=ed.parentNode&&ed.parentNode.querySelector('.prHint');if(hn)hn.remove();
 });
@@ -158,7 +180,7 @@ function buildSession(){
   if($('prSession'))return;
   var sec=document.createElement('section');sec.id='prSession';sec.className='hidden';
   sec.innerHTML='<div class="prS"><div class="prTop"><button id="prQuit" class="prGhost">✕</button><div class="prPBar"><i id="prPFill"></i></div><span id="prPTxt"></span></div>'+
-    '<div class="prCard" id="prCard"><div class="prTag" id="prTag"></div><div class="prFront" id="prFront"></div><div class="prAsk" id="prAsk"></div><div class="prBack hidden" id="prBack"></div></div>'+
+    '<div class="prCard" id="prCard"><div class="prTag" id="prTag"></div><div class="prFront" id="prFront"></div><div class="prAsk" id="prAsk"></div><div class="prFrontTag" id="prFrontTag"></div><div class="prBack hidden" id="prBack"></div></div>'+
     '<div class="prActs"><button id="prShow" class="prBig">Show</button><div id="prGrades" class="prGrades hidden"><button data-g="1" class="g1">Forgot<small></small></button><button data-g="2" class="g2">Hazy<small></small></button><button data-g="3" class="g3">Knew it<small></small></button></div></div>'+
     '<div class="prFoot"><button id="prUndo" class="prGhost">↶ Undo</button><button id="prDel" class="prGhost prDanger">Delete name</button></div></div>'+
     '<div class="prS hidden" id="prEnd"><div class="prEndBig" id="prEndBig"></div><div class="prEndTxt" id="prEndTxt"></div><button id="prAgain" class="prBig">Another round ▸</button><button id="prEndHome" class="prGhost prWide">Back to People</button></div>';
@@ -195,6 +217,8 @@ function draw(){
   if(clue){var i=p.info||{},bits=[];if(i.desig)bits.push(i.desig);if(i.duty)bits.push(i.duty);if(groupsOf(p).length)bits.push(groupsOf(p).join(' · '));if(p.note)bits.push(p.note);
     $('prFront').className='prFront clue';$('prFront').innerHTML=bits.map(function(b){return '<div>'+esc(b)+'</div>'}).join('');$('prAsk').textContent='Who is this? Say the name, then tap Show';}
   else{$('prFront').className='prFront';$('prFront').textContent=p.name;$('prAsk').textContent='Who is this? How do you know them? Think, then tap Show';}
+  S.frontTag=!clue&&!groupsOf(p).length;
+  $('prFrontTag').innerHTML=S.frontTag?'<div class="prFtLbl">No hook yet — how do you know them? Tap to tag</div><div class="prEd" data-k="'+esc(keyOf(p.name))+'">'+chipsHtml(p)+'<div class="prSaved"></div></div>':'';
   $('prFront').classList.remove('hidden');$('prBack').classList.add('hidden');$('prBack').innerHTML='';$('prAsk').classList.remove('hidden');
   $('prShow').classList.remove('hidden');$('prGrades').classList.add('hidden');
   $('prUndo').disabled=!S.undo.length;
@@ -202,8 +226,8 @@ function draw(){
 function reveal(){
   if(!S||S.shown)return;var p=cur();if(!p)return;S.shown=true;
   var head=S.clue?'<div class="prName">'+esc(p.name)+'</div>':'';
-  var empty=!hasClue(p)?'<div class="prHint">No hook yet — tap the groups below that fit, or add a note. It saves as you tap.</div>':'';
-  if(S.clue)$('prFront').classList.add('hidden');$('prBack').innerHTML=head+empty+editorHtml(p,false);$('prBack').classList.remove('hidden');$('prAsk').classList.add('hidden');
+  var empty=!hasClue(p)&&!S.frontTag?'<div class="prHint">No hook yet — tap the groups below that fit, or add a note. It saves as you tap.</div>':'';
+  if(S.clue)$('prFront').classList.add('hidden');$('prBack').innerHTML=head+empty+editorHtml(p,false,S.frontTag);$('prBack').classList.remove('hidden');$('prAsk').classList.add('hidden');
   var g=nextGaps(p),bs=$('prGrades').querySelectorAll('small'),it=S.q[S.i];
   bs[0].textContent=it.rl?'again now':'tomorrow + now';bs[1].textContent=it.rl?'—':gap(g[2]);bs[2].textContent=it.rl?'—':gap(g[3]);
   if(it.rl){bs[0].textContent='again';bs[1].textContent='ok';bs[2].textContent='got it'}
@@ -318,7 +342,7 @@ var css=document.createElement('style');css.textContent=
 '.prInfoEd summary{font-size:13px;color:var(--tr-muted,#6b6a64);cursor:pointer}.prInfoEd input{display:block;width:100%;box-sizing:border-box;margin-top:6px;padding:9px 10px;border:1px solid var(--tr-line,#e6e3db);border-radius:10px;font-size:15px}.prSaved{font-size:12px;color:#15803d;min-height:15px}'+
 '.prGrades{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}.prGrades button{border:0!important;border-radius:14px!important;padding:13px 6px!important;font-size:15px!important;font-weight:700!important;display:flex;flex-direction:column;align-items:center;gap:2px}.prGrades small{font-size:11px;font-weight:550;opacity:.8}'+
 '.g1{background:#fee2e2!important;color:#991b1b!important}.g2{background:#fef3c7!important;color:#92400e!important}.g3{background:#dcfce7!important;color:#166534!important}'+
-'.prActs{position:sticky;bottom:0;padding:8px 0 calc(4px + env(safe-area-inset-bottom,0px));background:linear-gradient(transparent,var(--tr-bg,#f6f5f1) 22%)}.prFront.hidden{display:none}.prFoot{display:flex;justify-content:space-between}'+
+'.prActs{position:sticky;bottom:0;padding:8px 0 calc(4px + env(safe-area-inset-bottom,0px));background:linear-gradient(transparent,var(--tr-bg,#f6f5f1) 22%)}.prFront.hidden{display:none}.prFoot{display:flex;justify-content:space-between}.prFrontTag{width:100%;text-align:left;cursor:default}.prFtLbl{font-size:12.5px;font-weight:650;color:#9a3412;margin:2px 0 6px;text-align:center}.prNew{border-style:dashed!important;color:var(--tr-acc-ink,#3730a3)!important}.prHk{display:flex;align-items:center;gap:4px;border-bottom:1px solid var(--tr-line,#e6e3db);padding:2px 0}.prHk span{flex:1;font-size:14px}.prHk small{color:var(--tr-muted,#6b6a64);margin-left:4px}.prAddTop{margin:4px 0 10px;color:var(--tr-acc-ink,#3730a3)!important}#prHooksAdmin{margin:12px 0}'+
 '#prEnd{align-items:stretch;justify-content:center;text-align:center}.prEndBig{font-size:30px;font-weight:750}.prEndTxt{color:var(--tr-muted,#6b6a64);font-size:15px}.prTally{display:flex;gap:8px;justify-content:center;margin:12px 0}.prTally span{padding:8px 12px;border-radius:12px;font-weight:700}'+
 '#importPreview select{font-size:13px;padding:6px;border-radius:8px;border:1px solid var(--tr-line,#e6e3db);max-width:52%}#importPreview .impRow{display:flex;justify-content:space-between;gap:8px;align-items:center}';
 document.head.appendChild(css);
