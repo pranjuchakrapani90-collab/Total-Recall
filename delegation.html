@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="kvsync.js?v=20261031z"></script><script src="tasks-local.js?v=20261031d"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
+<html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="kvsync.js?v=20261031z"></script><script src="tasks-local.js?v=20261031f"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
 <title>Delegation · Pranju OS</title>
 <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="icon" href="icon-192.png" sizes="192x192"><link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>
@@ -456,7 +456,7 @@ async function revealFlash(){if(!TF)return;const id=TF.ids[TF.i],a=D.assign[id];
   if(!pj){box.innerHTML=`<div class="taskHead"><h4>${esc(a.t)}</h4></div><div class="taskBody"><div class="taskEmpty">TickTick details aren't available for this task (it may be finished or moved).</div></div>`;return}
   try{const r=await fetch(wurl("mode=task-detail&projectId="+encodeURIComponent(pj)+"&taskId="+encodeURIComponent(id)),{cache:"no-store"});
     const d=await r.json();if(!r.ok||d.error)throw new Error(d.error||("HTTP "+r.status));
-    if(!TF||TF.ids[TF.i]!==id)return;box.innerHTML=detailHtml(d.task||{},Array.isArray(d.comments)?d.comments:[],pj,id);
+    if(!TF||TF.ids[TF.i]!==id)return;box.innerHTML=detailHtml(d.task||{},Array.isArray(d.comments)?d.comments:[],pj,id);if(d.task&&d.task.local&&window.PosTasks)PosTasks.mountEditor(box,id);
   }catch(e){if(TF&&TF.ids[TF.i]===id){box.innerHTML=`<div class="taskBody"><div class="err">Couldn't load TickTick details: ${esc(e.message||e)}</div></div>`;TF.loaded=null;}}}
 function richText(raw){const files=[];let s=String(raw||"").replace(/\r/g,"").replace(/!?\[file\]\(([^)]*)\)/g,(m,p)=>{files.push(p);return "\u0000"+(files.length-1)+"\u0000"});
   const lines=s.split(/\n/).map(x=>x.trim()).filter(Boolean);
@@ -469,13 +469,15 @@ function detailHtml(t,comments,pj,id){const url=t.local?"tasks.html#t="+encodeUR
   const content=t.content||t.desc||"",items=Array.isArray(t.items)?t.items:[],atts=Array.isArray(t.attachments)?t.attachments:(Array.isArray(t.files)?t.files:[]);
   let h=`<div class="taskHead"><div class="tfHeadRow"><h4>${esc(t.title||"TickTick task")}</h4><a class="taskOpenLink" href="${url}"${t.local?"":' target="_blank" rel="noopener noreferrer"'}>${t.local?"Edit task ✎":"Open in TickTick ↗"}</a></div>
     <div class="taskMeta">${t.list?`<span class="taskPill">${esc(t.list)}</span>`:""}${t.dueDate?`<span class="taskPill">Due ${esc(String(t.dueDate).slice(0,10))}</span>`:""}${t.repeat?`<span class="taskPill">↻ ${esc(t.repeat)}</span>`:""}${(t.tags||[]).map(x=>`<span class="taskPill">#${esc(x)}</span>`).join("")}</div></div>`;
+  if(t.local&&window.PosTasks)h+='<div class="pteMount"></div>';else{
   if(content)h+=`<div class="taskBody"><div class="taskContent">${richText(content)}</div></div>`;
   if(items.length)h+=`<div class="taskSection"><div class="taskSectionTitle">Checklist</div>${items.map(x=>{const ok=x.status===1||x.status===2;return `<div class="taskSubtask${ok?" done":""}">${ok?"☑":"☐"} ${esc(x.title||"")}</div>`}).join("")}</div>`;
   if(atts.length)h+=`<div class="taskSection"><div class="taskSectionTitle">Attachments</div>${atts.map(x=>`<div class="taskAttachment"><div class="taskAttachmentIcon">C</div><div style="min-width:0"><div class="taskAttachmentName">${esc(x.name||x.fileName||x.title||"Attachment")}</div></div></div>`).join("")}</div>`;
   if(comments.length)h+=`<div class="taskSection"><div class="taskSectionTitle">Latest comments</div>${comments.map(x=>`<div class="taskComment">${richText(x.content||x.text||x.title||"")}${x.createdTime?`<small>${esc(String(x.createdTime).slice(0,16).replace("T"," "))}</small>`:""}</div>`).join("")}</div>`;
   if(!content&&!items.length&&!atts.length&&!comments.length)h+='<div class="taskBody"><div class="taskEmpty">'+(t.local?'No notes or checklist on this task yet.':'No description, checklist, attachment or comment in TickTick for this task.')+'</div></div>';
+  }
   return h+`<div class="taskFooter">${t.local?"Pranju OS task":"Live from TickTick · "+esc(new Date().toLocaleTimeString())}</div>`;}
-$("tfCard").addEventListener("click",e=>{if(e.target.closest("a"))return;const f=$("tfCard").classList.toggle("flipped");if(f)revealFlash();});
+$("tfCard").addEventListener("click",e=>{if(e.target.closest("a,button,input,textarea,label,.pte"))return;const f=$("tfCard").classList.toggle("flipped");if(f)revealFlash();});
 const tfGo=d=>{if(!TF)return;const j=TF.i+d;if(j<0||j>=TF.ids.length)return;TF.i=j;drawFlash();};
 (()=>{let x0=null;const c=$("tfCard");c.addEventListener("touchstart",e=>{x0=e.touches[0].clientX},{passive:true});
   c.addEventListener("touchend",e=>{if(x0==null||!TF)return;const dx=e.changedTouches[0].clientX-x0;x0=null;if(Math.abs(dx)<50||c.classList.contains("flipped"))return;

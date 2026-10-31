@@ -245,6 +245,58 @@ window.addEventListener("pos-tasks",function(){mirrorSoon(30000)});
 setTimeout(function(){requests(false);if(Date.now()-(+(lget("pos-tasks-mirror-at")||0))>6*3600e3)mirrorSoon(4000)},3000);
 document.addEventListener("visibilitychange",function(){if(!document.hidden)requests(false)});
 
+/* ---------- editing on the back of a flash card (31 Oct 2026) ----------
+   Task Recall and Delegation show this under the task's title when the card is flipped: notes (tap ✎ to edit),
+   a one-line "add an update" that adds "dd/mm/yyyy: text" to the notes (his own way of logging progress),
+   checklist ticks and new checklist items. Taps inside it never flip the card. */
+(function(){var css=document.createElement("style");css.textContent=
+".pte{padding:12px 16px 14px;display:flex;flex-direction:column;gap:12px;cursor:auto;text-align:left}"+
+".pte .pn{font-size:15px;line-height:1.55;word-break:break-word}.pte .pn p{margin:0 0 7px}.pte .pn ul{margin:0 0 6px;padding-left:20px}.pte .pn hr{border:0;border-top:1px solid var(--tr-line,#e6e3db);margin:10px 0}"+
+".pte .pn a{word-break:break-all}.pte .pe{color:var(--tr-muted,#6b6a64);font-size:13.5px}"+
+".pte .pr{display:flex;gap:8px;align-items:center;flex-wrap:wrap}"+
+".pte button{font:600 13px system-ui,sans-serif;border:1px solid var(--tr-line,#e6e3db);background:var(--tr-paper,#fff);color:var(--tr-ink,#1c1b19);border-radius:10px;padding:8px 12px;cursor:pointer}"+
+".pte button.pri{background:var(--tr-acc,#4f46e5);border-color:var(--tr-acc,#4f46e5);color:#fff}.pte button.lnk{border:0;background:none;color:var(--tr-acc-ink,#3730a3);padding:4px 0}"+
+".pte input[type=text],.pte textarea{font:inherit;font-size:15px;width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid var(--tr-line,#e6e3db);border-radius:10px;background:#fff;color:var(--tr-ink,#1c1b19)}"+
+".pte textarea{min-height:160px;resize:vertical}.pte .pa{display:grid;grid-template-columns:1fr auto;gap:8px}"+
+".pte .ph{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--tr-muted,#6b6a64);margin-bottom:2px}"+
+".pte .ck{display:flex;flex-direction:column;gap:2px}.pte .ck label{display:flex;gap:10px;align-items:flex-start;padding:6px 0;font-size:15px;line-height:1.35;cursor:pointer}"+
+".pte .ck input[type=checkbox]{width:20px;height:20px;flex:0 0 auto;margin:0;accent-color:#15803d}.pte .ck label.dn span{text-decoration:line-through;color:var(--tr-muted,#6b6a64)}"+
+".pte .cm{border:1px solid var(--tr-line,#e6e3db);border-radius:10px;padding:8px 10px;font-size:14px;white-space:pre-wrap;word-break:break-word}.pte .cm small{display:block;color:var(--tr-muted,#6b6a64);font-size:11px}"+
+".pte .ok{color:#15803d;font-size:12.5px;font-weight:650;min-height:16px}";
+(document.head||document.documentElement).appendChild(css);})();
+function escH(x){return String(x==null?"":x).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+function linkify(h){return h.replace(/(https?:\/\/[^\s<]+)/g,'<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>').replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>")}
+function notesHtml(c){var out="",list=false;String(c||"").replace(/\r/g,"").split("\n").forEach(function(l){var x=l.trim();
+    if(/^-\s+/.test(x)){if(!list){out+="<ul>";list=true}out+="<li>"+linkify(escH(x.replace(/^-\s+/,"")))+"</li>";return}
+    if(list){out+="</ul>";list=false}if(!x)return;if(/^-{3,}$/.test(x)){out+="<hr>";return}out+="<p>"+linkify(escH(x))+"</p>";});
+  if(list)out+="</ul>";return out;}
+function dmy(){var p=today().split("-");return p[2]+"/"+p[1]+"/"+p[0]}
+function editorHtml(t,editing){var it=t.it||[];
+  return '<div class="pte" data-pte="'+escH(t.id)+'">'+
+    (editing?'<div><div class="ph">Notes</div><textarea data-pe="txt">'+escH(t.c||"")+'</textarea></div><div class="pr"><button type="button" class="pri" data-pe="save">Save notes</button><button type="button" data-pe="cancel">Cancel</button></div>'
+      :'<div><div class="pn">'+(String(t.c||"").trim()?notesHtml(t.c):'<span class="pe">No notes yet.</span>')+'</div><button type="button" class="lnk" data-pe="edit">✎ Edit notes</button></div>')+
+    (function(){var upd='<div><div class="ph">Add an update</div><div class="pa"><input type="text" data-pe="upd" placeholder="'+dmy()+': what happened…" autocomplete="off"><button type="button" class="pri" data-pe="add">Add</button></div></div>',
+      ck='<div><div class="ph">Checklist'+(it.length?" · "+it.filter(function(x){return x.d}).length+"/"+it.length:"")+'</div><div class="ck">'+
+      it.map(function(x,i){return '<label class="'+(x.d?"dn":"")+'"><input type="checkbox" data-ci="'+i+'"'+(x.d?" checked":"")+'><span>'+escH(x.ti)+'</span></label>'}).join("")+
+      '</div><input type="text" data-pe="item" placeholder="+ add a checklist item" autocomplete="off"></div>';
+      return it.length?ck+upd:upd+ck;})()+
+    ((t.cm||[]).length?'<div><div class="ph">Comments</div>'+t.cm.map(function(x){return '<div class="cm">'+escH(x.x)+'<small>'+escH(String(x.at||"").slice(0,16).replace("T"," "))+'</small></div>'}).join("")+'</div>':"")+
+    '<div class="ok" data-pe="ok"></div></div>';}
+function mountEditor(root,id,editing){var host=root&&(root.querySelector(".pteMount")||root.querySelector("[data-pte]"));if(!host)return;var t=get(id);if(!t)return;
+  var wrap=document.createElement("div");wrap.innerHTML=editorHtml(t,editing);var el=wrap.firstChild;host.replaceWith(el);
+  var redraw=function(ed,msg){var p=el.parentNode;if(!p)return;mountEditor(p,id,ed);var o=msg&&p.querySelector('[data-pe="ok"]');if(o)o.textContent=msg};
+  el.addEventListener("click",function(e){e.stopPropagation()});
+  ["touchstart","touchend"].forEach(function(ev){el.addEventListener(ev,function(e){e.stopPropagation()},{passive:true})});
+  var q=function(k){return el.querySelector('[data-pe="'+k+'"]')};
+  if(q("edit"))q("edit").onclick=function(){redraw(true)};
+  if(q("cancel"))q("cancel").onclick=function(){redraw(false)};
+  if(q("save"))q("save").onclick=function(){var x=get(id);x.c=q("txt").value;put(x);redraw(false,"Notes saved ✓")};
+  var add=function(){var v=q("upd").value.trim();if(!v)return;var x=get(id);x.c=(String(x.c||"").replace(/\s+$/,"")?String(x.c).replace(/\s+$/,"")+"\n":"")+dmy()+": "+v;put(x);redraw(false,"Update added ✓")};
+  q("add").onclick=add;q("upd").onkeydown=function(e){if(e.key==="Enter"){e.preventDefault();add()}};
+  el.querySelectorAll("[data-ci]").forEach(function(c){c.onchange=function(){var x=get(id),i=+c.dataset.ci;if(!x.it[i])return;x.it[i].d=c.checked?1:0;put(x);redraw(false,c.checked?"Ticked ✓":"Unticked")}});
+  var item=q("item");item.onkeydown=function(e){if(e.key==="Enter"&&item.value.trim()){e.preventDefault();var x=get(id);x.it=(x.it||[]).concat([{ti:item.value.trim(),d:0}]);var p=el.parentNode;put(x);redraw(false,"Item added ✓");var ni=p&&p.querySelector('[data-pe="item"]');if(ni)ni.focus()}};
+  if(editing){var ta=q("txt");setTimeout(function(){ta.focus()},30)}}
+
 window.PosTasks={KEY:KEY,LISTS:LISTS,LISTNAME:LISTNAME,DAILY:DAILY,on:on,meta:meta,all:all,get:get,put:put,del:del,act:act,today:today,addDays:addDays,
-  nextOcc:nextOcc,advance:advance,repeatLabel:repeatLabel,parseRule:parseRule,importTick:importTick,importBackup:importBackup,todayRes:todayRes,mirror:mirror,requests:requests};
+  nextOcc:nextOcc,advance:advance,repeatLabel:repeatLabel,parseRule:parseRule,importTick:importTick,importBackup:importBackup,mountEditor:mountEditor,todayRes:todayRes,mirror:mirror,requests:requests};
 })();
