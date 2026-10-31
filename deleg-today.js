@@ -38,7 +38,7 @@ css.textContent=".dlg{margin-top:14px;padding:12px;border:1px solid var(--tr-lin
 ".dlg .pc.add{border-style:dashed;border-color:#9a978e;color:#6b6a64}"+
 ".dlg .nw{display:grid;grid-template-columns:1fr 104px auto;gap:7px;margin-top:9px}.dlg .nw button{border:0;border-radius:10px;background:var(--tr-acc,#4f46e5);color:#fff;font:650 13px system-ui,sans-serif;padding:0 14px;cursor:pointer}"+
 ".recallPane{display:flex;flex-direction:column;gap:12px}.recallPane[hidden]{display:none}.recallHead{display:flex;align-items:center;gap:10px}.recallHead b{flex:1;font-size:16px}"+
-".respApps{display:grid;grid-template-columns:repeat(2,84px);gap:6px 22px;justify-content:start;padding:4px 2px}.respApps a.app span{font-size:12.5px}"+
+".respApps{display:grid;grid-template-columns:repeat(3,84px);gap:6px 14px;justify-content:start;padding:4px 2px}.respApps a.app span{font-size:12.5px}"+
 ".dlgLink{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;padding:12px 14px;border:1px solid var(--tr-line,#e6e3db);border-radius:12px;background:var(--tr-paper,#fff);text-decoration:none;color:var(--tr-ink,#1c1b19);font-weight:650}"+
 "#done .dlgLink{text-align:left;margin:4px 0 14px}"+
 ".dlgLink small{display:block;font-weight:500;color:var(--tr-muted,#6b6a64);font-size:12px;margin-top:2px}.dlgLink span:last-child{color:var(--tr-acc-ink,#3730a3);font-size:18px}";

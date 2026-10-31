@@ -490,6 +490,22 @@ async function handleDelegDone(request,env,origin){
     if(!next||next>today)break;}
   return json({ok:true,completed:true,next});
 }
+/* Leaving TickTick (31 Oct 2026): one-time copy of every OPEN task into Pranju OS.
+   GET ?mode=tt-export -> {lists:[{key,name,projectId,tasks:[raw TickTick tasks]}]}  (WA REVIEW and MONEY REVIEW are left out:
+   those are drafts, not tasks). TickTick's open API returns only open tasks, so completed history is not copied. */
+async function handleTickExport(request,env,origin){
+  const json=(o,st)=>new Response(JSON.stringify(o),{status:st||200,headers:{...corsHeaders(origin),'Content-Type':'application/json'}});
+  const token=env.TICKTICK_ACCESS_TOKEN;if(!token)return json({error:'TICKTICK_ACCESS_TOKEN secret is not configured'},500);
+  const projects=await tick('/project',token);const list=Array.isArray(projects)?projects:((projects&&projects.projects)||[]);
+  const KEYS={schedule:'schedule',projects:'projects',checklists:'checklists',reference:'reference',archive:'archive'};
+  const srcs=[{id:'inbox',name:'Inbox',key:'inbox'}];
+  for(const p of list){const n=String(p.name||'').trim().toLowerCase();if(n===WA_PROJECT||n===MONEY_PROJECT)continue;srcs.push({id:p.id,name:p.name,key:KEYS[n]||'inbox'});}
+  const out=[];
+  for(const p of srcs){const d=await tick('/project/'+encodeURIComponent(p.id)+'/data',token);
+    const tasks=unwrapTasks(d&&d.tasks?d.tasks:d).filter(t=>t&&t.id&&!t.status);
+    out.push({key:p.key,name:p.name,projectId:p.id,tasks});}
+  return json({at:new Date().toISOString(),lists:out});
+}
 const WA_PROJECT='wa review';
 const WA_TARGETS=['inbox','reference','schedule','projects','checklists'];
 function waMeta(content){const s=String(content||'');const line=(s.match(/\[wa\][^\n]*$/i)||[''])[0];const g=k=>{const m=line.match(new RegExp('(?:^|\\s)'+k+'=([^\\s]+)','i'));if(!m)return '';try{return decodeURIComponent(m[1])}catch(_){return m[1]}};const t=g('target'),r=g('repeat');
@@ -588,6 +604,100 @@ async function handleMoneyReview(request,env,origin){
   return json({ok:true,kept:'apdcl'});
 }
 
+/* ---------- Drafts without TickTick (31 Oct 2026) ----------
+   Claude's nightly WhatsApp review used to put drafts in TickTick (WA REVIEW, MONEY REVIEW). Now it appends rows to a
+   Google Sheet this Worker creates in Drive (Pranju OS / "Pranju OS Drafts", appProperties pos=drafts; the Worker's
+   drive.file access only reaches files it created, and Claude's Sheets connector can append to any of his sheets).
+   Tabs "WA" and "Money", columns: A id | B created | C status (draft/approved/discarded) | D draft JSON | E final JSON | F closed at.
+   WA draft JSON: {title,notes,tags,due,priority,repeat,target}. Money: {note,raw,kind,amt,acct,date,time,cat,book}.
+   GET returns sheet drafts (ids "S:<id>") plus any drafts still waiting in TickTick; approve/discard marks the row,
+   keeping what he approved in E so the nightly review can learn from his edits. TickTick drafts are handled as before. */
+const SHEETS_API='https://sheets.googleapis.com/v4/spreadsheets/';
+const DRAFT_TABS={wa:'WA',money:'Money'};
+const DRAFT_HEAD=['id','created','status','draft','final','closed'];
+async function shCall(token,path,init){const r=await fetch(SHEETS_API+path,{...(init||{}),headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'}});
+  const d=await r.json().catch(()=>({}));if(!r.ok)throw Object.assign(new Error('Google Sheets HTTP '+r.status+': '+((d.error&&d.error.message)||'')),{status:r.status});return d;}
+async function draftsSheet(env,token){
+  let id=await env.SYNC_KV.get('drive:drafts');
+  if(id){try{const m=await gdCall(token,'/files/'+id+'?fields=id,trashed');if(!m.trashed)return id;}catch(_){}id=null;}
+  const q="mimeType='application/vnd.google-apps.spreadsheet' and trashed=false and appProperties has { key='pos' and value='drafts' }";
+  const found=await gdCall(token,'/files?spaces=drive&fields=files(id)&q='+encodeURIComponent(q));
+  if(found.files&&found.files.length)id=found.files[0].id;
+  else{const f=await gdFolders(env,token,false);
+    id=(await gdCall(token,'/files?fields=id',{method:'POST',body:JSON.stringify({name:'Pranju OS Drafts',mimeType:'application/vnd.google-apps.spreadsheet',parents:[f.root],appProperties:{pos:'drafts'},
+      description:'WhatsApp and money drafts from Claude\'s nightly review, waiting for approval in Pranju OS. Rows: id | created | status | draft JSON | final JSON | closed.'})})).id;
+    const meta=await shCall(token,id+'?fields=sheets.properties');const first=meta.sheets[0].properties.sheetId;
+    await shCall(token,id+':batchUpdate',{method:'POST',body:JSON.stringify({requests:[
+      {updateSheetProperties:{properties:{sheetId:first,title:DRAFT_TABS.wa,gridProperties:{frozenRowCount:1}},fields:'title,gridProperties.frozenRowCount'}},
+      {addSheet:{properties:{title:DRAFT_TABS.money,gridProperties:{frozenRowCount:1}}}}]})});
+    await shCall(token,id+'/values:batchUpdate',{method:'POST',body:JSON.stringify({valueInputOption:'RAW',data:[
+      {range:DRAFT_TABS.wa+'!A1:F1',values:[DRAFT_HEAD]},{range:DRAFT_TABS.money+'!A1:F1',values:[DRAFT_HEAD]}]})});}
+  await env.SYNC_KV.put('drive:drafts',id);return id;}
+async function draftRows(token,id,tab){const d=await shCall(token,id+'/values/'+encodeURIComponent(tab+'!A2:F')+'?majorDimension=ROWS');
+  return (d.values||[]).map((r,i)=>({row:i+2,id:String(r[0]||'').trim()||('row'+(i+2)),created:r[1]||'',status:String(r[2]||'draft').trim().toLowerCase(),draft:r[3]||''}));}
+function waFromSheet(x){let j={};try{j=JSON.parse(x.draft)}catch(_){return null}
+  return {id:'S:'+x.id,title:String(j.title||'').toUpperCase(),notes:String(j.notes||''),target:String(j.target||'schedule').toLowerCase(),repeat:String(j.repeat||'daily').toLowerCase(),
+    update:null,tags:Array.isArray(j.tags)?j.tags:[],due:/^\d{4}-\d{2}-\d{2}$/.test(j.due||'')?j.due:'',priority:+j.priority||0,created:x.created};}
+function moneyFromSheet(x){let j={};try{j=JSON.parse(x.draft)}catch(_){return null}if(!(+j.amt>0))return null;
+  return {id:'S:'+x.id,note:String(j.note||''),raw:String(j.raw||''),kind:j.kind==='in'?'in':'out',amt:+j.amt,acct:j.acct==='bank'?'bank':'wallet',
+    date:/^\d{4}-\d{2}-\d{2}$/.test(j.date||'')?j.date:'',time:/^\d{2}:\d{2}$/.test(j.time||'')?j.time:'',cat:String(j.cat||''),book:j.book==='apdcl'?'apdcl':'personal'};}
+async function handleDrafts(kind,request,env,origin,legacy){
+  const json=(o,st)=>new Response(JSON.stringify(o),{status:st||200,headers:{...corsHeaders(origin),'Content-Type':'application/json'}});
+  const url=new URL(request.url),tab=DRAFT_TABS[kind];
+  if(request.method==='GET'&&url.searchParams.get('list'))return legacy(request);
+  let token=null;try{token=env.GOOGLE_CLIENT_ID?await driveToken(env):null}catch(_){token=null}
+  if(request.method==='GET'){
+    let items=[],notes=[];
+    if(token){try{const id=await draftsSheet(env,token);items=(await draftRows(token,id,tab)).filter(x=>x.status==='draft').map(kind==='wa'?waFromSheet:moneyFromSheet).filter(Boolean);}
+      catch(e){notes.push('Drafts sheet: '+(e.message||e));}}
+    else notes.push('Google Drive is not connected, so drafts from the Drive sheet cannot be read.');
+    if(env.TICKTICK_ACCESS_TOKEN){try{const r=await legacy(request);const d=await r.json();if(Array.isArray(d.items))items=items.concat(d.items);}catch(_){}}
+    items.sort((a,b)=>String(a.created||'').localeCompare(String(b.created||'')));
+    return json({items,note:notes.join(' ')||undefined});}
+  if(request.method!=='POST')return json({error:'Method not allowed'},405);
+  const text=await request.text();let body={};try{body=JSON.parse(text)}catch(_){return json({error:'Invalid JSON'},400)}
+  if(String(body.id||'').indexOf('S:')!==0)return legacy(new Request(request.url,{method:'POST',headers:request.headers,body:text}));
+  if(!token)return json({error:'Google Drive is not connected (Travel Trace → Google Drive).'},409);
+  const id=await draftsSheet(env,token),want=String(body.id).slice(2),rows=await draftRows(token,id,tab),x=rows.find(r=>r.id===want);
+  if(!x)return json({ok:true,gone:true});
+  const status=body.action==='approve'||body.as==='approved'?'approved':'discarded';
+  const final=body.final||(body.action==='approve'?body:null);
+  await shCall(token,id+'/values/'+encodeURIComponent(tab+'!C'+x.row+':F'+x.row)+'?valueInputOption=RAW',{method:'PUT',body:JSON.stringify({values:[[status,x.draft,final?JSON.stringify(final).slice(0,40000):'',new Date().toISOString()]]})});
+  return json({ok:true,[status]:body.id});}
+
+/* ---------- Tasks mirror and requests (31 Oct 2026) ----------
+   Pranju OS's own tasks are encrypted in the sync vault, so Claude can't read them there. The app therefore writes a plain
+   copy of its open tasks to the "Tasks" tab of the Drafts sheet (POST ?mode=tasks-mirror), and Claude asks for changes by
+   appending rows to the "Requests" tab: A id | B created | C status (pending/working/done/failed) | D op | E task id | F JSON | G result.
+   The app picks them up (GET ?mode=tasks-requests), claims each one (so two phones never apply it twice), applies it and
+   reports back (POST ?mode=tasks-requests). */
+const MIRROR_HEAD=['id','list','title','tags','date','time','repeat','priority','checklist','notes','created','updated'];
+const REQ_HEAD=['id','created','status','op','task id','JSON','result'];
+async function ensureTabs(env,token,id){
+  if(await env.SYNC_KV.get('drive:drafts-tabs')===id)return;
+  const meta=await shCall(token,id+'?fields=sheets.properties.title');const have=(meta.sheets||[]).map(x=>x.properties.title);
+  const add=[['Tasks',MIRROR_HEAD],['Requests',REQ_HEAD]].filter(([t])=>have.indexOf(t)<0);
+  if(add.length){await shCall(token,id+':batchUpdate',{method:'POST',body:JSON.stringify({requests:add.map(([t])=>({addSheet:{properties:{title:t,gridProperties:{frozenRowCount:1}}}}))})});
+    await shCall(token,id+'/values:batchUpdate',{method:'POST',body:JSON.stringify({valueInputOption:'RAW',data:add.map(([t,h])=>({range:t+'!A1',values:[h]}))})});}
+  await env.SYNC_KV.put('drive:drafts-tabs',id);}
+async function handleTasksMirror(request,env,origin){
+  const json=(o,st)=>new Response(JSON.stringify(o),{status:st||200,headers:{...corsHeaders(origin),'Content-Type':'application/json'}});
+  const token=await driveToken(env);if(!token)return json({error:'Google Drive is not connected.'},409);
+  const id=await draftsSheet(env,token);await ensureTabs(env,token,id);const mode=new URL(request.url).searchParams.get('mode');
+  if(mode==='tasks-mirror'){if(request.method!=='POST')return json({error:'Method not allowed'},405);
+    const b=await request.json();const rows=(Array.isArray(b.rows)?b.rows:[]).map(r=>r.map(v=>String(v==null?'':v).slice(0,5000)));
+    await shCall(token,id+'/values/'+encodeURIComponent('Tasks!A2:L')+':clear',{method:'POST',body:'{}'});
+    if(rows.length)await shCall(token,id+'/values/'+encodeURIComponent('Tasks!A2:L'+(rows.length+1))+'?valueInputOption=RAW',{method:'PUT',body:JSON.stringify({values:rows})});
+    return json({ok:true,rows:rows.length,sheet:id});}
+  const read=async()=>{const d=await shCall(token,id+'/values/'+encodeURIComponent('Requests!A2:G')+'?majorDimension=ROWS');
+    return (d.values||[]).map((r,i)=>({row:i+2,id:String(r[0]||'')||('row'+(i+2)),created:r[1]||'',status:String(r[2]||'pending').trim().toLowerCase(),op:String(r[3]||'').trim().toLowerCase(),task:String(r[4]||'').trim(),json:r[5]||''}));};
+  if(request.method==='GET')return json({requests:(await read()).filter(x=>x.status==='pending'||x.status==='')});
+  const b=await request.json();const rows=await read();const x=rows.find(r=>r.row===+b.row&&r.id===String(b.id));if(!x)return json({ok:false,reason:'gone'});
+  if(b.status==='claim'){if(x.status!=='pending'&&x.status!=='')return json({ok:false,reason:'taken'});
+    await shCall(token,id+'/values/'+encodeURIComponent('Requests!C'+x.row)+'?valueInputOption=RAW',{method:'PUT',body:JSON.stringify({values:[['working '+String(b.dev||'').slice(0,12)]]})});return json({ok:true});}
+  await shCall(token,id+'/values/'+encodeURIComponent('Requests!C'+x.row+':G'+x.row)+'?valueInputOption=RAW',{method:'PUT',body:JSON.stringify({values:[[b.status==='failed'?'failed':'done',x.op,x.task,x.json,String(b.result||'').slice(0,2000)]]})});
+  return json({ok:true});}
+
 export default {async fetch(request,env){const origin=request.headers.get('Origin')||'';if(request.method==='OPTIONS'){const h=corsHeaders(origin);const requested=request.headers.get('Access-Control-Request-Headers');if(requested)h['Access-Control-Allow-Headers']=requested;return new Response(null,{status:204,headers:h});}const url=new URL(request.url);
  if(url.pathname==='/drive-callback'){try{return await handleDriveCallback(request,env)}catch(e){return new Response('Google Drive sign-in failed: '+String(e&&e.message||e),{status:502,headers:{'Content-Type':'text/plain'}})}}
  if(url.searchParams.get('mode')!=='live-log'){try{const denied=await requireOwner(request,env,origin);if(denied)return denied;}catch(e){return new Response(JSON.stringify({error:'Auth check failed'}),{status:503,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
@@ -595,9 +705,11 @@ export default {async fetch(request,env){const origin=request.headers.get('Origi
  if(url.pathname==='/sync'||url.searchParams.get('mode')==='sync'){try{return await handleSync(request,env)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.searchParams.get('mode')==='nav'){try{return await handleNav(request)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.searchParams.get('mode')==='quotes'||url.pathname==='/quotes'){try{return await handleQuotes(request)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
+ if(url.searchParams.get('mode')==='tasks-mirror'||url.searchParams.get('mode')==='tasks-requests'){try{return await handleTasksMirror(request,env,origin)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
+ if(url.searchParams.get('mode')==='tt-export'){try{return await handleTickExport(request,env,origin)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.searchParams.get('mode')==='deleg-done'){try{return await handleDelegDone(request,env,origin)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
- if(url.searchParams.get('mode')==='money-review'||url.pathname==='/money-review'){try{return await handleMoneyReview(request,env,origin)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
- if(url.searchParams.get('mode')==='wa-review'||url.pathname==='/wa-review'){try{return await handleWaReview(request,env,origin)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
+ if(url.searchParams.get('mode')==='money-review'||url.pathname==='/money-review'){try{return await handleDrafts('money',request,env,origin,r=>handleMoneyReview(r,env,origin))}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
+ if(url.searchParams.get('mode')==='wa-review'||url.pathname==='/wa-review'){try{return await handleDrafts('wa',request,env,origin,r=>handleWaReview(r,env,origin))}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.searchParams.get('mode')==='live'||url.searchParams.get('mode')==='live-log'){try{return await handleLive(request,env,origin)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.searchParams.get('mode')==='drive'){try{return await handleDrive(request,env,origin)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.searchParams.get('mode')==='travel-file'){try{return await handleTravelFile(request,env)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}

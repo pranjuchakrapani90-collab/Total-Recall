@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="kvsync.js?v=20261031t" data-reload=""></script><script src="tasks-local.js?v=20261031b"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
+<title>Tasks · Pranju OS</title>
+<link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="icon" href="icon-192.png" sizes="192x192"><link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+/* Tasks (31 Oct 2026): Pranju OS's own task lists, replacing TickTick. Same lists he kept there:
+   Inbox, SCHEDULE, PROJECTS, CHECKLISTS, REFERENCE, ARCHIVE. Data and repeats live in tasks-local.js. */
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100vh}
+body>header{padding:calc(10px + env(safe-area-inset-top,0px)) 16px 0;position:sticky;top:0;z-index:20}
+.hin{max-width:760px;margin:0 auto}
+.backlink{font-size:13px;text-decoration:none}
+h1{margin:4px 0 8px;font-size:22px;display:flex;align-items:center;gap:10px}
+h1 .sp{flex:1}
+.tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:0 16px}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{flex:0 0 auto;border:0;background:transparent;color:var(--tr-head-mute);font:650 14px system-ui,sans-serif;padding:10px 10px 11px;border-bottom:3px solid transparent;margin-bottom:-3px;cursor:pointer;white-space:nowrap}
+.tabs button.on{color:var(--tr-head-ink);border-bottom-color:var(--tr-head-ink)}
+.tabs b{font-weight:600;font-size:12px;opacity:.75;margin-left:4px}
+main{max-width:760px;margin:0 auto;padding:14px 16px 110px}
+.muted{color:var(--tr-muted)}
+.btn{border:1px solid var(--tr-line);background:var(--tr-paper);color:var(--tr-ink);border-radius:10px;padding:10px 14px;font:600 14px system-ui,sans-serif;cursor:pointer}
+.btn.pri{background:var(--tr-acc);border-color:var(--tr-acc);color:#fff}
+.btn.ghost{background:transparent}
+.btn.danger{color:#b42318;border-color:#f3c7c0}
+.btn.sm{padding:6px 11px;font-size:13px}
+.btn:disabled{opacity:.45;cursor:default}
+input,select,textarea{font:inherit;width:100%;padding:10px 12px;border:1px solid var(--tr-line);border-radius:10px;background:#fff;color:var(--tr-ink)}
+textarea{min-height:110px;resize:vertical}
+.search{display:flex;gap:8px;margin-bottom:12px}
+.search input{flex:1}
+.tagbar{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:-4px 0 12px}
+.tagbar::-webkit-scrollbar{display:none}
+.tagbar button{flex:0 0 auto;border:1px solid var(--tr-line);background:var(--tr-paper);color:var(--tr-muted);border-radius:999px;padding:5px 11px;font:600 12px system-ui,sans-serif;cursor:pointer}
+.tagbar button.on{background:var(--tr-ink);border-color:var(--tr-ink);color:#fff}
+.sec{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--tr-muted);margin:16px 2px 6px}
+.list{display:flex;flex-direction:column;gap:7px}
+.row{display:flex;align-items:flex-start;gap:10px;background:var(--tr-paper);border:1px solid var(--tr-line);border-radius:13px;padding:10px 12px;cursor:pointer}
+.row .ck{flex:0 0 auto;width:24px;height:24px;border-radius:50%;border:2px solid #9a978e;background:#fff;margin-top:1px;cursor:pointer;padding:0;display:grid;place-items:center;font-size:13px;color:#fff}
+.row .ck.p5{border-color:#dc2626}.row .ck.p3{border-color:#d97706}.row .ck.p1{border-color:#2563eb}
+.row.cl .ck{background:#15803d;border-color:#15803d}
+.row .tx{flex:1;min-width:0}
+.row .tt{font-weight:650;line-height:1.3;word-break:break-word}
+.row.cl .tt{text-decoration:line-through;color:var(--tr-muted)}
+.row .mt{display:flex;flex-wrap:wrap;gap:4px 8px;font-size:12px;color:var(--tr-muted);margin-top:3px}
+.row .mt .od{color:#b42318;font-weight:650}
+.row .mt .tg{color:var(--tr-acc-ink)}
+.empty{padding:28px 16px;text-align:center;color:var(--tr-muted);background:var(--tr-paper);border:1px dashed var(--tr-line);border-radius:16px}
+.more{margin:10px auto 0;display:block}
+.fab{position:fixed;right:18px;bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:30;border:0;border-radius:999px;background:var(--tr-acc);color:#fff;font:700 15px system-ui,sans-serif;padding:14px 20px;box-shadow:0 8px 24px #0003;cursor:pointer}
+.imp{background:var(--tr-paper);border:1px solid var(--tr-line);border-radius:18px;padding:18px;box-shadow:var(--tr-shadow)}
+.imp h2{margin:0 0 6px;font-size:18px}
+.imp p{margin:6px 0}
+.imp .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.err{background:#fdf0ee;color:#8a1f11;border-radius:12px;padding:10px 12px;margin-top:10px}
+.foot{margin-top:28px;font-size:12px;color:var(--tr-muted);display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+/* sheet */
+.scrim{position:fixed;inset:0;background:#1c1b1966;z-index:50;display:flex;align-items:flex-end;justify-content:center}
+.scrim[hidden]{display:none}
+.sheet{background:var(--tr-paper);width:100%;max-width:600px;max-height:92vh;overflow:auto;border-radius:20px 20px 0 0;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 30px #0003}
+@media(min-width:700px){.scrim{align-items:center}.sheet{border-radius:20px}}
+.sheet h3{margin:0 0 10px;font-size:17px;display:flex;justify-content:space-between;gap:8px;align-items:center}
+.sheet h3 small{font-weight:500;font-size:12px;color:var(--tr-muted)}
+.lbl{display:block;font-size:12px;font-weight:700;color:var(--tr-muted);margin:12px 0 5px;text-transform:uppercase;letter-spacing:.04em}
+#eTitle{text-transform:uppercase;font-weight:650}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{padding:6px 10px;font:600 12.5px system-ui,sans-serif;border-radius:999px;background:var(--tr-soft);color:var(--tr-ink);border:1px solid transparent;cursor:pointer}
+.chips button.on{background:var(--tr-acc);color:#fff}
+.chips button.mo{font-weight:500}
+.chips input{width:110px;padding:5px 10px;border-radius:999px;font-size:12.5px}
+.ckl{display:flex;flex-direction:column;gap:6px}
+.ckl div{display:flex;gap:8px;align-items:center}
+.ckl input[type=checkbox]{width:20px;height:20px;flex:0 0 auto}
+.ckl input[type=text]{padding:7px 10px}
+.ckl button{border:0;background:none;color:var(--tr-muted);font-size:18px;cursor:pointer;padding:0 4px}
+.note{font-size:12px;color:#713f12;background:#fbf7ec;border:1px solid #f1e3bf;border-radius:10px;padding:7px 10px;margin-top:8px}
+.note[hidden]{display:none}
+.cms{display:flex;flex-direction:column;gap:6px}
+.cms div{border:1px solid var(--tr-line);border-radius:10px;padding:8px 10px;font-size:13.5px;white-space:pre-wrap;word-break:break-word}
+.cms small{display:block;color:var(--tr-muted);font-size:11px;margin-top:3px}
+.sacts{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.sacts .sp{flex:1}
+.links{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.links a{display:inline-flex;max-width:100%;padding:6px 10px;border-radius:999px;background:var(--tr-acc-soft,#eef0ff);color:var(--tr-acc-ink,#3730a3);font:600 12.5px system-ui,sans-serif;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--tr-ink);color:#fff;border-radius:999px;padding:10px 18px;font:600 14px system-ui,sans-serif;z-index:60;box-shadow:0 6px 20px #0004;transition:opacity .3s;pointer-events:none;max-width:92vw;text-align:center}
+</style>
+<link rel="stylesheet" href="tr-theme.css?v=20261020">
+</head><body>
+<header><div class="hin">
+  <a class="backlink" href="./#resp">← Today's Tasks</a>
+  <h1>Tasks<span class="sp"></span></h1>
+  <nav class="tabs" id="tabs"></nav>
+</div></header>
+<main id="main"></main>
+<button class="fab" id="fab" type="button" hidden>＋ Task</button>
+<div class="scrim" id="scrim" hidden><div class="sheet" id="sheet" role="dialog"></div></div>
+<script>
+"use strict";
+const P=window.PosTasks,$=id=>document.getElementById(id);
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const TAGS=["sde-tech","sde-rev","sde-estt","home-manager","brother","son"],MORE=["guitar","read","watch","learn","chess","blog"];
+const TABS=[["today","Today"],["inbox","Inbox"],["schedule","Schedule"],["projects","Projects"],["checklists","Checklists"],["reference","Reference"],["archive","Archive"],["closed","Closed"]];
+const fmtDay=iso=>{try{return new Date(iso+"T12:00:00").toLocaleDateString("en-IN",{day:"numeric",month:"short",year:iso.slice(0,4)===P.today().slice(0,4)?undefined:"numeric"})}catch(e){return iso}};
+let tab="today",q="",tagF="",limit=150;
+try{const s=JSON.parse(sessionStorage.getItem("posTasksView")||"{}");if(s.tab)tab=s.tab;if(s.tag)tagF=s.tag;}catch(e){}
+function remember(){try{sessionStorage.setItem("posTasksView",JSON.stringify({tab,tag:tagF}))}catch(e){}}
+let tt=0;function toast(m,ms){let t=document.querySelector(".toast");if(!t){t=document.createElement("div");t.className="toast";document.body.appendChild(t)}
+  t.textContent=m;t.style.opacity=1;clearTimeout(tt);tt=setTimeout(()=>t.style.opacity=0,ms||1800);}
+function wurl(qs){let u=null;try{u=localStorage.getItem("totalRecallTickTickUrl")}catch(e){}u=u||window.TOTAL_RECALL_TICKTICK_URL||"https://total-recall-ticktick.pranjuchakrapani90.workers.dev";return u+(u.indexOf("?")>=0?"&":"?")+qs;}
+
+/* ---------- which tasks a tab shows ---------- */
+function inTab(t,k,td){if(k==="closed")return t.st===2;if(t.st===2)return false;if(k==="today")return !!t.du&&t.du<=td;return t.pj===k;}
+function sortTasks(a,td){return a.sort((x,y)=>{const dx=x.du||"9999",dy=y.du||"9999";return dx.localeCompare(dy)||(y.pr||0)-(x.pr||0)||String(y.md||"").localeCompare(String(x.md||""))})}
+function matches(t,words){if(!words.length)return true;const h=(t.ti+" "+(t.tg||[]).join(" ")+" "+(t.c||"")+" "+P.LISTNAME[t.pj]).toLowerCase();return words.every(w=>h.indexOf(w)>=0);}
+
+function render(){
+  if(!P.on()){$("tabs").innerHTML="";$("fab").hidden=true;renderImport();return}
+  const T=P.all(),arr=Object.values(T),td=P.today();
+  const cnt={};TABS.forEach(([k])=>cnt[k]=arr.filter(t=>inTab(t,k,td)).length);
+  $("tabs").innerHTML=TABS.map(([k,n])=>`<button type="button" data-tab="${k}" class="${tab===k?"on":""}">${n}${k!=="closed"&&cnt[k]?`<b>${cnt[k]}</b>`:""}</button>`).join("");
+  $("tabs").querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{tab=b.dataset.tab;tagF="";limit=150;remember();render();window.scrollTo(0,0)});
+  const on=$("tabs").querySelector(".on");if(on)on.scrollIntoView({inline:"nearest",block:"nearest"});
+  $("fab").hidden=false;
+  const words=q.toLowerCase().split(/\s+/).filter(Boolean);
+  /* typing searches every list; otherwise the tab's own list */
+  let list=words.length?arr.filter(t=>matches(t,words)):arr.filter(t=>inTab(t,tab,td));
+  const tagCount={};list.forEach(t=>(t.tg||[]).forEach(g=>tagCount[g]=(tagCount[g]||0)+1));
+  const tagKeys=Object.keys(tagCount).sort((a,b)=>tagCount[b]-tagCount[a]||a.localeCompare(b));
+  if(tagF&&!tagCount[tagF])tagF="";
+  if(tagF)list=list.filter(t=>(t.tg||[]).indexOf(tagF)>=0);
+  if(tab==="closed"&&!words.length)list.sort((a,b)=>String(b.cd).localeCompare(String(a.cd)));else sortTasks(list,td);
+  let h=`<div class="search"><input type="search" id="q" placeholder="Search all tasks — title, tag, notes" value="${esc(q)}" autocomplete="off"></div>`;
+  if(tagKeys.length>1)h+=`<div class="tagbar"><button type="button" data-tag="" class="${tagF?"":"on"}">All</button>${tagKeys.map(g=>`<button type="button" data-tag="${esc(g)}" class="${tagF===g?"on":""}">${esc(g.toUpperCase())} ${tagCount[g]}</button>`).join("")}</div>`;
+  if(!list.length)h+=`<div class="empty">${words.length?"No task matches.":tab==="today"?"Nothing due today. 🎉":"Nothing here."}</div>`;
+  else if(tab==="today"&&!words.length){const od=list.filter(t=>t.du<td),tdy=list.filter(t=>t.du===td);
+    if(od.length)h+=`<div class="sec">Overdue · ${od.length}</div><div class="list">${od.map(row).join("")}</div>`;
+    if(tdy.length)h+=`<div class="sec">Today · ${tdy.length}</div><div class="list">${tdy.map(row).join("")}</div>`;}
+  else{h+=`<div class="list">${list.slice(0,limit).map(row).join("")}</div>`;if(list.length>limit)h+=`<button class="btn more" id="more" type="button">Show ${Math.min(150,list.length-limit)} more of ${list.length-limit}</button>`;}
+  const m=P.meta();h+=`<div class="foot"><span>${arr.filter(t=>t.st!==2).length} open tasks · kept in Pranju OS${m.imported?" since "+fmtDay(String(m.imported).slice(0,10)):""}, synced to your phones through Google Drive.</span>
+    <button class="btn sm ghost" id="reimp" type="button">Copy anything new from TickTick</button></div>`;
+  const main=$("main"),focus=document.activeElement&&document.activeElement.id==="q",pos=focus?document.activeElement.selectionStart:0;
+  main.innerHTML=h;
+  const qi=$("q");qi.oninput=()=>{q=qi.value;limit=150;render()};if(focus){qi.focus();try{qi.setSelectionRange(pos,pos)}catch(e){}}
+  main.querySelectorAll("[data-tag]").forEach(b=>b.onclick=()=>{tagF=b.dataset.tag;remember();render()});
+  main.querySelectorAll(".row").forEach(r=>r.onclick=e=>{if(e.target.closest(".ck"))return;edit(r.dataset.id)});
+  main.querySelectorAll(".ck").forEach(b=>b.onclick=e=>{e.stopPropagation();tick(b.closest(".row").dataset.id)});
+  const more=$("more");if(more)more.onclick=()=>{limit+=150;render()};
+  $("reimp").onclick=()=>doImport(true);}
+function row(t){const td=P.today(),od=t.du&&t.du<td&&t.st!==2,meta=[];
+  if(tab==="today"||q)meta.push(`<span>${esc(P.LISTNAME[t.pj])}</span>`);
+  if(t.du)meta.push(`<span class="${od?"od":""}">${t.du===td?"Today":fmtDay(t.du)}${t.tm?" "+t.tm:""}</span>`);
+  if(t.rp)meta.push(`<span>↻ ${esc(P.repeatLabel(t.rp))}</span>`);
+  if(t.it&&t.it.length)meta.push(`<span>☑ ${t.it.filter(x=>x.d).length}/${t.it.length}</span>`);
+  if(t.st===2&&t.cd)meta.push(`<span>closed ${fmtDay(t.cd)}</span>`);
+  (t.tg||[]).forEach(g=>meta.push(`<span class="tg">#${esc(g.toUpperCase())}</span>`));
+  return `<div class="row${t.st===2?" cl":""}" data-id="${esc(t.id)}"><button type="button" class="ck p${t.pr||0}" aria-label="${t.st===2?"Reopen":"Done"}">${t.st===2?"✓":""}</button><div class="tx"><div class="tt">${esc(t.ti)}</div>${meta.length?`<div class="mt">${meta.join("")}</div>`:""}</div></div>`;}
+/* the round button: a repeating task moves to its next date (as ticking it in TickTick did); others close */
+function tick(id){const t=P.get(id);if(!t)return;
+  if(t.st===2){P.act(id,"reopen");toast("Reopened");render();return}
+  const r=P.act(id,"done");toast(r.closed?"Done ✓":r.next?"Done for today · next "+fmtDay(r.next):"Done",2200);render();}
+
+/* ---------- add / edit ---------- */
+function edit(id){const t=id?P.get(id):{ti:"",pj:tab!=="today"&&tab!=="closed"?tab:"inbox",tg:[],c:"",it:[],du:tab==="today"?P.today():"",tm:"",rp:"",pr:0,st:0};if(!t){toast("That task is no longer here");return}
+  const rpOpts=[["","Does not repeat"],["RRULE:FREQ=DAILY;INTERVAL=1","Daily"],["weekly","Weekly (same weekday)"],["monthly","Monthly (same date)"],["RRULE:FREQ=YEARLY;INTERVAL=1","Yearly"]];
+  const known=["","RRULE:FREQ=DAILY;INTERVAL=1","RRULE:FREQ=YEARLY;INTERVAL=1"];
+  let rpSel=t.rp;if(t.rp&&known.indexOf(t.rp)<0){const r=P.parseRule(t.rp);if(r.FREQ==="WEEKLY"&&r.INTERVAL===1&&(!r.BYDAY||r.BYDAY.split(",").length===1))rpSel="weekly";else if(r.FREQ==="MONTHLY"&&r.INTERVAL===1)rpSel="monthly";else rpOpts.push([t.rp,P.repeatLabel(t.rp)+" (as set)"]);}
+  const tags=(t.tg||[]).slice(),items=(t.it||[]).map(x=>({...x}));
+  $("sheet").innerHTML=`<h3><span>${id?"Task":"New task"}</span><small>${id&&t.cr?"added "+esc(fmtDay(String(t.cr).slice(0,10))):""}</small></h3>
+    <input id="eTitle" value="${esc(t.ti)}" placeholder="What has to be done" autocomplete="off">
+    <span class="lbl">Tags</span><div class="chips" id="eTags"></div>
+    <div class="g2"><div><span class="lbl">List</span><select id="eList">${P.LISTS.map(([k,n])=>`<option value="${k}"${t.pj===k?" selected":""}>${n}</option>`).join("")}</select></div>
+      <div><span class="lbl">Priority</span><select id="ePri">${[[0,"None"],[1,"Low"],[3,"Medium"],[5,"High"]].map(([v,n])=>`<option value="${v}"${(t.pr||0)===v?" selected":""}>${n}</option>`).join("")}</select></div></div>
+    <div class="g2"><div><span class="lbl">Date</span><input type="date" id="eDue" value="${esc(t.du||"")}"></div><div><span class="lbl">Time</span><input type="time" id="eTm" value="${esc(t.tm||"")}"></div></div>
+    <span class="lbl">Repeat</span><select id="eRp">${rpOpts.map(([v,n])=>`<option value="${esc(v)}"${rpSel===v?" selected":""}>${esc(n)}</option>`).join("")}</select>
+    <div class="note" id="eRefNote" hidden>Moving to REFERENCE takes away its date and repeat, so it no longer comes up in Today's Tasks.</div>
+    <span class="lbl">Notes</span><textarea id="eNotes" placeholder="Details, links…">${esc(t.c||"")}</textarea><div class="links" id="eLinks"></div>
+    <span class="lbl">Checklist</span><div class="ckl" id="eCk"></div>
+    ${(t.cm||[]).length?`<span class="lbl">Comments</span><div class="cms">${t.cm.map(x=>`<div>${esc(x.x)}<small>${esc(String(x.at||"").slice(0,16).replace("T"," "))}</small></div>`).join("")}</div>`:""}
+    <div class="sacts"><button class="btn pri" id="eSave" type="button">Save</button>${id&&t.st!==2?`<button class="btn" id="eDone" type="button">✓ Done</button><button class="btn" id="eFin" type="button">✔✔ Close for good</button>`:""}${id&&t.st===2?`<button class="btn" id="eReopen" type="button">Reopen</button>`:""}
+      <span class="sp"></span>${id?`<button class="btn danger" id="eDel" type="button">Delete</button>`:""}<button class="btn ghost" id="eX" type="button">Cancel</button></div>`;
+  $("scrim").hidden=false;
+  const drawTags=()=>{const extra=tags.filter(x=>TAGS.indexOf(x)<0&&MORE.indexOf(x)<0);
+    $("eTags").innerHTML=TAGS.concat(extra).map(g=>`<button type="button" data-g="${esc(g)}" class="${tags.indexOf(g)>=0?"on":""}">${esc(g.toUpperCase())}</button>`).join("")+
+      MORE.map(g=>`<button type="button" data-g="${g}" class="mo ${tags.indexOf(g)>=0?"on":""}">${g}</button>`).join("")+`<input id="eNewTag" placeholder="+ tag" autocomplete="off">`;
+    $("eTags").querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{const g=b.dataset.g,i=tags.indexOf(g);if(i>=0)tags.splice(i,1);else tags.push(g);drawTags()});
+    const nt=$("eNewTag");nt.onkeydown=e=>{if(e.key==="Enter"||e.key===","){e.preventDefault();const g=nt.value.trim().toLowerCase().replace(/^#/,"").replace(/\s+/g,"-");if(g&&tags.indexOf(g)<0)tags.push(g);drawTags();$("eNewTag").focus()}};
+    nt.onblur=()=>{const g=nt.value.trim().toLowerCase().replace(/^#/,"").replace(/\s+/g,"-");if(g&&tags.indexOf(g)<0){tags.push(g);drawTags()}};};
+  const drawCk=()=>{$("eCk").innerHTML=items.map((x,i)=>`<div><input type="checkbox" data-ci="${i}"${x.d?" checked":""}><input type="text" data-ct="${i}" value="${esc(x.ti)}"><button type="button" data-cx="${i}" aria-label="Remove">×</button></div>`).join("")+`<div><input type="text" id="eCkNew" placeholder="+ add an item"></div>`;
+    $("eCk").querySelectorAll("[data-ci]").forEach(c=>c.onchange=()=>{items[+c.dataset.ci].d=c.checked?1:0});
+    $("eCk").querySelectorAll("[data-ct]").forEach(c=>c.oninput=()=>{items[+c.dataset.ct].ti=c.value});
+    $("eCk").querySelectorAll("[data-cx]").forEach(c=>c.onclick=()=>{items.splice(+c.dataset.cx,1);drawCk()});
+    const n=$("eCkNew");n.onkeydown=e=>{if(e.key==="Enter"&&n.value.trim()){items.push({ti:n.value.trim(),d:0});drawCk();$("eCkNew").focus()}};
+    n.onblur=()=>{if(n.value.trim()){items.push({ti:n.value.trim(),d:0});drawCk()}};};
+  const links=()=>{const out=[],seen={};($("eNotes").value||"").replace(/https?:\/\/[^\s)>\]]+/g,u=>{if(!seen[u]){seen[u]=1;out.push(u)}return u});
+    $("eLinks").innerHTML=out.slice(0,12).map(u=>{let l=u;try{const x=new URL(u);l=/google\.com$/.test(x.hostname)?"📎 Drive file":x.hostname}catch(e){}return `<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(l)}</a>`}).join("");};
+  drawTags();drawCk();links();$("eNotes").oninput=links;
+  $("eList").onchange=()=>{const r=$("eList").value==="reference"&&t.pj!=="reference";$("eRefNote").hidden=!r;if(r){$("eDue").value="";$("eTm").value="";$("eRp").value=""}};
+  if(!id)setTimeout(()=>$("eTitle").focus(),40);
+  const collect=()=>{const due=$("eDue").value;let rp=$("eRp").value;
+    if(rp==="weekly")rp="RRULE:FREQ=WEEKLY;INTERVAL=1;BYDAY="+["SU","MO","TU","WE","TH","FR","SA"][new Date((due||P.today())+"T12:00:00Z").getUTCDay()];
+    if(rp==="monthly")rp="RRULE:FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY="+(+(due||P.today()).slice(8,10));
+    const ck=$("eCkNew");if(ck&&ck.value.trim())items.push({ti:ck.value.trim(),d:0});
+    const nt=$("eNewTag");if(nt&&nt.value.trim()){const g=nt.value.trim().toLowerCase().replace(/^#/,"").replace(/\s+/g,"-");if(tags.indexOf(g)<0)tags.push(g)}
+    return {...t,id:id||undefined,ti:$("eTitle").value.trim().toUpperCase(),pj:$("eList").value,tg:tags,pr:+$("ePri").value,du:due,tm:$("eTm").value,rp:rp&&!due?rp:rp,c:$("eNotes").value,it:items};};
+  const saveIt=()=>{const o=collect();if(!o.ti){toast("Give the task a title");$("eTitle").focus();return null}
+    if(o.rp&&!o.du)o.du=P.today();/* a repeating task needs a start date */
+    try{const s=P.put(o);return s}catch(e){toast(e.message,3500);return null}};
+  $("eSave").onclick=()=>{if(saveIt()){close();toast(id?"Saved":"Added");render()}};
+  $("eX").onclick=close;
+  if($("eDone"))$("eDone").onclick=()=>{const s=saveIt();if(!s)return;close();tick(s.id)};
+  if($("eFin"))$("eFin").onclick=()=>{const s=saveIt();if(!s)return;P.act(s.id,"fin");close();toast("Closed for good ✔✔");render()};
+  if($("eReopen"))$("eReopen").onclick=()=>{const s=saveIt();if(!s)return;P.act(s.id,"reopen");close();toast("Reopened");render()};
+  if($("eDel"))$("eDel").onclick=()=>{if(!confirm("Delete this task for good?\n\n"+t.ti))return;P.del(id);close();toast("Deleted");render()};}
+function close(){$("scrim").hidden=true;$("sheet").innerHTML="";if(/^#t=/.test(location.hash))history.replaceState(null,"",location.pathname+location.search);}
+$("scrim").addEventListener("click",e=>{if(e.target.id==="scrim")close()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("scrim").hidden)close()});
+$("fab").onclick=()=>edit(null);
+
+/* ---------- moving in from TickTick ---------- */
+function renderImport(){$("main").innerHTML=`<div class="imp"><h2>Move your tasks into Pranju OS</h2>
+  <p>This copies every open task from TickTick — Inbox, SCHEDULE, PROJECTS, CHECKLISTS, REFERENCE and ARCHIVE — with its tags, notes, checklist, date and repeat. From then on Today's Tasks, Task Recall, Delegation and the reviews use the copy here, and it syncs between your phones through Google Drive.</p>
+  <p class="muted">TickTick itself is not changed. Its completed history is not copied (TickTick doesn't give it out), so Completed review starts from today.</p>
+  <div class="acts"><button class="btn pri" id="go" type="button">Import from TickTick</button></div><div id="impMsg"></div></div>`;
+  $("go").onclick=()=>doImport(false);}
+async function doImport(again){const msg=$("impMsg"),btn=again?$("reimp"):$("go");if(btn){btn.disabled=true;btn.textContent="Copying from TickTick…"}
+  try{const r=await fetch(wurl("mode=tt-export"),{cache:"no-store"});const d=await r.json().catch(()=>({}));if(!r.ok||d.error)throw new Error(d.error||("HTTP "+r.status));
+    const n=(d.lists||[]).reduce((s,l)=>s+(l.tasks||[]).length,0);if(!n&&!again)throw new Error("TickTick returned no tasks — nothing was imported. Check the TickTick connection and try again.");
+    const res=P.importTick(d);
+    toast(again?(res.added?res.added+" new task"+(res.added>1?"s":"")+" copied":"Nothing new in TickTick"):"Imported "+res.added+" tasks ✓",3200);
+    if(window.PosKV)PosKV.sync();tab="today";render();}
+  catch(e){if(msg)msg.innerHTML=`<div class="err">Couldn't import: ${esc(e.message||e)}</div>`;else toast("Couldn't copy: "+(e.message||e),3500);
+    if(btn){btn.disabled=false;btn.textContent=again?"Copy anything new from TickTick":"Import from TickTick"}}}
+
+window.addEventListener("pos-tasks",()=>{if($("scrim").hidden)render()});
+render();
+const m=location.hash.match(/^#t=(.+)$/);if(m&&P.on())edit(decodeURIComponent(m[1]));
+</script>
+</body></html>

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="kvsync.js?v=20261029n"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
+<html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="kvsync.js?v=20261031t"></script><script src="tasks-local.js?v=20261031b"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
 <title>Delegation · Pranju OS</title>
 <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="icon" href="icon-192.png" sizes="192x192"><link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>
@@ -344,23 +344,23 @@ const OUT={cont:{i:"✓",n:"Done · continues",h:"Work done today, back tomorrow
   later:{i:"📅",n:"Push to a date",h:"Then daily until done",c:"#0369a1"}};
 function clearOutcome(a){delete a.s;delete a.on;delete a.until;delete a.d;}
 async function setOutcome(id,s,date){const a=D.assign[id];if(!a)return;const td=todayIST(),cur=stOf(id,a);
-  if(cur===s&&(s!=="later"||!date||date===a.until)){clearOutcome(a);save();render();toast("Back to pending here — TickTick is not changed back",3000);return}
+  if(cur===s&&(s!=="later"||!date||date===a.until)){clearOutcome(a);save();render();toast(window.PosTasks&&PosTasks.on()?"Back to pending on the card — the task's date stays as it is now":"Back to pending here — TickTick is not changed back",3200);return}
   clearOutcome(a);a.s=s;a.on=td;
   if(s==="cont")a.d=td;
   if(s==="push"||s==="later")a.np=(a.np||0)+1;
   if(s==="later")a.until=date;
   save();render();
-  const pj=a.pj||projById[id],label=OUT[s].n;if(!pj){toast(label+" · saved here",2000);return}
+  const pj=a.pj||projById[id],label=OUT[s].n,SRC=window.PosTasks&&PosTasks.on()?"Pranju OS":"TickTick";if(!pj){toast(label+" · saved here",2000);return}
   try{const r=await fetch(wurl("mode=deleg-done"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({projectId:pj,taskId:id,action:s,date:date||""})});
     const d=await r.json().catch(()=>({}));if(!r.ok||d.error)throw new Error(d.error||("HTTP "+r.status));
     let m=label;
-    if(s==="fin")m+=d.closed?" · closed for good in TickTick":(d.reason==="closed"?" · already closed in TickTick":" · TickTick kept its repeat, close it there");
-    else if(s==="later")m+=" · TickTick starts it on "+fmtDay(d.next||date)+(d.repeatAdded?", repeating daily":"");
-    else if(d.completed||d.moved)m+=" · TickTick moved it to "+(d.next?fmtDay(d.next):"its next date");
-    else if(d.reason==="not-repeating")m+=" · not a repeating task, so TickTick is left as it is";
-    else if(d.reason==="already-done-today"||d.reason==="already-later")m+=" · TickTick already shows it on "+(d.next?fmtDay(d.next):"a later date");
+    if(s==="fin")m+=d.closed?" · closed for good":(d.reason==="closed"?" · already closed":" · "+SRC+" kept its repeat, close it there");
+    else if(s==="later")m+=" · starts again on "+fmtDay(d.next||date)+(d.repeatAdded?", repeating daily":"");
+    else if(d.completed||d.moved)m+=" · next on "+(d.next?fmtDay(d.next):"its next date");
+    else if(d.reason==="not-repeating")m+=" · not a repeating task, so "+SRC+" is left as it is";
+    else if(d.reason==="already-done-today"||d.reason==="already-later")m+=" · already set for "+(d.next?fmtDay(d.next):"a later date");
     toast(m,3400);
-  }catch(e){toast(label+" here, but TickTick couldn't be updated: "+(e.message||e),3800)}}
+  }catch(e){toast(label+" here, but "+SRC+" couldn't be updated: "+(e.message||e),3800)}}
 function outcomeHtml(id,a){const x=stOf(id,a),tt=closedTT(id,a)&&a.s!=="fin";
   if(tt)return `<div class="ocNote">✓ Completed in TickTick</div>`;
   return `<div class="oc">${Object.keys(OUT).map(k=>{const o=OUT[k],on=x===k;
@@ -375,7 +375,7 @@ function bindOutcome(box,id){const a=D.assign[id];if(!a)return;let armed=0;
   box.querySelectorAll("[data-oc]").forEach(b=>b.onclick=e=>{e.stopPropagation();const k=b.dataset.oc,cur=stOf(id,a);
     if(k==="later"&&cur!=="later"){box.innerHTML=laterHtml(a);bindLater(box,id);return}
     /* closing for good removes the daily repeat in TickTick, so it takes a second tap */
-    if(k==="fin"&&cur!=="fin"&&!armed){armed=1;b.querySelector("small").textContent="Tap again — closes it for good in TickTick";b.classList.add("arm");
+    if(k==="fin"&&cur!=="fin"&&!armed){armed=1;b.querySelector("small").textContent="Tap again — closes it for good";b.classList.add("arm");
       setTimeout(()=>{if(b.isConnected&&armed){armed=0;b.classList.remove("arm");b.querySelector("small").textContent=OUT.fin.h}},3500);return}
     setOutcome(id,k);advance(id);});}
 function bindLater(box,id){const go=d=>{if(!d||d<=todayIST()){toast("Pick a day after today");return}setOutcome(id,"later",d);advance(id);};
@@ -445,7 +445,7 @@ function drawFlash(){if(!TF)return;const p=D.people[TF.pid];TF.ids=TF.ids.filter
     <div class="tfKw">${esc(a.k||shortKw(a.t))}</div><div class="tfName${dn?" dn":""}">${esc(a.t)}</div>
     <div class="tfHint">${esc(stLine)}Given ${esc(fmtDate(a.at))}${a.np?" · pushed "+a.np+"×":""} · tap for details</div>`;
   requestAnimationFrame(()=>{const f=$("tfFront"),n=f.querySelector(".tfName");if(n)fitText(f,n,28,13)});
-  $("tfReveal").innerHTML='<div class="taskBody"><div class="taskEmpty">Loading the latest details from TickTick…</div></div>';
+  $("tfReveal").innerHTML='<div class="taskBody"><div class="taskEmpty">Loading the task details…</div></div>';
   $("tfActs").innerHTML=`<div id="tfOc">${outcomeHtml(id,a)}</div>`;
   $("tfTop").insertAdjacentHTML("beforeend",`<button class="btn" type="button" id="tfMore">Move / edit</button>`);
   $("tfClose").onclick=closeFlash;bindOutcome($("tfOc"),id);
@@ -465,16 +465,16 @@ function richText(raw){const files=[];let s=String(raw||"").replace(/\r/g,"").re
     h=h.replace(/\u0000(\d+)\u0000/g,(m,n)=>{let nm=files[+n]||"";try{nm=decodeURIComponent(nm)}catch(e){}nm=nm.split("/").pop()||"Attachment";
       return `<div class="taskAttachment"><div class="taskAttachmentIcon">C</div><div style="min-width:0"><div class="taskAttachmentName">${esc(nm)}</div><div class="taskAttachmentSize">TickTick attachment</div></div></div>`});
     return /^[-*]\s+/.test(x)?`<ul class="tickList"><li>${h}</li></ul>`:`<p>${h}</p>`}).join("");}
-function detailHtml(t,comments,pj,id){const url="https://ticktick.com/webapp/#p/"+encodeURIComponent(pj)+"/tasks/"+encodeURIComponent(id);
+function detailHtml(t,comments,pj,id){const url=t.local?"tasks.html#t="+encodeURIComponent(id):"https://ticktick.com/webapp/#p/"+encodeURIComponent(pj)+"/tasks/"+encodeURIComponent(id);
   const content=t.content||t.desc||"",items=Array.isArray(t.items)?t.items:[],atts=Array.isArray(t.attachments)?t.attachments:(Array.isArray(t.files)?t.files:[]);
-  let h=`<div class="taskHead"><div class="tfHeadRow"><h4>${esc(t.title||"TickTick task")}</h4><a class="taskOpenLink" href="${url}" target="_blank" rel="noopener noreferrer">Open in TickTick ↗</a></div>
-    <div class="taskMeta">${t.dueDate?`<span class="taskPill">Due ${esc(String(t.dueDate).slice(0,10))}</span>`:""}${(t.tags||[]).map(x=>`<span class="taskPill">#${esc(x)}</span>`).join("")}</div></div>`;
+  let h=`<div class="taskHead"><div class="tfHeadRow"><h4>${esc(t.title||"TickTick task")}</h4><a class="taskOpenLink" href="${url}"${t.local?"":' target="_blank" rel="noopener noreferrer"'}>${t.local?"Edit task ✎":"Open in TickTick ↗"}</a></div>
+    <div class="taskMeta">${t.list?`<span class="taskPill">${esc(t.list)}</span>`:""}${t.dueDate?`<span class="taskPill">Due ${esc(String(t.dueDate).slice(0,10))}</span>`:""}${t.repeat?`<span class="taskPill">↻ ${esc(t.repeat)}</span>`:""}${(t.tags||[]).map(x=>`<span class="taskPill">#${esc(x)}</span>`).join("")}</div></div>`;
   if(content)h+=`<div class="taskBody"><div class="taskContent">${richText(content)}</div></div>`;
   if(items.length)h+=`<div class="taskSection"><div class="taskSectionTitle">Checklist</div>${items.map(x=>{const ok=x.status===1||x.status===2;return `<div class="taskSubtask${ok?" done":""}">${ok?"☑":"☐"} ${esc(x.title||"")}</div>`}).join("")}</div>`;
   if(atts.length)h+=`<div class="taskSection"><div class="taskSectionTitle">Attachments</div>${atts.map(x=>`<div class="taskAttachment"><div class="taskAttachmentIcon">C</div><div style="min-width:0"><div class="taskAttachmentName">${esc(x.name||x.fileName||x.title||"Attachment")}</div></div></div>`).join("")}</div>`;
   if(comments.length)h+=`<div class="taskSection"><div class="taskSectionTitle">Latest comments</div>${comments.map(x=>`<div class="taskComment">${richText(x.content||x.text||x.title||"")}${x.createdTime?`<small>${esc(String(x.createdTime).slice(0,16).replace("T"," "))}</small>`:""}</div>`).join("")}</div>`;
-  if(!content&&!items.length&&!atts.length&&!comments.length)h+='<div class="taskBody"><div class="taskEmpty">No description, checklist, attachment or comment in TickTick for this task.</div></div>';
-  return h+`<div class="taskFooter">Live from TickTick · ${esc(new Date().toLocaleTimeString())}</div>`;}
+  if(!content&&!items.length&&!atts.length&&!comments.length)h+='<div class="taskBody"><div class="taskEmpty">'+(t.local?'No notes or checklist on this task yet.':'No description, checklist, attachment or comment in TickTick for this task.')+'</div></div>';
+  return h+`<div class="taskFooter">${t.local?"Pranju OS task":"Live from TickTick · "+esc(new Date().toLocaleTimeString())}</div>`;}
 $("tfCard").addEventListener("click",e=>{if(e.target.closest("a"))return;const f=$("tfCard").classList.toggle("flipped");if(f)revealFlash();});
 const tfGo=d=>{if(!TF)return;const j=TF.i+d;if(j<0||j>=TF.ids.length)return;TF.i=j;drawFlash();};
 (()=>{let x0=null;const c=$("tfCard");c.addEventListener("touchstart",e=>{x0=e.touches[0].clientX},{passive:true});

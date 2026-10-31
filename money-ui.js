@@ -285,9 +285,9 @@ async function install(){if(deferredInstall){deferredInstall.prompt();try{await 
   I.form({title:"Money Log on the home screen",note:(inApp?"Open this page in the Chrome browser (not inside the Pranju OS app): "+url+" . Then ":"In Chrome, ")+"open the ⋮ menu (top right) and tap “Add to Home screen” → “Install”. The new Money Log icon opens straight into a new entry. Do the same on your other phone.",
     fields:[],ok:"OK",onSubmit:()=>{},extra:navigator.clipboard?[{label:"Copy link",run:()=>{navigator.clipboard.writeText(url).then(()=>toast("Link copied"),()=>{});}}]:null});}
 
-/* ---------- WhatsApp money notes (drafted by the nightly review into TickTick MONEY REVIEW) ---------- */
+/* ---------- WhatsApp money notes (drafted by the nightly review into the Pranju OS Drafts sheet in Drive; older ones in TickTick MONEY REVIEW) ---------- */
 function waUrl(){let u=null;try{u=localStorage.getItem("totalRecallTickTickUrl");}catch(e){}return (u||"https://total-recall-ticktick.pranjuchakrapani90.workers.dev").replace(/[?#].*$/,"").replace(/\/$/,"")+"/?mode=money-review";}
-function waTell(body){fetch(waUrl(),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body),cache:"no-store"}).then(r=>{if(!r.ok)throw new Error("HTTP "+r.status);}).catch(e=>toast("Saved here; couldn't update TickTick ("+e.message+")"));}
+function waTell(body){fetch(waUrl(),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body),cache:"no-store"}).then(r=>{if(!r.ok)throw new Error("HTTP "+r.status);}).catch(e=>toast("Saved here; couldn't clear the draft ("+e.message+")"));}
 async function waFetch(){try{const r=await fetch(waUrl(),{cache:"no-store"});if(!r.ok)return;const d=await r.json();const n=M.addWa(d.items||[]);if(n){draw();toast(n+" money note"+(n>1?"s":"")+" from WhatsApp to approve");}}catch(e){}}
 
 /* ---------- sync ---------- */
