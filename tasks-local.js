@@ -297,6 +297,20 @@ function mountEditor(root,id,editing){var host=root&&(root.querySelector(".pteMo
   var item=q("item");item.onkeydown=function(e){if(e.key==="Enter"&&item.value.trim()){e.preventDefault();var x=get(id);x.it=(x.it||[]).concat([{ti:item.value.trim(),d:0}]);var p=el.parentNode;put(x);redraw(false,"Item added ✓");var ni=p&&p.querySelector('[data-pe="item"]');if(ni)ni.focus()}};
   if(editing){var ta=q("txt");setTimeout(function(){ta.focus()},30)}}
 
+/* ---------- merge: several tasks become ONE (31 Oct 2026; never a main task + sub-tasks) ----------
+   The kept task takes the others' notes (each under a dated "merged" line), checklist items, tags, comments and history;
+   a date or repeat it lacks is taken from the others. The others are deleted. */
+function merge(keepId,ids){var k=get(keepId);if(!k)throw new Error("The task to keep is gone.");var others=ids.filter(function(x){return x!==keepId}).map(get).filter(Boolean);
+  if(!others.length)return k;var stamp=dmy();
+  others.forEach(function(o){var block=stamp+": merged \""+o.ti+"\""+(String(o.c||"").trim()?"\n"+String(o.c).trim():"");
+    k.c=(String(k.c||"").trim()?String(k.c).trim()+"\n\n---\n":"")+block;
+    var have={};(k.it||[]).forEach(function(x){have[norm(x.ti)]=1});k.it=(k.it||[]).concat((o.it||[]).filter(function(x){return !have[norm(x.ti)]}));
+    k.tg=(k.tg||[]).concat((o.tg||[]).filter(function(g){return (k.tg||[]).indexOf(g)<0}));
+    k.cm=(k.cm||[]).concat(o.cm||[]);k.h=Object.assign({},o.h||{},k.h||{});
+    if(!k.du&&o.du&&o.st!==2)k.du=o.du;if(!k.rp&&o.rp&&o.st!==2)k.rp=o.rp;if((o.pr||0)>(k.pr||0))k.pr=o.pr;
+    if(k.st===2&&o.st!==2){k.st=0;k.cd="";}});
+  put(k);others.forEach(function(o){del(o.id)});return get(keepId);}
+
 window.PosTasks={KEY:KEY,LISTS:LISTS,LISTNAME:LISTNAME,DAILY:DAILY,on:on,meta:meta,all:all,get:get,put:put,del:del,act:act,today:today,addDays:addDays,
-  nextOcc:nextOcc,advance:advance,repeatLabel:repeatLabel,parseRule:parseRule,importTick:importTick,importBackup:importBackup,mountEditor:mountEditor,todayRes:todayRes,mirror:mirror,requests:requests};
+  nextOcc:nextOcc,advance:advance,repeatLabel:repeatLabel,parseRule:parseRule,importTick:importTick,importBackup:importBackup,mountEditor:mountEditor,merge:merge,todayRes:todayRes,mirror:mirror,requests:requests};
 })();

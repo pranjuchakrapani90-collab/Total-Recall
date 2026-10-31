@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="kvsync.js?v=20261031z"></script><script src="tasks-local.js?v=20261031f"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
+<html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="kvsync.js?v=20261031z"></script><script src="tasks-local.js?v=20261101a"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
 <title>Delegation · Pranju OS</title>
 <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="icon" href="icon-192.png" sizes="192x192"><link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>
@@ -166,6 +166,16 @@ input,select{font:inherit;width:100%;padding:10px 12px;border:1px solid var(--tr
 .mfCard .hub{font-size:calc(var(--cf,15px) + 5px);min-width:calc(var(--cf,15px)*6);min-height:calc(var(--cf,15px)*4);max-width:150px;padding:calc(var(--cf,15px)*.5) calc(var(--cf,15px)*.8)}
 .mfCard .chip{word-break:normal;overflow-wrap:normal;overflow:hidden;font-size:var(--cf,15px);padding:calc(var(--cf,15px)*.5) calc(var(--cf,15px)*.8)}
 .tfCard{touch-action:pan-y}
+.chip{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+.chip.sl{background:var(--g);color:#fff;border-style:solid;box-shadow:0 0 0 2px #fff,0 0 0 4px var(--g);opacity:1;text-decoration:none}.chip.sl small{color:#fff}
+.selbar{position:fixed;left:0;right:0;bottom:0;z-index:45;background:var(--tr-paper);border-top:1px solid var(--tr-line);box-shadow:0 -8px 24px #0002;padding:10px 12px calc(12px + env(safe-area-inset-bottom,0px))}
+.selbar .sbh{display:flex;align-items:center;gap:8px;max-width:720px;margin:0 auto 8px}.selbar .sbh b{font-size:15px}.selbar .sbh span{flex:1;font-size:12px;color:var(--tr-muted)}
+.selbar .sbh button{border:0;background:var(--tr-soft);border-radius:999px;width:34px;height:34px;font-size:16px;cursor:pointer}
+.selbar .sbg{display:grid;grid-template-columns:1fr 1fr;gap:7px;max-width:720px;margin:0 auto}
+.selbar .sbg button{border:1.5px solid var(--c,var(--tr-line));background:var(--tr-paper);color:var(--c,var(--tr-ink));border-radius:11px;padding:10px 8px;font:650 13.5px system-ui,sans-serif;cursor:pointer}
+.selbar .sbg button:disabled{opacity:.4}
+.mlist{display:flex;flex-direction:column;gap:8px;margin-top:10px}.mlist label{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--tr-line);border-radius:12px;padding:10px;cursor:pointer}
+.mlist input{width:20px;height:20px;flex:0 0 auto;margin-top:2px}.mlist b{display:block;font-size:14px;word-break:break-word}.mlist small{color:var(--tr-muted);font-size:12px}
 /* ---------- four outcomes under a task card (31 Oct 2026) ---------- */
 .tfCard{height:calc(100dvh - 300px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));min-height:260px}
 #tfOc{width:100%}
@@ -256,7 +266,7 @@ function layout(items,cap){/* top one, then right, left, bottom, then the sides 
   const L={t:[],r:[],l:[],b:[]},order=["t","r","l","b"];if(cap==null)cap=defCap(items.length);
   items.forEach((x,i)=>{let s=i<4?order[i]:(i%2?"l":"r");if((s==="l"||s==="r")&&L[s].length>=cap)s=L.t.length<=L.b.length?"t":"b";L[s].push(x);});return L;}
 const CHIPC={cont:" dn",fin:" dn fn",push:" ps",later:" lt",open:""};
-function chip(a){const x=stOf(a.id,a);return `<button type="button" class="chip${CHIPC[x]}${a.id===lastNew?" new":""}" data-t="${esc(a.id)}" title="${esc(a.t)}">${esc(a.k||shortKw(a.t))}${x==="later"?`<small>${esc(fmtDay(a.until))}</small>`:""}</button>`;}
+function chip(a){const x=stOf(a.id,a);return `<button type="button" class="chip${CHIPC[x]}${SEL.has(a.id)?" sl":""}${a.id===lastNew?" new":""}" data-t="${esc(a.id)}" title="${esc(a.t)}">${esc(a.k||shortKw(a.t))}${x==="later"?`<small>${esc(fmtDay(a.until))}</small>`:""}</button>`;}
 function cardHtml(p,cap){const g=GROUPS[p.g]||GROUPS.other,L=layout(p.items,cap),all=tasksOf(p.id),dn=all.filter(a=>isDone(a.id,a)).length,
     ps=all.filter(a=>stOf(a.id,a)==="push").length,lt=all.filter(a=>stOf(a.id,a)==="later").length;
   return `<div class="fc" style="--g:${g.c}" data-card="${esc(p.id)}"><div class="fc-h"><span class="grp">${esc(g.n)}</span><span>${all.length-dn} pending${ps?" · "+ps+" pushed":""}${lt?" · "+lt+" later":""}${dn?" · "+dn+" done":""}</span><span class="sp"></span>${all.length-dn?`<button type="button" data-share="${esc(p.id)}">Share</button>`:""}</div>
@@ -291,7 +301,8 @@ function renderCards(){const el=$("cards"),show=!!D.prefs.showDone,view=D.prefs.
   }else{MF.p=null;mf.hidden=true;if($("tflash").hidden)document.body.style.overflow="";}
   const nw=lastNew;requestAnimationFrame(()=>{if(MF.p)fitMember(nw);drawLines()});lastNew=null;}
 const MF={n:0,p:null};
-function bindCards(root){root.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{const c=b.closest("[data-card]");openFlash(c?c.dataset.card:(D.assign[b.dataset.t]||{}).p,b.dataset.t)});
+function bindCards(root){root.querySelectorAll("[data-t]").forEach(b=>{longPress(b,()=>selToggle(b.dataset.t,true));
+    b.onclick=()=>{if(lpEl===b){lpEl=null;return}if(selMode){selToggle(b.dataset.t);return}const c=b.closest("[data-card]");openFlash(c?c.dataset.card:(D.assign[b.dataset.t]||{}).p,b.dataset.t)};});
   root.querySelectorAll("[data-person]").forEach(b=>b.onclick=()=>personSheet(b.dataset.person));
   root.querySelectorAll("[data-share]").forEach(b=>b.onclick=()=>share(b.dataset.share));}
 /* fit the whole member card on the screen, like a slide: try a few ways of spreading the bubbles
@@ -343,14 +354,14 @@ const OUT={cont:{i:"✓",n:"Done · continues",h:"Work done today, back tomorrow
   push:{i:"↷",n:"Push to tomorrow",h:"Not done, back tomorrow",c:"#b45309"},
   later:{i:"📅",n:"Push to a date",h:"Then daily until done",c:"#0369a1"}};
 function clearOutcome(a){delete a.s;delete a.on;delete a.until;delete a.d;}
-async function setOutcome(id,s,date){const a=D.assign[id];if(!a)return;const td=todayIST(),cur=stOf(id,a);
-  if(cur===s&&(s!=="later"||!date||date===a.until)){clearOutcome(a);save();render();toast(window.PosTasks&&PosTasks.on()?"Back to pending on the card — the task's date stays as it is now":"Back to pending here — TickTick is not changed back",3200);return}
+async function setOutcome(id,s,date,quiet){const a=D.assign[id];if(!a)return;const say=quiet?()=>{}:toast;const td=todayIST(),cur=stOf(id,a);
+  if(cur===s&&quiet&&s!=="later")return;if(cur===s&&(s!=="later"||!date||date===a.until)){clearOutcome(a);save();render();say(window.PosTasks&&PosTasks.on()?"Back to pending on the card — the task's date stays as it is now":"Back to pending here — TickTick is not changed back",3200);return}
   clearOutcome(a);a.s=s;a.on=td;
   if(s==="cont")a.d=td;
   if(s==="push"||s==="later")a.np=(a.np||0)+1;
   if(s==="later")a.until=date;
   save();render();
-  const pj=a.pj||projById[id],label=OUT[s].n,SRC=window.PosTasks&&PosTasks.on()?"Pranju OS":"TickTick";if(!pj){toast(label+" · saved here",2000);return}
+  const pj=a.pj||projById[id],label=OUT[s].n,SRC=window.PosTasks&&PosTasks.on()?"Pranju OS":"TickTick";if(!pj){say(label+" · saved here",2000);return}
   try{const r=await fetch(wurl("mode=deleg-done"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({projectId:pj,taskId:id,action:s,date:date||""})});
     const d=await r.json().catch(()=>({}));if(!r.ok||d.error)throw new Error(d.error||("HTTP "+r.status));
     let m=label;
@@ -359,8 +370,8 @@ async function setOutcome(id,s,date){const a=D.assign[id];if(!a)return;const td=
     else if(d.completed||d.moved)m+=" · next on "+(d.next?fmtDay(d.next):"its next date");
     else if(d.reason==="not-repeating")m+=" · not a repeating task, so "+SRC+" is left as it is";
     else if(d.reason==="already-done-today"||d.reason==="already-later")m+=" · already set for "+(d.next?fmtDay(d.next):"a later date");
-    toast(m,3400);
-  }catch(e){toast(label+" here, but "+SRC+" couldn't be updated: "+(e.message||e),3800)}}
+    say(m,3400);
+  }catch(e){say(label+" here, but "+SRC+" couldn't be updated: "+(e.message||e),3800)}}
 function outcomeHtml(id,a){const x=stOf(id,a),tt=closedTT(id,a)&&a.s!=="fin";
   if(tt)return `<div class="ocNote">✓ Completed in TickTick</div>`;
   return `<div class="oc">${Object.keys(OUT).map(k=>{const o=OUT[k],on=x===k;
@@ -485,7 +496,53 @@ const tfGo=d=>{if(!TF)return;const j=TF.i+d;if(j<0||j>=TF.ids.length)return;TF.i
 document.addEventListener("keydown",e=>{if(!TF||!$("scrim").hidden)return;if(e.key==="Escape")closeFlash();if(e.key==="ArrowRight")tfGo(1);if(e.key==="ArrowLeft")tfGo(-1);});
 
 /* ---------- shell ---------- */
-function render(){renderCards();if(TF&&!$("tflash").hidden)drawFlash();}
+function render(){drawSel();renderCards();if(TF&&!$("tflash").hidden)drawFlash();}
+/* ---------- long-press a task bubble: select several, then merge / outcome / move (1 Nov 2026) ---------- */
+let SEL=new Set(),selMode=false,lpAt=0,lpEl=null;
+function longPress(el,fn){let t=0,x0=0,y0=0;const stop=()=>{clearTimeout(t);t=0};
+  el.addEventListener("pointerdown",e=>{x0=e.clientX;y0=e.clientY;stop();lpEl=null;t=setTimeout(()=>{t=0;lpAt=Date.now();lpEl=el;try{navigator.vibrate&&navigator.vibrate(25)}catch(_){}fn()},480)});
+  el.addEventListener("pointermove",e=>{if(t&&(Math.abs(e.clientX-x0)>10||Math.abs(e.clientY-y0)>10))stop()});
+  ["pointerup","pointercancel","pointerleave"].forEach(ev=>el.addEventListener(ev,stop));
+  el.addEventListener("contextmenu",e=>e.preventDefault());}
+function selToggle(id,fromPress){if(fromPress&&!selMode){selMode=true;SEL=new Set([id]);}else if(SEL.has(id))SEL.delete(id);else SEL.add(id);
+  if(!SEL.size)selMode=false;render();}
+function selClear(){SEL=new Set();selMode=false;render();}
+function drawSel(){let bar=$("selbar");if(!selMode){if(bar)bar.remove();$("mflash").style.paddingBottom="";return}
+  if(!bar){bar=document.createElement("div");bar.id="selbar";bar.className="selbar";document.body.appendChild(bar);}
+  const n=SEL.size,local=window.PosTasks&&PosTasks.on();
+  bar.innerHTML=`<div class="sbh"><b>${n} selected</b><span>tap bubbles to add or remove</span><button type="button" data-sa="x">✕</button></div>
+    <div class="sbg"><button type="button" data-sa="merge" ${n<2||!local?"disabled":""}>⇉ Merge into one</button><button type="button" data-sa="move">👤 Move to…</button>
+    <button type="button" data-sa="cont" style="--c:${OUT.cont.c}">${OUT.cont.i} Done · continues</button><button type="button" data-sa="fin" style="--c:${OUT.fin.c}">${OUT.fin.i} Done &amp; dusted</button>
+    <button type="button" data-sa="push" style="--c:${OUT.push.c}">${OUT.push.i} Push to tomorrow</button><button type="button" data-sa="later" style="--c:${OUT.later.c}">${OUT.later.i} Push to a date</button></div>`;
+  bar.querySelectorAll("[data-sa]").forEach(b=>b.onclick=()=>selAct(b.dataset.sa));
+  $("mflash").style.paddingBottom=(bar.offsetHeight+8)+"px";}
+const selIds=()=>[...SEL].filter(id=>D.assign[id]);
+async function many(k,date){const ids=selIds();selClear();toast(OUT[k].n+" · "+ids.length+" task"+(ids.length>1?"s":"")+"…",1500);
+  for(const id of ids)await setOutcome(id,k,date,true);toast(OUT[k].n+" · "+ids.length+" task"+(ids.length>1?"s":"")+" ✓",2600);}
+function selAct(k){const ids=selIds();if(k==="x"){selClear();return}if(!ids.length){selClear();return}
+  if(k==="cont"||k==="push"){many(k);return}
+  if(k==="fin"){openSheet(`<h3>Done &amp; dusted · ${ids.length} task${ids.length>1?"s":""}</h3><p class="meta">Each is closed for good: its repeat is removed and it won't come back.</p>
+      <div class="alist">${ids.map(id=>`<div><span>${esc(D.assign[id].t)}</span></div>`).join("")}</div>
+      <div class="row2"><button class="btn pri" id="sy" type="button">Close ${ids.length} for good</button><button class="btn ghost" id="sn" type="button">Cancel</button></div>`,
+      s=>{s.querySelector("#sy").onclick=()=>{closeSheet();many("fin")};s.querySelector("#sn").onclick=closeSheet;});return}
+  if(k==="later"){const td=todayIST(),q=[[2,"Day after tomorrow"],[3,"In 3 days"],[7,"In a week"]];
+    openSheet(`<h3>Push ${ids.length} task${ids.length>1?"s":""} to…</h3><div class="row2">${q.map(([n,l])=>`<button class="btn" type="button" data-qd="${addDay(td,n)}">${l} · ${fmtDay(addDay(td,n))}</button>`).join("")}</div>
+      <label class="lbl" for="sd">Or pick a day</label><input type="date" id="sd" min="${addDay(td,1)}" value="${addDay(td,2)}"><div class="row2"><button class="btn pri" id="sy" type="button">Push</button><button class="btn ghost" id="sn" type="button">Cancel</button></div>`,
+      s=>{const go=d=>{if(!d||d<=td){toast("Pick a day after today");return}closeSheet();many("later",d)};
+        s.querySelectorAll("[data-qd]").forEach(b=>b.onclick=()=>go(b.dataset.qd));s.querySelector("#sy").onclick=()=>go(s.querySelector("#sd").value);s.querySelector("#sn").onclick=closeSheet;});return}
+  if(k==="move"){openSheet(`<h3>Give ${ids.length} task${ids.length>1?"s":""} to</h3><div class="people">${peopleSorted().map(x=>`<button type="button" class="pchip" data-mv="${esc(x.id)}" style="--g:${(GROUPS[x.g]||GROUPS.other).c}"><i></i>${esc(x.name)}</button>`).join("")}</div>
+      <div class="row2"><button class="btn ghost" id="sn" type="button">Cancel</button></div>`,s=>{s.querySelector("#sn").onclick=closeSheet;
+      s.querySelectorAll("[data-mv]").forEach(b=>b.onclick=()=>{const p=b.dataset.mv;ids.forEach(id=>{D.assign[id].p=p});D.people[p].u=Date.now();save();closeSheet();selClear();toast(ids.length+" moved to "+D.people[p].name)});});return}
+  if(k==="merge"){if(ids.length<2)return;const T=PosTasks.all();const list=ids.map(id=>({id,a:D.assign[id],t:T[id]})).sort((x,y)=>String((x.t||{}).cr||x.a.at).localeCompare(String((y.t||{}).cr||y.a.at)));
+    const missing=list.filter(x=>!x.t);if(missing.length){toast("Some of these aren't Pranju OS tasks any more — can't merge them");return}
+    openSheet(`<h3>Merge ${ids.length} tasks into one</h3><p class="meta">Pick the one to keep. The others are deleted; their notes (dated), checklist items, tags and history are added to it. No sub-tasks.</p>
+      <div class="mlist">${list.map((x,i)=>`<label><input type="radio" name="keep" value="${esc(x.id)}"${i===0?" checked":""}><span><b>${esc(x.t.ti)}</b><small>${esc(PosTasks.LISTNAME[x.t.pj]||"")}${x.t.du?" · "+fmtDay(x.t.du):""}${String(x.t.c||"").trim()?" · has notes":""}${i===0?" · oldest":""}</small></span></label>`).join("")}</div>
+      <div class="row2"><button class="btn pri" id="sy" type="button">Merge</button><button class="btn ghost" id="sn" type="button">Cancel</button></div>`,
+      s=>{s.querySelector("#sn").onclick=closeSheet;s.querySelector("#sy").onclick=()=>{const keep=s.querySelector("input[name=keep]:checked").value;
+        try{PosTasks.merge(keep,ids)}catch(e){toast(e.message||String(e),3500);return}
+        ids.forEach(id=>{if(id!==keep)delete D.assign[id]});const k2=PosTasks.get(keep);if(k2&&D.assign[keep])D.assign[keep].t=k2.ti;
+        lastNew=keep;save();closeSheet();selClear();toast("Merged into one task ✓",2600);};});return}}
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&selMode&&$("scrim").hidden)selClear()});
 let tt=0;function toast(m,ms){let t=document.querySelector(".toast");if(!t){t=document.createElement("div");t.className="toast";document.body.appendChild(t)}
   t.textContent=m;t.style.opacity=1;clearTimeout(tt);tt=setTimeout(()=>t.style.opacity=0,ms||1600);}
 /* the other phone delegated something: take the change in place */

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="kvsync.js?v=20261031z" data-reload=""></script><script src="tasks-local.js?v=20261031f"></script><script src="drive.js?v=20261027"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
+<html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="kvsync.js?v=20261031z" data-reload=""></script><script src="tasks-local.js?v=20261101a"></script><script src="drive.js?v=20261027"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
 <title>Tasks · Pranju OS</title>
 <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="icon" href="icon-192.png" sizes="192x192"><link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>
@@ -18,7 +18,7 @@ h1 .sp{flex:1}
 .tabs button{flex:0 0 auto;border:0;background:transparent;color:var(--tr-head-mute);font:650 14px system-ui,sans-serif;padding:10px 10px 11px;border-bottom:3px solid transparent;margin-bottom:-3px;cursor:pointer;white-space:nowrap}
 .tabs button.on{color:var(--tr-head-ink);border-bottom-color:var(--tr-head-ink)}
 .tabs b{font-weight:600;font-size:12px;opacity:.75;margin-left:4px}
-main{max-width:760px;margin:0 auto;padding:14px 16px 110px}
+main{max-width:760px;margin:0 auto;padding:14px 16px 230px}
 .muted{color:var(--tr-muted)}
 .btn{border:1px solid var(--tr-line);background:var(--tr-paper);color:var(--tr-ink);border-radius:10px;padding:10px 14px;font:600 14px system-ui,sans-serif;cursor:pointer}
 .btn.pri{background:var(--tr-acc);border-color:var(--tr-acc);color:#fff}
@@ -84,6 +84,16 @@ textarea{min-height:110px;resize:vertical}
 .sacts .sp{flex:1}
 .links{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 .links a{display:inline-flex;max-width:100%;padding:6px 10px;border-radius:999px;background:var(--tr-acc-soft,#eef0ff);color:var(--tr-acc-ink,#3730a3);font:600 12.5px system-ui,sans-serif;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+.row.sl{border-color:var(--tr-acc);box-shadow:0 0 0 2px var(--tr-acc);background:var(--tr-acc-soft,#eef0ff)}
+.selbar{position:fixed;left:0;right:0;bottom:0;z-index:45;background:var(--tr-paper);border-top:1px solid var(--tr-line);box-shadow:0 -8px 24px #0002;padding:10px 12px calc(12px + env(safe-area-inset-bottom,0px))}
+.selbar .sbh{display:flex;align-items:center;gap:8px;max-width:720px;margin:0 auto 8px}.selbar .sbh b{font-size:15px}.selbar .sbh span{flex:1;font-size:12px;color:var(--tr-muted)}
+.selbar .sbh button{border:0;background:var(--tr-soft);border-radius:999px;width:34px;height:34px;font-size:16px;cursor:pointer}
+.selbar .sbg{display:grid;grid-template-columns:1fr 1fr;gap:7px;max-width:720px;margin:0 auto}
+.selbar .sbg button{border:1.5px solid var(--c,var(--tr-line));background:var(--tr-paper);color:var(--c,var(--tr-ink));border-radius:11px;padding:10px 8px;font:650 13.5px system-ui,sans-serif;cursor:pointer}
+.selbar .sbg button:disabled{opacity:.4}
+.mlist{display:flex;flex-direction:column;gap:8px;margin-top:10px}.mlist label{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--tr-line);border-radius:12px;padding:10px;cursor:pointer}
+.mlist input{width:20px;height:20px;flex:0 0 auto;margin-top:2px}.mlist b{display:block;font-size:14px;word-break:break-word}.mlist small{color:var(--tr-muted);font-size:12px}
 .toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--tr-ink);color:#fff;border-radius:999px;padding:10px 18px;font:600 14px system-ui,sans-serif;z-index:60;box-shadow:0 6px 20px #0004;transition:opacity .3s;pointer-events:none;max-width:92vw;text-align:center}
 </style>
 <link rel="stylesheet" href="tr-theme.css?v=20261020">
@@ -146,8 +156,10 @@ function render(){
   main.innerHTML=h;
   const qi=$("q");qi.oninput=()=>{q=qi.value;limit=150;render()};if(focus){qi.focus();try{qi.setSelectionRange(pos,pos)}catch(e){}}
   main.querySelectorAll("[data-tag]").forEach(b=>b.onclick=()=>{tagF=b.dataset.tag;remember();render()});
-  main.querySelectorAll(".row").forEach(r=>r.onclick=e=>{if(e.target.closest(".ck"))return;edit(r.dataset.id)});
-  main.querySelectorAll(".ck").forEach(b=>b.onclick=e=>{e.stopPropagation();tick(b.closest(".row").dataset.id)});
+  main.querySelectorAll(".row").forEach(r=>{longPress(r,()=>selToggle(r.dataset.id,true));
+    r.onclick=e=>{if(lpEl===r){lpEl=null;return}if(selMode){selToggle(r.dataset.id);return}if(e.target.closest(".ck"))return;edit(r.dataset.id)};});
+  main.querySelectorAll(".ck").forEach(b=>b.onclick=e=>{if(selMode)return;e.stopPropagation();tick(b.closest(".row").dataset.id)});
+  drawSel();
   const more=$("more");if(more)more.onclick=()=>{limit+=150;render()};
   $("reimp").onclick=()=>doImport(true);$("bkimp").onclick=()=>$("bkfile").click();}
 function row(t){const td=P.today(),od=t.du&&t.du<td&&t.st!==2,meta=[];
@@ -157,11 +169,45 @@ function row(t){const td=P.today(),od=t.du&&t.du<td&&t.st!==2,meta=[];
   if(t.it&&t.it.length)meta.push(`<span>☑ ${t.it.filter(x=>x.d).length}/${t.it.length}</span>`);
   if(t.st===2&&t.cd)meta.push(`<span>closed ${fmtDay(t.cd)}</span>`);
   (t.tg||[]).forEach(g=>meta.push(`<span class="tg">#${esc(g.toUpperCase())}</span>`));
-  return `<div class="row${t.st===2?" cl":""}" data-id="${esc(t.id)}"><button type="button" class="ck p${t.pr||0}" aria-label="${t.st===2?"Reopen":"Done"}">${t.st===2?"✓":""}</button><div class="tx"><div class="tt">${esc(t.ti)}</div>${meta.length?`<div class="mt">${meta.join("")}</div>`:""}</div></div>`;}
+  return `<div class="row${t.st===2?" cl":""}${SEL.has(t.id)?" sl":""}" data-id="${esc(t.id)}"><button type="button" class="ck p${t.pr||0}" aria-label="${t.st===2?"Reopen":"Done"}">${t.st===2?"✓":""}</button><div class="tx"><div class="tt">${esc(t.ti)}</div>${meta.length?`<div class="mt">${meta.join("")}</div>`:""}</div></div>`;}
 /* the round button: a repeating task moves to its next date (as ticking it in TickTick did); others close */
 function tick(id){const t=P.get(id);if(!t)return;
   if(t.st===2){P.act(id,"reopen");toast("Reopened");render();return}
   const r=P.act(id,"done");toast(r.closed?"Done ✓":r.next?"Done for today · next "+fmtDay(r.next):"Done",2200);render();}
+
+/* ---------- long-press a task: select several, then merge / done / move / delete (1 Nov 2026) ---------- */
+let SEL=new Set(),selMode=false,lpAt=0,lpEl=null;
+function longPress(el,fn){let t=0,x0=0,y0=0;const stop=()=>{clearTimeout(t);t=0};
+  el.addEventListener("pointerdown",e=>{x0=e.clientX;y0=e.clientY;stop();lpEl=null;t=setTimeout(()=>{t=0;lpAt=Date.now();lpEl=el;try{navigator.vibrate&&navigator.vibrate(25)}catch(_){}fn()},480)});
+  el.addEventListener("pointermove",e=>{if(t&&(Math.abs(e.clientX-x0)>10||Math.abs(e.clientY-y0)>10))stop()});
+  ["pointerup","pointercancel","pointerleave"].forEach(ev=>el.addEventListener(ev,stop));el.addEventListener("contextmenu",e=>e.preventDefault());}
+function selToggle(id,fromPress){if(fromPress&&!selMode){selMode=true;SEL=new Set([id]);}else if(SEL.has(id))SEL.delete(id);else SEL.add(id);if(!SEL.size)selMode=false;render();}
+function selClear(){SEL=new Set();selMode=false;render();}
+function dropDeleg(ids){try{const d=JSON.parse(localStorage.getItem("deleg")||"{}");if(!d.assign)return;let ch=false;ids.forEach(id=>{if(d.assign[id]){delete d.assign[id];ch=true}});if(ch)localStorage.setItem("deleg",JSON.stringify(d))}catch(e){}}
+function drawSel(){let bar=$("selbar");if(!selMode){if(bar)bar.remove();$("fab").hidden=!P.on();return}$("fab").hidden=true;
+  if(!bar){bar=document.createElement("div");bar.id="selbar";bar.className="selbar";document.body.appendChild(bar);}
+  const n=SEL.size;bar.innerHTML=`<div class="sbh"><b>${n} selected</b><span>tap tasks to add or remove</span><button type="button" data-sa="x">✕</button></div>
+    <div class="sbg"><button type="button" data-sa="merge" ${n<2?"disabled":""}>⇉ Merge into one</button><button type="button" data-sa="move">Move to list…</button>
+    <button type="button" data-sa="done" style="--c:#15803d">✓ Done</button><button type="button" data-sa="fin" style="--c:#4338ca">✔✔ Close for good</button>
+    <button type="button" data-sa="del" style="--c:#b42318">Delete</button><button type="button" data-sa="all">Select all shown</button></div>`;
+  bar.querySelectorAll("[data-sa]").forEach(b=>b.onclick=()=>selAct(b.dataset.sa));}
+function sheet(html,bind){$("sheet").innerHTML=html;$("scrim").hidden=false;bind($("sheet"));}
+function selAct(k){const ids=[...SEL].filter(id=>P.get(id));if(k==="x"||!ids.length&&k!=="all"){selClear();return}
+  if(k==="all"){document.querySelectorAll("#main .row").forEach(r=>SEL.add(r.dataset.id));render();return}
+  if(k==="done"){let n=0;ids.forEach(id=>{try{P.act(id,"done");n++}catch(e){}});selClear();toast("Done ✓ · "+n+" task"+(n>1?"s":""),2400);return}
+  if(k==="fin"){sheet(`<h3>Close ${ids.length} task${ids.length>1?"s":""} for good?</h3><p class="muted">Their repeat is removed; they move to Closed.</p><div class="sacts"><button class="btn pri" id="sy" type="button">Close for good</button><button class="btn ghost" id="sn" type="button">Cancel</button></div>`,
+    s=>{s.querySelector("#sn").onclick=close;s.querySelector("#sy").onclick=()=>{ids.forEach(id=>{try{P.act(id,"fin")}catch(e){}});close();selClear();toast("Closed for good ✔✔",2400)};});return}
+  if(k==="del"){sheet(`<h3>Delete ${ids.length} task${ids.length>1?"s":""}?</h3><p class="muted">This can't be undone.</p><div class="sacts"><button class="btn danger" id="sy" type="button">Delete</button><button class="btn ghost" id="sn" type="button">Cancel</button></div>`,
+    s=>{s.querySelector("#sn").onclick=close;s.querySelector("#sy").onclick=()=>{ids.forEach(id=>P.del(id));dropDeleg(ids);close();selClear();toast("Deleted",2000)};});return}
+  if(k==="move"){sheet(`<h3>Move ${ids.length} task${ids.length>1?"s":""} to</h3><div class="sacts">${P.LISTS.map(([key,n])=>`<button class="btn" type="button" data-l="${key}">${n}</button>`).join("")}</div><p class="muted" style="font-size:12px">Moving to REFERENCE takes away the date and repeat.</p><div class="sacts"><button class="btn ghost" id="sn" type="button">Cancel</button></div>`,
+    s=>{s.querySelector("#sn").onclick=close;s.querySelectorAll("[data-l]").forEach(b=>b.onclick=()=>{const l=b.dataset.l;ids.forEach(id=>{const t=P.get(id);if(!t)return;if(l==="reference"&&t.pj!=="reference"){t.du="";t.tm="";t.rp=""}t.pj=l;P.put(t)});close();selClear();toast("Moved to "+P.LISTNAME[l],2000)});});return}
+  if(k==="merge"){if(ids.length<2)return;const list=ids.map(id=>P.get(id)).sort((a,b)=>String(a.cr).localeCompare(String(b.cr)));
+    sheet(`<h3>Merge ${ids.length} tasks into one</h3><p class="muted" style="font-size:13px">Pick the one to keep. The others are deleted; their notes (dated), checklist items, tags and history are added to it. No sub-tasks.</p>
+      <div class="mlist">${list.map((t,i)=>`<label><input type="radio" name="keep" value="${esc(t.id)}"${i===0?" checked":""}><span><b>${esc(t.ti)}</b><small>${esc(P.LISTNAME[t.pj])}${t.du?" · "+fmtDay(t.du):""}${String(t.c||"").trim()?" · has notes":""}${i===0?" · oldest":""}</small></span></label>`).join("")}</div>
+      <div class="sacts"><button class="btn pri" id="sy" type="button">Merge</button><button class="btn ghost" id="sn" type="button">Cancel</button></div>`,
+      s=>{s.querySelector("#sn").onclick=close;s.querySelector("#sy").onclick=()=>{const keep=s.querySelector("input[name=keep]:checked").value;
+        try{P.merge(keep,ids)}catch(e){toast(e.message||String(e),3500);return}dropDeleg(ids.filter(id=>id!==keep));close();selClear();toast("Merged into one task ✓",2600);};});return}}
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&selMode&&$("scrim").hidden)selClear()});
 
 /* ---------- add / edit ---------- */
 function edit(id){const t=id?P.get(id):{ti:"",pj:tab!=="today"&&tab!=="closed"?tab:"inbox",tg:[],c:"",it:[],du:tab==="today"?P.today():"",tm:"",rp:"",pr:0,st:0};if(!t){toast("That task is no longer here");return}
