@@ -134,7 +134,7 @@ a.app.folder i{background:linear-gradient(150deg,#6d6af0 0%,#4f46e5 48%,#3c32c4 
   <a class="tvback" href="#">← Home</a>
   <div class="panel tool" id="cardResp">
     <h3>Today's Tasks</h3>
-    <div class="respApps"><a class="app" href="#resp" id="appRecall"><i><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 9l2 2 4-4M8 15.5h8"/></svg><b class="badge" id="bRecall" hidden></b></i><span>Task Recall</span></a><a class="app" href="delegation.html" id="appDeleg"><i><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.3"/><circle cx="4.5" cy="5" r="1.9"/><circle cx="19.5" cy="5" r="1.9"/><circle cx="4.5" cy="19" r="1.9"/><circle cx="19.5" cy="19" r="1.9"/><path d="M9.6 9.7 6 6.4M14.4 9.7 18 6.4M9.6 14.3 6 17.6M14.4 14.3 18 17.6"/></svg><b class="badge" id="bDeleg" hidden></b></i><span>Delegation</span></a><a class="app" href="tasks.html" id="appTasks"><i><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M3.8 6l1.2 1.2L7 5M3.8 12l1.2 1.2L7 11M3.8 18l1.2 1.2L7 17"/></svg></i><span>All Tasks</span></a></div>
+    <div class="respApps"><a class="app" href="#resp" id="appRecall"><i><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 9l2 2 4-4M8 15.5h8"/></svg><b class="badge" id="bRecall" hidden></b></i><span>Task Recall</span></a><a class="app" href="delegation.html" id="appDeleg"><i><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.3"/><circle cx="4.5" cy="5" r="1.9"/><circle cx="19.5" cy="5" r="1.9"/><circle cx="4.5" cy="19" r="1.9"/><circle cx="19.5" cy="19" r="1.9"/><path d="M9.6 9.7 6 6.4M14.4 9.7 18 6.4M9.6 14.3 6 17.6M14.4 14.3 18 17.6"/></svg><b class="badge" id="bDeleg" hidden></b></i><span>Delegation</span></a></div>
     <div class="row" style="display:none"><button id="startResp">Refresh TickTick &amp; start ▸</button></div>
     <div id="recallPane" class="recallPane" hidden><div class="recallHead"><button type="button" class="secondary small" id="recallBack">← Today's Tasks</button><b>Task Recall</b><button type="button" class="secondary small" id="recallRefresh" title="Reload today's tasks from TickTick">↻</button></div>
     <div id="tickStatus" class="smart">TickTick tasks load when you start.</div>
@@ -1412,7 +1412,7 @@ window.TRToday.refilter=function(){try{var D=JSON.parse(localStorage.getItem('de
 <script src="travel-cinema.js?v=20261030a"></script>
 <script src="plan.js?v=20261025"></script>
 <script src="wa-review.js?v=20261030a"></script>
-<script src="deleg-today.js?v=20261031b"></script>
+<script src="deleg-today.js?v=20261031c"></script>
 <script>
 /* home: the app grid. Badges from this phone's saved data; #resp, #people, #done, #ref open a tool, the back gesture returns. */
 (function(){"use strict";
