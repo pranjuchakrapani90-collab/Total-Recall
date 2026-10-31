@@ -1,9 +1,9 @@
-/* People Recall v2 — one-tap daily practice with honest grading.
+/* People Recall v2 — one-tap daily revision.
    - Today's plan: names due again first, then new names, up to a daily goal.
-   - Three answers after "Show": Forgot (back tomorrow, asked again at the end of this session),
-     Hazy (same gap again), Knew it (gap grows 1·3·7·14·30·60·120·180 days).
+   - Revise only: each card shows the name with its hooks, note and office details. Next (or swipe left)
+     counts it as revised and the gap grows 1·3·7·14·30·60·120·180 days; Skip leaves no mark, so the name
+     comes back in a later round; swipe right / Back undoes. Tapping a hook saves it and moves on.
    - The schedule is worked out from each person's history, so the two phones agree after sync.
-     Old "Recalled" entries count as "Knew it".
    - Office roster CSVs (Name, Designation, Duty, Phone, Hook …) attach details to names you already
      have and add the rest. Details live only in your synced data, never in this public code.
    Uses window.PeopleBridge (index.html) and window.PeopleHooks (people-hooks.js). */
@@ -174,97 +174,88 @@ document.addEventListener('change',function(e){
   else if(e.target.dataset.i){p.info=Object.assign({},p.info||{});p.info[e.target.dataset.i]=e.target.value.trim();p.infoAt=nowIso();PR.save();flash(ed,'Saved ✓')}
 });
 
-/* ---------- session ---------- */
-var S=null;
+/* ---------- session: revise only — read the card, Next (or swipe left), Skip leaves no mark ---------- */
+var S=null,autoT=0;
 function buildSession(){
   if($('prSession'))return;
   var sec=document.createElement('section');sec.id='prSession';sec.className='hidden';
   sec.innerHTML='<div class="prS"><div class="prTop"><button id="prQuit" class="prGhost">✕</button><div class="prPBar"><i id="prPFill"></i></div><span id="prPTxt"></span></div>'+
-    '<div class="prCard" id="prCard"><div class="prTag" id="prTag"></div><div class="prFront" id="prFront"></div><div class="prAsk" id="prAsk"></div><div class="prFrontTag" id="prFrontTag"></div><div class="prBack hidden" id="prBack"></div></div>'+
-    '<div class="prActs"><button id="prShow" class="prBig">Show</button><div id="prGrades" class="prGrades hidden"><button data-g="1" class="g1">Forgot<small></small></button><button data-g="2" class="g2">Hazy<small></small></button><button data-g="3" class="g3">Knew it<small></small></button></div></div>'+
-    '<div class="prFoot"><button id="prUndo" class="prGhost">↶ Undo</button><button id="prDel" class="prGhost prDanger">Delete name</button></div></div>'+
+    '<div class="prCard" id="prCard"><div class="prTag" id="prTag"></div><div class="prFront" id="prFront"></div><div class="prAsk" id="prAsk"></div><div class="prBack" id="prBack"></div></div>'+
+    '<div class="prActs"><div class="prNav"><button id="prSkip" class="prSkipB">Skip<small>comes back later</small></button><button id="prNext" class="prBig">Next →</button></div></div>'+
+    '<div class="prFoot"><button id="prPrev" class="prGhost">← Back</button><span class="prSwipe">swipe ← next · → back</span><button id="prDel" class="prGhost prDanger">Delete name</button></div></div>'+
     '<div class="prS hidden" id="prEnd"><div class="prEndBig" id="prEndBig"></div><div class="prEndTxt" id="prEndTxt"></div><button id="prAgain" class="prBig">Another round ▸</button><button id="prEndHome" class="prGhost prWide">Back to People</button></div>';
   var ref=$('session');ref.parentNode.insertBefore(sec,ref.nextSibling);
   $('prQuit').addEventListener('click',endSession);
-  $('prShow').addEventListener('click',reveal);
-  $('prCard').addEventListener('click',function(e){if(S&&!S.shown&&!e.target.closest('.prEd'))reveal()});
-  $('prGrades').addEventListener('click',function(e){var b=e.target.closest('[data-g]');if(b)grade(+b.dataset.g)});
-  $('prUndo').addEventListener('click',undo);
+  $('prNext').addEventListener('click',function(){next(false)});
+  $('prSkip').addEventListener('click',function(){next(true)});
+  $('prPrev').addEventListener('click',back);
   $('prDel').addEventListener('click',delCurrent);
   $('prAgain').addEventListener('click',function(){startSession(true)});
   $('prEndHome').addEventListener('click',goHome);
-  document.addEventListener('keydown',function(e){if(!S||$('prSession').classList.contains('hidden')||/INPUT|TEXTAREA/.test(e.target.tagName))return;if(!S.shown&&(e.key===' '||e.key==='Enter')){e.preventDefault();reveal()}else if(S.shown&&/^[123]$/.test(e.key))grade(+e.key)});
+  $('prCard').addEventListener('click',function(e){if(S&&S.clue&&!S.shown&&!e.target.closest('.prEd'))showName()});
+  var x0=0,y0=0,ok=false,card=$('prCard');
+  card.addEventListener('touchstart',function(e){var t=e.touches[0];ok=!e.target.closest('textarea,input');x0=t.clientX;y0=t.clientY},{passive:true});
+  card.addEventListener('touchend',function(e){if(!ok||!S)return;var t=e.changedTouches[0],dx=t.clientX-x0,dy=t.clientY-y0;if(Math.abs(dx)<60||Math.abs(dx)<Math.abs(dy)*1.5)return;if(dx<0){card.classList.add('swL');next(false)}else{card.classList.add('swR');back()}setTimeout(function(){card.classList.remove('swL','swR')},220)},{passive:true});
+  document.addEventListener('keydown',function(e){if(!S||$('prSession').classList.contains('hidden')||/INPUT|TEXTAREA/.test(e.target.tagName))return;if(e.key==='ArrowRight'||e.key==='Enter'){e.preventDefault();next(false)}else if(e.key==='ArrowLeft')back();else if(e.key==='s')next(true)});
 }
 function startSession(){
   var all=Object.values(PR.db.people);if(!all.length){alert('Import some names first (Manage names).');return}
   var pl=plan(),done=reviewedToday(),n=Math.max(goal()-done,0)||goal(),q=pl.due.concat(shuffle(pl.fresh)).slice(0,n);
   if(!q.length){q=shuffle(focusList().slice()).slice(0,goal());if(!q.length){alert('No names in this focus yet.');return}}
-  S={q:q.map(function(p){return {k:keyOf(p.name),rl:false}}),i:0,shown:false,dir:lsGet(K_DIR,'name'),tally:{1:0,2:0,3:0},undo:[],relearn:{}};
+  S={q:q.map(function(p){return keyOf(p.name)}),i:0,dir:lsGet(K_DIR,'name'),seen:0,skipped:0,stack:[]};
   ['home','session','done'].forEach(function(id){if($(id))$(id).classList.add('hidden')});
   $('prEnd').classList.add('hidden');$('prSession').querySelector('.prS').classList.remove('hidden');$('prSession').classList.remove('hidden');
   window.scrollTo(0,0);draw();
 }
 function shuffle(a){for(var j=a.length-1;j>0;j--){var k=Math.floor(Math.random()*(j+1)),t=a[j];a[j]=a[k];a[k]=t}return a}
-function cur(){return S&&S.q[S.i]?PR.db.people[S.q[S.i].k]:null}
+function cur(){return S&&S.q[S.i]?PR.db.people[S.q[S.i]]:null}
 function draw(){
-  while(S.i<S.q.length&&!PR.db.people[S.q[S.i].k])S.q.splice(S.i,1);
+  clearTimeout(autoT);
+  while(S.i<S.q.length&&!PR.db.people[S.q[S.i]])S.q.splice(S.i,1);
   if(S.i>=S.q.length){finish();return}
-  var it=S.q[S.i],p=cur(),s=sched(p),clue=S.dir==='clue'&&hasClue(p);
-  S.shown=false;S.clue=clue;
+  var p=cur(),s=sched(p),clue=S.dir==='clue'&&hasClue(p);
+  S.clue=clue;S.shown=!clue;
   $('prPFill').style.width=(S.i/S.q.length*100)+'%';$('prPTxt').textContent=(S.i+1)+' / '+S.q.length;
-  $('prTag').textContent=it.rl?'Once more — you forgot this one':s.isNew?'New':s.lapses?'Tricky · seen '+s.reviews+'×':'Seen '+s.reviews+'× · every '+gap(s.iv);
-  $('prTag').className='prTag'+(it.rl||s.lapses?' warn':s.isNew?' new':'');
-  if(clue){var i=p.info||{},bits=[];if(i.desig)bits.push(i.desig);if(i.duty)bits.push(i.duty);if(groupsOf(p).length)bits.push(groupsOf(p).join(' · '));if(p.note)bits.push(p.note);
-    $('prFront').className='prFront clue';$('prFront').innerHTML=bits.map(function(b){return '<div>'+esc(b)+'</div>'}).join('');$('prAsk').textContent='Who is this? Say the name, then tap Show';}
-  else{$('prFront').className='prFront';$('prFront').textContent=p.name;$('prAsk').textContent='Who is this? How do you know them? Think, then tap Show';}
-  S.frontTag=!clue&&!groupsOf(p).length;
-  $('prFrontTag').innerHTML=S.frontTag?'<div class="prFtLbl">No hook yet — how do you know them? Tap to tag</div><div class="prEd" data-k="'+esc(keyOf(p.name))+'">'+chipsHtml(p)+'<div class="prSaved"></div></div>':'';
-  $('prFront').classList.remove('hidden');$('prBack').classList.add('hidden');$('prBack').innerHTML='';$('prAsk').classList.remove('hidden');
-  $('prShow').classList.remove('hidden');$('prGrades').classList.add('hidden');
-  $('prUndo').disabled=!S.undo.length;
+  $('prTag').textContent=s.isNew?'New':'Seen '+s.reviews+'×';$('prTag').className='prTag'+(s.isNew?' new':'');
+  if(clue){$('prFront').className='prFront prHidden';$('prFront').textContent='Who is this?';$('prAsk').textContent='Tap the card to see the name';$('prAsk').classList.remove('hidden')}
+  else{$('prFront').className='prFront';$('prFront').textContent=p.name;$('prAsk').classList.add('hidden')}
+  var untagged=!groupsOf(p).length;
+  $('prBack').innerHTML=(untagged?'<div class="prFtLbl">No hook yet — tap one and it moves to the next name</div>':'')+editorHtml(p,false);
+  $('prPrev').disabled=!S.stack.length;
 }
-function reveal(){
-  if(!S||S.shown)return;var p=cur();if(!p)return;S.shown=true;
-  var head=S.clue?'<div class="prName">'+esc(p.name)+'</div>':'';
-  var empty=!hasClue(p)&&!S.frontTag?'<div class="prHint">No hook yet — tap the groups below that fit, or add a note. It saves as you tap.</div>':'';
-  if(S.clue)$('prFront').classList.add('hidden');$('prBack').innerHTML=head+empty+editorHtml(p,false,S.frontTag);$('prBack').classList.remove('hidden');$('prAsk').classList.add('hidden');
-  var g=nextGaps(p),bs=$('prGrades').querySelectorAll('small'),it=S.q[S.i];
-  bs[0].textContent=it.rl?'again now':'tomorrow + now';bs[1].textContent=it.rl?'—':gap(g[2]);bs[2].textContent=it.rl?'—':gap(g[3]);
-  if(it.rl){bs[0].textContent='again';bs[1].textContent='ok';bs[2].textContent='got it'}
-  $('prShow').classList.add('hidden');$('prGrades').classList.remove('hidden');
+function showName(){var p=cur();if(!p)return;S.shown=true;$('prFront').className='prFront';$('prFront').textContent=p.name;$('prAsk').classList.add('hidden')}
+function next(skip){
+  if(!S)return;var p=cur();if(!p)return;clearTimeout(autoT);
+  var date=null;
+  if(!skip){date=nowIso();p.history=p.history||[];p.history.push({date:date,note:'Revised',g:3});S.seen++;PR.save()}else S.skipped++;
+  S.stack.push({i:S.i,k:S.q[S.i],date:date});S.i++;draw();
 }
-function grade(g){
-  if(!S||!S.shown)return;var it=S.q[S.i],p=cur();if(!p)return;
-  var e={date:nowIso(),note:g===1?'Forgot':g===2?'Hazy':'Knew it',g:g};if(it.rl)e.rl=1;
-  p.history=p.history||[];p.history.push(e);
-  var added=false;
-  if(g===1&&(!S.relearn[it.k]||S.relearn[it.k]<2)){S.relearn[it.k]=(S.relearn[it.k]||0)+1;S.q.push({k:it.k,rl:true});added=true}
-  if(!it.rl)S.tally[g]++;
-  S.undo.push({i:S.i,k:it.k,date:e.date,g:g,rl:it.rl,added:added});
-  PR.save();S.i++;draw();
+function back(){
+  if(!S||!S.stack.length)return;clearTimeout(autoT);var u=S.stack.pop(),p=PR.db.people[u.k];
+  if(u.date){if(p)p.history=hist(p).filter(function(e){return e.date!==u.date});S.seen--;PR.save()}else S.skipped--;
+  S.i=u.i;$('prEnd').classList.add('hidden');$('prSession').querySelector('.prS').classList.remove('hidden');draw();
 }
-function undo(){
-  if(!S||!S.undo.length)return;var u=S.undo.pop(),p=PR.db.people[u.k];
-  if(p)p.history=hist(p).filter(function(e){return e.date!==u.date});
-  if(u.added){S.q.pop();S.relearn[u.k]--}
-  if(!u.rl)S.tally[u.g]--;
-  S.i=u.i;PR.save();$('prEnd').classList.add('hidden');$('prSession').querySelector('.prS').classList.remove('hidden');draw();
-}
+/* tapping a hook on the card saves it, then moves on after a moment (another tap in that moment adds it too) */
+document.addEventListener('click',function(e){
+  if(!S||!e.target.closest('#prCard .prHooks .prChip')||e.target.closest('.prNew'))return;
+  clearTimeout(autoT);var k=S.q[S.i];autoT=setTimeout(function(){if(S&&S.q[S.i]===k)next(false)},900);
+});
+document.addEventListener('focusin',function(e){if(S&&e.target.closest&&e.target.closest('#prCard'))clearTimeout(autoT)});
 function delCurrent(){
   var p=cur();if(!p||!confirm('Delete '+p.name+' and their recall history on both phones?'))return;
   var k=keyOf(p.name);PR.db.deletedPeople=PR.db.deletedPeople||{};PR.db.deletedPeople[k]=nowIso();delete PR.db.people[k];
-  S.q=S.q.filter(function(x,j){return j<S.i||x.k!==k});PR.save();draw();
+  S.q=S.q.filter(function(x,j){return j<S.i||x!==k});PR.save();draw();
 }
 function finish(){
   $('prSession').querySelector('.prS').classList.add('hidden');$('prEnd').classList.remove('hidden');
-  var t=S.tally,n=t[1]+t[2]+t[3],T=window.PeopleToday();
-  $('prEndBig').textContent=n?(t[3]===n?'Perfect round 🎯':'Round done ✓'):'Done';
-  $('prEndTxt').innerHTML='<div class="prTally"><span class="g3">'+t[3]+' knew</span><span class="g2">'+t[2]+' hazy</span><span class="g1">'+t[1]+' forgot</span></div>'+
-    (t[1]?'<p>The ones you forgot come back tomorrow.</p>':'')+'<p>'+(T.left?T.left+' left for today’s goal.':'Today’s goal of '+goal()+' is done. 🔥 '+streak()+'-day streak.')+'</p>';
+  var T=window.PeopleToday();
+  $('prEndBig').textContent='Round done ✓';
+  $('prEndTxt').innerHTML='<div class="prTally"><span class="g3">'+S.seen+' revised</span>'+(S.skipped?'<span class="g2">'+S.skipped+' skipped</span>':'')+'</div>'+
+    (S.skipped?'<p>Skipped names come back in a later round.</p>':'')+'<p>'+(T.left?T.left+' left for today’s goal.':'Today’s goal of '+goal()+' is done. 🔥 '+streak()+'-day streak.')+'</p>';
   $('prAgain').textContent=T.left?'Next '+T.left+' ▸':'Another round anyway ▸';
 }
-function endSession(){if(S&&S.i>0&&S.i<S.q.length&&!confirm('Stop here? Answers so far are saved.'))return;goHome()}
-function goHome(){S=null;$('prSession').classList.add('hidden');if($('home'))$('home').classList.remove('hidden');PR.render();renderPanel()}
+function endSession(){goHome()}
+function goHome(){clearTimeout(autoT);S=null;$('prSession').classList.add('hidden');if($('home'))$('home').classList.remove('hidden');PR.render();renderPanel()}
 
 /* ---------- office roster import (CSV with Name + Designation / Duty / Phone / Hook …) ---------- */
 var R=null;
@@ -342,7 +333,7 @@ var css=document.createElement('style');css.textContent=
 '.prInfoEd summary{font-size:13px;color:var(--tr-muted,#6b6a64);cursor:pointer}.prInfoEd input{display:block;width:100%;box-sizing:border-box;margin-top:6px;padding:9px 10px;border:1px solid var(--tr-line,#e6e3db);border-radius:10px;font-size:15px}.prSaved{font-size:12px;color:#15803d;min-height:15px}'+
 '.prGrades{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}.prGrades button{border:0!important;border-radius:14px!important;padding:13px 6px!important;font-size:15px!important;font-weight:700!important;display:flex;flex-direction:column;align-items:center;gap:2px}.prGrades small{font-size:11px;font-weight:550;opacity:.8}'+
 '.g1{background:#fee2e2!important;color:#991b1b!important}.g2{background:#fef3c7!important;color:#92400e!important}.g3{background:#dcfce7!important;color:#166534!important}'+
-'.prActs{position:sticky;bottom:0;padding:8px 0 calc(4px + env(safe-area-inset-bottom,0px));background:linear-gradient(transparent,var(--tr-bg,#f6f5f1) 22%)}.prFront.hidden{display:none}.prFoot{display:flex;justify-content:space-between}.prFrontTag{width:100%;text-align:left;cursor:default}.prFtLbl{font-size:12.5px;font-weight:650;color:#9a3412;margin:2px 0 6px;text-align:center}.prNew{border-style:dashed!important;color:var(--tr-acc-ink,#3730a3)!important}.prHk{display:flex;align-items:center;gap:4px;border-bottom:1px solid var(--tr-line,#e6e3db);padding:2px 0}.prHk span{flex:1;font-size:14px}.prHk small{color:var(--tr-muted,#6b6a64);margin-left:4px}.prAddTop{margin:4px 0 10px;color:var(--tr-acc-ink,#3730a3)!important}#prHooksAdmin{margin:12px 0}'+
+'.prActs{position:sticky;bottom:0;padding:8px 0 calc(4px + env(safe-area-inset-bottom,0px));background:linear-gradient(transparent,var(--tr-bg,#f6f5f1) 22%)}.prFront.hidden{display:none}.prFoot{display:flex;justify-content:space-between;align-items:center}.prSwipe{font-size:11px;color:var(--tr-muted,#6b6a64)}.prNav{display:grid;grid-template-columns:1fr 2fr;gap:8px}.prSkipB{border:1px solid var(--tr-line,#e6e3db)!important;background:#fff!important;color:var(--tr-ink,#1c1b19)!important;border-radius:14px!important;font-size:15px!important;font-weight:700!important;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:8px!important}.prSkipB small{font-size:10.5px;font-weight:550;color:var(--tr-muted,#6b6a64)}.prFront.prHidden{color:var(--tr-muted,#6b6a64);font-size:22px}.prCard{transition:transform .2s,opacity .2s}.prCard.swL{transform:translateX(-24px);opacity:.6}.prCard.swR{transform:translateX(24px);opacity:.6}.prCard .prFront{margin-top:0}.prCard{justify-content:flex-start;cursor:default}.prFrontTag{width:100%;text-align:left;cursor:default}.prFtLbl{font-size:12.5px;font-weight:650;color:#9a3412;margin:2px 0 6px;text-align:center}.prNew{border-style:dashed!important;color:var(--tr-acc-ink,#3730a3)!important}.prHk{display:flex;align-items:center;gap:4px;border-bottom:1px solid var(--tr-line,#e6e3db);padding:2px 0}.prHk span{flex:1;font-size:14px}.prHk small{color:var(--tr-muted,#6b6a64);margin-left:4px}.prAddTop{margin:4px 0 10px;color:var(--tr-acc-ink,#3730a3)!important}#prHooksAdmin{margin:12px 0}'+
 '#prEnd{align-items:stretch;justify-content:center;text-align:center}.prEndBig{font-size:30px;font-weight:750}.prEndTxt{color:var(--tr-muted,#6b6a64);font-size:15px}.prTally{display:flex;gap:8px;justify-content:center;margin:12px 0}.prTally span{padding:8px 12px;border-radius:12px;font-weight:700}'+
 '#importPreview select{font-size:13px;padding:6px;border-radius:8px;border:1px solid var(--tr-line,#e6e3db);max-width:52%}#importPreview .impRow{display:flex;justify-content:space-between;gap:8px;align-items:center}';
 document.head.appendChild(css);
