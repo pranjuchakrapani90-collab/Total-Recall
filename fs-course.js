@@ -13,7 +13,12 @@
    Song lessons ("mel"): "note:beats" per bar ("|" between bars, r = rest); "ch" chords per bar ("," = two in a bar, "-" = none).
      style: mel (melody alone) · one (root once per chord) · bass (root on 1 and 3) · alt (alternating bass every beat) · full (bass + chord fills)
      tr = transpose the melody by semitones.  tune: dd drop D, dg DADGAD.  swing: off-beat eighths played long-short.
-   Task lessons ("task"): steps to do away from the tab (arranging your own tune, performing). */
+   Task lessons ("task"): steps to do away from the tab (arranging your own tune, performing).
+   Newer marks in patterns: .p .i .m .a after a part = which finger plucks · ' after a part = short, stopped note ·
+     ! after a chord string (e.g. 1!) = that note is the melody voice, louder · s@f~ vibrato · s@f_ let it ring ·
+     s@fh / s@fp / s@f/ = reached by hammer-on, pull-off or slide · <ah>s = artificial harmonic on the chord's note.
+   vars: a lesson's exercises written out one by one ({tag,vt,prog,pat}) · capos: the same lesson with a capo on each fret.
+   how: custom practice steps · sig: time signature label (6/8) · boxes: show chord diagrams. */
 (function(){
 "use strict";
 const X=null;
@@ -86,6 +91,85 @@ const REP=2,CHAIN=[
 const WARMUP={id:"wu",t:`Warm-up: the chord chain (each chord ${REP} bars)`,chain:CHAIN,rep:REP,free:1,meter:4,tempo:[60,60],pat:"1:B 2:3 3:2 4:1",
   w:`Every open shape you have learned, in a logical order where each chord leads naturally to the next: Em, Am, Dm, G, C… through B7 and the seventh chords to the m7 and maj7 colours. Each chord is played ${REP} times, one bar each: thumb on the root, then i, m, a up the G, B and high e strings. After the second bar the next chord comes on its own, so the left hand learns to find shapes in time and the right hand keeps going without a break. Use a part as a short warm-up, or the full chain on longer days.`,
   tip:"The on-screen line under the Play button shows the chord you are on, which of its two bars, and the chord coming next. Start moving the left hand while the a finger plays beat 4 of the second bar, and land all fingers together on beat 1."};
+/* ===================== Generated exercises for the newer lessons =====================
+   Exact notes are written as s@f tokens (string@fret), "!" = melody voice, ".i/.m/.a/.p" = which finger plucks. */
+CH.Bm7=CH.Bm7||{f:[X,2,0,2,0,2],r:[5,2],a:[4,0]};
+const OPEN={1:64,2:59,3:55,4:50,5:45,6:40},PCN={C:0,"C#":1,Db:1,D:2,Eb:3,E:4,F:5,"F#":6,G:7,Ab:8,A:9,Bb:10,B:11};
+const MAJ=[0,2,4,5,7,9,11],NMIN=[0,2,3,5,7,8,10];
+const bt=x=>String(+(1+x).toFixed(3)); // beat label from a 0-based offset in the bar
+const dashes=n=>Array(n).fill("-").join("|");
+const inScale=(m,root,iv)=>iv.includes(((m-root)%12+12)%12);
+/* lay a list of steps (each a "+"-joined chord of tokens, or "" for a rest) into bars of `per` steps per bar */
+function bars(steps,per,meter){const out=[];for(let i=0;i<steps.length;i+=per){const b=[];
+    steps.slice(i,i+per).forEach((x,j)=>{if(x)b.push(bt(j*meter/per)+":"+x);});out.push(b.join(" ")||"1:r");}
+  return out;}
+/* the scale on the G, B and high e strings, frets 0–5, lowest fret first (open position) */
+function topPos(m){let best=null;for(const s of [3,2,1]){const f=m-OPEN[s];if(f>=0&&f<=5&&(!best||f<best.f))best={s,f};}return best;}
+function scaleRun(start,root,iv){const up=[];for(let m=start;up.length<8;m++)if(inScale(m,root,iv))up.push(m);return up;}
+/* scale over chords (after "Fingerstyle Scales"): each scale note as a pinch with the chord's bass, and with full=1 the
+   chord notes that sit BELOW the melody note (rule 1: nothing higher than the melody) */
+function overChord(run,c,full){const rs=c.r[0];
+  const one=m=>{const p=topPos(m);let t=["B",`${p.s}@${p.f}!`];
+    if(full){const fill=[];for(let s=p.s+1;s<rs&&s<=3&&fill.length<2;s++){const f=c.f[6-s];if(f==null)continue;if(OPEN[s]+f<m)fill.push(`${s}@${f}`);}t=t.concat(fill);}
+    return t.join("+");};
+  const up=run.map(one),down=run.slice().reverse().map(one);return up.concat(down);}
+const SVK=[{k:"G",root:7,start:55,top:"G to G",ch:{I:"G",ii:"Am",iii:"Bm7",IV:"C",V:"D",vi:"Em"}},
+  {k:"C",root:0,start:55,top:"G to G (the 5th to the 5th)",ch:{I:"C",ii:"Dm",iii:"Em",IV:"Fmaj7",V:"G",vi:"Am"}},
+  {k:"D",root:2,start:57,top:"A to A (the 5th to the 5th)",ch:{I:"D",ii:"Em",IV:"G",V:"A",vi:"Bm7"}},
+  {k:"A",root:9,start:57,top:"A to A",ch:{I:"A",ii:"Bm7",IV:"D",V:"E"}},
+  {k:"E",root:4,start:56,top:"G♯ to G♯ (the 3rd to the 3rd)",ch:{I:"E",IV:"A",V:"B7"}}];
+function svVars(deg,full){return SVK.filter(K=>K.ch[deg]).map(K=>{const c=K.ch[deg],run=scaleRun(K.start,K.root,MAJ),st=overChord(run,CH[c],full);
+  return {tag:K.k,vt:`${K.k} major · over ${c}`,key:K.k,prog:Array(4).fill(c).join("|"),pat:bars(st,4,4).join("|"),boxes:1};});}
+/* the scale harmonised: each melody note over a chord of the key that contains it */
+function svHarm(){return SVK.filter(K=>K.ch.IV&&K.ch.V).map(K=>{const run=scaleRun(K.start,K.root,MAJ),seq=run.concat(run.slice().reverse());
+  const degOf=m=>MAJ.indexOf(((m-K.root)%12+12)%12),pick=d=>[["I"],["V","ii"],["I","vi"],["IV","ii"],["I","V"],["IV","vi","ii"],["V","iii"]][d].find(x=>K.ch[x]);
+  const chs=seq.map(m=>K.ch[pick(degOf(m))]),st=seq.map((m,i)=>overChord([m],CH[chs[i]],1)[0]);
+  const prog=[];for(let i=0;i<chs.length;i+=4)prog.push(chs.slice(i,i+4).join(","));
+  return {tag:K.k,vt:`${K.k} major`,key:K.k,prog:prog.join("|"),pat:bars(st,4,4).join("|"),boxes:1};});}
+/* minor scale over its chords (natural minor) */
+const MNK=[{k:"Am",root:9,start:57,ch:{i:"Am",iv:"Dm",v:"Em",VI:"Fmaj7",VII:"G"}},{k:"Em",root:4,start:55,ch:{i:"Em",iv:"Am",VI:"C",VII:"D"}}];
+function mnVars(){const out=[];MNK.forEach(K=>{const run=scaleRun(K.start,K.root,NMIN);
+  Object.entries(K.ch).forEach(([d,c])=>out.push({tag:`${K.k}-${d}`,vt:`${K.k.replace("m"," minor")} · over ${c}`,key:K.k,prog:Array(4).fill(c).join("|"),pat:bars(overChord(run,CH[c],1),4,4).join("|"),boxes:1}));});return out;}
+/* right hand: alternating fingers on the open strings */
+function openAlt(a,b){const fx=i=>i%2?b:a,str=s=>Array.from({length:8},(_,i)=>`${s}@0!.${fx(i)}`);
+  const cross=[1,1,2,2,3,3,2,2].map((s,i)=>`${s}@0!.${fx(i)}`);return bars([...str(1),...str(2),...str(3),...cross],8,4).join("|");}
+/* the G major scale, two octaves in open position, every note plucked by the two fingers in turn */
+const G2OCT=[[6,3],[5,0],[5,2],[5,3],[4,0],[4,2],[4,4],[3,0],[3,2],[2,0],[2,1],[2,3],[1,0],[1,2],[1,3]];
+function scale2(a,b,per){const seq=G2OCT.concat(G2OCT.slice(0,-1).reverse());return bars(seq.map(([s,f],i)=>`${s}@${f}!.${i%2?b:a}`),per,4);}
+/* CAGED major-scale boxes (key of C: C shape frets 0–3, A 2–5, G 4–8, E 7–10, D 9–13), moved to every key */
+const CAGED=[["C",0,3],["A",2,3],["G",4,4],["E",7,3],["D",9,4]];
+function cagedBox(root,a,w){const pos=[],cnt={},ms=[];
+  for(let m=40;m<=88;m++)if(inScale(m,root,MAJ))ms.push(m);
+  let s=6;const fr=(m,s)=>m-OPEN[s],inW=(f,lo,hi)=>f>=lo&&f<=hi;
+  for(const m of ms){if(s<1)break;const f=fr(m,s);
+    if(pos.length===0&&f<a)continue; // below the box on the lowest string
+    if(inW(f,a,a+w)&&(cnt[s]||0)<3){pos.push([s,f]);cnt[s]=(cnt[s]||0)+1;continue;}
+    if(s>1&&inW(fr(m,s-1),a-1,a+w+1)){s--;pos.push([s,fr(m,s)]);cnt[s]=1;continue;}
+    if(inW(f,a,a+w+1)){pos.push([s,f]);cnt[s]=(cnt[s]||0)+1;continue;}
+    if(s===1)break;}
+  return pos;}
+function cagedVars(){const out=[],KS=["C","C#","D","Eb","E","F","F#","G","Ab","A","Bb","B"];
+  KS.forEach(K=>{const r=PCN[K];CAGED.forEach(([sh,a0,w])=>{let a=a0+r;if(a>12)a-=12;if(a+w>15)a-=12;if(a<0)a+=12;
+    const box=cagedBox(r,a,w),seq=box.concat(box.slice(0,-1).reverse());
+    out.push({tag:`${K}.${sh}`,vt:`${K} · ${sh} shape`,key:K,prog:"",pat:bars(seq.map(([s,f],i)=>`${s}@${f}!.${i%2?"m":"i"}`),8,4).join("|")});});});
+  out.forEach(v=>{v.prog=dashes(v.pat.split("|").length);});return out;}
+/* triads on the G, B and high e strings: the three inversions of each chord, lowest position first */
+function triads(q){const iv=q==="m"?[0,3,7]:[0,4,7],KS=["C","C#","D","Eb","E","F","F#","G","Ab","A","Bb","B"],out=[];
+  KS.forEach(K=>{const r=PCN[K],want=new Set(iv.map(x=>(r+x)%12)),found={};
+    for(let lo=0;lo<=12;lo++)for(let a=lo;a<=lo+3;a++)for(let b=lo;b<=lo+3;b++)for(let c=lo;c<=lo+3;c++){if(Math.min(a,b,c)!==lo)continue;
+      const ns=[55+a,59+b,64+c],pcs=ns.map(n=>n%12);if(new Set(pcs).size!==3||!pcs.every(p=>want.has(p)))continue;
+      const inv=iv.indexOf(((pcs[0]-r)%12+12)%12);if(!(inv in found))found[inv]=[a,b,c];}
+    const vs=Object.values(found).sort((x,y)=>Math.min(...x)-Math.min(...y));
+    const bar=([a,b,c])=>`1:3@${a}!.i 1.5:2@${b}!.m 2:1@${c}!.a 2.5:2@${b}!.m 3:3@${a}+2@${b}+1@${c}!`;
+    const last=`1:3@${vs[2][0]}+2@${vs[2][1]}+1@${vs[2][2]}! 2:3@${vs[1][0]}+2@${vs[1][1]}+1@${vs[1][2]}! 3:3@${vs[0][0]}+2@${vs[0][1]}+1@${vs[0][2]}!`;
+    out.push({tag:K,vt:`${K}${q}`,key:K+q,prog:dashes(4),pat:[...vs.map(bar),last].join("|")});});
+  return out;}
+/* campanella: each scale step on a different string, so the notes ring into each other like a harp */
+const CAMP=[[3,0],[4,7],[2,0],[3,5],[2,3],[1,0],[2,7],[1,3]];
+function campVars(){const up=CAMP.map(([s,f])=>`${s}@${f}!_`),dn=CAMP.slice().reverse().map(([s,f])=>`${s}@${f}!_`);
+  return [{tag:"q",vt:"Up and down · quarter notes",prog:dashes(4),pat:bars(up.concat(dn),4,4).join("|")},
+    {tag:"e",vt:"Up and down · eighth notes",prog:dashes(2),pat:bars(up.concat(dn),8,4).join("|")},
+    {tag:"b",vt:"Over a G bass",prog:"G|G|G|G",pat:bars(up.concat(dn).map((x,i)=>i%2?x:"B+"+x),4,4).join("|"),boxes:1}];}
 const LEVELS=[
  {n:"Chord shapes, one string at a time",zero:1,d:"Before any picking pattern, get each chord shape into your fingers. Hold the shape and pluck its strings one by one, lowest to highest and back down, so you hear at once if a note is buzzing or dead. Then change between shapes in every key, and run the everyday progressions, all before the thumb-and-fingers work. No goal tempo here: set any speed you like on the slider and change it whenever you want.",ls:[
   {id:"s1",t:"Minor shapes: Em, Am, Dm",shapes:["Em","Am","Dm"],scan:1,free:1,meter:4,tempo:[40,40],w:"Place the shape, then pluck every string it uses, one at a time, from the lowest to the highest and back down. Thumb (p) plays the bass strings, i-m-a the G, B and high e. Every note should ring clearly: no buzz, no dead note.",tip:"A dead note means a finger is leaning on the next string. Arch the fingers, press with the very tips, and sit each tip just behind its fret."},
@@ -207,6 +291,165 @@ const LEVELS=[
      "Play it for someone, in person or on a call. Mark this lesson done after that first performance."],tempo:[60,60]},
  ]},
 ];
+const RH_LEVEL={n:"Right-hand control",d:"The tone and accuracy skills classical players drill every day: alternating fingers, rest and free strokes, planting, stopping notes, one voice louder than the rest, rolls and tremolo. Short daily drills that make every later pattern cleaner.",ls:[
+  {id:"r1",t:"Alternating fingers on the open strings",free:1,meter:4,tempo:[50,50],
+   vars:[["i","m"],["m","i"],["m","a"],["i","a"]].map(([a,b])=>({tag:a+b,vt:`${a}-${b}`,prog:dashes(4),pat:openAlt(a,b)})),
+   w:"Two fingers take turns on one string, never the same finger twice in a row: two bars on the high e, two on the B, two on the G, then crossing between them. The letter under each note is the finger. First i-m, then m-i, m-a and i-a, so every pair of fingers gets the same control.",
+   tip:"Pluck from the big knuckle, not the fingertip joint. The tip follows through towards the palm and comes straight back.",
+   how:["<b>Free stroke first:</b> after plucking, the finger moves up into the air, clear of the next string. This is the stroke you use in every arpeggio.",
+     "<b>Then rest stroke:</b> pluck through the string and let the finger come to rest on the next lower string. The note is fuller and louder. Use it for melody notes.",
+     "Play each exercise once with free strokes, then once with rest strokes. Listen: the rest stroke should sound bigger, not harsher.",
+     "Keep the hand still. Only the fingers move; the wrist and forearm stay quiet.",
+     "Any steady tempo you like. Mark it done when both kinds of stroke sound even and the fingers never repeat."]},
+  {id:"r2",t:"The G major scale, two octaves, alternating",meter:4,tempo:[50,100],
+   vars:[["i","m"],["m","a"],["i","a"]].flatMap(([a,b])=>[["quarter notes",4],["eighth notes",8],["triplets",12]].map(([nm,per])=>{const bs=scale2(a,b,per);return {tag:`${a}${b}.${per}`,vt:`${a}-${b} · ${nm}`,prog:dashes(bs.length),pat:bs.join("|")};})),
+   w:"From the classical scale practice: the G major scale from the low G (6th string, fret 3) up two octaves to the high G and back, every note plucked by two fingers in turn, never the thumb. Each finger pair is played in three rhythms: quarter notes, eighths and triplets.",
+   tip:"At each string crossing, the finger that plays next should already be close to its new string. Small movements make even scales.",
+   how:["Play the scale slowly with rest strokes, then repeat it with free strokes.",
+     "Watch the string crossings: if two notes in a row are the same finger, you lost the alternation; start again slowly.",
+     "Count out loud with the click. Triplets: '1-tri-plet, 2-tri-plet'.",
+     "Turn Climb on and let the tempo rise to the goal."]},
+  {id:"r3",t:"Planting: place, then play",meter:4,prog:"Am|Dm|E|Am",pat:"1:B 1.5:1 2:2 2.5:3 3:A 3.5:1 4:2 4.5:3",tempo:[50,90],
+   w:"Before the thumb plays, the fingers that are about to pluck (a, m and i) touch their strings all at once. Then they pluck one by one. Planting makes every note land on the right string, even at speed, and keeps the hand stable.",
+   tip:"You will hear a tiny stop in the strings as the fingers land. That is fine while you learn; later the plant becomes light and silent.",
+   how:["On beat 1, as the thumb plays the bass, place a, m and i on the e, B and G strings.",
+     "Pluck a, m, i one after another, then plant again before the next thumb note.",
+     "Do it at a slow tempo until it is automatic, then let the plant get lighter as the tempo climbs."]},
+  {id:"r4",t:"Voicing: one finger louder",free:1,meter:4,tempo:[50,50],
+   vars:[[1,"a","high e (a)"],[2,"m","B string (m)"],[3,"i","G string (i)"]].map(([s,f,nm])=>({tag:f,vt:`Loud on the ${nm}`,prog:"C|Am|Fmaj7|G",
+     pat:`1:B+${[3,2,1].map(x=>x===s?x+"!":x).join("+")} 2:${[3,2,1].map(x=>x===s?x+"!":x).join("+")} 3:A+${[3,2,1].map(x=>x===s?x+"!":x).join("+")} 4:${[3,2,1].map(x=>x===s?x+"!":x).join("+")}`})),
+   w:"The three fingers pluck together, but one of them plays louder than the other two. In a real arrangement the melody is usually on top (a), but it can be in the middle too. This is the single most important skill for making a melody sing over its chord.",
+   tip:"Press the loud finger a little deeper into the string before releasing it, and use a rest stroke with that finger only. The others stay light with free strokes.",
+   how:["Play slowly. The highlighted (melody-coloured) note in the tab is the loud one.",
+     "Record yourself on your phone. Can you clearly hear one note on top of the chord?",
+     "Then try the opposite on your own: all three soft, then all three loud. Control is being able to choose."]},
+  {id:"r5",t:"Stopped bass: short thumb notes",meter:4,prog:"C|Am|Fmaj7|G",pat:"1:B' 1.5:3 2:2 2.5:1 3:A' 3.5:3 4:2 4.5:1",tempo:[50,90],
+   w:"The thumb plays its bass note, then stops it just before the next one, so the bass is short and bouncy while the fingers keep ringing. It makes the bass and the top sound like two different instruments.",
+   tip:"Stop the string by letting the thumb come back to touch it lightly, or by easing the fretting finger's pressure. It is not palm muting: the palm stays off the strings.",
+   how:["The dot (·) above a bass note means: short, stopped.","First play the bass alone, short and even, then add the fingers.","Compare with lesson 1e, where the bass rings: you should hear the difference clearly."]},
+  {id:"r6",t:"Forward roll: p-i-m",meter:4,prog:"G|C|D|G",pat:"1:B 1.5:3 2:2 2.5:A 3:3 3.5:2 4:B 4.5:3",tempo:[50,100],
+   w:"A three-note roll (thumb, i, m) running over the four-beat bar, so the accent keeps shifting: 3 + 3 + 2. It gives the rolling, banjo-like sound of folk and bluegrass fingerstyle.",
+   tip:"Count the eighth notes: 1-2-3, 1-2-3, 1-2. Accent each '1' slightly and you will hear the roll cross the bar."},
+  {id:"r7",t:"Backward roll: m-i-p",meter:4,prog:"G|C|D|G",pat:"1:2 1.5:3 2:B 2.5:2 3:3 3.5:A 4:2 4.5:3",tempo:[50,100],
+   w:"The same roll in reverse: m, i, then the thumb. Starting a bar with a finger instead of the thumb trains the fingers to lead.",
+   tip:"Keep the thumb's notes on the bass strings even though they no longer fall on the beat."},
+  {id:"r8",t:"Tremolo: p-a-m-i",meter:4,prog:"Am|Dm|E|Am",pat:"1:B 1.25:1!.a 1.5:1!.m 1.75:1!.i 2:A 2.25:1!.a 2.5:1!.m 2.75:1!.i 3:B 3.25:1!.a 3.5:1!.m 3.75:1!.i 4:A 4.25:1!.a 4.5:1!.m 4.75:1!.i",tempo:[40,80],
+   w:"The classical tremolo: the thumb plays a bass note, then a, m and i pluck the same high string one after another, so the melody note seems to be held in one long, shimmering line.",
+   tip:"Evenness is everything: a-m-i must sound like three equal notes. Practise very slowly and listen for gaps.",
+   how:["Start at 40 bpm and play only beat 1 (p-a-m-i) over and over.","Then the whole bar. Keep the fingers close to the string; no big movements.","Let Climb raise the tempo only when the three finger notes are perfectly even."]},
+ ]};
+const SV_LEVEL={n:"Scales over chords",d:"From the 'Fingerstyle Scales' lesson: play the scale of the key on the top strings while the thumb holds the chord's bass, then with the chord notes underneath. Rule 1 of fingerstyle: nothing is played higher than the melody note. Learn this and you can put any melody on top of any chord.",ls:[
+  {id:"v1",t:"The scale over the home bass note",free:1,meter:4,tempo:[50,50],vars:svVars("I",0),
+   w:"The major scale on the G, B and high e strings, up and back down, with the thumb playing the key's root under every note. Melody and bass at the same time, the very first step of solo fingerstyle.",
+   tip:"Thumb and finger pluck together like a pinch. The melody note should be the louder of the two.",
+   how:["First play the scale alone, without the bass, until you know where each note is.","Add the bass on every note. Keep the thumb's note steady and the melody singing.","In C, D and E the scale runs from another note of the key to the same note an octave up, so it stays on the top three strings below fret 5."]},
+  {id:"v2",t:"The scale over the full home chord",free:1,meter:4,tempo:[50,50],vars:svVars("I",1),
+   w:"Now hold the home chord and play the scale on top. Under each melody note you also play the chord notes that sit below it, never the ones above it: nothing higher than the melody note. Your left hand has to keep as much of the chord as it can while a finger reaches for each scale note.",
+   tip:"When the melody is on the high e, you hear the full chord under it. When it drops to the G string, only the bass is left: that is rule 1 at work.",
+   how:["Look at the chord diagram, then play the first bar slowly. Notice which chord notes disappear as the melody goes down.","If a scale note forces a chord finger off, let it go; the melody always wins.","Keep the melody loud and the chord notes soft, as in lesson r4."]},
+  {id:"v3",t:"The scale over the ii chord",free:1,meter:4,tempo:[50,50],vars:svVars("ii",1),
+   w:"The same scale, now over the second chord of the key (Am in G, Dm in C, Em in D, Bm7 in A). The notes are the same, but each one feels different against a new chord.",
+   tip:"Listen for which scale notes sound at rest over this chord (its own chord notes) and which want to move on."},
+  {id:"v4",t:"The scale over the iii chord",free:1,meter:4,tempo:[50,50],vars:svVars("iii",1),
+   w:"Over the third chord of the key: Bm7 in G and Em in C. In the keys of D and A this chord needs a barre, so it is left out until Up the neck.",
+   tip:"Bm7 stands in for the Bm barre chord here: same sound, open strings, no barre."},
+  {id:"v5",t:"The scale over the IV chord",free:1,meter:4,tempo:[50,50],vars:svVars("IV",1),
+   w:"Over the fourth chord of the key: C in G, Fmaj7 in C, G in D, D in A, A in E. The IV chord is the most common chord after the home chord.",
+   tip:"Over the IV chord the key's 4th note is the chord's own root: it sounds strong and settled."},
+  {id:"v6",t:"The scale over the V chord",free:1,meter:4,tempo:[50,50],vars:svVars("V",1),
+   w:"Over the fifth chord: D in G, G in C, A in D, E in A, B7 in E. The V chord pulls back home, and so does the melody over it.",
+   tip:"Notice the 7th note of the scale (F♯ in G): over the V chord it is a chord note, and it leans strongly up to the home note."},
+  {id:"v7",t:"The scale over the vi chord",free:1,meter:4,tempo:[50,50],vars:svVars("vi",1),
+   w:"Over the sixth chord, the relative minor: Em in G, Am in C, Bm7 in D. The same notes now sound sad and soft.",
+   tip:"This is the sound of the minor key hiding inside the major one. The same scale is the natural minor scale of this chord."},
+  {id:"v8",t:"The harmonised scale: a chord for every note",free:1,meter:4,tempo:[50,50],vars:svHarm(),
+   w:"The step that turns scales into arrangements: each melody note gets its own chord from the key, one that contains that note (I, IV or V, sometimes ii or vi). The left hand changes chord on every beat while the melody climbs and falls.",
+   tip:"This is exactly how you will choose chords when you arrange a tune: under each melody note, a chord of the key that holds it.",
+   how:["Learn the chord sequence first, without the melody: bass and fills only.","Then add the melody on top, one bar at a time with bar practice.","Say the chord name as you play it. It trains you to hear which chord fits each note."]},
+ ]};
+const MU_LEVEL={n:"Musicianship",d:"Everything that turns correct notes into music: minor keys, 6/8 time, turnarounds, intros and endings, shaping a piece with rubato and dynamics, and finding a melody by ear.",ls:[
+  {id:"u1",t:"Minor-key arpeggios",meter:4,pat:"1:B+1 1.5:3 2:2 2.5:3 3:A+1 3.5:3 4:2 4.5:3",tempo:[50,90],progs:[["Am","Am|Dm|E7|Am"],["Em","Em|Am|B7|Em"],["Dm","Dm|C|A7|Dm"],["Am · falling","Am|G|Fmaj7|E"]],
+   w:"Minor keys with the major (dominant 7th) V chord that pulls home: E7 to Am, B7 to Em, A7 to Dm. Then the falling Am–G–F–E line. This is the sound of most sad songs, ghazals and folk ballads.",
+   tip:"Listen for the one changed note: in A minor the E7 has a G♯, not the G of the key. That raised note is what makes it pull back to Am."},
+  {id:"u2",t:"Minor scales over their chords",free:1,meter:4,tempo:[50,50],vars:mnVars(),
+   w:"The scales-over-chords method from level 'Scales over chords', now in A minor and E minor: the natural minor scale on the top strings over each chord of the key, with only the chord notes below the melody.",
+   tip:"A minor uses the same notes as C major, and E minor the same as G major. Only the home note changes, and with it the whole mood."},
+  {id:"u3",t:"6/8 time: two big beats",meter:6,sig:"6/8",pat:"1:B 2:3 3:2 4:A 5:2 6:3",tempo:[90,160],progs:[["G","G|Em|C|D"],["Am","Am|Fmaj7|G|E"],["C","C|Am|Fmaj7|G"]],
+   w:"Six quick notes to a bar, felt as two big beats: ONE-two-three FOUR-five-six. The lilting sway of lullabies, Irish jigs and many old film songs. The bpm here counts each of the six notes.",
+   tip:"The thumb plays on 1 and 4, the two big beats. Tap your foot only on those."},
+  {id:"u4",t:"6/8 with a melody on top",meter:6,sig:"6/8",pat:"1:B+1! 2:3 3:2 4:A+2! 5:3 6:2",tempo:[90,160],progs:[["G","G|C|D|G"],["Am","Am|Dm|E7|Am"],["D","D|G|A|D"]],
+   w:"The same 6/8 sway with a pinched melody note on each big beat: the top of the chord on 1, the B string on 4. Two melody notes per bar over a rocking arpeggio.",
+   tip:"Make the pinched melody notes louder than the arpeggio notes between them (lesson r4)."},
+  {id:"u5",t:"Turnarounds: I–vi–ii–V",meter:4,prog:"C|Am|Dm|G7",pat:"1:B+1 1.5:3 2:2 2.5:3 3:A 3.5:3 4:W 4.5:2",tempo:[50,95],
+   w:"The four-chord loop that brings a song back to its start: I, vi, ii, V. With a walking bass note on beat 4 stepping into the next chord, it is the glue between verses and the classic way to end a section.",
+   tip:"The walking note is the push into the next chord. Play it a touch louder."},
+  {id:"u6",t:"Intros and endings",free:1,meter:4,tempo:[50,50],
+   vars:[{tag:"chime",vt:"Harmonic chime intro in G",prog:"-|G|Em|G",pat:"1:<12>4+<12>3+<12>2 3:<12>3+<12>2+<12>1|"+T_AR,key:"G"},
+     {tag:"walk",vt:"Bass walk-up intro in C",prog:"-|C|Fmaj7|C",pat:"3:6@3 3.5:5@0 4:5@2|1:B+1 1.5:3 2:2 2.5:3 3:A 3.5:3 4:2 4.5:3",key:"C"},
+     {tag:"roll",vt:"Ending: slow roll and harmonic tag in C",prog:"Fmaj7|G7|C|C",pat:"1:B 1.5:3 2:2 2.5:1 3:A 3.5:3 4:2 4.5:1|1:B 1.5:3 2:2 2.5:1 3:A 3.5:3 4:2 4.5:1|1:B 1.25:4 1.5:3 1.75:2 2:1|1:<ah>5 1.5:<ah>4 2:<ah>3 2.5:<ah>2 3:<ah>1",key:"C"},
+     {tag:"amen",vt:"Ending: the IV–I 'amen' tag in G",prog:"D7|G|C|G",pat:"1:B+1 1.5:3 2:2 2.5:3 3:A 3.5:3 4:2 4.5:3|1:B+1 1.5:3 2:2 2.5:3 3:A 3.5:3 4:2 4.5:3|1:B+1! 2:3 3:2 4:1|1:B+3+2+1!",key:"G"}],
+   w:"Four ways to start and finish a piece so it sounds complete: ringing harmonics before the first chord, a bass line walking up into it, a slowed rolled chord with artificial harmonics to close, and the soft IV–I 'amen' ending of hymns.",
+   tip:"Endings need time. On the last chord, slow down a little before it and let it ring until it fades."},
+  {id:"u7",t:"Rubato and dynamics: shaping a piece",task:1,
+   w:"A metronome-perfect performance can still sound flat. Rubato (stretching and catching up time) and dynamics (louder and softer) are what make a slow piece sing. Use one of your finished songs, Amazing Grace or Silent Night are ideal.",
+   tip:"Rubato is like breathing: slow at the end of a phrase, move on at the start of the next. Never so much that the pulse is lost.",
+   steps:["Pick a slow piece you can already play without stopping (5b Amazing Grace or 5d Silent Night).",
+     "Sing the melody and mark where you naturally breathe: those are the phrase ends.",
+     "Play it with no metronome. Slow down slightly into each phrase end and hold the last note a little longer.",
+     "Choose the high point of the piece (the highest or most important note) and build towards it: soft at the start, louder at the peak, soft again at the end.",
+     "Keep the bass and fills soft throughout; only the melody changes its volume.",
+     "Record it and listen. Does it sound like someone singing? Mark it done when it does."],tempo:[60,60]},
+  {id:"u8",t:"Finding a melody by ear",task:1,
+   w:"Before you can arrange a song you need its melody on the fretboard. This is a short, repeatable method using the scales you learned over chords.",
+   tip:"Work a phrase at a time. A wrong note is useful: it tells you whether to go up or down.",
+   steps:["Choose a short tune you know well, an old Hindi film song, a Bihu tune or a bhajan. Sing it until you can sing it in tune.",
+     "Find the last note of the song on the B or G string by singing it and trying notes: that is almost always the home note (key).",
+     "Play that key's scale on the top strings (level 'Scales over chords'). The melody will use these notes.",
+     "Find the first phrase note by note: sing a note, play the scale note you think it is, compare, adjust up or down.",
+     "Write it down as tab in a notebook, phrase by phrase, until you have the whole tune.",
+     "Then take it to lesson w7 to arrange it."],tempo:[60,60]},
+ ]};
+/* lessons added to existing levels */
+const UP_ADD=[
+  {id:"6g",t:"Major triads on the top three strings",free:1,meter:4,tempo:[50,50],vars:triads(""),
+   w:"Every major chord has three small shapes on the G, B and high e strings: one for each note on top. Each bar plays one shape as an arpeggio and then together; the last bar walks back down through all three. All 12 keys.",
+   tip:"The top note of each triad is a melody note. Knowing all three lets you put a melody on top of a chord anywhere on the neck."},
+  {id:"6h",t:"Minor triads on the top three strings",free:1,meter:4,tempo:[50,50],vars:triads("m"),
+   w:"The same three inversions for minor chords, in all 12 keys. Compare each with its major shape: one note moves down a fret.",
+   tip:"Find the note that moved: it is the 3rd of the chord, the note that makes major sound happy and minor sad."},
+  {id:"6i",t:"Capo: open shapes in any key",meter:4,prog:"G|Em|C|D",pat:T_AR,tempo:[50,95],capos:[2,3,4,5,7],
+   w:"Put a capo on and the open shapes you know move up: G-shape chords with a capo on fret 2 sound in A. This is how fingerstyle players fit open-string arrangements to any key or singer.",
+   tip:"The tab still reads as if the capo were the nut: fret 0 means the capo fret. Check your tuning after putting the capo on."},
+  {id:"6j",t:"Major scales in all five CAGED shapes",meter:4,tempo:[50,100],vars:cagedVars(),
+   w:"From the classical scale-practice lesson: the major scale in each of the five CAGED shapes, from the lowest note of the box to the highest and back, plucked i-m all the way. Key by key from C through all 12, shape by shape (C, A, G, E, D).",
+   tip:"Use rest strokes for a full sound. Repeat each box with m-a once it is even with i-m.",
+   how:["Look at the box first: which fret does it start on, where are the roots?","Play slowly with rest strokes, then free strokes, i-m alternating (the letter under each note).","Then play it again with m-a.","Climb to the goal tempo, then move to the next shape."]},
+];
+const EXP_ADD=[
+  {id:"7i",t:"Vibrato on melody notes",free:1,meter:4,tempo:[50,50],
+   vars:[{tag:"C",vt:"in C",key:"C",prog:"C|Am|Fmaj7|G",pat:"1:B+2@1!~ 1.5:3 2:1 2.5:3 3:A 3.5:3 4:1 4.5:3|1:B+2@1!~ 1.5:3 2:1 2.5:3 3:A 3.5:3 4:1 4.5:3|1:B+3@2!~ 1.5:2 2:1 2.5:2 3:A 3.5:2 4:1 4.5:2|1:B+1@3!~ 1.5:3 2:2 2.5:3 3:A 3.5:3 4:2 4.5:3"},
+     {tag:"G",vt:"in G",key:"G",prog:"G|Em|C|D",pat:"1:B+1@3!~ 1.5:3 2:2 2.5:3 3:A 3.5:3 4:2 4.5:3|1:B+2@3!~ 1.5:3 2:1 2.5:3 3:A 3.5:3 4:1 4.5:3|1:B+2@1!~ 1.5:3 2:1 2.5:3 3:A 3.5:3 4:1 4.5:3|1:B+1@2!~ 1.5:3 2:2 2.5:3 3:A 3.5:3 4:2 4.5:3"}],
+   w:"A long melody note (marked ~) is made to sing by rocking the fretting finger: a small, even wobble in pitch, while the arpeggio carries on below. Vibrato needs a fretted note, so each melody note here is fretted.",
+   tip:"Classical vibrato rocks the finger along the string, towards and away from the nut. Start slow and even; speed comes later.",
+   how:["Play the melody note with the bass, then start the vibrato a moment after the note begins.","Keep the other chord fingers still while one finger wobbles.","Compare the same bar without vibrato. The note should sound longer and more alive."]},
+  {id:"7j",t:"Grace notes: ornaments on the melody",free:1,meter:4,tempo:[50,50],
+   vars:[{tag:"C",vt:"in C",key:"C",prog:"C|Fmaj7|G|C",pat:"1:B+2@0! 1.25:2@1!h 2:3 2.5:1 3:A 3.5:3 4:1 4.5:3|1:B+3@0! 1.25:3@2!h 2:2 2.5:1 3:A 3.5:2 4:1 4.5:2|1:B+2@1! 1.25:2@3!/ 2:3 2.5:1 3:A 3.5:3 4:1 4.5:3|1:B+2@3! 1.25:2@1!p 2:3 2.5:1 3:A 3.5:3 4:1 4.5:3"},
+     {tag:"G",vt:"in G",key:"G",prog:"G|C|D|G",pat:"1:B+3@2! 1.25:3@4!h 2:2 2.5:1 3:A 3.5:2 4:1 4.5:2|1:B+2@0! 1.25:2@1!h 2:3 2.5:1 3:A 3.5:3 4:1 4.5:3|1:B+1@0! 1.25:1@2!h 2:3 2.5:2 3:A 3.5:3 4:2 4.5:3|1:B+1@2! 1.25:1@3!/ 2:3 2.5:2 3:A 3.5:3 4:2 4.5:3"}],
+   w:"A quick note just before a melody note, reached by a hammer-on, a slide or a pull-off: the ornaments that give Indian film songs and folk melodies their curl. The thumb plays on the beat with the grace note; the main note follows a sixteenth later.",
+   tip:"Grace notes are quick and light. The main note is the one that counts; don't let the ornament steal its time."},
+  {id:"7k",t:"Campanella: a harp-like scale",free:1,meter:4,tempo:[50,50],vars:campVars(),
+   w:"The G major scale fingered so that every step is on a different string. Each note keeps ringing under the next, like a harp or bells. Notes are held (they overlap) instead of stopping one another.",
+   tip:"Keep every fretting finger down until it has to move; the ringing overlap is the whole effect.",
+   how:["Learn the fingering: some notes are high up the neck (fret 7 on the D and B strings) while others are open strings.","Pluck each note and leave it ringing.","Then over a G bass: thumb on every other note."]},
+  {id:"7l",t:"Artificial and harp harmonics",meter:4,prog:"C|Am|Fmaj7|G",pat:"1:<ah>4.p 1.5:3.a 2:<ah>3.p 2.5:2.a 3:<ah>2.p 3.5:1.a 4:<ah>3.p 4.5:2.a",tempo:[40,80],
+   w:"A harmonic on any fretted note: the index finger (i) touches the string lightly 12 frets above the fretted note while the thumb plucks it. Alternate that chime with an ordinary note plucked by a on a higher string, and you get 'harp harmonics', a cascade of bell tones over the chord.",
+   tip:"The tab shows the touch point (fret + 12, marked AH). Point the i finger straight at the fret wire and keep it light; pluck with the thumb behind it.",
+   how:["First play only the harmonics (p with i touching) on each chord until they ring clearly.","Then add the a-finger notes between them.","Go slowly: a dead harmonic usually means i is pressing too hard or not exactly over the fret."]},
+];
+/* the new levels go where they belong in the path; new lessons join the end of their level */
+{const at=n=>LEVELS.findIndex(L=>L.n.startsWith(n));
+  LEVELS.splice(at("Thumb and fingers")+1,0,RH_LEVEL);LEVELS.splice(at("Bass and melody"),0,SV_LEVEL);LEVELS.splice(at("Mastery"),0,MU_LEVEL);
+  LEVELS[at("Up the neck")].ls.push(...UP_ADD);LEVELS[at("Expression")].ls.push(...EXP_ADD);}
 const ALL=LEVELS.flatMap((L,li)=>L.ls.map(x=>({...x,lv:li})));
 
 /* ===================== Exhaustive exercises =====================
@@ -258,6 +501,8 @@ const midi=t=>{const m=/^([A-G][#b]?)(\d)$/.exec(t);return m?(+m[2]+1)*12+NOTE[m
 const melRange=mel=>{const ms=mel.split(/[|\s]+/).map(t=>midi(t.split(":")[0])).filter(x=>x!=null);return [Math.min(...ms),Math.max(...ms)];};
 const BARRE_LV=LEVELS.findIndex(L=>/^Up the neck/.test(L.n)),BLUES_LV=LEVELS.findIndex(L=>/^Blues/.test(L.n));
 function expand(L){const one=[{...L,pid:L.id,home:1}];
+  if(L.vars)return L.vars.map((v,i)=>({...L,...v,vars:undefined,id:`${L.id}.${v.tag}`,pid:L.id,home:i?0:1})); // exercises written out in full
+  if(L.capos){const hk=homeKey(L.prog);return L.capos.map((c,i)=>({...L,id:`${L.id}.c${c}`,pid:L.id,capo:c,vt:`Capo ${c} · sounds in ${NM[md(keyPc(hk)+c)]} major`,home:i?0:1}));}
   if(L.shapes)return L.shapes.map((c,i)=>{ // whole up-and-down cycles only, so the loop goes back to bar 1 on the lowest string
     const n=CH[c].f.filter(x=>x!=null).length,cyc=2*n-2,M=L.meter||4;let k=1;while((k*cyc)%M||k*cyc<4*M)k++;
     return {...L,id:`${L.id}.${c}`,pid:L.id,vt:c,prog:Array(k*cyc/M).fill(c).join("|"),home:i?0:1};});

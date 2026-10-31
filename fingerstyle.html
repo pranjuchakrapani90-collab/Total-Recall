@@ -2,7 +2,7 @@
 <html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="kvsync.js?v=20261031z"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Fingerstyle Solo · Guitar Studio</title>
 <script src="gsync.js?v=20261023"></script>
-<script src="fs-course.js?v=20261030a"></script>
+<script src="fs-course.js?v=20261031a"></script>
 <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="icon" href="icon-192.png" sizes="192x192"><link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>
 :root{
@@ -174,10 +174,19 @@ function patternEvents(L){
     steps.forEach((st,k)=>{
       const nb=k+1<steps.length?steps[k+1].b:meter,dur=r12(nb-st.b),at=t0+st.b;
       const seg=segs.find(g=>at>=g.b-1e-6&&at<g.b+g.d-1e-6)||segs[0];
-      st.parts.forEach(p=>{
-        let m;
+      st.parts.forEach(p0=>{
+        // suffixes: .p/.i/.m/.a which finger plucks · ' short (stopped) note · ! melody voice (louder)
+        let p=p0,fx=null,short=false,loud=false,m;const n0=ev.length;
+        if((m=/\.([pima])$/.exec(p))){fx=m[1];p=p.slice(0,-2);}
+        if(/'$/.test(p)){short=true;p=p.slice(0,-1);}
+        if(!/@/.test(p)&&/!$/.test(p)){loud=true;p=p.slice(0,-1);}
+        part(p);
+        for(let k=n0;k<ev.length;k++){const e=ev[k];if(fx&&!["h","p","/"].includes(e.tech))e.fx=fx;if(short){e.d=Math.min(e.d,.3);e.stop=1;}if(loud&&e.role!=="b")e.role="m";}
+        function part(p){let m;
+        if((m=/^<ah>(\d)$/.exec(p))){if(!seg)return;const s=+m[1],f=fretOn(seg.c,s);if(f==null)return;ev.push({b:at,d:Math.max(dur,1),s,f:f+12,m:midiOf(s,f)+12,role:s>=4?"b":"f",tech:"harm",ah:1});return;} // artificial harmonic: touch 12 frets above the chord note
         if((m=/^<(\d+)>(\d)$/.exec(p))){const fr=+m[1],s=+m[2],up={12:12,7:19,5:24}[fr];ev.push({b:at,d:Math.max(dur,1),s,f:fr,m:TUNE[s]+up,role:s>=4?"b":"f",tech:"harm"});return;}
-        if((m=/^(\d)@(\d+)(!)?$/.exec(p))){const s=+m[1],f=+m[2];ev.push({b:at,d:dur,s,f,m:midiOf(s,f),role:m[3]?"m":s>=4?"b":"f"});return;} // an exact string and fret
+        if((m=/^(\d)@(\d+)(!)?([hp\/~_]?)$/.exec(p))){const s=+m[1],f=+m[2],t=m[4]; // an exact string and fret; h p / = reached by hammer, pull or slide, ~ vibrato, _ let it ring
+          ev.push({b:at,d:t==="_"||t==="~"?Math.max(dur,2):dur,s,f,m:midiOf(s,f),role:m[3]?"m":s>=4?"b":"f",tech:t==="~"?"vib":t&&t!=="_"?t:null});return;}
         if(!seg)return;const c=seg.c;
         if(p==="B"||p==="Bm"){const[s,f]=c.r;ev.push({b:at,d:p==="Bm"?.25:dur,s,f,m:midiOf(s,f),role:"b",tech:p==="Bm"?"pm":null});return;}
         if(p==="A"||p==="Am"){const[s,f]=c.a;ev.push({b:at,d:p==="Am"?.25:dur,s,f,m:midiOf(s,f),role:"b",tech:p==="Am"?"pm":null});return;}
@@ -192,6 +201,7 @@ function patternEvents(L){
         if(tech==="/"){const from=Math.max(0,f-2);if(f<2){ev.push({b:at,d:dur,s,f,m:midiOf(s,f),role:"f"});return;}
           ev.push({b:at,d:r12(dur/2),s,f:from,m:midiOf(s,from),role:"f"});ev.push({b:r12(at+dur/2),d:r12(dur/2),s,f,m:midiOf(s,f),role:"f",tech:"/"});return;}
         ev.push({b:at,d:dur,s,f,m:midiOf(s,f),role:s===1&&st.parts.length===2&&st.parts.includes("B")?"m":"f"});
+        }
       });
     });
   });
@@ -237,14 +247,15 @@ function songEvents(L){
 function finish(ev){ // one note per string per moment; fingers: thumb on bass, i-m-a on G-B-e
   const seen=new Map();ev.sort((a,b)=>a.b-b.b||b.s-a.s);
   const out=[];ev.forEach(e=>{const k=e.b.toFixed(3)+":"+e.s;if(seen.has(k)){const o=seen.get(k);if(e.role==="m")Object.assign(o,e);return;}seen.set(k,e);out.push(e);});
-  out.forEach(e=>{e.fg=e.tech==="h"||e.tech==="p"||e.tech==="/"?"":fg(e.s,e.role==="b"||e.s>=4?"b":e.role);});
+  out.forEach(e=>{e.fg=e.tech==="h"||e.tech==="p"||e.tech==="/"?"":e.fx||fg(e.s,e.role==="b"||e.s>=4?"b":e.role);});
   return out;
 }
 function eventsOf(L){
   TUNE=TUNINGS[L.tune||"std"].o;
   if(L.task)return {ev:[],ch:[],total:0,meter:L.meter||4};
   const E=L.mel?songEvents(L):patternEvents(L);
-  if(L.only==="b")E.ev=E.ev.filter(e=>e.role!=="m"); // stage: the bass and chords without the tune
+  if(L.only==="b")E.ev=E.ev.filter(e=>e.role!=="m");
+  if(L.capo)E.ev.forEach(e=>{e.m+=L.capo;}); // frets stay as written (counted from the capo); the sound moves up // stage: the bass and chords without the tune
   if(L.swing){E.ev.forEach(e=>{const w=Math.floor(e.b+1e-6);if(Math.abs(e.b-w-.5)<1e-6){e.b=w+2/3;e.d=Math.max(.25,e.d-1/6);}else if(Math.abs(e.b-w)<1e-6&&Math.abs(e.d-.5)<1e-6)e.d=2/3;});
     E.ev.sort((a,b)=>a.b-b.b||b.s-a.s);}
   return E;}
@@ -340,7 +351,8 @@ function note(e,t,dur){
     g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.32,t+.005);g.gain.exponentialRampToValueAtTime(.0001,t+2.2);
     o.connect(g);o2.connect(g2).connect(g);g.connect(out());o.start(t);o2.start(t);o.stop(t+2.3);o2.stop(t+2.3);return;}
   const s=ctx.createBufferSource();s.buffer=pluckBuf(e.m);
-  g.gain.setValueAtTime(vol*soft,t);const end=e.tech==="pm"?.18:Math.min(dur,2.0);g.gain.setTargetAtTime(0,t+Math.max(end,.08),e.tech==="pm"?.03:.06); // fade before the 2.4 s sound runs out
+  g.gain.setValueAtTime(vol*soft,t);const end=e.tech==="pm"?.18:e.stop?Math.max(.12,dur):Math.min(dur,2.0);
+  if(e.tech==="vib"&&s.detune){const lfo=ctx.createOscillator(),lg=ctx.createGain();lfo.frequency.value=5.5;lg.gain.setValueAtTime(0,t);lg.gain.linearRampToValueAtTime(28,t+.25);lfo.connect(lg).connect(s.detune);lfo.start(t);lfo.stop(t+Math.min(2.4,end+.5));}g.gain.setTargetAtTime(0,t+Math.max(end,.08),e.tech==="pm"?.03:.06); // fade before the 2.4 s sound runs out
   if(e.tech==="pm"){const lp=ctx.createBiquadFilter();lp.type="lowpass";lp.frequency.value=900;s.connect(lp).connect(g);}else s.connect(g);
   g.connect(out());s.start(t);s.stop(t+Math.min(2.4,Math.max(end,.08)+.4));
 }
@@ -424,7 +436,7 @@ function tabHTML(E){
     for(let i=0;i<per;i++){const g=br*per+i,es=at[g]||[],pos=g/sub;
       h+=`<div class="col${i%sub===0?" bt":""}" data-s="${g}">`;
       for(let s=1;s<=6;s++){const e=es.find(x=>x.s===s);
-        h+=`<div class="c">${e?`<i class="${e.role}">${e.tech==="h"?"<sup>h</sup>":e.tech==="p"?"<sup>p</sup>":e.tech==="/"?"<sup>/</sup>":e.tech==="pm"?"<sup>pm</sup>":""}${e.tech==="harm"?`‹${e.f}›`:e.f}</i>`:""}</div>`;}
+        h+=`<div class="c">${e?`<i class="${e.role}">${e.tech==="h"?"<sup>h</sup>":e.tech==="p"?"<sup>p</sup>":e.tech==="/"?"<sup>/</sup>":e.tech==="pm"?"<sup>pm</sup>":e.tech==="vib"?"<sup>~</sup>":e.stop?"<sup>·</sup>":""}${e.tech==="harm"?(e.ah?`‹${e.f}›<sup>AH</sup>`:`‹${e.f}›`):e.f}</i>`:""}</div>`;}
       h+=`<div class="cnt">${cntLbl(pos,E.meter,sub)}</div><div class="fg">${es.filter(e=>e.fg).sort((a,b)=>b.s-a.s).map(e=>e.fg).join("")}</div></div>`;}
     h+="</div>";}
   return h;
@@ -469,6 +481,7 @@ function taskView(L){const Lv=LEVELS[L.lv],all=ALL.indexOf(lessonOf(L)),prev=ALL
       ${exDone(L)?`<button type="button" data-undone="${L.id}">Mark as not done</button>`:`<button type="button" class="good big" data-done="${L.id}">✓ Done</button>`}
       ${next?`<button type="button" data-open="${next.id}"${unlockedLv(next.lv)||next.lv===L.lv?"":" disabled"}>${next.id} ▸</button>`:""}</div></section>`;}
 function howTo(L){const lo=L.tempo[0],hi=L.tempo[1];
+  if(L.how)return `<details class="how" open><summary>How to practise this lesson</summary><ol>${L.how.map(x=>`<li>${x}</li>`).join("")}</ol></details>`;
   if(L.chain)return `<details class="how" open><summary>How to use the warm-up</summary><ol>
     <li>Pick a part for a short warm-up (about a minute at 70 bpm), or the full chain when you have more time.</li>
     <li>Press Play. Each chord gets ${L.rep} bars: thumb on the root on beat 1, then i, m, a on the G, B and high e strings. The next chord follows by itself; the bar under Play tells you which chord is coming.</li>
@@ -508,21 +521,22 @@ function lessonView(L){
   const nb=Math.ceil(E.total/E.meter-1e-6);
   return `<section class="card"><div class="num">Level ${lvNo(L.lv)} · ${Lv.n} · lesson ${idx+1} of ${Lv.ls.length}</div>
     <div class="lhd"><h2>${L.t}</h2>${exDone(L)?`<button type="button" data-undone="${L.id}">✓ Done</button>`:`<button type="button" class="good" data-done="${L.id}">Mark done</button>`}</div>${exTabs(L,P)}
-    <div class="chips"><span class="chip">${L.meter}/4</span>${chords.length?`<span class="chip t">${chords.join(" · ")}</span>`:""}<span class="chip">${nb} bars</span>${L.free?`<span class="chip g">your tempo</span>`:`<span class="chip g">goal ${L.tempo[1]} bpm</span>`}${L.song?`<span class="chip t">song</span>`:""}${L.tune?`<span class="chip t">🎛 ${TUNINGS[L.tune].n} tuning</span>`:""}${L.swing?`<span class="chip">swing</span>`:""}</div>
+    <div class="chips"><span class="chip">${L.sig||L.meter+"/4"}</span>${L.capo?`<span class="chip t">Capo ${L.capo}</span>`:""}${chords.length?`<span class="chip t">${chords.join(" · ")}</span>`:""}<span class="chip">${nb} bars</span>${L.free?`<span class="chip g">your tempo</span>`:`<span class="chip g">goal ${L.tempo[1]} bpm</span>`}${L.song?`<span class="chip t">song</span>`:""}${L.tune?`<span class="chip t">🎛 ${TUNINGS[L.tune].n} tuning</span>`:""}${L.swing?`<span class="chip">swing</span>`:""}</div>
     <p class="pdesc"><b>In words:</b> ${L.w}</p>
     <p class="tip">💡 ${L.tip}</p>
-    ${L.scan||L.chain?`<div class="cboxes">${chords.map(chordBox).join("")}</div><p class="tip">🖐 Numbers on the dots are left-hand fingers: 1 index, 2 middle, 3 ring, 4 little. ✕ = don't play that string, ○ = play it open.</p>`:""}
+    ${L.capo?`<p class="tip">🗜 <b>Capo on fret ${L.capo}.</b> Tab numbers count from the capo, so the shapes are exactly the open shapes you know; the sound is ${L.capo} fret${L.capo>1?"s":""} higher.</p>`:""}
+    ${L.scan||L.chain||L.boxes?`<div class="cboxes">${chords.map(chordBox).join("")}</div><p class="tip">🖐 Numbers on the dots are left-hand fingers: 1 index, 2 middle, 3 ring, 4 little. ✕ = don't play that string, ○ = play it open.</p>`:""}
     ${L.tune?`<p class="tip">🎛 <b>Retune first:</b> ${L.tune==="dd"?"low string down to D (D A D G B E)":"D A D G A D, low to high"}. Tune back to standard afterwards.</p>`:""}
     ${howTo(L)}
     ${L.song?`<p class="tip">👂 <b>Ear first.</b> ${earSong(L)}</p>`:""}
     ${L.prog&&/maj7|sus|add|[m\d]?[679](?![\d])/.test(L.prog)?`<p class="tip">🧩 <b>The last word matters.</b> In a chord like ${(L.prog.match(/[A-G][#b]?(?:maj7|m7|sus\d|add\d|m?[679])/)||["Fmaj7"])[0]}, the last part of the name (the 7, the 6, the sus) is the note that gives the chord its sound. Find it in the shape, one or two frets from the plain triad, and let it ring clearly in the arpeggio.</p>`:""}
-    ${/^6/.test(L.id)?`<p class="tip">🎨 <b>Colour, then theory.</b> Once the pattern flows, lift one fretting finger off the barre so an open string rings through the arpeggio, or let a neighbouring scale note ring on top. The chord underneath is still the same major or minor triad; you've just added colour (an add9 or add11). Keep what sounds good, then name it afterwards by writing down its notes.</p>`:""}
+    ${/^6[a-f]/.test(L.id)?`<p class="tip">🎨 <b>Colour, then theory.</b> Once the pattern flows, lift one fretting finger off the barre so an open string rings through the arpeggio, or let a neighbouring scale note ring on top. The chord underneath is still the same major or minor triad; you've just added colour (an add9 or add11). Keep what sounds good, then name it afterwards by writing down its notes.</p>`:""}
     <div class="row"><label class="ctl">Tempo <input type="range" id="tempo" min="${L.free?20:30}" max="160" step="1" value="${tempoOf(L)}"> <b id="tempoV">${tempoOf(L)}</b> bpm</label>
       <label class="chk"><input type="checkbox" id="click"${st.set.click?" checked":""}> Metronome</label>
       <label class="chk"><input type="checkbox" id="countin"${st.set.countin?" checked":""}> Count-in</label>
       <label class="chk"><input type="checkbox" id="loop"${st.set.loop?" checked":""}> Loop</label>
       ${L.free?"":`<label class="chk" title="Raise the tempo 4 bpm after every two loops, up to the goal"><input type="checkbox" id="climb"${st.set.climb?" checked":""}> Climb to ${L.tempo[1]}</label>`}</div>
-    <div class="legend"><span><i style="background:var(--thumb)"></i>thumb (p) on the bass</span>${L.song||/!/.test(L.pat||"")?`<span><i style="background:var(--mel)"></i>melody</span>`:""}<span><i style="background:var(--fill)"></i>fingers (i m a)</span><span>Letters under each count: which finger plucks</span>${/\d[hp\/]|<|m/.test(L.pat||"")?`<span><b>h</b> hammer-on · <b>p</b> pull-off · <b>/</b> slide · <b>‹12›</b> harmonic · <b>pm</b> muted thumb</span>`:""}</div>
+    <div class="legend"><span><i style="background:var(--thumb)"></i>thumb (p) on the bass</span>${L.song||/!/.test(L.pat||"")?`<span><i style="background:var(--mel)"></i>melody</span>`:""}<span><i style="background:var(--fill)"></i>fingers (i m a)</span><span>Letters under each count: which finger plucks</span>${/\d[hp\/~]|<|m|'/.test(L.pat||"")?`<span><b>h</b> hammer-on · <b>p</b> pull-off · <b>/</b> slide · <b>~</b> vibrato · <b>‹12›</b> harmonic (<b>AH</b> artificial) · <b>pm</b> muted thumb · <b>·</b> short, stopped note</span>`:""}</div>
     <div class="barsbar"><span class="num">Bar practice</span><b id="selLbl">${sel?(sel.a===sel.b?`Looping bar ${sel.a+1}`:`Looping bars ${sel.a+1}–${sel.b+1}`):"Whole piece"}</b>
       <button type="button" data-bars="add">＋ Add next bar</button><button type="button" data-bars="next">Next bar only ▶</button><button type="button" data-bars="all"${sel?"":" disabled"}>All bars</button></div>
     <div class="tabscroll"><div class="tab${sel?" hassel":""}">${tabHTML(E)}</div></div>
