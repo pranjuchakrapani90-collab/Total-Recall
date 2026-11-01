@@ -72,6 +72,9 @@ def units_for(label, g, c):
 
 # more curated rows: [id, cat, name, portion, kcal, protein, search words, grams]
 EXTRA = [
+ # roti
+ ["ragi-roti","g","Ragi roti","1 medium",100,2.5,"finger millet nachni mandua roti chapati",40],
+ ["ragi-roti-butter","g","Ragi roti with butter","1 medium",136,2.5,"finger millet nachni mandua roti chapati makhan",45],
  # assamese
  ["masor-jol","a","Masor jol (light fish curry)","1 pc with gravy",160,17,"maas jol fish rohu rui",200],
  ["kukura-mangxo","a","Kukura mangxo (desi chicken curry)","1 katori",260,22,"kukura chicken curry country",150],
