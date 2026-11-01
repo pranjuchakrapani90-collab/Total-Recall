@@ -314,6 +314,26 @@ function merge(keepId,ids){var k=get(keepId);if(!k)throw new Error("The task to 
   var dues=[k].concat(others).filter(function(o){return o.st!==2&&o.du}).map(function(o){return o.du}).sort();if(dues.length&&(!k.du||dues[0]<k.du))k.du=dues[0];
   put(k);others.forEach(function(o){del(o.id)});return get(keepId);}
 
-window.PosTasks={KEY:KEY,LISTS:LISTS,LISTNAME:LISTNAME,DAILY:DAILY,on:on,meta:meta,all:all,get:get,put:put,del:del,act:act,today:today,addDays:addDays,
+/* ---------- done → next step: a task develops instead of ending (1 Nov 2026) ----------
+   Still ONE task. Its title becomes "N+1. NEXT STEP"; the step just finished moves into the notes as a numbered,
+   dated line, with the notes written during that step kept under it (like "2. CHARGE … / 1. REPAIR … + its files").
+   A divider line "──── step N · now ────" separates the finished steps from the notes of the step in hand. */
+var STEPRX=/^──── step (\d+) · now ────$/m;
+function stepOf(t){var m=String(t.c||"").match(STEPRX);if(m)return +m[1];var n=String(t.ti||"").match(/^(\d{1,2})\.\s+\S/);return n?+n[1]:1;}
+function nextStep(id,title,date){var t=get(id);if(!t)throw new Error("That task is no longer in Pranju OS.");
+  title=String(title||"").trim().replace(/^\d{1,2}\.\s+/,"").toUpperCase();if(!title)throw new Error("Write the next step first.");
+  var td=today(),dd=today().split("-"),stamp=+dd[2]+" "+["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][+dd[1]-1],
+    c=String(t.c||"").replace(/\s+$/,""),n=stepOf(t),old=String(t.ti||"").replace(/^\d{1,2}\.\s+/,""),head="**"+n+". "+old+"** · done "+stamp;
+  if(STEPRX.test(c))c=c.replace(STEPRX,head);/* the step in hand becomes a finished step; its notes stay under it */
+  else if(n>1)c=(c?c+"\n\n":"")+head;/* numbered by hand before (earlier steps already in the notes) */
+  else c=head+(c?"\n"+c:"");
+  c+="\n\n──── step "+(n+1)+" · now ────";
+  t.c=c;t.ti=(n+1)+". "+title;t.h=Object.assign({},t.h);t.h[td]="step";
+  if(t.st===2){t.st=0;t.cd="";}
+  if(date&&/^\d{4}-\d{2}-\d{2}$/.test(date)&&date>td){t.du=date;if(!t.rp)t.rp=DAILY;}
+  else if(!t.du||t.du>td||t.rp)t.du=td;/* comes up today */
+  put(t);return get(id);}
+
+window.PosTasks={KEY:KEY,stepOf:stepOf,nextStep:nextStep,LISTS:LISTS,LISTNAME:LISTNAME,DAILY:DAILY,on:on,meta:meta,all:all,get:get,put:put,del:del,act:act,today:today,addDays:addDays,
   nextOcc:nextOcc,advance:advance,repeatLabel:repeatLabel,parseRule:parseRule,importTick:importTick,importBackup:importBackup,mountEditor:mountEditor,merge:merge,todayRes:todayRes,mirror:mirror,requests:requests};
 })();

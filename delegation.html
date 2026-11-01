@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="kvsync.js?v=20261031z"></script><script src="tasks-local.js?v=20261101b"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
+<html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="kvsync.js?v=20261031z"></script><script src="tasks-local.js?v=20261101c"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
 <title>Delegation · Pranju OS</title>
 <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="icon" href="icon-192.png" sizes="192x192"><link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>
@@ -192,6 +192,11 @@ input,select{font:inherit;width:100%;padding:10px 12px;border:1px solid var(--tr
 .ocQ .btn{padding:7px 9px;font-size:13px;text-align:left}.ocQ .btn small{display:block;font-weight:500;color:var(--tr-muted);font-size:11px}
 .ocPick{display:grid;grid-template-columns:1fr auto auto;gap:6px}.ocPick input{padding:8px 10px}
 .chip.fn::before{content:"✔✔ "}
+.oc .ocStep{grid-column:1/-1;min-height:50px}
+.ocStepBox{border-color:#7c3aed}.ocStepBox>b{color:#15803d;font-size:13px;display:block;word-break:break-word}
+.ocStepBox .lbl{display:block;font-size:12.5px;font-weight:700;color:#7c3aed;margin:8px 0 4px}
+.ocStepBox #ocNext{width:100%;box-sizing:border-box;padding:9px 10px;font-size:15px}
+.ocQ .btn.on{border-color:#7c3aed;box-shadow:0 0 0 2px #ddd6fe}
 .chip.ps{border-style:dashed;border-color:#b45309;background:#fff7ed}.chip.ps::before{content:"↷ ";color:#b45309;font-weight:800}
 .chip.lt{border-style:dotted;color:var(--tr-muted)}.chip.lt small{display:block;font-size:.75em;font-weight:700;color:#0369a1}
 </style>
@@ -380,7 +385,28 @@ function outcomeHtml(id,a){const x=stOf(id,a),tt=closedTT(id,a)&&a.s!=="fin";
   if(tt)return `<div class="ocNote">✓ Completed in TickTick</div>`;
   return `<div class="oc">${Object.keys(OUT).map(k=>{const o=OUT[k],on=x===k;
     const sub=on?(k==="later"?"From "+fmtDay(a.until)+" · tap to undo":"Chosen · tap to undo"):o.h;
-    return `<button type="button" class="${on?"on":""}" data-oc="${k}" style="--c:${o.c}"><b>${o.i} ${o.n}</b><small>${esc(sub)}</small></button>`}).join("")}</div>`;}
+    return `<button type="button" class="${on?"on":""}" data-oc="${k}" style="--c:${o.c}"><b>${o.i} ${o.n}</b><small>${esc(sub)}</small></button>`}).join("")}
+    <button type="button" class="ocStep" data-oc="step" style="--c:#7c3aed"><b>➜ Done · next step</b><small>This step is done — write what comes next (same task, numbered)</small></button></div>`;}
+/* ---------- done → next step (1 Nov 2026): the task develops — "1. BUY PROZAC" becomes "2. WAIT FOR DELIVERY" ---------- */
+function stepHtml(id,a){const t=window.PosTasks&&PosTasks.on()?PosTasks.get(id):null,td=todayIST();
+  if(!t)return `<div class="ocLater" style="border-color:#7c3aed"><b style="color:#7c3aed">Next step</b><p class="meta" style="margin:8px 0">Only Pranju OS tasks can take a next step — this one isn't in Pranju OS's task list.</p><button type="button" class="btn ghost" id="ocCancel">Back</button></div>`;
+  const n=PosTasks.stepOf(t),cur=String(t.ti).replace(/^\d{1,2}\.\s+/,"");
+  return `<div class="ocLater ocStepBox"><b>✓ ${n}. ${esc(cur)}</b>
+    <label class="lbl" for="ocNext" style="margin-top:8px">${n+1}. What's the immediate next step?</label>
+    <input id="ocNext" autocomplete="off" placeholder="e.g. WAIT FOR DELIVERY" style="text-transform:uppercase">
+    <div class="ocQ" style="grid-template-columns:repeat(4,1fr)">${[[0,"Today"],[1,"Tomorrow"],[3,"In 3 days"],[7,"In a week"]].map(([k,l],i)=>`<button type="button" class="btn${i?"":" on"}" data-sd="${addDay(td,k)}">${l}<small>${k?fmtDay(addDay(td,k)):"on the card"}</small></button>`).join("")}</div>
+    <div class="ocPick"><input type="date" id="ocDate" min="${td}" value="${td}"><button type="button" class="btn pri" id="ocSet">Save step ${n+1}</button><button type="button" class="btn ghost" id="ocCancel">Cancel</button></div></div>`;}
+function bindStep(box,id){const back=box.querySelector("#ocCancel");back.onclick=e=>{e.stopPropagation();if(TF)drawFlash()};
+  const inp=box.querySelector("#ocNext");if(!inp)return;const dt=box.querySelector("#ocDate");setTimeout(()=>inp.focus(),30);
+  box.querySelectorAll("[data-sd]").forEach(b=>b.onclick=e=>{e.stopPropagation();dt.value=b.dataset.sd;box.querySelectorAll("[data-sd]").forEach(x=>x.classList.toggle("on",x===b))});
+  dt.onchange=()=>box.querySelectorAll("[data-sd]").forEach(x=>x.classList.toggle("on",x.dataset.sd===dt.value));
+  const go=e=>{e&&e.stopPropagation();const v=inp.value.trim();if(!v){toast("Write the next step first");inp.focus();return}
+    const td=todayIST(),d=dt.value&&dt.value>td?dt.value:td,a=D.assign[id];let t;
+    try{t=PosTasks.nextStep(id,v,d)}catch(err){toast(err.message||String(err),3500);return}
+    const n=PosTasks.stepOf(t),body=String(t.ti).replace(/^\d{1,2}\.\s+/,"");
+    clearOutcome(a);a.t=t.ti;a.k=n+". "+shortKw(body);if(d>td){a.s="later";a.on=td;a.until=d;}
+    lastNew=id;save();toast(`Step ${n-1} done · now ${n}. ${body}`+(d>td?" · from "+fmtDay(d):""),3200);backToCard();};
+  box.querySelector("#ocSet").onclick=go;inp.onkeydown=e=>{if(e.key==="Enter")go(e)};}
 function laterHtml(a){const td=todayIST(),pick=a.s==="later"&&a.until>td?a.until:addDay(td,2);
   const wd=new Date(td+"T12:00:00Z").getUTCDay(),toMon=((8-wd)%7)||7;
   const q=[[2,"Day after tomorrow"],[3,"In 3 days"],[toMon,"Next Monday"],[7,"In a week"]].filter((v,i,arr)=>arr.findIndex(w=>w[0]===v[0])===i);
@@ -389,6 +415,7 @@ function laterHtml(a){const td=todayIST(),pick=a.s==="later"&&a.until>td?a.until
 function bindOutcome(box,id){const a=D.assign[id];if(!a)return;let armed=0;
   box.querySelectorAll("[data-oc]").forEach(b=>b.onclick=e=>{e.stopPropagation();const k=b.dataset.oc,cur=stOf(id,a);
     if(k==="later"&&cur!=="later"){box.innerHTML=laterHtml(a);bindLater(box,id);return}
+    if(k==="step"){box.innerHTML=stepHtml(id,a);bindStep(box,id);return}
     /* closing for good removes the daily repeat in TickTick, so it takes a second tap */
     if(k==="fin"&&cur!=="fin"&&!armed){armed=1;b.querySelector("small").textContent="Tap again — closes it for good";b.classList.add("arm");
       setTimeout(()=>{if(b.isConnected&&armed){armed=0;b.classList.remove("arm");b.querySelector("small").textContent=OUT.fin.h}},3500);return}
@@ -397,8 +424,9 @@ function bindLater(box,id){const go=d=>{if(!d||d<=todayIST()){toast("Pick a day 
   box.querySelectorAll("[data-qd]").forEach(b=>b.onclick=e=>{e.stopPropagation();go(b.dataset.qd)});
   box.querySelector("#ocSet").onclick=e=>{e.stopPropagation();go(box.querySelector("#ocDate").value)};
   box.querySelector("#ocCancel").onclick=e=>{e.stopPropagation();if(TF)drawFlash()};}
-/* after choosing, the next task of the member comes up (unless it was the last one or an undo) */
-function advance(id){if(!TF)return;const a=D.assign[id];if(!a||!a.s)return;setTimeout(()=>{if(TF&&TF.ids[TF.i]===id&&TF.i<TF.ids.length-1){TF.i++;drawFlash();}},650);}
+/* after choosing, it goes back to the member's delegation card to pick the next task there (1 Nov 2026; an undo stays on the task) */
+function advance(id){if(!TF)return;const a=D.assign[id];if(!a||!a.s)return;backToCard(id);}
+function backToCard(id){setTimeout(()=>{if(TF&&(!id||TF.ids[TF.i]===id)){closeFlash();document.body.style.overflow=$("mflash").hidden?"":"hidden";}},650);}
 function bindTools(el){el.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{filterG=b.dataset.g;fi=0;render()});
   el.querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>{D.prefs.view=b.dataset.v;save();render()});
   $("showDone").onchange=e=>{D.prefs.showDone=e.target.checked?1:0;save();render()};
