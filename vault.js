@@ -78,10 +78,22 @@ async function ensure(force){
   try{window.dispatchEvent(new CustomEvent("posvault",{detail:out.meta}))}catch(e){}
   return out}
 /* How much of Drive Gemini has covered: every file in Drive (from the Worker) against the log and the vault records. */
-async function coverage(){var cur=await load();if(!cur)throw new Error("Open the vault first.");
-  var d=await worker("drivefiles"),files=d.files||[],inVault={},inLog={};
+/* lists every file the owner has in Drive, straight from the phone (the Worker's per-request limit stopped at 40,000) */
+async function listDrive(progress){var u=base(),tr=await fetch(u+(u.indexOf("?")>=0?"&":"?")+"mode=drive&op=token",{cache:"no-store"}),td=await tr.json();
+  if(!tr.ok||td.error)throw new Error(td.error||"Could not get Drive access");
+  var tok=td.token,rows=[],page="",junk=0,q="trashed=false and mimeType!='application/vnd.google-apps.folder' and 'me' in owners";
+  for(var i=0;i<400;i++){var r=await fetch("https://www.googleapis.com/drive/v3/files?spaces=drive&pageSize=1000&fields=nextPageToken,files(id,name,mimeType,modifiedTime,appProperties)&q="+encodeURIComponent(q)+(page?"&pageToken="+encodeURIComponent(page):""),{headers:{Authorization:"Bearer "+tok}});
+    var d=await r.json();if(!r.ok)throw new Error("Drive listing failed: "+((d.error&&d.error.message)||r.status));
+    (d.files||[]).forEach(function(f){if(f.appProperties||/\.(vault|gpx)$/i.test(f.name)||f.name==="master_document_vault.json"||f.name==="reviewed_files_log.json")return;
+      if(/\.(tmp|thumb|nomedia)$/i.test(f.name)||/\.thumb\.tmp$/i.test(f.name)){junk++;return}
+      rows.push([f.id,f.name,f.mimeType,f.modifiedTime])});
+    if(progress)progress(rows.length+junk);
+    if(!d.nextPageToken)break;page=d.nextPageToken}
+  return {files:rows,junk:junk,at:new Date().toISOString()}}
+async function coverage(progress){var cur=await load();if(!cur)throw new Error("Open the vault first.");
+  var d=await listDrive(progress),files=d.files||[],inVault={},inLog={};
   cur.entries.forEach(function(e){inVault[e.id]=1});((cur.log&&cur.log.ids)||[]).forEach(function(i){inLog[i]=1});
-  var res={total:files.length,records:0,logged:0,none:0,byType:{},missing:[]};
+  var res={junk:d.junk,total:files.length,records:0,logged:0,none:0,byType:{},missing:[]};
   files.forEach(function(f){var ty=kind(f[2],f[1]),b=res.byType[ty]=res.byType[ty]||{total:0,records:0,logged:0,none:0};b.total++;
     if(inVault[f[0]]){res.records++;b.records++}else if(inLog[f[0]]){res.logged++;b.logged++}else{res.none++;b.none++;res.missing.push(f)}});
   res.missing.sort(function(a,b){return a[3]<b[3]?1:-1});res.at=d.at;return res}

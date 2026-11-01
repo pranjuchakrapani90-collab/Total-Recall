@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="drive.js?v=20261027"></script><script src="vault.js?v=20261101b"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
+<html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="drive.js?v=20261027"></script><script src="vault.js?v=20261101c"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
 <title>Vault · Pranju OS</title>
 <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="stylesheet" href="tr-theme.css?v=20261020">
@@ -79,9 +79,9 @@ $("chips").addEventListener("click",function(e){var b=e.target.closest("button")
 $("list").addEventListener("click",function(e){var b=e.target.closest("button[data-o]");if(b){var id=b.getAttribute("data-o");open[id]=!open[id];render();return}
   if(e.target.id==="more"){more++;render()}});
 async function cov(){var c=$("cov");c.innerHTML='<span class="muted">Counting every file in your Drive…</span>';
-  try{var r=await PosVault.coverage(),pc=function(n){return r.total?Math.round(n*100/r.total)+"%":"–"},lg=data&&data.log;
+  try{var r=await PosVault.coverage(function(n){c.innerHTML='<span class="muted">Counting every file in your Drive… '+n.toLocaleString("en-IN")+'</span>'}),pc=function(n){return r.total?Math.round(n*100/r.total)+"%":"–"},lg=data&&data.log;
     var ty=Object.keys(r.byType).sort(function(a,b){return r.byType[b].total-r.byType[a].total});
-    c.innerHTML='<div><b>'+r.total.toLocaleString("en-IN")+'</b> files in your Drive (not counting Pranju OS\'s own files)</div>'+
+    c.innerHTML='<div><b>'+r.total.toLocaleString("en-IN")+'</b> files in your Drive (not counting Pranju OS\'s own files)'+(r.junk?' · plus '+r.junk.toLocaleString("en-IN")+' WhatsApp temp/thumbnail files (.tmp, .thumb) left out':'')+'</div>'+
       '<table><tr><th></th><th>Files</th><th>Share</th></tr>'+
       '<tr><td>Have a vault record</td><td>'+r.records+'</td><td>'+pc(r.records)+'</td></tr>'+
       '<tr><td>Logged as reviewed, no record</td><td>'+r.logged+'</td><td>'+pc(r.logged)+'</td></tr>'+
