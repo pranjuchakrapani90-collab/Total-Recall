@@ -120,6 +120,7 @@ function injectStyles(){if($('tcineStyles'))return;var css=
 '#tcine .nums{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-top:26px}#tcine .num{padding:14px;border-radius:14px;background:#ffffff0d;border:1px solid #ffffff1c}#tcine .num b{display:block;font-family:Georgia,serif;font-size:32px;font-weight:400}#tcine .num span{font-size:12px;color:#cfcbd8;letter-spacing:.06em}'+
 '#tcine .swatch{display:inline-block;width:26px;height:4px;border-radius:3px;vertical-align:middle;margin-right:10px}'+
 '#tcine .pick{display:flex;flex-direction:column;gap:12px;margin-top:24px;max-width:420px}#tcine select{font:600 16px system-ui,sans-serif;padding:12px;border-radius:12px;background:#ffffff14;color:#fff;border:1px solid #ffffff30}#tcine select option{color:#111}'+
+'#tcine .tcbtn{border:1px solid #ffffff30;background:#ffffff14;color:#fff;padding:12px 18px;border-radius:12px;font:inherit;font-weight:650;cursor:pointer;align-self:flex-start}#tcine .tcbtn.primary{background:#f5f3ee;color:#111;border-color:#f5f3ee}#tcine .tcbtn:disabled{opacity:.5}#tcine .pick .kicker{font-size:11px}'+
 '#tcine .btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}#tcine .btns button{border:1px solid #ffffff30;background:#ffffff14;color:#fff;padding:12px 18px;border-radius:12px;font:inherit;font-weight:650;cursor:pointer}#tcine .btns .primary{background:#f5f3ee;color:#111;border-color:#f5f3ee}'+
 '#tcine .chip{position:absolute;top:12px;left:12px;z-index:4;padding:7px 12px;border-radius:999px;background:#000b;border:1px solid #ffffff26;font:600 13px system-ui,sans-serif;font-variant-numeric:tabular-nums;display:flex;gap:10px;align-items:center;max-width:calc(100% - 80px)}#tcine .chip i{width:9px;height:9px;border-radius:50%;flex:none}'+
 '#tcine .close{position:absolute;top:8px;right:8px;z-index:7;width:42px;height:42px;border-radius:50%;border:0;background:#000a;color:#fff;font-size:20px;cursor:pointer}'+
@@ -156,35 +157,43 @@ function stage(){
 function card(html){var c=$('tcCard');c.classList.remove('hide');c.querySelector('.in').outerHTML='<div class="in">'+html+'</div>'}
 function hideCard(){$('tcCard').classList.add('hide')}
 
-/* ---------- open: pick a week ---------- */
-async function open(date){
+/* ---------- open: pick a day (yesterday by default) or a week ---------- */
+async function open(date,mode){
   if(!TB()){alert('Travel Trace is not ready yet.');return}
   close();injectStyles();stage();
-  S={weeks:weeksWithData(),days:[],di:0,speed:pref('speed',1),zoomAdj:pref('zoom',0),playing:false,phase:'pick',hold:0,then:null,raf:0,last:0,map:null,ov:[],wake:null,idleT:0};
+  S={weeks:weeksWithData(),dates:(TB().dates()||[]).slice().sort().reverse(),days:[],di:0,speed:pref('speed',1),zoomAdj:pref('zoom',0),playing:false,phase:'pick',hold:0,then:null,raf:0,last:0,map:null,ov:[],wake:null,idleT:0};
   $('tcClose').onclick=close;
   document.addEventListener('keydown',onKey);
-  if(!S.weeks.length){card('<div class="kicker">Week in Motion</div><div class="title">No traces yet</div><div class="sub">Once GPSLogger has recorded a few days, they play here as a film.</div>');return}
-  var cur=date?monday(date):S.weeks[0].start,has=S.weeks.some(function(w){return w.start===cur});if(!has)cur=S.weeks[0].start;
-  card('<div class="kicker">Travel Trace</div><div class="title">Week in Motion</div><div class="sub">Every day of the week, from the first point to the last. The marker moves at a steady pace, skips the time you stayed put, and stops only at your memories.</div>'+
-   '<div class="pick"><select id="tcWeek">'+S.weeks.map(function(w){return '<option value="'+w.start+'"'+(w.start===cur?' selected':'')+'>'+h(weekLabel(w.start))+' · '+w.dates.length+' day'+(w.dates.length===1?'':'s')+'</option>'}).join('')+'</select></div>'+
-   '<div class="btns"><button class="primary" id="tcGo">▶ Play the week</button></div><div id="tcMsg"></div>');
-  $('tcGo').onclick=function(){start($('tcWeek').value)}
+  if(!S.weeks.length){card('<div class="kicker">Travel Trace</div><div class="title">No traces yet</div><div class="sub">Once GPSLogger has recorded a few days, they play here as a film.</div>');return}
+  var today=TB().today?TB().today():iso(new Date()),yest=addDays(today,-1);
+  /* the day: yesterday if it has a trace, else the latest day before today, else the newest */
+  var dayCur=S.dates.indexOf(yest)>=0?yest:(S.dates.filter(function(d){return d<today})[0]||S.dates[0]);
+  if(mode==='day'&&date&&S.dates.indexOf(date)>=0)dayCur=date;
+  var wkCur=date?monday(date):S.weeks[0].start;if(!S.weeks.some(function(w){return w.start===wkCur}))wkCur=S.weeks[0].start;
+  function dayName(d){return d===today?'Today':d===yest?'Yesterday':fmt(d,{weekday:'long'})}
+  card('<div class="kicker">Travel Trace</div><div class="title">Cinema</div><div class="sub">The marker runs your route from the first point to the last at a steady pace, skips the time you stayed put, and stops only at your memories.</div>'+
+   '<div class="pick"><div class="kicker" style="margin-top:6px">A day</div><select id="tcDay">'+S.dates.map(function(d){return '<option value="'+d+'"'+(d===dayCur?' selected':'')+'>'+h(dayName(d)+' · '+fmt(d,{day:'numeric',month:'short',year:'numeric'}))+'</option>'}).join('')+'</select>'+
+   '<button class="tcbtn primary" id="tcGoDay">▶ Play the day</button>'+
+   '<div class="kicker" style="margin-top:14px">A week</div><select id="tcWeek">'+S.weeks.map(function(w){return '<option value="'+w.start+'"'+(w.start===wkCur?' selected':'')+'>'+h(weekLabel(w.start))+' · '+w.dates.length+' day'+(w.dates.length===1?'':'s')+'</option>'}).join('')+'</select>'+
+   '<button class="tcbtn" id="tcGo">▶ Play the week</button></div><div id="tcMsg"></div>');
+  $('tcGoDay').onclick=function(){start([$('tcDay').value],null)};
+  $('tcGo').onclick=function(){var w=S.weeks.filter(function(x){return x.start===$('tcWeek').value})[0];if(w)start(w.dates,w.start)}
 }
 
-async function start(weekStart){
-  var w=S.weeks.filter(function(x){return x.start===weekStart})[0];if(!w)return;
-  S.week=w;
+async function start(dates,weekStart){
+  S.single=!weekStart;S.week=weekStart?{start:weekStart}:null;S.dayDate=S.single?dates[0]:null;
   $('tcMsg').innerHTML='<div class="loading"><i></i><i></i><i></i><span id="tcLoadTxt">Loading the map…</span></div>';
-  $('tcGo').disabled=true;
-  try{await TB().maps()}catch(e){$('tcMsg').innerHTML='<div class="sub">'+h(e.message)+' Open Travel Trace → Map key to add it.</div>';$('tcGo').disabled=false;return}
+  $('tcGo').disabled=$('tcGoDay').disabled=true;
+  function fail(html){$('tcMsg').innerHTML='<div class="sub">'+html+'</div>';$('tcGo').disabled=$('tcGoDay').disabled=false}
+  try{await TB().maps()}catch(e){fail(h(e.message)+' Open Travel Trace → Map key to add it.');return}
   var days=[],fails=[];
-  for(var i=0;i<w.dates.length;i++){
-    var d=w.dates[i];if($('tcLoadTxt'))$('tcLoadTxt').textContent='Loading '+fmt(d,{weekday:'long'})+'…';
+  for(var i=0;i<dates.length;i++){
+    var d=dates[i];if($('tcLoadTxt'))$('tcLoadTxt').textContent='Loading '+fmt(d,{weekday:'long'})+'…';
     try{var segs=await TB().day(d),day=segs.length?buildDay(d,segs,TB().notes(d),days.length):null;if(day&&day.total>30)days.push(day)}
     catch(e){fails.push(fmt(d,{weekday:'short'})+': '+e.message)}
   }
   if(!S)return;
-  if(!days.length){$('tcMsg').innerHTML='<div class="sub">No route could be loaded for this week.'+(fails.length?'<br>'+h(fails.join(' · ')):'')+'</div>';$('tcGo').disabled=false;return}
+  if(!days.length){fail((S.single?'No movement was recorded on this day.':'No route could be loaded for this week.')+(fails.length?'<br>'+h(fails.join(' · ')):''));return}
   days.forEach(function(d,i){d.color=DAYCOL[i%DAYCOL.length]});
   S.days=days;S.fails=fails;
   try{if(navigator.wakeLock)S.wake=await navigator.wakeLock.request('screen')}catch(_){}
@@ -251,12 +260,14 @@ function loop(){
 function intro(){
   S.phase='intro';var km=0,mem=0,ph=0;S.days.forEach(function(d){km+=d.km;mem+=d.stops.length;d.stops.forEach(function(s){ph+=(s.note.photos||[]).length})});
   S.totals={km:km,mem:mem,ph:ph};
-  card('<div class="kicker">Week in Motion</div><div class="title">'+h(weekLabel(S.week.start))+'</div>'+
-   '<div class="nums"><div class="num"><b data-n="'+km.toFixed(1)+'">0</b><span>KM TRAVELLED</span></div><div class="num"><b data-n="'+S.days.length+'">0</b><span>DAYS ON THE MAP</span></div><div class="num"><b data-n="'+mem+'">0</b><span>MEMORIES</span></div>'+(ph?'<div class="num"><b data-n="'+ph+'">0</b><span>PHOTOS</span></div>':'')+'</div>'+
+  var d0=S.days[0],tf={hour:'numeric',minute:'2-digit'},span=d0.start&&d0.end?new Date(d0.start).toLocaleTimeString([],tf)+' – '+new Date(d0.end).toLocaleTimeString([],tf):'';
+  card((S.single?'<div class="kicker">Day in Motion</div><div class="title">'+h(fmt(d0.date,{weekday:'long'}))+'</div><div class="sub">'+h(fmt(d0.date,{day:'numeric',month:'long',year:'numeric'}))+(span?' · '+h(span):'')+'</div>':
+   '<div class="kicker">Week in Motion</div><div class="title">'+h(weekLabel(S.week.start))+'</div>')+
+   '<div class="nums"><div class="num"><b data-n="'+km.toFixed(1)+'">0</b><span>KM TRAVELLED</span></div>'+(S.single?'':'<div class="num"><b data-n="'+S.days.length+'">0</b><span>DAYS ON THE MAP</span></div>')+'<div class="num"><b data-n="'+mem+'">0</b><span>MEMORIES</span></div>'+(ph?'<div class="num"><b data-n="'+ph+'">0</b><span>PHOTOS</span></div>':'')+'</div>'+
    (S.fails.length?'<div class="sub" style="font-size:12px">Could not load: '+h(S.fails.join(' · '))+'</div>':''));
   countUp();
   S.playing=true;$('tcine').classList.remove('isPaused');$('tcPlay').textContent='❚❚';S.last=0;
-  after(4200,function(){dayTitle(0)});loop()
+  after(S.single?3400:4200,function(){dayTitle(0)});loop()
 }
 function countUp(){var els=$('tcCard').querySelectorAll('[data-n]'),t0=performance.now();(function f(now){var p=Math.min(1,(now-t0)/1800),e=1-Math.pow(1-p,3);els.forEach(function(el){var n=Number(el.dataset.n),dec=String(el.dataset.n).indexOf('.')>=0;el.textContent=dec?(n*e).toFixed(1):Math.round(n*e)});if(p<1&&$('tcCard'))requestAnimationFrame(f)})(t0)}
 
@@ -270,9 +281,10 @@ function dayTitle(i){
   var t1=new Date(d.start),t2=new Date(d.end),tf={hour:'numeric',minute:'2-digit'};
   card('<div class="kicker"><span class="swatch" style="background:'+d.color+'"></span>Day '+(i+1)+' of '+S.days.length+'</div><div class="title">'+h(fmt(d.date,{weekday:'long'}))+'</div>'+
    '<div class="sub">'+h(fmt(d.date,{day:'numeric',month:'long'}))+' · '+d.km.toFixed(d.km<10?1:0)+' km'+(d.start&&d.end?' · '+h(t1.toLocaleTimeString([],tf))+' – '+h(t2.toLocaleTimeString([],tf)):'')+(d.stops.length?' · '+d.stops.length+' memor'+(d.stops.length===1?'y':'ies'):'')+'</div>');
+  if(S.single)$('tcCard').querySelector('.in').style.opacity=.0001;
   cam(d.ll[0],dayZoom(d));S.camPos={lat:d.ll[0].lat,lng:d.ll[0].lng};
   progress();chip();
-  after(2600,function(){
+  after(S.single?500:2600,function(){
     hideCard();
     var g=google.maps;
     d.stops.forEach(function(s){S.pins.push(new g.Marker({map:S.map,position:{lat:s.note.lat,lng:s.note.lng},clickable:false,zIndex:5,icon:{path:g.SymbolPath.CIRCLE,scale:7,fillColor:'#c084fc',fillOpacity:1,strokeColor:'#fff',strokeWeight:2}}))});
@@ -343,14 +355,18 @@ function outro(){
   var longest=S.days.slice().sort(function(a,b){return b.km-a.km})[0],allPh=[];
   S.days.forEach(function(d){d.stops.forEach(function(s){(s.note.photos||[]).forEach(function(p){allPh.push(p)})})});
   var o=$('tcOutro');o.classList.remove('hide');
-  o.innerHTML='<div class="kicker">That was the week</div><div class="title">'+S.totals.km.toFixed(1)+' km · '+S.days.length+' day'+(S.days.length===1?'':'s')+'</div>'+
+  if(S.single){var d0=S.days[0],tf={hour:'numeric',minute:'2-digit'};
+   o.innerHTML='<div class="kicker">That was '+h(fmt(d0.date,{weekday:'long'}))+'</div><div class="title">'+d0.km.toFixed(1)+' km'+(d0.start&&d0.end?' · '+h(new Date(d0.start).toLocaleTimeString([],tf))+' – '+h(new Date(d0.end).toLocaleTimeString([],tf)):'')+'</div>'+
+    '<div class="sub">'+h(fmt(d0.date,{day:'numeric',month:'long',year:'numeric'}))+(S.totals.mem?' · '+S.totals.mem+' memor'+(S.totals.mem===1?'y':'ies'):'')+'</div>'+
+    (d0.stops.length?'<div class="days">'+d0.stops.map(function(s){return '<div>📍 '+h(s.note.text||'Photo memory')+'</div>'}).join('')+'</div>':'')}
+  else o.innerHTML='<div class="kicker">That was the week</div><div class="title">'+S.totals.km.toFixed(1)+' km · '+S.days.length+' day'+(S.days.length===1?'':'s')+'</div>'+
    '<div class="sub">Longest: '+h(fmt(longest.date,{weekday:'long'}))+', '+longest.km.toFixed(1)+' km'+(S.totals.mem?' · '+S.totals.mem+' memor'+(S.totals.mem===1?'y':'ies'):'')+'</div>'+
-   '<div class="days">'+S.days.map(function(d){return '<div><span class="swatch" style="background:'+d.color+'"></span>'+h(fmt(d.date,{weekday:'short',day:'numeric',month:'short'}))+' — '+d.km.toFixed(1)+' km'+(d.stops.length?' · '+d.stops.length+' 📍':'')+'</div>'}).join('')+'</div>'+
-   (allPh.length?'<div class="reel" id="tcReel"></div>':'')+
-   '<div class="btns"><button class="primary" id="tcAgain">↺ Play again</button><button id="tcOther">Another week</button><button id="tcDone">Close</button></div>';
+   '<div class="days">'+S.days.map(function(d){return '<div><span class="swatch" style="background:'+d.color+'"></span>'+h(fmt(d.date,{weekday:'short',day:'numeric',month:'short'}))+' — '+d.km.toFixed(1)+' km'+(d.stops.length?' · '+d.stops.length+' 📍':'')+'</div>'}).join('')+'</div>';
+  o.innerHTML+=(allPh.length?'<div class="reel" id="tcReel"></div>':'')+
+   '<div class="btns"><button class="primary" id="tcAgain">↺ Play again</button><button id="tcOther">'+(S.single?'Another day':'Another week')+'</button><button id="tcDone">Close</button></div>';
   if(allPh.length){var r=$('tcReel');allPh.slice(0,30).forEach(function(ph){var im=document.createElement('img');im.alt='Memory photo';r.appendChild(im);TB().photo(ph).then(function(u){if(u)im.src=u}).catch(function(){})})}
   $('tcAgain').onclick=function(){o.classList.add('hide');S.done.forEach(function(p){p.setMap(null)});S.done=[];intro()};
-  $('tcOther').onclick=function(){var w=S.week.start;open(w)};
+  $('tcOther').onclick=function(){if(S.single)open(S.dayDate,'day');else open(S.week.start)};
   $('tcDone').onclick=close;
   S.playing=false;$('tcPlay').textContent='▶';$('tcine').classList.remove('idle')
 }
