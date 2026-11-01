@@ -35,23 +35,24 @@ function flatText(o,skip){var out=[];
   var s=out.join(" · ");return s.length>2400?s.slice(0,2400)+"…":s}
 var SKIP={title:1,name:1,file_name:1,file_id:1,fileId:1,drive_id:1,view_url:1,url:1,link:1};
 function parse(json){
-  var entries=[],seen={},meta={};
+  var entries=[],seen={},meta={},raw=0;
   var sm=json.system_metadata||{};
   meta.batch=json.batch!=null?json.batch:(sm.batch||"");
   meta.updated=json.last_updated||sm.last_scheduled_study_run||"";
   (function walk(v,path){
     if(!v||typeof v!=="object")return;
     if(Array.isArray(v)){v.forEach(function(x){walk(x,path)});return}
-    var fid=v.file_id||v.fileId||v.drive_id||"";
-    var t=v.title||v.name||v.file_name||"";
-    if(fid&&typeof fid==="string"&&t){
+    var fid=v.file_id||v.fileId||v.drive_id||v.drive_file_id||v.source_file_id||"";
+    if(!fid){var lk=String(v.view_url||v.url||v.link||v.drive_link||"").match(/\/d\/([A-Za-z0-9_-]{20,})/);if(lk)fid=lk[1]}
+    var t=v.title||v.name||v.file_name||v.file||v.document||v.source_file||"";
+    if(fid&&typeof fid==="string"){raw++;if(!t)t=fid;
       if(!seen[fid]){seen[fid]=1;
         var d=path[0]==="domains"?(path[1]||""):(path[0]||"");
         entries.push({t:String(t),id:fid,u:v.view_url||v.url||"https://drive.google.com/file/d/"+encodeURIComponent(fid)+"/view",d:d,x:flatText(v,SKIP)})}
       return}
     Object.keys(v).forEach(function(k){if(k==="system_metadata")return;walk(v[k],path.concat([k]))});
   })(json,[]);
-  meta.count=entries.length;
+  meta.count=entries.length;meta.records=raw;meta.claimed=json.entry_count||sm.total_master_dossiers||"";
   var doms={};entries.forEach(function(e){doms[e.d]=(doms[e.d]||0)+1});meta.domains=doms;
   return {meta:meta,entries:entries}}
 
@@ -59,17 +60,35 @@ async function load(){if(mem)return mem;try{mem=await get("data")||null}catch(e)
 async function ensure(force){
   var cur=await load();
   var last=0;try{last=Number(localStorage.getItem(CK)||0)}catch(e){}
-  if(!force&&cur&&Date.now()-last<6*3600000)return cur;
+  if(!force&&cur&&cur.meta&&cur.meta.v===2&&Date.now()-last<6*3600000)return cur;
   var info=await worker("vault");
   try{localStorage.setItem(CK,String(Date.now()))}catch(e){}
   var f=info.vault;if(!f)throw new Error("No master_document_vault.json was found in your Drive.");
-  if(cur&&cur.meta&&cur.meta.fileId===f.id&&cur.meta.modified===f.modifiedTime)return cur;
+  if(cur&&cur.meta&&cur.meta.v===2&&cur.meta.fileId===f.id&&cur.meta.modified===f.modifiedTime)return cur;
   if(!window.PosDrive)throw new Error("drive.js is not loaded");
   var blob=await PosDrive.download(f.id),json=JSON.parse(await blob.text());
-  var out=parse(json);out.meta.fileId=f.id;out.meta.modified=f.modifiedTime;out.meta.size=Number(f.size||0);out.meta.fetched=new Date().toISOString();
+  var out=parse(json);json=null;
+  /* reviewed_files_log.json: the Drive ids Gemini says it has looked at */
+  out.log=null;
+  if(info.log)try{var lj=JSON.parse(await (await PosDrive.download(info.log.id)).text());
+    var ids={};(function walk(v){if(Array.isArray(v))v.forEach(walk);else if(v&&typeof v==="object")Object.keys(v).forEach(function(k){walk(v[k])});else if(typeof v==="string"&&/^[A-Za-z0-9_-]{25,60}$/.test(v))ids[v]=1})(lj.audited_file_ids||lj);
+    out.log={ids:Object.keys(ids),lastRun:lj.last_run!=null?lj.last_run:"",dossiers:lj.dossiers_indexed!=null?lj.dossiers_indexed:"",modified:info.log.modifiedTime}}catch(e){out.log=null}
+  out.meta.v=2;out.meta.fileId=f.id;out.meta.modified=f.modifiedTime;out.meta.size=Number(f.size||0);out.meta.fetched=new Date().toISOString();
   await set("data",out);mem=out;
   try{window.dispatchEvent(new CustomEvent("posvault",{detail:out.meta}))}catch(e){}
   return out}
+/* How much of Drive Gemini has covered: every file in Drive (from the Worker) against the log and the vault records. */
+async function coverage(){var cur=await load();if(!cur)throw new Error("Open the vault first.");
+  var d=await worker("drivefiles"),files=d.files||[],inVault={},inLog={};
+  cur.entries.forEach(function(e){inVault[e.id]=1});((cur.log&&cur.log.ids)||[]).forEach(function(i){inLog[i]=1});
+  var res={total:files.length,records:0,logged:0,none:0,byType:{},missing:[]};
+  files.forEach(function(f){var ty=kind(f[2],f[1]),b=res.byType[ty]=res.byType[ty]||{total:0,records:0,logged:0,none:0};b.total++;
+    if(inVault[f[0]]){res.records++;b.records++}else if(inLog[f[0]]){res.logged++;b.logged++}else{res.none++;b.none++;res.missing.push(f)}});
+  res.missing.sort(function(a,b){return a[3]<b[3]?1:-1});res.at=d.at;return res}
+function kind(m,n){m=String(m||"");n=String(n||"").toLowerCase();
+  if(m.indexOf("image/")===0)return "Images";if(m.indexOf("video/")===0)return "Videos";if(m.indexOf("audio/")===0)return "Audio";
+  if(m==="application/pdf")return "PDFs";if(/spreadsheet|excel|csv/.test(m)||/\.(xlsx?|csv)$/.test(n))return "Sheets";
+  if(/document|word|text\/plain/.test(m)||/\.(docx?|txt)$/.test(n))return "Docs";return "Other"}
 function norm(s){return String(s||"").toLowerCase()}
 function search(q,max){
   var words=norm(q).split(/\s+/).filter(Boolean);if(!words.length||!mem)return [];
@@ -80,5 +99,5 @@ function search(q,max){
     res.push(Object.assign({score:score},e))});
   res.sort(function(a,b){return b.score-a.score||a.t.localeCompare(b.t)});
   return res.slice(0,max||50)}
-window.PosVault={load:load,ensure:ensure,search:search,domainLabel:label};
+window.PosVault={coverage:coverage,load:load,ensure:ensure,search:search,domainLabel:label};
 })();

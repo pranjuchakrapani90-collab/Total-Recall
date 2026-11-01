@@ -780,6 +780,15 @@ async function geminiCleanup(env){
   for(const n of GEM_NAMES){const fs=await gdList(token,"name='"+n+"' and trashed=false",'id,modifiedTime','modifiedTime desc');
     for(const f of fs.slice(3)){await gdTrash(token,f.id);trashed++;}}
   const rec={at:new Date().toISOString(),trashed};await env.SYNC_KV.put('gemini:cleanup',JSON.stringify(rec));return rec;}
+/* Vault coverage (1 Nov 2026): every file in the owner's Drive (not folders, not Pranju OS's own sync/GPS files),
+   so the Vault page can show how many Gemini has reviewed. Rows: [id, name, mimeType, modifiedTime]. */
+async function driveFiles(env){
+  const {token}=await bkNeedFull(env),rows=[];let page='';
+  const q="trashed=false and mimeType!='application/vnd.google-apps.folder' and 'me' in owners";
+  for(let i=0;i<40;i++){const d=await gdCall(token,'/files?spaces=drive&pageSize=1000&fields=nextPageToken,files(id,name,mimeType,modifiedTime,appProperties)&q='+encodeURIComponent(q)+(page?'&pageToken='+encodeURIComponent(page):''));
+    for(const f of d.files||[]){if(f.appProperties||/\.(vault|gpx)$/i.test(f.name)||GEM_NAMES.includes(f.name))continue;rows.push([f.id,f.name,f.mimeType,f.modifiedTime]);}
+    if(!d.nextPageToken)break;page=d.nextPageToken;}
+  return {files:rows,at:new Date().toISOString()};}
 async function nightlyJobs(env){
   if(!env.SYNC_KV)return;
   try{await runBackup(env,'nightly');}catch(e){await env.SYNC_KV.put('backup:error',JSON.stringify({at:new Date().toISOString(),error:String(e&&e.message||e)}));}
@@ -794,6 +803,7 @@ async function handleBackup(request,env,origin){
     if(op==='status'){const rt=await gdRefresh(env);return json({connected:!!rt,full:gdFull(rt),last:await kv('backup:last'),error:await kv('backup:error'),epoch:await kv('restore:epoch'),cleanup:await kv('gemini:cleanup')});}
     if(op==='list'){const {token,folders}=await bkNeedFull(env);return json({backups:await listBackups(token,folders.backups)});}
     if(op==='vault')return json(await geminiNewest(env));
+    if(op==='drivefiles')return json(await driveFiles(env));
     if(op==='now'&&post){const r=await runBackup(env,'manual');await env.SYNC_KV.delete('backup:error');return json(r);}
     if(op==='restore'&&post)return json(await restoreBackup(env,String(q.get('id')||'')));
     if(op==='cleanup'&&post)return json(await geminiCleanup(env));
