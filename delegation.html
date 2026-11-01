@@ -370,7 +370,7 @@ async function setOutcome(id,s,date,quiet){const a=D.assign[id];if(!a)return;con
   if(s==="push"||s==="later")a.np=(a.np||0)+1;
   if(s==="later")a.until=date;
   save();render();
-  const pj=a.pj||projById[id],label=OUT[s].n,SRC=window.PosTasks&&PosTasks.on()?"Pranju OS":"TickTick";if(!pj){say(label+" · saved here",2000);return}
+  const pj=a.pj||projById[id],label=OUT[s].n,SRC="Pranju OS";if(!pj){say(label+" · saved here",2000);return}
   try{const r=await fetch(wurl("mode=deleg-done"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({projectId:pj,taskId:id,action:s,date:date||""})});
     const d=await r.json().catch(()=>({}));if(!r.ok||d.error)throw new Error(d.error||("HTTP "+r.status));
     let m=label;
@@ -382,14 +382,14 @@ async function setOutcome(id,s,date,quiet){const a=D.assign[id];if(!a)return;con
     say(m,3400);
   }catch(e){say(label+" here, but "+SRC+" couldn't be updated: "+(e.message||e),3800)}}
 function outcomeHtml(id,a){const x=stOf(id,a),tt=closedTT(id,a)&&a.s!=="fin";
-  if(tt)return `<div class="ocNote">✓ Completed in TickTick</div>`;
+  if(tt)return `<div class="ocNote">✓ Closed in Pranju OS</div>`;
   return `<div class="oc">${Object.keys(OUT).map(k=>{const o=OUT[k],on=x===k;
     const sub=on?(k==="later"?"From "+fmtDay(a.until)+" · tap to undo":"Chosen · tap to undo"):o.h;
     return `<button type="button" class="${on?"on":""}" data-oc="${k}" style="--c:${o.c}"><b>${o.i} ${o.n}</b><small>${esc(sub)}</small></button>`}).join("")}
     <button type="button" class="ocStep" data-oc="step" style="--c:#7c3aed"><b>➜ Done · next step</b><small>This step is done — write what comes next (same task, numbered)</small></button></div>`;}
 /* ---------- done → next step (1 Nov 2026): the task develops — "1. BUY PROZAC" becomes "2. WAIT FOR DELIVERY" ---------- */
 function stepHtml(id,a){const t=window.PosTasks&&PosTasks.on()?PosTasks.get(id):null,td=todayIST();
-  if(!t)return `<div class="ocLater" style="border-color:#7c3aed"><b style="color:#7c3aed">Next step</b><p class="meta" style="margin:8px 0">Only Pranju OS tasks can take a next step — this one isn't in Pranju OS's task list.</p><button type="button" class="btn ghost" id="ocCancel">Back</button></div>`;
+  if(!t)return `<div class="ocLater" style="border-color:#7c3aed"><b style="color:#7c3aed">Next step</b><p class="meta" style="margin:8px 0">This task is no longer in Pranju OS's task list (it may have been deleted).</p><button type="button" class="btn ghost" id="ocCancel">Back</button></div>`;
   const n=PosTasks.stepOf(t),cur=String(t.ti).replace(/^\d{1,2}\.\s+/,"");
   return `<div class="ocLater ocStepBox"><b>✓ ${n}. ${esc(cur)}</b>
     <label class="lbl" for="ocNext" style="margin-top:8px">${n+1}. What's the immediate next step?</label>
@@ -449,7 +449,7 @@ $("scrim").addEventListener("click",e=>{if(e.target.id==="scrim")closeSheet()});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("scrim").hidden)closeSheet()});
 function taskSheet(id){const a=D.assign[id];if(!a)return;const p=D.people[a.p]||{name:"?"},tt=closedTT(id,a);
   const others=peopleSorted().filter(x=>x.id!==a.p);
-  openSheet(`<div class="meta">${esc(a.pr||"TickTick")} · given to ${esc(p.name)} on ${esc(fmtDate(a.at))}${tt?" · completed in TickTick":""}</div><h3>${esc(a.t)}</h3>
+  openSheet(`<div class="meta">${esc(a.pr||"Pranju OS")} · given to ${esc(p.name)} on ${esc(fmtDate(a.at))}${tt?" · closed":""}</div><h3>${esc(a.t)}</h3>
     <label class="lbl" for="sk">Keyword on the card</label><input id="sk" value="${esc(a.k||"")}" maxlength="40">
     <div class="row2"><button class="btn pri" id="sSave" type="button">Save</button></div>
     ${others.length?`<span class="lbl">Move to</span><div class="people">${others.map(x=>`<button type="button" class="pchip" data-mv="${esc(x.id)}" style="--g:${(GROUPS[x.g]||GROUPS.other).c}"><i></i>${esc(x.name)}</button>`).join("")}</div>`:""}
@@ -484,7 +484,7 @@ function drawFlash(){if(!TF)return;const p=D.people[TF.pid];TF.ids=TF.ids.filter
   const stLine=x==="open"?"":(x==="later"?"📅 Pushed to "+fmtDay(a.until):(OUT[x].i+" "+OUT[x].n))+" · ";
   $("tfTop").innerHTML=`<button class="btn" type="button" id="tfClose">← ${esc(p.name)}'s card</button><span class="muted">${TF.i+1} / ${TF.ids.length}</span>`;
   $("tfCard").style.setProperty("--g",g.c);$("tfCard").classList.remove("flipped");
-  $("tfFront").innerHTML=`<span class="tfSrc">${esc(a.pr||"TickTick")}</span><div class="tfCounter">${esc(p.name)} • TASK ${TF.i+1} OF ${TF.ids.length}</div>
+  $("tfFront").innerHTML=`<span class="tfSrc">${esc(a.pr||"Pranju OS")}</span><div class="tfCounter">${esc(p.name)} • TASK ${TF.i+1} OF ${TF.ids.length}</div>
     <div class="tfKw">${esc(a.k||shortKw(a.t))}</div><div class="tfName${dn?" dn":""}">${esc(a.t)}</div>
     <div class="tfHint">${esc(stLine)}Given ${esc(fmtDate(a.at))}${a.np?" · pushed "+a.np+"×":""} · tap for details</div>`;
   requestAnimationFrame(()=>{const f=$("tfFront"),n=f.querySelector(".tfName");if(n)fitText(f,n,28,13)});
@@ -496,11 +496,11 @@ function drawFlash(){if(!TF)return;const p=D.people[TF.pid];TF.ids=TF.ids.filter
   TF.loaded=null;}
 async function revealFlash(){if(!TF)return;const id=TF.ids[TF.i],a=D.assign[id];if(!a||TF.loaded===id)return;TF.loaded=id;
   const box=$("tfReveal"),pj=a.pj||projById[id]||"";
-  if(!pj){box.innerHTML=`<div class="taskHead"><h4>${esc(a.t)}</h4></div><div class="taskBody"><div class="taskEmpty">TickTick details aren't available for this task (it may be finished or moved).</div></div>`;return}
+  if(!pj){box.innerHTML=`<div class="taskHead"><h4>${esc(a.t)}</h4></div><div class="taskBody"><div class="taskEmpty">Details aren't available for this task (it may be closed or deleted).</div></div>`;return}
   try{const r=await fetch(wurl("mode=task-detail&projectId="+encodeURIComponent(pj)+"&taskId="+encodeURIComponent(id)),{cache:"no-store"});
     const d=await r.json();if(!r.ok||d.error)throw new Error(d.error||("HTTP "+r.status));
     if(!TF||TF.ids[TF.i]!==id)return;box.innerHTML=detailHtml(d.task||{},Array.isArray(d.comments)?d.comments:[],pj,id);if(d.task&&d.task.local&&window.PosTasks)PosTasks.mountEditor(box,id);
-  }catch(e){if(TF&&TF.ids[TF.i]===id){box.innerHTML=`<div class="taskBody"><div class="err">Couldn't load TickTick details: ${esc(e.message||e)}</div></div>`;TF.loaded=null;}}}
+  }catch(e){if(TF&&TF.ids[TF.i]===id){box.innerHTML=`<div class="taskBody"><div class="err">Couldn't load the task details: ${esc(e.message||e)}</div></div>`;TF.loaded=null;}}}
 function richText(raw){const files=[];let s=String(raw||"").replace(/\r/g,"").replace(/!?\[file\]\(([^)]*)\)/g,(m,p)=>{files.push(p);return "\u0000"+(files.length-1)+"\u0000"});
   const lines=s.split(/\n/).map(x=>x.trim()).filter(Boolean);
   return lines.map(x=>{if(/^-{3,}$/.test(x))return "<hr>";
@@ -510,7 +510,7 @@ function richText(raw){const files=[];let s=String(raw||"").replace(/\r/g,"").re
     return /^[-*]\s+/.test(x)?`<ul class="tickList"><li>${h}</li></ul>`:`<p>${h}</p>`}).join("");}
 function detailHtml(t,comments,pj,id){const url=t.local?"tasks.html#t="+encodeURIComponent(id):"https://ticktick.com/webapp/#p/"+encodeURIComponent(pj)+"/tasks/"+encodeURIComponent(id);
   const content=t.content||t.desc||"",items=Array.isArray(t.items)?t.items:[],atts=Array.isArray(t.attachments)?t.attachments:(Array.isArray(t.files)?t.files:[]);
-  let h=`<div class="taskHead"><div class="tfHeadRow"><h4>${esc(t.title||"TickTick task")}</h4><a class="taskOpenLink" href="${url}"${t.local?"":' target="_blank" rel="noopener noreferrer"'}>${t.local?"Edit task ✎":"Open in TickTick ↗"}</a></div>
+  let h=`<div class="taskHead"><div class="tfHeadRow"><h4>${esc(t.title||"Task")}</h4><a class="taskOpenLink" href="${url}"${t.local?"":' target="_blank" rel="noopener noreferrer"'}>${t.local?"Edit task ✎":"Open in TickTick ↗"}</a></div>
     <div class="taskMeta">${t.list?`<span class="taskPill">${esc(t.list)}</span>`:""}${t.dueDate?`<span class="taskPill">Due ${esc(String(t.dueDate).slice(0,10))}</span>`:""}${t.repeat?`<span class="taskPill">↻ ${esc(t.repeat)}</span>`:""}${(t.tags||[]).map(x=>`<span class="taskPill">#${esc(x)}</span>`).join("")}</div></div>`;
   if(t.local&&window.PosTasks)h+='<div class="pteMount"></div>';else{
   if(content)h+=`<div class="taskBody"><div class="taskContent">${richText(content)}</div></div>`;
