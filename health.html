@@ -284,7 +284,6 @@ function todayCard(M){
    <div class="logrow"><b>Weight</b><input type="number" inputmode="decimal" step="0.1" min="20" max="300" id="inW" placeholder="${ok(d.w)?"":"kg, after waking"}" value="${ok(d.w)?d.w:""}"><button type="button" id="bW">${ok(d.w)?"Update":"Save"}</button></div>
    <button type="button" class="findfood" id="bFood"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg>Add food<span>roti, dal, chicken, KFC…</span></button>
    ${mealsHtml(d)}
-   <div class="logrow"><b>Quick kcal</b><input type="number" inputmode="numeric" step="1" min="1" max="5000" id="inK" placeholder="just a number, kcal"><button type="button" class="ghost" id="bK">+ Add</button></div>
   </div>`;}
 function mealsHtml(d){
   const items=d.items||(ok(d.kcal)&&d.kcal>0?[d.kcal]:[]);if(!items.length)return "";
@@ -382,9 +381,6 @@ function wire(M){
   $("logDate").onchange=e=>{logDate=e.target.value&&e.target.value<=today()?e.target.value:today();draw();};
   const saveW=()=>{const v=parseFloat($("inW").value);if(!(v>=20&&v<=300)){$("inW").focus();return;}setDay(logDate,{w:r1(v)});draw();};
   on("bW",saveW);$("inW").onkeydown=e=>{if(e.key==="Enter")saveW();};
-  const addK=()=>{const v=Math.round(parseFloat($("inK").value));if(!(v>0&&v<=5000)){$("inK").focus();return;}
-    putItems(logDate,dayItems(logDate).concat({n:"Quick add",k:v,m:logDate===today()?mealNow():"o"}));draw();};
-  on("bK",addK);$("inK").onkeydown=e=>{if(e.key==="Enter")addK();};
   on("bFood",()=>foodPicker());
   document.querySelectorAll(".fi .rm").forEach(b=>b.onclick=()=>{const items=dayItems(logDate);items.splice(+b.dataset.i,1);putItems(logDate,items);draw();});
   document.querySelectorAll(".fi .nm[data-e]").forEach(b=>b.onclick=()=>{const i=+b.dataset.e,it=dayItems(logDate)[i];if(!it||!it.f)return;
