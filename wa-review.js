@@ -107,7 +107,7 @@ function paint(){var n=items.length,b=$("bWa");if(b){b.hidden=!n;b.textContent=n
     if(it.update)return '<button type="button" class="wai" data-i="'+i+'"><span class="wad upd">Update</span><span><b>'+esc(it.update.title||it.title)+'</b><small>adds a dated note to this task</small></span></button>';
     return '<button type="button" class="wai" data-i="'+i+'"><span class="wad'+(it.target==="reference"?" ref":"")+'">'+esc(dest)+'</span><span><b>'+esc(it.title)+'</b><small>'+
       esc((it.tags||[]).join(" · ").toUpperCase())+(it.repeat==="daily"?" · daily":"")+(it.due?" · from "+esc(it.due):"")+'</small></span></button>'}).join("");}
-async function load(){try{var r=await fetch(URLB(),{cache:"no-store"});var d=await r.json();if(d.error)throw new Error(d.error);items=d.items||[];paint();return true}
+async function load(){try{var r=await fetch(URLB(),{cache:"no-store"});var d=await r.json();if(d.error)throw new Error(d.error);items=d.items||[];paint();if(d.note&&$("waStatus"))$("waStatus").textContent+=" ("+d.note+")";return true}
   catch(e){if($("waStatus"))$("waStatus").textContent="Could not reach the TickTick bridge: "+e.message;return false}}
 document.addEventListener("click",function(e){var b=e.target.closest&&e.target.closest(".wai");if(b)open(+b.dataset.i)});
 if($("waRefresh"))$("waRefresh").addEventListener("click",function(){$("waStatus").textContent="Loading…";load()});

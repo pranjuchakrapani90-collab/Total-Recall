@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="kvsync.js?v=20261031z"></script><script src="tasks-local.js?v=20261101a"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
+<html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="kvsync.js?v=20261031z"></script><script src="tasks-local.js?v=20261101b"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
 <title>Delegation · Pranju OS</title>
 <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="icon" href="icon-192.png" sizes="192x192"><link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>
@@ -544,7 +544,9 @@ function selAct(k){const ids=selIds();if(k==="x"){selClear();return}if(!ids.leng
       <div class="row2"><button class="btn pri" id="sy" type="button">Merge</button><button class="btn ghost" id="sn" type="button">Cancel</button></div>`,
       s=>{s.querySelector("#sn").onclick=closeSheet;s.querySelector("#sy").onclick=()=>{const keep=s.querySelector("input[name=keep]:checked").value;
         try{PosTasks.merge(keep,ids)}catch(e){toast(e.message||String(e),3500);return}
-        ids.forEach(id=>{if(id!==keep)delete D.assign[id]});const k2=PosTasks.get(keep);if(k2&&D.assign[keep])D.assign[keep].t=k2.ti;
+        /* the merged task is pending again on the card unless every one of them was already done */
+        const allDone=ids.every(id=>isDone(id,D.assign[id]));
+        ids.forEach(id=>{if(id!==keep)delete D.assign[id]});const k2=PosTasks.get(keep);if(k2&&D.assign[keep]){D.assign[keep].t=k2.ti;if(!allDone)clearOutcome(D.assign[keep]);}
         lastNew=keep;save();closeSheet();selClear();toast("Merged into one task ✓",2600);};});return}}
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&selMode&&$("scrim").hidden)selClear()});
 let tt=0;function toast(m,ms){let t=document.querySelector(".toast");if(!t){t=document.createElement("div");t.className="toast";document.body.appendChild(t)}

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="kvsync.js?v=20261031z" data-reload=""></script><script src="tasks-local.js?v=20261101a"></script><script src="drive.js?v=20261027"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
+<html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="kvsync.js?v=20261031z" data-reload=""></script><script src="tasks-local.js?v=20261101b"></script><script src="drive.js?v=20261027"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
 <title>Tasks · Pranju OS</title>
 <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="icon" href="icon-192.png" sizes="192x192"><link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>
@@ -151,7 +151,8 @@ function render(){
   const m=P.meta();h+=`<div class="foot"><span>${arr.filter(t=>t.st!==2).length} open tasks · kept in Pranju OS${m.imported?" since "+fmtDay(String(m.imported).slice(0,10)):""}, synced to your phones through Google Drive.</span>
     <button class="btn sm ghost" id="reimp" type="button">Copy anything new from TickTick</button>
     <button class="btn sm ghost" id="bkimp" type="button">${m.backup?"Add a TickTick backup file again":"Add history from a TickTick backup file (CSV)"}</button>
-    ${m.backup?`<span>Completed history added from a TickTick backup on ${fmtDay(String(m.backup).slice(0,10))}.</span>`:""}</div>`;
+    ${m.backup?`<span>Completed history added from a TickTick backup on ${fmtDay(String(m.backup).slice(0,10))}.</span>`:""}
+    ${mirrorLine()}</div>`;
   const main=$("main"),focus=document.activeElement&&document.activeElement.id==="q",pos=focus?document.activeElement.selectionStart:0;
   main.innerHTML=h;
   const qi=$("q");qi.oninput=()=>{q=qi.value;limit=150;render()};if(focus){qi.focus();try{qi.setSelectionRange(pos,pos)}catch(e){}}
@@ -175,6 +176,9 @@ function tick(id){const t=P.get(id);if(!t)return;
   if(t.st===2){P.act(id,"reopen");toast("Reopened");render();return}
   const r=P.act(id,"done");toast(r.closed?"Done ✓":r.next?"Done for today · next "+fmtDay(r.next):"Done",2200);render();}
 
+/* the readable copy Claude uses (Drafts sheet › Tasks tab): when it was last saved, or why it failed */
+function mirrorLine(){let at=0,err="";try{at=+(localStorage.getItem("pos-tasks-mirror-at")||0);err=localStorage.getItem("pos-tasks-mirror-err")||""}catch(e){}
+  return `<span>Copy for Claude (Drive): ${err?`<b style="color:#b42318">not saved — ${esc(err)}</b>`:at?"saved "+new Date(at).toLocaleString("en-IN",{day:"numeric",month:"short",hour:"numeric",minute:"2-digit"}):"not saved yet"} · <button class="btn sm ghost" type="button" onclick="PosTasks.mirror();setTimeout(render,4000)">Save now</button></span>`;}
 /* ---------- long-press a task: select several, then merge / done / move / delete (1 Nov 2026) ---------- */
 let SEL=new Set(),selMode=false,lpAt=0,lpEl=null;
 function longPress(el,fn){let t=0,x0=0,y0=0;const stop=()=>{clearTimeout(t);t=0};
@@ -206,7 +210,13 @@ function selAct(k){const ids=[...SEL].filter(id=>P.get(id));if(k==="x"||!ids.len
       <div class="mlist">${list.map((t,i)=>`<label><input type="radio" name="keep" value="${esc(t.id)}"${i===0?" checked":""}><span><b>${esc(t.ti)}</b><small>${esc(P.LISTNAME[t.pj])}${t.du?" · "+fmtDay(t.du):""}${String(t.c||"").trim()?" · has notes":""}${i===0?" · oldest":""}</small></span></label>`).join("")}</div>
       <div class="sacts"><button class="btn pri" id="sy" type="button">Merge</button><button class="btn ghost" id="sn" type="button">Cancel</button></div>`,
       s=>{s.querySelector("#sn").onclick=close;s.querySelector("#sy").onclick=()=>{const keep=s.querySelector("input[name=keep]:checked").value;
-        try{P.merge(keep,ids)}catch(e){toast(e.message||String(e),3500);return}dropDeleg(ids.filter(id=>id!==keep));close();selClear();toast("Merged into one task ✓",2600);};});return}}
+        try{P.merge(keep,ids)}catch(e){toast(e.message||String(e),3500);return}keepDeleg(keep,ids);close();selClear();toast("Merged into one task ✓",2600);};});return}}
+/* merging keeps the task on its member card: if the kept task wasn't given to anyone but another one was, it takes that place */
+function keepDeleg(keep,ids){try{const d=JSON.parse(localStorage.getItem("deleg")||"{}");if(!d.assign)return;const A=d.assign,others=ids.filter(id=>id!==keep);
+  const from=others.map(id=>A[id]).filter(Boolean)[0],k=P.get(keep);
+  if(!A[keep]&&from)A[keep]=Object.assign({},from,{t:k?k.ti:from.t,at:Date.now()});
+  if(A[keep]){A[keep].t=k?k.ti:A[keep].t;["s","on","until","d"].forEach(f=>delete A[keep][f]);}
+  others.forEach(id=>delete A[id]);localStorage.setItem("deleg",JSON.stringify(d));}catch(e){}}
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&selMode&&$("scrim").hidden)selClear()});
 
 /* ---------- add / edit ---------- */

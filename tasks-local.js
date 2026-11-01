@@ -204,14 +204,15 @@ function wurl(qs){var u=null;try{u=ls.getItem("totalRecallTickTickUrl")}catch(e)
 function hasCode(){try{return (ls.getItem("totalRecallSyncCode_v1")||"").trim().length>=8}catch(e){return false}}
 function lget(k){try{return ls.getItem(k)}catch(e){return null}}function lset(k,v){try{ls.setItem(k,v)}catch(e){}}
 var mirrorTimer=0;
-function mirrorSoon(ms){if(!on()||!hasCode())return;clearTimeout(mirrorTimer);mirrorTimer=setTimeout(mirror,ms||30000)}
+function mirrorSoon(ms){if(!on()||!hasCode())return;if(mirrorTimer&&!(ms&&ms<30000))return;clearTimeout(mirrorTimer);mirrorTimer=setTimeout(function(){mirrorTimer=0;mirror()},ms||30000)}
 function mirror(){if(!on()||!hasCode())return;var T=all(),old=addDays(today(),-30),rows=[];
   Object.keys(T).forEach(function(id){var t=T[id];if(t.st===2&&!(t.cd>=old))return;
     rows.push([id,t.st===2?"CLOSED "+t.cd:LISTNAME[t.pj],t.ti,(t.tg||[]).join(", "),t.du,t.tm,repeatLabel(t.rp),t.pr||0,
       (t.it||[]).map(function(x){return (x.d?"☑ ":"☐ ")+x.ti}).join("; "),String(t.c||"").slice(0,4000),String(t.cr||"").slice(0,16),String(t.md||"").slice(0,16)])});
   rows.sort(function(a,b){return String(a[1]).localeCompare(String(b[1]))||String(a[2]).localeCompare(String(b[2]))});
   orig(wurl("mode=tasks-mirror"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({rows:rows})})
-    .then(function(r){if(r.ok)lset("pos-tasks-mirror-at",String(Date.now()))}).catch(function(){});}
+    .then(function(r){return r.json().catch(function(){return {}}).then(function(d){if(r.ok&&!d.error){lset("pos-tasks-mirror-at",String(Date.now()));lset("pos-tasks-mirror-err","")}else lset("pos-tasks-mirror-err",String(d.error||("HTTP "+r.status)).slice(0,300))})})
+    .catch(function(e){lset("pos-tasks-mirror-err",String(e&&e.message||e).slice(0,300))});}
 function ruleFor(rep,due){rep=String(rep||"").trim();var d=due||today();if(!rep||/^(none|no)$/i.test(rep))return "";if(/RRULE/i.test(rep))return rep.toUpperCase().indexOf("RRULE:")===0?rep:"RRULE:"+rep;
   rep=rep.toLowerCase();if(rep==="daily")return DAILY;if(rep==="weekly")return "RRULE:FREQ=WEEKLY;INTERVAL=1;BYDAY="+["SU","MO","TU","WE","TH","FR","SA"][dow(d)];
   if(rep==="monthly")return "RRULE:FREQ=MONTHLY;INTERVAL=1;BYMONTHDAY="+(+d.slice(8,10));if(rep==="yearly")return "RRULE:FREQ=YEARLY;INTERVAL=1";return DAILY;}
@@ -309,6 +310,8 @@ function merge(keepId,ids){var k=get(keepId);if(!k)throw new Error("The task to 
     k.cm=(k.cm||[]).concat(o.cm||[]);k.h=Object.assign({},o.h||{},k.h||{});
     if(!k.du&&o.du&&o.st!==2)k.du=o.du;if(!k.rp&&o.rp&&o.st!==2)k.rp=o.rp;if((o.pr||0)>(k.pr||0))k.pr=o.pr;
     if(k.st===2&&o.st!==2){k.st=0;k.cd="";}});
+  /* the merged task comes up as soon as the earliest of them would have: an open task due today keeps it on today's cards */
+  var dues=[k].concat(others).filter(function(o){return o.st!==2&&o.du}).map(function(o){return o.du}).sort();if(dues.length&&(!k.du||dues[0]<k.du))k.du=dues[0];
   put(k);others.forEach(function(o){del(o.id)});return get(keepId);}
 
 window.PosTasks={KEY:KEY,LISTS:LISTS,LISTNAME:LISTNAME,DAILY:DAILY,on:on,meta:meta,all:all,get:get,put:put,del:del,act:act,today:today,addDays:addDays,

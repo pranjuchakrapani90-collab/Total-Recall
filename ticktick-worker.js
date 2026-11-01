@@ -648,7 +648,7 @@ async function handleDrafts(kind,request,env,origin,legacy){
   let token=null;try{token=env.GOOGLE_CLIENT_ID?await driveToken(env):null}catch(_){token=null}
   if(request.method==='GET'){
     let items=[],notes=[];
-    if(token){try{const id=await draftsSheet(env,token);items=(await draftRows(token,id,tab)).filter(x=>x.status==='draft').map(kind==='wa'?waFromSheet:moneyFromSheet).filter(Boolean);}
+    if(token){try{const id=await draftsSheet(env,token);await ensureTabs(env,token,id);items=(await draftRows(token,id,tab)).filter(x=>x.status==='draft').map(kind==='wa'?waFromSheet:moneyFromSheet).filter(Boolean);}
       catch(e){notes.push('Drafts sheet: '+(e.message||e));}}
     else notes.push('Google Drive is not connected, so drafts from the Drive sheet cannot be read.');
     if(env.TICKTICK_ACCESS_TOKEN){try{const r=await legacy(request);const d=await r.json();if(Array.isArray(d.items))items=items.concat(d.items);}catch(_){}}
@@ -676,7 +676,7 @@ const REQ_HEAD=['id','created','status','op','task id','JSON','result'];
 async function ensureTabs(env,token,id){
   if(await env.SYNC_KV.get('drive:drafts-tabs')===id)return;
   const meta=await shCall(token,id+'?fields=sheets.properties.title');const have=(meta.sheets||[]).map(x=>x.properties.title);
-  const add=[['Tasks',MIRROR_HEAD],['Requests',REQ_HEAD]].filter(([t])=>have.indexOf(t)<0);
+  const add=[[DRAFT_TABS.wa,DRAFT_HEAD],[DRAFT_TABS.money,DRAFT_HEAD],['Tasks',MIRROR_HEAD],['Requests',REQ_HEAD]].filter(([t])=>have.indexOf(t)<0);
   if(add.length){await shCall(token,id+':batchUpdate',{method:'POST',body:JSON.stringify({requests:add.map(([t])=>({addSheet:{properties:{title:t,gridProperties:{frozenRowCount:1}}}}))})});
     await shCall(token,id+'/values:batchUpdate',{method:'POST',body:JSON.stringify({valueInputOption:'RAW',data:add.map(([t,h])=>({range:t+'!A1',values:[h]}))})});}
   await env.SYNC_KV.put('drive:drafts-tabs',id);}
@@ -687,7 +687,8 @@ async function handleTasksMirror(request,env,origin){
   if(mode==='tasks-mirror'){if(request.method!=='POST')return json({error:'Method not allowed'},405);
     const b=await request.json();const rows=(Array.isArray(b.rows)?b.rows:[]).map(r=>r.map(v=>String(v==null?'':v).slice(0,5000)));
     await shCall(token,id+'/values/'+encodeURIComponent('Tasks!A2:L')+':clear',{method:'POST',body:'{}'});
-    if(rows.length)await shCall(token,id+'/values/'+encodeURIComponent('Tasks!A2:L'+(rows.length+1))+'?valueInputOption=RAW',{method:'PUT',body:JSON.stringify({values:rows})});
+    /* append (not update) so the tab grows rows as needed */
+    if(rows.length)await shCall(token,id+'/values/'+encodeURIComponent('Tasks!A1:L1')+':append?valueInputOption=RAW&insertDataOption=OVERWRITE',{method:'POST',body:JSON.stringify({values:rows})});
     return json({ok:true,rows:rows.length,sheet:id});}
   const read=async()=>{const d=await shCall(token,id+'/values/'+encodeURIComponent('Requests!A2:G')+'?majorDimension=ROWS');
     return (d.values||[]).map((r,i)=>({row:i+2,id:String(r[0]||'')||('row'+(i+2)),created:r[1]||'',status:String(r[2]||'pending').trim().toLowerCase(),op:String(r[3]||'').trim().toLowerCase(),task:String(r[4]||'').trim(),json:r[5]||''}));};
