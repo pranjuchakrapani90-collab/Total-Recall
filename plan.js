@@ -91,6 +91,7 @@ function watch(here,o){style();o=o||{};const live=()=>{try{return Math.max(0,Mat
     try{localStorage.setItem(key,"1");}catch(e){}
     const nx=next(c.rows);if(!nx)return;
     const was=o.playing&&o.playing();if(was&&o.stop)o.stop();
+    if(was&&window.GSMetro&&GSMetro.bell)GSMetro.bell(); // heard even when practising with silent clicks
     show(`<div><b>✓ ${me.min} minutes of ${me.n} done${was?". The player has stopped":""}.</b> Next in cycle ${c.n}: ${nx.ico} <b>${nx.n}</b>.</div>${barHTML(c.rows,here)}<div class="row"><button type="button">Keep going here</button><a href="${nx.href}">Go to ${nx.n} ▸</a></div>`,nx.col);}
   tick();setInterval(tick,1000);window.GSPlanTick=tick;}
 function show(html,col){const el=document.createElement("div");el.className="gsp-nudge";el.setAttribute("role","status");el.style.setProperty("--c",col);el.innerHTML=html;

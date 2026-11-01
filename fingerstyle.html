@@ -589,7 +589,7 @@ if(q&&byId(q))view={k:"lesson",id:q};
 render();
 cloudSync();
 </script>
-<script src="metro.js?v=20261026"></script><script>GSMetro.mount({here:"fs",name:"Fingerstyle Solo",bar:"#nowbar",after:"#nbPlay",meter:"6",bpm:60,
+<script src="metro.js?v=20261101"></script><script>GSMetro.mount({here:"fs",name:"Fingerstyle Solo",bar:"#nowbar",after:"#nbPlay",meter:"6",bpm:60,
   credit:(s,fin)=>{const k=dkey(new Date());st.days[k]=Math.round(((st.days[k]||0)+s)*10)/10;save(!fin);},stopPage:()=>{if(play)stop();}});</script>
-<script src="plan.js?v=20261025"></script><script>GSPlan.watch("fs",{live:()=>(play?(performance.now()-play.lf)/1000:0)+GSMetro.live(),playing:()=>!!play||GSMetro.isOn(),stop:()=>{stop();GSMetro.stop();}});</script>
+<script src="plan.js?v=20261101"></script><script>GSPlan.watch("fs",{live:()=>(play?(performance.now()-play.lf)/1000:0)+GSMetro.live(),playing:()=>!!play||GSMetro.isOn(),stop:()=>{stop();GSMetro.stop();}});</script>
 </body></html>

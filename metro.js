@@ -6,7 +6,10 @@
      GSMetro.mount({here:"ml", bar:"#nowbar", meter:"4", credit:(sec,final)=>{…add sec to the section's minutes…},
                     stopPage:()=>{…stop the page's player…}});
    The page's own player and the metronome never run together: starting one stops the other.
-   Tempo and time signature are remembered per section on this phone (key "gs-metro-v1"). */
+   Tempo and time signature are remembered per section on this phone (key "gs-metro-v1").
+   (1 Nov 2026) "Silent clicks": the beat dots still flash but nothing sounds, for practising free time.
+   "Stop after": the metronome stops itself after that many minutes of one run (15 by default) and rings a
+   chime + vibrates with a "time to stop" card, so a silent session still ends. */
 (function(){
 "use strict";
 const KEY="gs-metro-v1";
@@ -20,7 +23,9 @@ const METERS={
 const ORDER=["4","3","2","6","12"];
 let O=null,ctx=null,on=null,wake=null,taps=[];
 const get=()=>{try{return JSON.parse(localStorage.getItem(KEY)||"null")||{};}catch(e){return {};}};
-function cfg(){const a=get()[O.here]||{};return {bpm:Math.max(30,Math.min(240,Number(a.bpm)||(O.bpm||70))),meter:METERS[a.meter]?a.meter:(O.meter||"4"),acc:a.acc!==false};}
+const LIMS=[0,10,15,20,30];
+function cfg(){const a=get()[O.here]||{};return {bpm:Math.max(30,Math.min(240,Number(a.bpm)||(O.bpm||70))),meter:METERS[a.meter]?a.meter:(O.meter||"4"),acc:a.acc!==false,
+  mute:a.mute===true,lim:LIMS.includes(Number(a.lim))&&a.lim!==undefined?Number(a.lim):15};}
 function setCfg(p){const a=get();a[O.here]={...cfg(),...p};try{localStorage.setItem(KEY,JSON.stringify(a));}catch(e){}}
 const mm=s=>{s=Math.floor(s);return Math.floor(s/60)+":"+String(s%60).padStart(2,"0");};
 
@@ -32,6 +37,16 @@ function click(t,lvl){
     g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(pk*v,t+.001);g.gain.exponentialRampToValueAtTime(.0001,t+.06);
     o.connect(g).connect(ctx.destination);o.start(t);o.stop(t+.08);});}
 
+/* the end-of-session bell: three soft rising notes, rung twice; it sounds even with silent clicks */
+function bell(){try{audio();const t0=ctx.currentTime+.05;[0,1.6].forEach(r=>[784,988,1319].forEach((f,i)=>{const t=t0+r+i*.22,o=ctx.createOscillator(),g=ctx.createGain();
+  o.type="sine";o.frequency.value=f;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.5,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+1.1);
+  o.connect(g).connect(ctx.destination);o.start(t);o.stop(t+1.2);}));}catch(e){}
+  try{navigator.vibrate&&navigator.vibrate([400,200,400,200,700]);}catch(e){}}
+function doneCard(min){document.querySelectorAll(".gsm-done").forEach(x=>x.remove());const el=document.createElement("div");el.className="gsm-done";el.setAttribute("role","alertdialog");
+  el.innerHTML=`<b>⏱ ${min} minutes done. Time to stop.</b><p>Your ${O.name||"practice"} session is over and the time is counted. Put the guitar down and rest your fingers.</p><button type="button">OK</button>`;
+  el.querySelector("button").onclick=()=>el.remove();document.body.appendChild(el);}
+function finish(){const min=cfg().lim;stop();bell();doneCard(min);}
+
 /* ---------- running ---------- */
 function credit(final){if(!on)return;const now=performance.now();let s=(now-on.lf)/1000;on.lf=now;
   s=Math.min(s,90); // a gap while the phone was asleep doesn't count
@@ -40,8 +55,9 @@ function start(){if(on)return;try{O.stopPage&&O.stopPage();}catch(e){}
   audio();const c=cfg();
   on={next:ctx.currentTime+.1,beat:0,lf:performance.now(),t0:performance.now(),flash:[]};
   on.timer=setInterval(()=>{if(!on)return;const c=cfg(),M=METERS[c.meter],spb=60/c.bpm; // every click is one bpm, in every time signature
-    while(on.next<ctx.currentTime+.15){const i=on.beat%M.b;click(on.next,c.acc?M.acc[i]:(i===0?1:0));on.flash.push([on.next,i]);on.next+=spb;on.beat++;}
-    if(performance.now()-on.lf>3000)credit(false);},25);
+    while(on.next<ctx.currentTime+.15){const i=on.beat%M.b;if(!c.mute)click(on.next,c.acc?M.acc[i]:(i===0?1:0));on.flash.push([on.next,i]);on.next+=spb;on.beat++;}
+    if(performance.now()-on.lf>3000)credit(false);
+    if(c.lim&&performance.now()-on.t0>=c.lim*60000){finish();return;}},25);
   on.raf=requestAnimationFrame(draw);
   try{if(navigator.wakeLock)navigator.wakeLock.request("screen").then(l=>{if(on)wake=l;else l.release();}).catch(()=>{});}catch(e){}
   paint();}
@@ -50,7 +66,7 @@ function stop(){if(!on)return;credit(true);clearInterval(on.timer);cancelAnimati
 document.addEventListener("visibilitychange",()=>{if(on&&document.visibilityState==="visible"&&navigator.wakeLock&&!wake)navigator.wakeLock.request("screen").then(l=>{wake=l;}).catch(()=>{});});
 function draw(){if(!on)return;const now=ctx.currentTime;let cur=null;while(on.flash.length&&on.flash[0][0]<=now)cur=on.flash.shift();
   if(cur){document.querySelectorAll(".gsm-dots i").forEach((d,k)=>d.classList.toggle("lit",k===cur[1]));}
-  const t=document.getElementById("gsmClock");if(t){const s=(performance.now()-on.t0)/1000,x=mm(s);if(t.textContent!==x)t.textContent=x;}
+  const t=document.getElementById("gsmClock");if(t){const s=(performance.now()-on.t0)/1000,L=cfg().lim,x=mm(s)+(L?" / "+L+":00":"");if(t.textContent!==x)t.textContent=x;}
   on.raf=requestAnimationFrame(draw);}
 
 /* ---------- the button in the bottom bar, the mini bar when the page's bar is hidden, and the panel ---------- */
@@ -79,9 +95,13 @@ const CSS=`.gsm-btn{flex:none;font:650 14px system-ui,-apple-system,"Segoe UI",s
 .gsm-row .go.run{background:#141413}
 .gsm-row .tap{border:1px solid #d6d3c8;background:#fff;border-radius:12px;padding:12px 14px;font:650 14px system-ui,sans-serif;cursor:pointer;color:#141413}
 .gsm-row label{display:flex;gap:6px;align-items:center;font-size:13px;color:#6b6a63}
+.gsm-row select{font:600 13px system-ui,sans-serif;border:1px solid #d6d3c8;border-radius:8px;padding:5px 6px;background:#fff;color:#141413}
+.gsm-done{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:70;width:min(380px,calc(100% - 32px));background:#fff;border:2px solid #c2410c;border-radius:16px;box-shadow:0 16px 44px #0f172a55;padding:18px;display:flex;flex-direction:column;gap:10px;font:15px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif;color:#141413;text-align:center}
+.gsm-done b{font-size:18px}.gsm-done p{margin:0;color:#6b6a63;font-size:14px}
+.gsm-done button{border:0;border-radius:12px;padding:12px;font:700 16px system-ui,sans-serif;background:#c2410c;color:#fff;cursor:pointer}
 #gsmClock{font:700 14px ui-monospace,Menlo,Consolas,monospace;color:#141413}`;
 let panel=null,mini=null,barEl=null;
-function btnHTML(){const c=cfg();return on?`■ ♩${c.bpm}`:"♩ Metronome";}
+function btnHTML(){const c=cfg();return on?`■ ${c.mute?"🔇":"♩"}${c.bpm}`:"♩ Metronome";}
 function ensureBtn(){
   if(!barEl)barEl=document.querySelector(O.bar);
   const host=barEl&&(O.into?barEl.querySelector(O.into)||barEl:barEl);
@@ -104,7 +124,9 @@ function fill(){const c=cfg(),M=METERS[c.meter];
     <p>${M.n}: ${M.d}.${M.b>=6?" Every click is one string, at the tempo above.":""}</p>
     <div class="gsm-dots">${M.acc.map(a=>`<i class="${c.acc&&a?"a"+a:!c.acc&&a===2?"a2":""}"></i>`).join("")}</div>
     <div class="gsm-row"><button type="button" class="go${on?" run":""}" data-gsmx="go">${on?"■ Stop":"▶ Start"}</button><button type="button" class="tap" data-gsmx="tap">Tap tempo</button></div>
-    <div class="gsm-row"><label><input type="checkbox" data-gsma="1" ${c.acc?"checked":""}> Accent the groups</label><span style="margin-left:auto">${on?`Running <span id="gsmClock">0:00</span>`:""}</span></div>
+    <div class="gsm-row"><label><input type="checkbox" data-gsma="1" ${c.acc?"checked":""}> Accent the groups</label><label><input type="checkbox" data-gsmq="1" ${c.mute?"checked":""}> 🔇 Silent clicks</label></div>
+    <div class="gsm-row"><label>Stop &amp; remind after <select data-gsml="1">${LIMS.map(v=>`<option value="${v}" ${v===c.lim?"selected":""}>${v?v+" min":"Off"}</option>`).join("")}</select></label><span style="margin-left:auto">${on?`Running <span id="gsmClock">0:00</span>`:""}</span></div>
+    ${c.mute?`<p>Silent: no clicks, only the dots flash. Play in your own time.${c.lim?` A bell rings and the phone vibrates at ${c.lim} minutes.`:""}</p>`:""}
     <p>Every second the metronome runs counts as ${O.name||"this section"} practice, for today's goal and the cycle. Starting the section's own player stops it.</p>`;}
 function open(){if(panel){panel.remove();panel=null;return;}panel=document.createElement("div");panel.className="gsm-pan";panel.setAttribute("role","dialog");panel.setAttribute("aria-label","Metronome");document.body.appendChild(panel);fill();place();}
 function bump(p){setCfg(p);paint();} // a running metronome picks the change up from its next click
@@ -119,12 +141,14 @@ document.addEventListener("click",e=>{if(!O)return;const t=e.target;
     if(taps.length>=2){const g=(taps[taps.length-1]-taps[0])/(taps.length-1);bump({bpm:Math.max(30,Math.min(240,Math.round(60000/g)))});}}},true);
 document.addEventListener("input",e=>{if(!O||!panel)return;const t=e.target;
   if(t.dataset.gsmr){setCfg({bpm:Number(t.value)});const b=panel.querySelector(".gsm-tempo b");if(b)b.textContent=t.value;document.querySelectorAll("[data-gsm]").forEach(paintBtn);}
-  else if(t.dataset.gsma){bump({acc:t.checked});}});
+  else if(t.dataset.gsma){bump({acc:t.checked});}
+  else if(t.dataset.gsmq){bump({mute:t.checked});}
+  else if(t.dataset.gsml){bump({lim:Number(t.value)});}});
 document.addEventListener("change",e=>{if(panel&&e.target.dataset&&e.target.dataset.gsmr)fill();});
 
 function mount(o){O=o;const s=document.createElement("style");s.textContent=CSS;document.head.appendChild(s);
   ensureBtn();setInterval(ensureBtn,500);
   /* re-add the button as soon as the page redraws its bar */
   let q=0;try{new MutationObserver(()=>{if(!q)q=requestAnimationFrame(()=>{q=0;ensureBtn();});}).observe(document.body,{childList:true,subtree:true});}catch(e){}}
-window.GSMetro={mount,start,stop,isOn:()=>!!on,live:()=>on?Math.min(90,(performance.now()-on.lf)/1000):0};
+window.GSMetro={mount,start,stop,bell,isOn:()=>!!on,live:()=>on?Math.min(90,(performance.now()-on.lf)/1000):0};
 })();

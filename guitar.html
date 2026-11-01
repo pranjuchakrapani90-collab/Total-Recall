@@ -2863,7 +2863,7 @@ function restartInNewFormat(old){
 })();
 </script>
 
-<script src="metro.js?v=20261026"></script><script>GSMetro.mount({here:"ml",name:"Melodic Lead",bar:"#nowbar",after:"#nbPlay",meter:"4",bpm:60,
+<script src="metro.js?v=20261101"></script><script>GSMetro.mount({here:"ml",name:"Melodic Lead",bar:"#nowbar",after:"#nbPlay",meter:"4",bpm:60,
   credit:(s,fin)=>{if(!today)return;GSync.addMinutes(today,dkey(new Date()),s);persistDay(!fin);},stopPage:()=>{if(play)stop();}});</script>
-<script src="plan.js?v=20261025"></script><script>GSPlan.watch("ml",{live:()=>(play?(performance.now()-(play.lf||play.t0))/1000:0)+GSMetro.live(),playing:()=>!!play||GSMetro.isOn(),stop:()=>{stop();GSMetro.stop();}});</script>
+<script src="plan.js?v=20261101"></script><script>GSPlan.watch("ml",{live:()=>(play?(performance.now()-(play.lf||play.t0))/1000:0)+GSMetro.live(),playing:()=>!!play||GSMetro.isOn(),stop:()=>{stop();GSMetro.stop();}});</script>
 </body></html>
