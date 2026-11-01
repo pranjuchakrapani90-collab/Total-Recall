@@ -184,6 +184,7 @@ input,select{font:inherit;width:100%;padding:10px 12px;border:1px solid var(--tr
 .oc button b{display:block;color:var(--c);font-weight:750}
 .oc button small{display:block;margin-top:2px;font-weight:500;font-size:11.5px;color:var(--tr-muted)}
 .oc button.on{background:var(--c)}.oc button.on b,.oc button.on small{color:#fff}
+.toastUndo{margin-left:14px;border:0;background:none;color:#a5b4fc;font:800 14px system-ui,sans-serif;padding:0;cursor:pointer}
 .oc button.arm{background:#eef2ff;box-shadow:0 0 0 3px #c7d2fe}.oc button.arm small{color:#3730a3;font-weight:650}
 .ocNote{text-align:center;color:#15803d;font-weight:650;padding:14px;border:1px dashed var(--tr-line);border-radius:12px}
 .ocLater{border:1.5px solid #0369a1;border-radius:13px;padding:10px;background:var(--tr-paper)}
@@ -363,14 +364,25 @@ const OUT={cont:{i:"✓",n:"Done · continues",h:"Work done today, back tomorrow
   push:{i:"↷",n:"Push to tomorrow",h:"Not done, back tomorrow",c:"#b45309"},
   later:{i:"📅",n:"Push to a date",h:"Then daily until done",c:"#0369a1"}};
 function clearOutcome(a){delete a.s;delete a.on;delete a.until;delete a.d;}
-async function setOutcome(id,s,date,quiet){const a=D.assign[id];if(!a)return;const say=quiet?()=>{}:toast;const td=todayIST(),cur=stOf(id,a);
+/* Done & dusted (1 Nov 2026): one tap; the task is closed for good only after 4 s, so the toast's Undo can still take it back */
+let finWait=null;
+function flushFin(){if(!finWait)return;const f=finWait;finWait=null;clearTimeout(f.timer);f.run();}
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")flushFin()});
+window.addEventListener("pagehide",flushFin);
+async function setOutcome(id,s,date,quiet,noRender){const a=D.assign[id];if(!a)return;const say=quiet?()=>{}:toast;const td=todayIST(),cur=stOf(id,a);
+  if(finWait&&finWait.id!==id)flushFin();
+  if(finWait&&finWait.id===id){clearTimeout(finWait.timer);finWait=null;}
   if(cur===s&&quiet&&s!=="later")return;if(cur===s&&(s!=="later"||!date||date===a.until)){clearOutcome(a);save();render();say(window.PosTasks&&PosTasks.on()?"Back to pending on the card — the task's date stays as it is now":"Back to pending on the card",3200);return}
   clearOutcome(a);a.s=s;a.on=td;
   if(s==="cont")a.d=td;
   if(s==="push"||s==="later")a.np=(a.np||0)+1;
   if(s==="later")a.until=date;
-  save();render();
+  save();if(!noRender)render();
   const pj=a.pj||projById[id],label=OUT[s].n,SRC="Pranju OS";if(!pj){say(label+" · saved here",2000);return}
+  if(s==="fin"&&!quiet){await new Promise(res=>{
+    finWait={id,run:res,timer:setTimeout(()=>{finWait=null;res()},4000),cancel:()=>{finWait=null;clearOutcome(a);save();render();toast("Undone · back on the card",1800)}};
+    toast(label+" · closing for good",4000,()=>{if(finWait&&finWait.id===id){clearTimeout(finWait.timer);finWait.cancel()}});});
+    if(a.s!=="fin")return;}
   try{const r=await fetch(wurl("mode=deleg-done"),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({projectId:pj,taskId:id,action:s,date:date||""})});
     const d=await r.json().catch(()=>({}));if(!r.ok||d.error)throw new Error(d.error||("HTTP "+r.status));
     let m=label;
@@ -412,21 +424,20 @@ function laterHtml(a){const td=todayIST(),pick=a.s==="later"&&a.until>td?a.until
   const q=[[2,"Day after tomorrow"],[3,"In 3 days"],[toMon,"Next Monday"],[7,"In a week"]].filter((v,i,arr)=>arr.findIndex(w=>w[0]===v[0])===i);
   return `<div class="ocLater"><b>Push to which day?</b><div class="ocQ">${q.map(([n,l])=>`<button type="button" class="btn" data-qd="${addDay(td,n)}">${l}<small>${fmtDay(addDay(td,n))}</small></button>`).join("")}</div>
     <div class="ocPick"><input type="date" id="ocDate" min="${addDay(td,1)}" value="${pick}"><button type="button" class="btn pri" id="ocSet">Set</button><button type="button" class="btn ghost" id="ocCancel">Cancel</button></div></div>`;}
-function bindOutcome(box,id){const a=D.assign[id];if(!a)return;let armed=0;
+function bindOutcome(box,id){const a=D.assign[id];if(!a)return;
   box.querySelectorAll("[data-oc]").forEach(b=>b.onclick=e=>{e.stopPropagation();const k=b.dataset.oc,cur=stOf(id,a);
     if(k==="later"&&cur!=="later"){box.innerHTML=laterHtml(a);bindLater(box,id);return}
     if(k==="step"){box.innerHTML=stepHtml(id,a);bindStep(box,id);return}
-    /* closing for good removes the daily repeat in TickTick, so it takes a second tap */
-    if(k==="fin"&&cur!=="fin"&&!armed){armed=1;b.querySelector("small").textContent="Tap again — closes it for good";b.classList.add("arm");
-      setTimeout(()=>{if(b.isConnected&&armed){armed=0;b.classList.remove("arm");b.querySelector("small").textContent=OUT.fin.h}},3500);return}
-    setOutcome(id,k);advance(id);});}
-function bindLater(box,id){const go=d=>{if(!d||d<=todayIST()){toast("Pick a day after today");return}setOutcome(id,"later",d);advance(id);};
+    /* instant feedback, then straight back to the member's card (one render) */
+    if(cur!==k){b.classList.add("on");setOutcome(id,k,null,false,true);advance(id);}
+    else{setOutcome(id,k);}});}
+function bindLater(box,id){const go=d=>{if(!d||d<=todayIST()){toast("Pick a day after today");return}setOutcome(id,"later",d,false,true);advance(id);};
   box.querySelectorAll("[data-qd]").forEach(b=>b.onclick=e=>{e.stopPropagation();go(b.dataset.qd)});
   box.querySelector("#ocSet").onclick=e=>{e.stopPropagation();go(box.querySelector("#ocDate").value)};
   box.querySelector("#ocCancel").onclick=e=>{e.stopPropagation();if(TF)drawFlash()};}
 /* after choosing, it goes back to the member's delegation card to pick the next task there (1 Nov 2026; an undo stays on the task) */
 function advance(id){if(!TF)return;const a=D.assign[id];if(!a||!a.s)return;backToCard(id);}
-function backToCard(id){setTimeout(()=>{if(TF&&(!id||TF.ids[TF.i]===id)){closeFlash();document.body.style.overflow=$("mflash").hidden?"":"hidden";}},650);}
+function backToCard(id){setTimeout(()=>{if(TF&&(!id||TF.ids[TF.i]===id)){closeFlash();document.body.style.overflow=$("mflash").hidden?"":"hidden";}},140);}
 function bindTools(el){el.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{filterG=b.dataset.g;fi=0;render()});
   el.querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>{D.prefs.view=b.dataset.v;save();render()});
   $("showDone").onchange=e=>{D.prefs.showDone=e.target.checked?1:0;save();render()};
@@ -577,8 +588,10 @@ function selAct(k){const ids=selIds();if(k==="x"){selClear();return}if(!ids.leng
         ids.forEach(id=>{if(id!==keep)delete D.assign[id]});const k2=PosTasks.get(keep);if(k2&&D.assign[keep]){D.assign[keep].t=k2.ti;if(!allDone)clearOutcome(D.assign[keep]);}
         lastNew=keep;save();closeSheet();selClear();toast("Merged into one task ✓",2600);};});return}}
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&selMode&&$("scrim").hidden)selClear()});
-let tt=0;function toast(m,ms){let t=document.querySelector(".toast");if(!t){t=document.createElement("div");t.className="toast";document.body.appendChild(t)}
-  t.textContent=m;t.style.opacity=1;clearTimeout(tt);tt=setTimeout(()=>t.style.opacity=0,ms||1600);}
+let tt=0;function toast(m,ms,undo){let t=document.querySelector(".toast");if(!t){t=document.createElement("div");t.className="toast";document.body.appendChild(t)}
+  t.textContent=m;t.style.opacity=1;t.style.pointerEvents=undo?"auto":"none";
+  if(undo){const u=document.createElement("button");u.type="button";u.className="toastUndo";u.textContent="Undo";u.onclick=e=>{e.stopPropagation();t.style.opacity=0;t.style.pointerEvents="none";undo()};t.appendChild(u)}
+  clearTimeout(tt);tt=setTimeout(()=>{t.style.opacity=0;t.style.pointerEvents="none"},ms||1600);}
 /* the other phone delegated something: take the change in place */
 window.addEventListener("kvsync",e=>{if((e.detail||[]).indexOf(KEY)<0)return;D=load();if($("scrim").hidden)render();});
 window.addEventListener("storage",e=>{if(e.key===KEY){D=load();if($("scrim").hidden)render();}});
