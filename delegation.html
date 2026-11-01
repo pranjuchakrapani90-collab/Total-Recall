@@ -364,7 +364,7 @@ const OUT={cont:{i:"✓",n:"Done · continues",h:"Work done today, back tomorrow
   later:{i:"📅",n:"Push to a date",h:"Then daily until done",c:"#0369a1"}};
 function clearOutcome(a){delete a.s;delete a.on;delete a.until;delete a.d;}
 async function setOutcome(id,s,date,quiet){const a=D.assign[id];if(!a)return;const say=quiet?()=>{}:toast;const td=todayIST(),cur=stOf(id,a);
-  if(cur===s&&quiet&&s!=="later")return;if(cur===s&&(s!=="later"||!date||date===a.until)){clearOutcome(a);save();render();say(window.PosTasks&&PosTasks.on()?"Back to pending on the card — the task's date stays as it is now":"Back to pending here — TickTick is not changed back",3200);return}
+  if(cur===s&&quiet&&s!=="later")return;if(cur===s&&(s!=="later"||!date||date===a.until)){clearOutcome(a);save();render();say(window.PosTasks&&PosTasks.on()?"Back to pending on the card — the task's date stays as it is now":"Back to pending on the card",3200);return}
   clearOutcome(a);a.s=s;a.on=td;
   if(s==="cont")a.d=td;
   if(s==="push"||s==="later")a.np=(a.np||0)+1;
@@ -506,20 +506,20 @@ function richText(raw){const files=[];let s=String(raw||"").replace(/\r/g,"").re
   return lines.map(x=>{if(/^-{3,}$/.test(x))return "<hr>";
     let h=esc(x.replace(/^[-*]\s+/,"")).replace(/(https?:\/\/[^\s<]+)/g,'<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>').replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>");
     h=h.replace(/\u0000(\d+)\u0000/g,(m,n)=>{let nm=files[+n]||"";try{nm=decodeURIComponent(nm)}catch(e){}nm=nm.split("/").pop()||"Attachment";
-      return `<div class="taskAttachment"><div class="taskAttachmentIcon">C</div><div style="min-width:0"><div class="taskAttachmentName">${esc(nm)}</div><div class="taskAttachmentSize">TickTick attachment</div></div></div>`});
+      return `<div class="taskAttachment"><div class="taskAttachmentIcon">C</div><div style="min-width:0"><div class="taskAttachmentName">${esc(nm)}</div><div class="taskAttachmentSize">Attachment</div></div></div>`});
     return /^[-*]\s+/.test(x)?`<ul class="tickList"><li>${h}</li></ul>`:`<p>${h}</p>`}).join("");}
 function detailHtml(t,comments,pj,id){const url=t.local?"tasks.html#t="+encodeURIComponent(id):"https://ticktick.com/webapp/#p/"+encodeURIComponent(pj)+"/tasks/"+encodeURIComponent(id);
   const content=t.content||t.desc||"",items=Array.isArray(t.items)?t.items:[],atts=Array.isArray(t.attachments)?t.attachments:(Array.isArray(t.files)?t.files:[]);
-  let h=`<div class="taskHead"><div class="tfHeadRow"><h4>${esc(t.title||"Task")}</h4><a class="taskOpenLink" href="${url}"${t.local?"":' target="_blank" rel="noopener noreferrer"'}>${t.local?"Edit task ✎":"Open in TickTick ↗"}</a></div>
+  let h=`<div class="taskHead"><div class="tfHeadRow"><h4>${esc(t.title||"Task")}</h4><a class="taskOpenLink" href="${url}"${t.local?"":' target="_blank" rel="noopener noreferrer"'}>${t.local?"Edit task ✎":"Open task ↗"}</a></div>
     <div class="taskMeta">${t.list?`<span class="taskPill">${esc(t.list)}</span>`:""}${t.dueDate?`<span class="taskPill">Due ${esc(String(t.dueDate).slice(0,10))}</span>`:""}${t.repeat?`<span class="taskPill">↻ ${esc(t.repeat)}</span>`:""}${(t.tags||[]).map(x=>`<span class="taskPill">#${esc(x)}</span>`).join("")}</div></div>`;
   if(t.local&&window.PosTasks)h+='<div class="pteMount"></div>';else{
   if(content)h+=`<div class="taskBody"><div class="taskContent">${richText(content)}</div></div>`;
   if(items.length)h+=`<div class="taskSection"><div class="taskSectionTitle">Checklist</div>${items.map(x=>{const ok=x.status===1||x.status===2;return `<div class="taskSubtask${ok?" done":""}">${ok?"☑":"☐"} ${esc(x.title||"")}</div>`}).join("")}</div>`;
   if(atts.length)h+=`<div class="taskSection"><div class="taskSectionTitle">Attachments</div>${atts.map(x=>`<div class="taskAttachment"><div class="taskAttachmentIcon">C</div><div style="min-width:0"><div class="taskAttachmentName">${esc(x.name||x.fileName||x.title||"Attachment")}</div></div></div>`).join("")}</div>`;
   if(comments.length)h+=`<div class="taskSection"><div class="taskSectionTitle">Latest comments</div>${comments.map(x=>`<div class="taskComment">${richText(x.content||x.text||x.title||"")}${x.createdTime?`<small>${esc(String(x.createdTime).slice(0,16).replace("T"," "))}</small>`:""}</div>`).join("")}</div>`;
-  if(!content&&!items.length&&!atts.length&&!comments.length)h+='<div class="taskBody"><div class="taskEmpty">'+(t.local?'No notes or checklist on this task yet.':'No description, checklist, attachment or comment in TickTick for this task.')+'</div></div>';
+  if(!content&&!items.length&&!atts.length&&!comments.length)h+='<div class="taskBody"><div class="taskEmpty">'+(t.local?'No notes or checklist on this task yet.':'No notes or checklist on this task yet.')+'</div></div>';
   }
-  return h+`<div class="taskFooter">${t.local?"Pranju OS task":"Live from TickTick · "+esc(new Date().toLocaleTimeString())}</div>`;}
+  return h+`<div class="taskFooter">${t.local?"Pranju OS task":"Fetched "+esc(new Date().toLocaleTimeString())}</div>`;}
 $("tfCard").addEventListener("click",e=>{if(e.target.closest("a,button,input,textarea,label,.pte"))return;const f=$("tfCard").classList.toggle("flipped");if(f)revealFlash();});
 const tfGo=d=>{if(!TF)return;const j=TF.i+d;if(j<0||j>=TF.ids.length)return;TF.i=j;drawFlash();};
 (()=>{let x0=null;const c=$("tfCard");c.addEventListener("touchstart",e=>{x0=e.touches[0].clientX},{passive:true});

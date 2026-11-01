@@ -96,7 +96,7 @@ function buildStage(){
 function onKey(e){if(!$('cine'))return;if(e.key==='Escape'){close()}else if(e.key===' '||e.key==='k'){e.preventDefault();toggle()}else if(e.key==='ArrowRight'){go(S.i+1)}else if(e.key==='ArrowLeft'){go(S.i-1)}else if(e.key==='n'){nextChapter()}}
 
 /* ---------- data ---------- */
-async function getJson(u){var r=await fetch(u,{cache:'no-store'});if(!r.ok)throw new Error('TickTick bridge returned HTTP '+r.status);var d=await r.json();if(d.error)throw new Error(d.error);return d}
+async function getJson(u){var r=await fetch(u,{cache:'no-store'});if(!r.ok)throw new Error('Task store returned HTTP '+r.status);var d=await r.json();if(d.error)throw new Error(d.error);return d}
 
 function buildFilm(kind,range,items){
   var groups={};items.forEach(function(t){var g=t._tag;(groups[g]=groups[g]||[]).push(t)});
@@ -134,7 +134,7 @@ function prefetch(from){for(var k=from;k<Math.min(S.slides.length,from+3);k++){v
 /* ---------- rendering ---------- */
 function detailHtml(data,task){
   if(!data)return '<div class="muted">Details are not available for this item.</div>';
-  if(data.error)return '<div class="muted">Could not load TickTick details: '+h(data.error)+'</div>';
+  if(data.error)return '<div class="muted">Could not load the task details: '+h(data.error)+'</div>';
   var t=data.task||task,comments=Array.isArray(data.comments)?data.comments:[],content=t.content||t.desc||'',html='';
   if(content){var body;try{body=B().tickContentHtml?B().tickContentHtml(content,t):h(content).replace(/\n/g,'<br>')}catch(_){body=h(content).replace(/\n/g,'<br>')}html+='<div class="sec">'+body+'</div>'}
   if(Array.isArray(t.items)&&t.items.length)html+='<div class="sec"><div class="secT">Checklist</div>'+t.items.map(function(x){var d=x.status===1||x.status===2;return '<div class="chk'+(d?' done':'')+'">'+(d?'☑':'☐')+' '+h(x.title||'')+'</div>'}).join('')+'</div>';
@@ -145,7 +145,7 @@ function detailHtml(data,task){
   return html;
 }
 function textLen(html){var d=document.createElement('div');d.innerHTML=html;return (d.textContent||'').trim().split(/\s+/).filter(Boolean).length}
-function taskLink(t){return t&&t.projectId&&t.id?'https://ticktick.com/webapp/#p/'+encodeURIComponent(t.projectId)+'/tasks/'+encodeURIComponent(t.id):''}
+function taskLink(t){return t&&t.id?'tasks.html#t='+encodeURIComponent(t.id):''}
 
 function render(){
   var s=S.slides[S.i],frame=$('cineFrame'),root=$('cine');if(!s)return;
@@ -170,8 +170,8 @@ function render(){
       meta='<div class="pills">'+(t.tags||[]).map(function(x){return '<span class="pill">#'+h(x)+'</span>'}).join('')+(t.due?'<span class="pill">'+h(String(t.due).slice(0,10))+'</span>':'')+'</div>';
     }
     html='<div class="kicker">'+h(tagLabel(s.tag))+' · '+s.pos+' of '+s.of+'</div><div class="title">'+h(t.title||'Untitled')+'</div>'+meta+
-      '<div class="detail" id="cineDetail"><div class="detailInner" id="cineDetailInner"><div class="loading"><i></i><i></i><i></i>&nbsp;Loading from TickTick</div></div></div>'+
-      (link?'<div class="actions" style="margin-top:14px"><a href="'+link+'" target="_blank" rel="noopener noreferrer">Open in TickTick ↗</a></div>':'');
+      '<div class="detail" id="cineDetail"><div class="detailInner" id="cineDetailInner"><div class="loading"><i></i><i></i><i></i>&nbsp;Loading task details</div></div></div>'+
+      (link?'<div class="actions" style="margin-top:14px"><a href="'+link+'">Edit task ✎</a></div>':'');
   }else{
     html='<div class="kicker">The end · '+h(fmtRange(s.range))+'</div><div class="title big">'+(S.kind==='completed'?s.total+' things done':s.total+' references reviewed')+'</div>'+
       '<div class="summary">'+s.tags.map(function(t){return '<div class="sumCard" style="--hue:'+hueOf(t)+'"><b>'+s.groups[t].length+'</b><span>'+h(tagLabel(t))+'</span></div>'}).join('')+'</div>'+

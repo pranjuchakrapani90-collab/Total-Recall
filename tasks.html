@@ -149,9 +149,6 @@ function render(){
     if(tdy.length)h+=`<div class="sec">Today · ${tdy.length}</div><div class="list">${tdy.map(row).join("")}</div>`;}
   else{h+=`<div class="list">${list.slice(0,limit).map(row).join("")}</div>`;if(list.length>limit)h+=`<button class="btn more" id="more" type="button">Show ${Math.min(150,list.length-limit)} more of ${list.length-limit}</button>`;}
   const m=P.meta();h+=`<div class="foot"><span>${arr.filter(t=>t.st!==2).length} open tasks · kept in Pranju OS${m.imported?" since "+fmtDay(String(m.imported).slice(0,10)):""}, synced to your phones through Google Drive.</span>
-    <button class="btn sm ghost" id="reimp" type="button">Copy anything new from TickTick</button>
-    <button class="btn sm ghost" id="bkimp" type="button">${m.backup?"Add a TickTick backup file again":"Add history from a TickTick backup file (CSV)"}</button>
-    ${m.backup?`<span>Completed history added from a TickTick backup on ${fmtDay(String(m.backup).slice(0,10))}.</span>`:""}
     ${mirrorLine()}</div>`;
   const main=$("main"),focus=document.activeElement&&document.activeElement.id==="q",pos=focus?document.activeElement.selectionStart:0;
   main.innerHTML=h;
@@ -162,7 +159,7 @@ function render(){
   main.querySelectorAll(".ck").forEach(b=>b.onclick=e=>{if(selMode)return;e.stopPropagation();tick(b.closest(".row").dataset.id)});
   drawSel();
   const more=$("more");if(more)more.onclick=()=>{limit+=150;render()};
-  $("reimp").onclick=()=>doImport(true);$("bkimp").onclick=()=>$("bkfile").click();}
+  }
 function row(t){const td=P.today(),od=t.du&&t.du<td&&t.st!==2,meta=[];
   if(tab==="today"||q)meta.push(`<span>${esc(P.LISTNAME[t.pj])}</span>`);
   if(t.du)meta.push(`<span class="${od?"od":""}">${t.du===td?"Today":fmtDay(t.du)}${t.tm?" "+t.tm:""}</span>`);
