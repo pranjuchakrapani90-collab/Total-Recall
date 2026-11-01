@@ -3,8 +3,8 @@
   "name": "total-recall-ticktick",
   "main": "./ticktick-worker.js",
   "compatibility_date": "2026-09-06",
-  // Nightly backup of the sync vault + Gemini vault clean-up, 02:30 IST (cron is UTC)
-  "triggers": { "crons": ["0 21 * * *"] },
+  // Nightly backup of the sync vault + Gemini vault clean-up, 02:30 IST (cron is UTC); Gemini clean-up also every 3 hours
+  "triggers": { "crons": ["0 21 * * *", "30 */3 * * *"] },
   "kv_namespaces": [
     { "binding": "SYNC_KV" }
   ],
