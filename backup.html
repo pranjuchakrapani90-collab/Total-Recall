@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
+<title>Backup · Pranju OS</title>
+<link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="tr-theme.css?v=20261020">
+<style>
+/* Backup (1 Nov 2026): nightly copies of every Pranju OS sync file, made by the Worker inside Google Drive
+   (Pranju OS / Backups / <date>), plus Back up now and Restore. See "Backups + Gemini vault" in ticktick-worker.js. */
+*{box-sizing:border-box}html,body{margin:0}
+body{font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100vh;background:var(--tr-bg);color:var(--tr-ink)}
+body>header{padding:calc(10px + env(safe-area-inset-top,0px)) 16px 10px;background:var(--tr-head);color:var(--tr-head-ink)}
+.hin,main{max-width:760px;margin:0 auto}
+.backlink{font-size:13px;text-decoration:none;color:var(--tr-head-mute)}
+h1{margin:4px 0 4px;font-size:22px}
+main{padding:16px 16px 120px}
+h2{font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--tr-muted);margin:22px 0 8px}
+.muted{color:var(--tr-muted)}
+.card{border:1px solid var(--tr-line);border-radius:14px;background:var(--tr-paper);padding:14px}
+.big{font-size:17px;font-weight:700}
+.btn{border:1px solid var(--tr-line);background:var(--tr-paper);color:var(--tr-ink);border-radius:10px;padding:10px 14px;font:600 14px system-ui,sans-serif;cursor:pointer}
+.btn.pri{background:var(--tr-acc);border-color:var(--tr-acc);color:#fff}
+.btn.sm{padding:6px 11px;font-size:13px}
+.btn:disabled{opacity:.45}
+.row{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.b{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:10px 2px;border-bottom:1px solid var(--tr-line)}
+.b:last-child{border-bottom:0}
+.k{font-size:11px;font-weight:700;padding:2px 7px;border-radius:999px;background:var(--tr-soft);color:var(--tr-muted);margin-left:6px}
+.msg{padding:12px 14px;border-radius:12px;font-size:14px;margin:10px 0;background:#ecfdf5;color:#065f46}
+.msg.err{background:#fff7ed;color:#9a3412}
+</style></head><body>
+<header><div class="hin"><a class="backlink" href="index.html">← Pranju OS</a><h1>Backup</h1></div></header>
+<main>
+<div id="note"></div>
+<div class="card"><div class="row"><div><div class="big" id="last">…</div><div class="muted" id="lastSub" style="font-size:13px"></div></div>
+<button class="btn pri" id="now" type="button">Back up now</button></div></div>
+<p class="muted" style="font-size:13px">Every night at 2:30 AM the server copies all your Pranju OS data (tasks, delegation, people, money, travel, weight, guitar, estimates…) into Google Drive › Pranju OS › Backups. It stays encrypted with your sync code. Kept: the last 30 nights, then one per month for a year.</p>
+<h2>Restore</h2>
+<div class="card" id="list"><span class="muted">Loading…</span></div>
+<p class="muted" style="font-size:13px">Restoring first saves today's state as a “before restore” backup, so it can be undone. Then each phone clears its own copy and loads the restored data the next time Pranju OS opens. Anything changed on a phone since the backup is replaced.</p>
+<h2>Gemini vault copies</h2>
+<div class="card"><div class="row"><span id="gem" class="muted" style="font-size:14px">…</span><button class="btn sm" id="clean" type="button">Clean up now</button></div></div>
+</main>
+<script>
+(function(){
+"use strict";
+var $=function(id){return document.getElementById(id)},DEF="https://total-recall-ticktick.pranjuchakrapani90.workers.dev";
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function base(){var u=null;try{u=localStorage.getItem("totalRecallTickTickUrl")}catch(e){}return u||window.TOTAL_RECALL_TICKTICK_URL||DEF}
+async function api(op,method,extra){var u=base();var r=await fetch(u+(u.indexOf("?")>=0?"&":"?")+"mode=backup&op="+op+(extra||""),{method:method||"GET",cache:"no-store"}),d={};
+  try{d=await r.json()}catch(e){}if(!r.ok||d.error){var e=new Error(d.error||"the server answered HTTP "+r.status);e.code=d.code||"";throw e}return d}
+function when(iso){var d=new Date(iso);return isNaN(d)?"":d.toLocaleString("en-IN",{day:"numeric",month:"short",year:"numeric",hour:"numeric",minute:"2-digit"})}
+function ago(iso){var h=(Date.now()-new Date(iso))/3600000;return h<1?"less than an hour ago":h<48?Math.round(h)+" hours ago":Math.round(h/24)+" days ago"}
+function note(m,bad){$("note").innerHTML=m?'<div class="msg'+(bad?" err":"")+'">'+m+'</div>':""}
+function fail(e){note(esc(e.message)+(e.code==="need_full"||e.code==="not_connected"?' <a href="index.html#travel">Open Travel Trace → Google Drive</a>':""),true)}
+async function status(){try{var s=await api("status");
+  if(s.last){$("last").textContent="Last backup "+ago(s.last.at);$("lastSub").textContent=when(s.last.at)+" · "+s.last.files+" files · "+(s.last.kind==="nightly"?"nightly":s.last.kind.replace("-"," "))}
+  else{$("last").textContent="No backup yet";$("lastSub").textContent=s.full?"The first one runs tonight, or tap Back up now.":""}
+  if(s.error&&(!s.last||s.error.at>s.last.at))note("Last night's backup failed: "+esc(s.error.error),true);
+  if(!s.full)note("Google Drive needs reconnecting once to allow backups and the vault: Travel Trace → Google Drive → Disconnect, then Connect. On Google's “unverified app” screen tap Advanced → Go to Pranju OS.",true);
+  $("gem").textContent=s.cleanup?"Last clean-up "+ago(s.cleanup.at)+": "+s.cleanup.trashed+" old copies moved to Drive's bin (newest 3 of each kept).":"Old copies of master_document_vault.json and reviewed_files_log.json are moved to Drive's bin each night; the newest 3 are kept.";
+  return s}catch(e){fail(e)}}
+async function list(){try{var d=await api("list");var b=d.backups||[];
+  $("list").innerHTML=b.length?b.map(function(x){return '<div class="b"><div><b>'+esc(x.name)+'</b>'+(x.kind!=="nightly"?'<span class="k">'+esc(x.kind.replace("-"," "))+'</span>':'')+'<div class="muted" style="font-size:12px">'+esc(when(x.at))+'</div></div><button class="btn sm" type="button" data-id="'+esc(x.id)+'" data-n="'+esc(x.name)+'">Restore</button></div>'}).join(""):'<span class="muted">No backups yet.</span>'}
+  catch(e){$("list").innerHTML='<span class="muted">'+esc(e.message)+'</span>'}}
+$("now").addEventListener("click",async function(){var b=this;b.disabled=true;b.textContent="Backing up…";note("");
+  try{var r=await api("now","POST");note("Backed up "+r.files+" files to Drive › Pranju OS › Backups › "+esc(r.name)+".");await status();await list()}catch(e){fail(e)}
+  b.disabled=false;b.textContent="Back up now"});
+$("list").addEventListener("click",async function(e){var b=e.target.closest("button[data-id]");if(!b)return;var n=b.getAttribute("data-n");
+  if(!confirm("Restore everything to the backup “"+n+"”?\n\nToday's state is saved first as a “before restore” backup. Both phones will then reload with the restored data."))return;
+  b.disabled=true;b.textContent="Restoring…";note("");
+  try{var r=await api("restore","POST","&id="+encodeURIComponent(b.getAttribute("data-id")));
+    note("Restored "+r.restored+" files from "+esc(r.name)+(r.skipped?" ("+r.skipped+" skipped)":"")+". Reloading this phone…");
+    try{localStorage.removeItem("pos-restore-checked")}catch(_){}setTimeout(function(){location.href="index.html"},1800)}
+  catch(err){fail(err);b.disabled=false;b.textContent="Restore"}});
+$("clean").addEventListener("click",async function(){var b=this;b.disabled=true;try{var r=await api("cleanup","POST");note(r.trashed+" old Gemini copies moved to Drive's bin.");await status()}catch(e){fail(e)}b.disabled=false});
+status().then(function(s){if(s&&s.full)list();else $("list").innerHTML='<span class="muted">Available after reconnecting Google Drive.</span>'});
+})();
+</script>
+</body></html>

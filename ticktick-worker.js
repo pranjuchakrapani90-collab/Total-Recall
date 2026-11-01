@@ -241,9 +241,9 @@ async function handleLive(request,env,origin){
      GET /drive-callback                   (Google redirects here; no owner header, checked by a one-time state)
      GET ?mode=drive&op=token[&fresh=1]    -> {token, expiresIn, folders:{root,travel,gps,photos}}
      POST ?mode=drive&op=disconnect        -> revokes the connection (files stay in Drive) */
-const GD_SCOPE='https://www.googleapis.com/auth/drive.file';
+const GD_SCOPE='https://www.googleapis.com/auth/drive';  /* full Drive since 1 Nov 2026: backups, Gemini vault reading + duplicate clean-up */
 const GD_API='https://www.googleapis.com/drive/v3';
-const GD_FOLDERS=[['root','Pranju OS',null],['travel','Travel Trace','root'],['gps','GPS archive','travel'],['photos','Memory photos','travel'],['vault','Sync vault (locked)','root']];
+const GD_FOLDERS=[['root','Pranju OS',null],['travel','Travel Trace','root'],['gps','GPS archive','travel'],['photos','Memory photos','travel'],['vault','Sync vault (locked)','root'],['backups','Backups','root']];
 let gdAccess=null;
 const gdRedirect=request=>new URL(request.url).origin+'/drive-callback';
 async function gdRefresh(env){const raw=await env.SYNC_KV.get('drive:refresh');return raw?JSON.parse(raw):null;}
@@ -281,7 +281,7 @@ async function handleDrive(request,env,origin){
   const json=(o,st)=>new Response(JSON.stringify(o),{status:st||200,headers:{...corsHeaders(origin),'Content-Type':'application/json'}});
   if(!env.SYNC_KV)return json({error:'SYNC_KV binding is missing on the Worker.'},503);
   const q=new URL(request.url).searchParams,op=q.get('op')||'status',configured=!!(env.GOOGLE_CLIENT_ID&&env.GOOGLE_CLIENT_SECRET);
-  if(op==='status'){const rt=await gdRefresh(env);return json({configured,connected:configured&&!!rt,email:rt&&rt.email||''});}
+  if(op==='status'){const rt=await gdRefresh(env);return json({configured,connected:configured&&!!rt,email:rt&&rt.email||'',full:gdFull(rt)});}
   if(!configured)return json({error:'Google Drive is not set up on the Worker yet (GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET secrets).',code:'not_configured'},503);
   if(op==='start'){
     const back=String(q.get('back')||'');if(back.indexOf(ALLOWED_ORIGIN+'/')!==0)return json({error:'Invalid return address.'},400);
@@ -314,7 +314,7 @@ async function handleDriveCallback(request,env){
   const d=await r.json().catch(()=>({}));
   if(!r.ok||!d.refresh_token)return go('error');
   let email='';try{email=(await gdCall(d.access_token,'/about?fields=user(emailAddress)')).user.emailAddress||''}catch(_){}
-  await env.SYNC_KV.put('drive:refresh',JSON.stringify({rt:d.refresh_token,email,at:new Date().toISOString()}));
+  await env.SYNC_KV.put('drive:refresh',JSON.stringify({rt:d.refresh_token,email,scope:d.scope||'',at:new Date().toISOString()}));
   gdAccess={token:d.access_token,exp:Date.now()+(d.expires_in||3600)*1000};
   await env.SYNC_KV.put('drive:access',JSON.stringify(gdAccess),{expirationTtl:Math.max(120,(d.expires_in||3600)-60)});
   return go('ok');}
@@ -699,6 +699,107 @@ async function handleTasksMirror(request,env,origin){
   await shCall(token,id+'/values/'+encodeURIComponent('Requests!C'+x.row+':G'+x.row)+'?valueInputOption=RAW',{method:'PUT',body:JSON.stringify({values:[[b.status==='failed'?'failed':'done',x.op,x.task,x.json,String(b.result||'').slice(0,2000)]]})});
   return json({ok:true});}
 
+/* ---------- Backups + Gemini vault (1 Nov 2026) ----------
+   Needs the full Drive scope (GD_SCOPE above); a connection made before 1 Nov only has drive.file → reconnect once.
+   Backups: every night (cron, 02:30 IST) every encrypted file in "Pranju OS / Sync vault (locked)" is copied, inside
+   Drive, into "Pranju OS / Backups / <date>". Kept: newest 30 nightly, then the first of each month for 12 months;
+   manual and "before restore" copies: newest 10. Copies stay encrypted with the sync code, like the originals.
+   Restore puts a backup's files back over the live ones (after a "before restore" copy of the current state) and sets
+   restore:epoch; each phone sees the new epoch (pos-guard.js), clears its own copy and pulls the restored data.
+   Gemini vault: Gemini writes a NEW master_document_vault.json / reviewed_files_log.json on every run. The page asks
+   here for the newest one and reads it straight from Drive; each night copies beyond the newest 3 go to the trash.
+     GET ?mode=backup&op=status  -> {full, last, epoch, cleanup}
+     GET ?mode=backup&op=list    -> {backups:[{id,name,at,kind}]}
+     POST ?mode=backup&op=now    -> runs a manual backup
+     POST ?mode=backup&op=restore&id=<backup folder id>
+     GET ?mode=backup&op=epoch   -> {epoch}
+     GET ?mode=backup&op=vault   -> {vault:{id,modifiedTime,size}, log:{...}}
+     POST ?mode=backup&op=cleanup -> trashes old Gemini copies now */
+const gdFull=rt=>!!(rt&&/(^|\s)https:\/\/www\.googleapis\.com\/auth\/drive(\s|$)/.test(rt.scope||''));
+const istNow=()=>new Date(Date.now()+19800000).toISOString();
+async function gdList(token,q,fields,order){const out=[];let page='';
+  for(let i=0;i<20;i++){const u='/files?spaces=drive&pageSize=200&fields=nextPageToken,files('+fields+')&q='+encodeURIComponent(q)+(order?'&orderBy='+encodeURIComponent(order):'')+(page?'&pageToken='+encodeURIComponent(page):'');
+    const d=await gdCall(token,u);out.push(...(d.files||[]));if(!d.nextPageToken)break;page=d.nextPageToken;}
+  return out;}
+const gdTrash=(token,id)=>gdCall(token,'/files/'+encodeURIComponent(id)+'?fields=id',{method:'PATCH',body:JSON.stringify({trashed:true})});
+async function bkNeedFull(env){const rt=await gdRefresh(env);
+  if(!rt)throw Object.assign(new Error('Google Drive is not connected.'),{code:'not_connected'});
+  if(!gdFull(rt))throw Object.assign(new Error('Google Drive needs to be reconnected once to allow full access (Travel Trace → Google Drive → Disconnect, then Connect).'),{code:'need_full'});
+  const a=await gdAccessToken(env);return {token:a.token,folders:await gdFolders(env,a.token,false)};}
+async function runBackup(env,kind){
+  const {token,folders}=await bkNeedFull(env),now=istNow(),date=now.slice(0,10),time=now.slice(11,16);
+  const name=kind==='nightly'?date:date+' '+time+(kind==='before-restore'?' before restore':' manual');
+  if(kind==='nightly'){const ex=await gdList(token,"'"+folders.backups+"' in parents and trashed=false and name='"+date+"'",'id');
+    if(ex.length)return {skipped:true,name};}
+  const files=await gdList(token,"'"+folders.vault+"' in parents and trashed=false",'id,name,size,appProperties');
+  const sub=(await gdCall(token,'/files?fields=id',{method:'POST',body:JSON.stringify({name,mimeType:'application/vnd.google-apps.folder',parents:[folders.backups],appProperties:{posBackup:kind}})})).id;
+  let bytes=0;
+  for(let i=0;i<files.length;i+=8)await Promise.all(files.slice(i,i+8).map(f=>{bytes+=Number(f.size||0);
+    return gdCall(token,'/files/'+encodeURIComponent(f.id)+'/copy?fields=id',{method:'POST',body:JSON.stringify({name:f.name,parents:[sub],appProperties:{posVault:(f.appProperties&&f.appProperties.posVault)||'',src:f.id}})});}));
+  const last={at:new Date().toISOString(),name,kind,files:files.length,bytes};
+  await env.SYNC_KV.put('backup:last',JSON.stringify(last));
+  try{await pruneBackups(token,folders.backups);}catch(_){}
+  return {ok:true,...last,id:sub};}
+async function listBackups(token,parent){
+  const fs=await gdList(token,"'"+parent+"' in parents and trashed=false and mimeType='application/vnd.google-apps.folder'",'id,name,createdTime,appProperties');
+  return fs.map(f=>({id:f.id,name:f.name,at:f.createdTime,kind:(f.appProperties&&f.appProperties.posBackup)||(/^\d{4}-\d{2}-\d{2}$/.test(f.name)?'nightly':'manual')}))
+    .sort((a,b)=>a.at<b.at?1:-1);}
+async function pruneBackups(token,parent){
+  const all=await listBackups(token,parent),nightly=all.filter(b=>b.kind==='nightly'),other=all.filter(b=>b.kind!=='nightly');
+  const keep=new Set(nightly.slice(0,30).map(b=>b.id)),months=new Map();
+  for(const b of nightly.slice(30)){const m=b.name.slice(0,7);if(!months.has(m)||b.name<months.get(m).name)months.set(m,b);}
+  [...months.keys()].sort().reverse().slice(0,12).forEach(m=>keep.add(months.get(m).id));
+  other.slice(0,10).forEach(b=>keep.add(b.id));
+  for(const b of all)if(!keep.has(b.id))await gdTrash(token,b.id);}
+async function restoreBackup(env,id){
+  const {token,folders}=await bkNeedFull(env);
+  const meta=await gdCall(token,'/files/'+encodeURIComponent(id)+'?fields=id,name,parents,trashed');
+  if(meta.trashed||!(meta.parents||[]).includes(folders.backups))throw new Error('That backup was not found.');
+  await runBackup(env,'before-restore');
+  const src=await gdList(token,"'"+id+"' in parents and trashed=false",'id,name,appProperties');
+  const live=await gdList(token,"'"+folders.vault+"' in parents and trashed=false",'id,name,appProperties');
+  const byKey=new Map(),byName=new Map();live.forEach(f=>{const k=f.appProperties&&f.appProperties.posVault;if(k)byKey.set(k,f);byName.set(f.name,f);});
+  let restored=0,skipped=0;
+  for(const f of src){const k=f.appProperties&&f.appProperties.posVault,t=(k&&byKey.get(k))||byName.get(f.name);
+    if(!t){skipped++;continue;}
+    const r=await fetch(GD_API+'/files/'+encodeURIComponent(f.id)+'?alt=media',{headers:{Authorization:'Bearer '+token}});
+    if(!r.ok)throw new Error('Reading the backup failed (HTTP '+r.status+')');
+    const blob=await r.arrayBuffer();
+    if(!await vaultDriveWrite(token,t.id,blob))skipped++;else restored++;}
+  const epoch={at:Date.now(),name:meta.name};
+  await env.SYNC_KV.put('restore:epoch',JSON.stringify(epoch));
+  return {ok:true,restored,skipped,name:meta.name,epoch:epoch.at};}
+const GEM_NAMES=['master_document_vault.json','reviewed_files_log.json'];
+async function geminiNewest(env){
+  const {token}=await bkNeedFull(env),out={};
+  for(const n of GEM_NAMES){const fs=await gdCall(token,'/files?spaces=drive&pageSize=1&orderBy='+encodeURIComponent('modifiedTime desc')+'&fields=files(id,name,modifiedTime,size)&q='+encodeURIComponent("name='"+n+"' and trashed=false"));
+    out[n.startsWith('master')?'vault':'log']=(fs.files||[])[0]||null;}
+  return out;}
+async function geminiCleanup(env){
+  const {token}=await bkNeedFull(env);let trashed=0;
+  for(const n of GEM_NAMES){const fs=await gdList(token,"name='"+n+"' and trashed=false",'id,modifiedTime','modifiedTime desc');
+    for(const f of fs.slice(3)){await gdTrash(token,f.id);trashed++;}}
+  const rec={at:new Date().toISOString(),trashed};await env.SYNC_KV.put('gemini:cleanup',JSON.stringify(rec));return rec;}
+async function nightlyJobs(env){
+  if(!env.SYNC_KV)return;
+  try{await runBackup(env,'nightly');}catch(e){await env.SYNC_KV.put('backup:error',JSON.stringify({at:new Date().toISOString(),error:String(e&&e.message||e)}));}
+  try{await geminiCleanup(env);}catch(_){}}
+async function handleBackup(request,env,origin){
+  const json=(o,st)=>new Response(JSON.stringify(o),{status:st||200,headers:{...corsHeaders(origin),'Content-Type':'application/json'}});
+  if(!env.SYNC_KV)return json({error:'SYNC_KV binding is missing on the Worker.'},503);
+  const q=new URL(request.url).searchParams,op=q.get('op')||'status',post=request.method==='POST';
+  const kv=async k=>{try{return JSON.parse(await env.SYNC_KV.get(k)||'null')}catch(_){return null}};
+  try{
+    if(op==='epoch'){const e=await kv('restore:epoch');return json({epoch:e?e.at:0,name:e?e.name:''});}
+    if(op==='status'){const rt=await gdRefresh(env);return json({connected:!!rt,full:gdFull(rt),last:await kv('backup:last'),error:await kv('backup:error'),epoch:await kv('restore:epoch'),cleanup:await kv('gemini:cleanup')});}
+    if(op==='list'){const {token,folders}=await bkNeedFull(env);return json({backups:await listBackups(token,folders.backups)});}
+    if(op==='vault')return json(await geminiNewest(env));
+    if(op==='now'&&post){const r=await runBackup(env,'manual');await env.SYNC_KV.delete('backup:error');return json(r);}
+    if(op==='restore'&&post)return json(await restoreBackup(env,String(q.get('id')||'')));
+    if(op==='cleanup'&&post)return json(await geminiCleanup(env));
+    return json({error:'Unknown backup operation'},400);
+  }catch(e){const code=e&&e.code||'';return json({error:String(e&&e.message||e),code},code?409:502);}}
+
 export default {async fetch(request,env){const origin=request.headers.get('Origin')||'';if(request.method==='OPTIONS'){const h=corsHeaders(origin);const requested=request.headers.get('Access-Control-Request-Headers');if(requested)h['Access-Control-Allow-Headers']=requested;return new Response(null,{status:204,headers:h});}const url=new URL(request.url);
  if(url.pathname==='/drive-callback'){try{return await handleDriveCallback(request,env)}catch(e){return new Response('Google Drive sign-in failed: '+String(e&&e.message||e),{status:502,headers:{'Content-Type':'text/plain'}})}}
  if(url.searchParams.get('mode')!=='live-log'){try{const denied=await requireOwner(request,env,origin);if(denied)return denied;}catch(e){return new Response(JSON.stringify({error:'Auth check failed'}),{status:503,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
@@ -712,6 +813,7 @@ export default {async fetch(request,env){const origin=request.headers.get('Origi
  if(url.searchParams.get('mode')==='money-review'||url.pathname==='/money-review'){try{return await handleDrafts('money',request,env,origin,r=>handleMoneyReview(r,env,origin))}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.searchParams.get('mode')==='wa-review'||url.pathname==='/wa-review'){try{return await handleDrafts('wa',request,env,origin,r=>handleWaReview(r,env,origin))}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.searchParams.get('mode')==='live'||url.searchParams.get('mode')==='live-log'){try{return await handleLive(request,env,origin)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
+ if(url.searchParams.get('mode')==='backup'){try{return await handleBackup(request,env,origin)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.searchParams.get('mode')==='drive'){try{return await handleDrive(request,env,origin)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.searchParams.get('mode')==='travel-file'){try{return await handleTravelFile(request,env)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(request.method!=='GET')return new Response('Method not allowed',{status:405,headers:corsHeaders(origin)});
@@ -729,4 +831,4 @@ if(url.pathname==='/completed-tasks'||url.searchParams.get('mode')==='completed'
   {const byId=new Map();for(const t of unwrapTasks(result))if(t&&t.id)byId.set(t.id,t);
    try{const od=unwrapTasks(await tick('/task/filter',env.TICKTICK_ACCESS_TOKEN,{method:'POST',body:{startDate:localIsoStart(addDays(target,-14)),endDate:localIsoEnd(addDays(target,-1)),status:[0]}}));overdueFetched=od.length;for(const t of od)if(t&&t.id&&!byId.has(t.id)&&!t.status)byId.set(t.id,t);}catch(e){overdueFetched='failed'}
    result=[...byId.values()];}}catch(_){source='filter';result=await tick('/task/filter',env.TICKTICK_ACCESS_TOKEN,{method:'POST',body:{startDate:localIsoStart(addDays(target,-14)),endDate:localIsoEnd(addDays(target,1)),status:[0]}})}const tasks=unwrapTasks(result);let dueMatches=0,taggedMatches=0;for(const task of tasks){const due=task&&(task.dueDate||task.due||'');const dd=due?dateInZone(due,tz):'';if(!dd||dd>target)continue;dueMatches++;const tags=taskTags(task);const item={id:task.id||'',title:task.title||'(Untitled TickTick task)',due:String(due).slice(0,16),projectId:task.projectId||'',tags,overdue:dd<target};for(const tag of tags){if(!allTags[tag])allTags[tag]=[];allTags[tag].push(item)}const matches=RESPONSIBILITIES.filter(r=>tags.indexOf(r)>=0);if(matches.length)taggedMatches++;for(const responsibility of matches)groups[responsibility].push(item)}for(const k of RESPONSIBILITIES){const seen=new Set();groups[k]=groups[k].filter(t=>{if(seen.has(t.id))return false;seen.add(t.id);return true})}for(const k of Object.keys(allTags)){const seen=new Set();allTags[k]=allTags[k].filter(t=>{if(seen.has(t.id))return false;seen.add(t.id);return true})}return new Response(JSON.stringify({date:target,timeZone:tz,responsibilities:groups,tags:allTags,debug:{source,taskCount:tasks.length,dueMatches,taggedMatches,overdueFetched}}),{status:200,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})
- }catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}};
+ }catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}},async scheduled(event,env,ctx){ctx.waitUntil(nightlyJobs(env));}};
