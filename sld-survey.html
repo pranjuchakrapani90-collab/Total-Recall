@@ -281,6 +281,7 @@ table.boq{border-collapse:collapse;width:100%;min-width:720px;font-size:12.5px}
    <label>Extra stay every n-th intermediate pole (0 = off)<input type="number" id="sStay" min="0" max="20"></label>
    <label>Service cable per consumer (m)<input type="number" id="sSvc" min="0" max="100"></label>
    <label>LT ABC: distribution boxes per pole (0 = none)<input type="number" id="sDB" min="0" max="4"></label>
+   <label>Distribution box type<select id="sDBph"><option value="1">Single-phase (811) — one phase + N</option><option value="3">Three-phase (813) on 3-ph lines</option></select></label>
   </div>
   <p class="hint">Structures: deviation under 10° is a tangent pole; 10° or more is a cut-point with one stay, over 60° two stays. Dead-ends get one stay, tee-offs one per branch. Every new pole gets a grouting job and every stay a stay grouting job.</p>
  </div>
@@ -309,6 +310,7 @@ table.boq{border-collapse:collapse;width:100%;min-width:720px;font-size:12.5px}
    <label>Pole spacing (m)<input type="number" id="dGap" min="5" step="1" placeholder="auto"></label>
    <label>Intermediate poles (no.)<input type="number" id="dNMid" min="0" step="1" placeholder="auto"></label>
    <label id="dDbMidL">Distribution boxes per intermediate pole<input type="number" id="dDbMid" min="0" max="4" step="1" placeholder="auto"></label>
+   <label id="dDbTyL">Box type on intermediate poles<select id="dDbTy"><option value="">As survey rule</option><option value="1">Single-phase (811)</option><option value="3">Three-phase (813)</option></select></label>
    <label>Crossing on this span<select id="dCross"><option value="">None</option><option value="road">Road (guarding)</option><option value="line">Other line (guarding)</option></select></label>
   </div>
   <div class="hint" id="dMidInfo" style="margin:2px 0 6px"></div>
@@ -428,16 +430,16 @@ const KINDS={
  src33:{g:0,t:"33 kV tapping point",d:"Existing 33 kV pole / DP / structure the new line taps from",src:"HV",o:["exType","srcStr","stays"]},
  srcDTR:{g:0,t:"Existing DTR (LT side)",d:"Supply taken from the LT side of an existing DTR",src:"LT",o:["dtrNo","kva","stays"]},
  srcLT:{g:0,t:"LT source (existing LT pole)",d:"Existing LT pole the new LT line starts from",src:"LT",o:["exType","srcStr","stays"]},
- pole:{g:1,t:"New pole (PSC)",d:"Turning point, line end or any pole you fix",o:["poleLen","db","dbn","stays"]},
- steel:{g:1,t:"New steel pole",d:"SP-56 / 60 / 66 / 76 with steel-pole grouting",o:["steelType","db","dbn","stays"]},
+ pole:{g:1,t:"New pole (PSC)",d:"Turning point, line end or any pole you fix",o:["poleLen","db","dbn","dbTy","stays"]},
+ steel:{g:1,t:"New steel pole",d:"SP-56 / 60 / 66 / 76 with steel-pole grouting",o:["steelType","db","dbn","dbTy","stays"]},
  tp:{g:1,t:"New 3-pole structure (TP)",d:"3 × PSC 9.75 m tied with 3.2 m channels — heavy angle, tee-off or AB switch point",o:["poleLen","goab","dof","la","stays"]},
  p4:{g:1,t:"4-pole structure (4P)",d:"Heavy angle or terminal tension, 4 × PSC 9.75 m",o:["poleLen","stays"]},
- ltdp:{g:1,t:"New LT double pole",d:"2 × PSC 8.5 m for an LT angle, tee-off or distribution box",o:["poleLen","db","dbn","stays"]},
+ ltdp:{g:1,t:"New LT double pole",d:"2 × PSC 8.5 m for an LT angle, tee-off or distribution box",o:["poleLen","db","dbn","dbTy","stays"]},
  heighten:{g:1,t:"Line heightening pole",d:"Sarma Commission safety kit, 9.75 m PSC",kitOnly:true,o:["stays"]},
  replace:{g:1,t:"Pole replacement",d:"Damaged / rotten / leaning pole replaced; old pole to dismantling",o:["poleLen","oldPole","dmg","stays"]},
- exFit:{g:9,t:"Existing pole, new fittings",d:"Pole stays; cross-arm, insulators as the structure needs",o:["exType","db","dbn","stays"]},
- exPole:{g:9,t:"Existing pole (reused as is)",d:"Already on the route; no new fittings",o:["exType","db","dbn","stays"]},
- exDP:{g:9,t:"Existing DP",d:"Double pole already standing. New line fittings are added for the line(s) you join to it",o:["exType","exEq","fit","db","dbn","stays"]},
+ exFit:{g:9,t:"Existing pole, new fittings",d:"Pole stays; cross-arm, insulators as the structure needs",o:["exType","db","dbn","dbTy","stays"]},
+ exPole:{g:9,t:"Existing pole (reused as is)",d:"Already on the route; no new fittings",o:["exType","db","dbn","dbTy","stays"]},
+ exDP:{g:9,t:"Existing DP",d:"Double pole already standing. New line fittings are added for the line(s) you join to it",o:["exType","exEq","fit","db","dbn","dbTy","stays"]},
  exTP:{g:9,t:"Existing 3-pole structure",d:"Three-pole structure already standing",o:["exType","exEq","fit","stays"]},
  ex4P:{g:9,t:"Existing 4-pole structure",d:"Four-pole structure already standing",o:["exType","exEq","fit","stays"]},
  cont:{g:9,t:"Line continues beyond (end of drawing)",d:"Where an existing line carries on outside this work. Drawn solid from the structure, then dashed to here. No cost. Put the destination in Name / remark, e.g. TO 33/11 KV SAMAGURI S/S",kitOnly:true,o:[]},
@@ -477,7 +479,7 @@ const OPTF={
  kva:{l:"DTR rating (kVA)",ty:"sel",o:[25,63,100,250],def:100},kvaFrom:{l:"Existing DTR (kVA)",ty:"sel",o:[16,25,63,100,160,200,250],def:63},
  goab:{l:"GOAB",ty:"chk",def:true},fence:{l:"Fencing (Type-II)",ty:"chk",def:true},dof:{l:"DO fuse set",ty:"chk",def:false},la:{l:"LA",ty:"chk",def:false},chem:{l:"Chemical earthing",ty:"chk",def:false},
  onEx:{l:"On existing pole / structure",ty:"chk",def:false},oldDP:{l:"Remove old DP",ty:"chk",def:true},
- db:{l:"Consumers to connect (sizes the DBs; 0 = not set)",ty:"num",def:0},dbn:{l:"Distribution boxes (blank = auto)",ty:"num",blank:true},n:{l:"Number",ty:"num",def:1},stays:{l:"Stays (blank = auto)",ty:"num",blank:true},
+ db:{l:"Consumers to connect (sizes the DBs; 0 = not set)",ty:"num",def:0},dbn:{l:"Distribution boxes (blank = auto)",ty:"num",blank:true},dbTy:{l:"Distribution box type",ty:"sel",o:[["","As survey rule"],["1","Single-phase (811)"],["3","Three-phase (813)"]],def:""},n:{l:"Number",ty:"num",def:1},stays:{l:"Stays (blank = auto)",ty:"num",blank:true},
  poleLen:{l:"Pole",ty:"sel",o:[["","Auto"],["9.75","PSC 9.75 m"],["8.5","PSC 8.5 m"],["7.5","PSC 7.5 m"],["SP-56","SP-56 steel tubular (11 m)"],["SP-60","SP-60 steel tubular (12 m)"],["SP-66","SP-66 steel tubular (12 m)"],["SP-76","SP-76 steel tubular (14.5 m)"]],def:""},
  steelType:{l:"Steel pole",ty:"sel",o:[["SP-56","SP-56 (11 m)"],["SP-60","SP-60 (12 m)"],["SP-66","SP-66 (12 m)"],["SP-76","SP-76 (14.5 m)"]],def:"SP-56"},
  oldPole:{l:"Old pole",ty:"sel",o:[["PSC 8.5","PSC 8.5 m"],["PSC 7.5","PSC 7.5 m"],["PSC 9.75","PSC 9.75 m"],["SP-56","SP-56"],["SP-60","SP-60"],["SP-66","SP-66"],["SP-76","SP-76"],["Rail","Rail pole"],["RSJ","RS joist"]],def:"PSC 8.5"},
@@ -497,7 +499,7 @@ function opt(x,k){const v=x[k];if(v!==undefined&&v!==null&&v!=="")return v;const
 const POLE={"9.75":["748","427"],"8.5":["747","426"],"7.5":["746","425"],"SP-56":["751","422"],"SP-60":["752","422"],"SP-66":["753","423"],"SP-76":["754","423"]};
 const OLDP={"PSC 8.5":"747","PSC 7.5":"746","PSC 9.75":"748","SP-56":"751","SP-60":"752","SP-66":"753","SP-76":"754","Rail":"756","RSJ":"757"};
 const DTRK={16:"770",25:"771",63:"772",100:"774",160:"778",200:"780",250:"782"};
-const DEF_SET={sHV:45,sMV:32,sEHV:33,sLT:40,sABC:33,sEarth:5,sStay:0,sSvc:30,sDB:1};
+const DEF_SET={sHV:45,sMV:32,sEHV:33,sLT:40,sABC:33,sEarth:5,sStay:0,sSvc:30,sDB:1,sDBph:1};
 const EXLT=new Set(["srcLT","exPole","exFit","exDP"]),AUTODB=new Set(["pole","steel","ltdp","exFit","exPole","exDP"]);
 const isSrc=x=>!!(KINDS[x.kind]&&KINDS[x.kind].src),isStand=x=>!!(KINDS[x.kind]&&KINDS[x.kind].standalone);
 /* ================= Storage + sync ================= */
@@ -592,6 +594,7 @@ function compute(p){
  const danger=kv=>kv===33?"720":kv===11?"721":"722";
  const stayKit=(kv,n,w)=>{if(!n)return;totStays+=n;if(kv>=11){add("653",n,w);add(kv===33?"616":"629",n,w);add("651",(kv===33?16:10)*n,kv===33?"16 kg per 33 kV stay":"10 kg per HT stay")}else{add("657",n,w);add("631",n,w);add("652",7*n,"7 kg per LT stay")}add("830",n,"1 per stay");add("428",n,"1 per stay")};
  const phOf=L=>L&&((L.abc&&L.ph===3)||L.w===4)?3:1;
+ const dbPh=(L,ty)=>phOf(L)===1?1:+(ty||S.sDBph||1)===3?3:1;
  const dbKit=(ph,n,w)=>{if(!n)return;add(ph===3?"813":"811",n,w);add("805",(ph===3?4:2)*n,ph===3?"IPC for DB: 4 per 3-ph DB (R, Y, B + N taken from the messenger)":"IPC for DB: 2 per 1-ph DB (phase + N from the messenger)");add("809",2*n,"2 m SS strap per DB (2 straps round the pole)");add("808",2*n,"1 buckle per strap")};
  const earth=(n,w,chem)=>{if(!n)return;totEarth+=n;if(chem)add("481",n,w);else add("474",n,w);add("649",3*n,"3 kg per earthing")};
  const newPole=(len,n,kv,w)=>{if(!n)return;const pp=POLE[len]||POLE["8.5"];add(pp[0],n,w);add(pp[1],n,"1 per new pole ("+len+")");add(danger(kv),n,"1 per new pole");if(kv>=11)add("633",2*n,"anti-climbing 2 kg per HT pole")};
@@ -693,7 +696,7 @@ function compute(p){
    case "rmPole":{const nn=+opt(x,"oldStruct")||1;dis(OLDP[opt(x,"oldPole")]||"747",nn,(nn>1?["","","DP","3-pole structure","4-pole structure"][nn]+" poles":"pole")+" removed at P"+x.no);if(nn>1)dis("638",2*(nn-1),"channels of the removed structure P"+x.no);break}
   }
   // LT DB
-  const dbn=+(opt(x,"db")||0);if((K.o||[]).includes("db")){const ltA=adj[x.id].filter(a=>a.sg.cls==="LT"&&work(a.sg.L)),ltE=ltA.find(a=>a.sg.L.abc)||ltA[0],ph=phOf(ltE&&ltE.sg.L),man=hasNum(x.dbn)?Math.max(0,Math.round(+x.dbn)):null;
+  const dbn=+(opt(x,"db")||0);if((K.o||[]).includes("db")){const ltA=adj[x.id].filter(a=>a.sg.cls==="LT"&&work(a.sg.L)),ltE=ltA.find(a=>a.sg.L.abc)||ltA[0],ph=dbPh(ltE&&ltE.sg.L,x.dbTy),man=hasNum(x.dbn)?Math.max(0,Math.round(+x.dbn)):null;
    let boxes=0,why="";if(man!==null){boxes=man;why="as marked at P"+x.no}else if(dbn>0){boxes=ph===3?Math.ceil(dbn/10):Math.ceil(dbn/8);why=(ph===3?"10":"8")+"-connection DB for "+dbn+" consumers at P"+x.no}else if(ltE&&ltE.sg.L.abc&&AUTODB.has(x.kind)&&S.sDB>0){boxes=S.sDB;why=S.sDB+" per pole on LT ABC (marked poles)"}
    dbKit(ph,boxes,why);nd.db=boxes;nd.cons=dbn;
    if(dbn>0&&S.sSvc>0){add("SC2",dbn*S.sSvc,S.sSvc+" m per consumer");flags.add("Service cable 2C×4 has no SoR number in the rate table (₹32/m used)")}}
@@ -703,7 +706,7 @@ function compute(p){
    if(opt(x,"exGoab")){add(kv===33?"660":"518",1,"isolator / GOAB at P"+x.no);add("638",2,"GOAB mounting");add("830",4,"GOAB mounting")}if(opt(x,"exDo"))add("513",1,"DO set at P"+x.no);if(opt(x,"exLa"))add(kv===33?"674":"676",1,"LA set at P"+x.no)}
  });
  function abcMidDb(sg){if(!sg.L.abc)return;const b=sg.b,at=Array.isArray(b.dbAt)?b.dbAt:[],per=hasNum(b.dbMid)?Math.max(0,Math.round(+b.dbMid)):S.sDB;let tot=0;
-  sg.mid.forEach((m,k)=>{m.db=hasNum(at[k])?Math.max(0,Math.round(+at[k])):per;tot+=m.db});dbKit(phOf(sg.L),tot,"on intermediate poles: "+(hasNum(b.dbMid)?b.dbMid+" per pole (set for this span)":S.sDB+" per pole (survey rule)")+(at.some(hasNum)?", changed on some poles":""))}
+  sg.mid.forEach((m,k)=>{m.db=hasNum(at[k])?Math.max(0,Math.round(+at[k])):per;tot+=m.db});dbKit(dbPh(sg.L,b.dbTyMid),tot,"on intermediate poles: "+(hasNum(b.dbMid)?b.dbMid+" per pole (set for this span)":S.sDB+" per pole (survey rule)")+(at.some(hasNum)?", changed on some poles":""))}
  // segments
  let km={HV:0,LT:0,MV:0,EHV:0,ONX:0,DIS:0},nGen=0,nExMid=0;
  segs.forEach(sg=>{const L=sg.L,lab="P"+sg.a.no+"–P"+sg.b.no,c=L.cond,A=sg.reuse?addEx:add;if(L.ex)return;
@@ -1065,8 +1068,8 @@ function renderDlgLine(){const p=P(),K=KINDS[draft.kind];$("#dLineSec").hidden=!
  const desc=new Set();(function mark(id){desc.add(id);p.pts.filter(q=>q.par===id).forEach(q=>mark(q.id))})(draft.id);
  $("#dPar").innerHTML=(K.src?'<option value="">— none (this is a source) —</option>':'<option value="">— not connected —</option>')+p.pts.filter(q=>!desc.has(q.id)&&!isStand(q)).map(q=>`<option value="${q.id}" ${q.id===draft.par?"selected":""}>P${q.no} · ${KINDS[q.kind].t}${q.note?" · "+q.note:""}</option>`).join("");
  $("#dLine").innerHTML=Object.entries(LG).map(([g,gl])=>`<optgroup label="${gl}">`+Object.entries(LINES).filter(([,v])=>v.g===g).map(([k,v])=>`<option value="${k}" ${k===draft.line?"selected":""}>${v.t}</option>`).join("")+"</optgroup>").join("");
- $("#dPole").value=draft.pole||"";$("#dCross").value=draft.cross||"";{const pa=p.pts.find(q=>q.id===draft.par);$("#dLen").value=draft.len||"";$("#dLen").placeholder=pa?"auto: "+Math.round(hav(pa,draft))+" m":"auto"}$("#dGap").value=hasNum(draft.gap)?draft.gap:"";$("#dNMid").value=hasNum(draft.nMid)?draft.nMid:"";$("#dDbMid").value=hasNum(draft.dbMid)?draft.dbMid:"";renderSegOpts();dMidUpd()}
-function dMidUpd(){const p=P(),g=$("#dGap");g.placeholder="auto: max "+maxSpanFor($("#dLine").value)+" m";{const ab=!!(LINES[$("#dLine").value]||{}).abc;$("#dDbMidL").hidden=!ab;$("#dDbMid").placeholder="auto: "+({...DEF_SET,...(p.set||{})}).sDB}
+ $("#dPole").value=draft.pole||"";$("#dCross").value=draft.cross||"";{const pa=p.pts.find(q=>q.id===draft.par);$("#dLen").value=draft.len||"";$("#dLen").placeholder=pa?"auto: "+Math.round(hav(pa,draft))+" m":"auto"}$("#dGap").value=hasNum(draft.gap)?draft.gap:"";$("#dNMid").value=hasNum(draft.nMid)?draft.nMid:"";$("#dDbMid").value=hasNum(draft.dbMid)?draft.dbMid:"";$("#dDbTy").value=draft.dbTyMid||"";renderSegOpts();dMidUpd()}
+function dMidUpd(){const p=P(),g=$("#dGap");g.placeholder="auto: max "+maxSpanFor($("#dLine").value)+" m";{const LL=LINES[$("#dLine").value]||{},ab=!!LL.abc;$("#dDbMidL").hidden=!ab;$("#dDbTyL").hidden=!ab||LL.ph!==3;$("#dDbMid").placeholder="auto: "+({...DEF_SET,...(p.set||{})}).sDB}
  const o={lat:draft.lat,lng:draft.lng,len:$("#dLen").value,gap:$("#dGap").value,nMid:$("#dNMid").value,mids:draft.mids},pa=p.pts.find(q=>q.id===$("#dPar").value);$("#dMidInfo").innerHTML=midInfo(o,pa,$("#dLine").value)}
 $("#dGap").addEventListener("input",()=>{delete draft.mids;delete draft.dbAt;$("#dNMid").value="";dMidUpd()});
 $("#dNMid").addEventListener("input",()=>{delete draft.mids;delete draft.dbAt;$("#dGap").value="";dMidUpd()});
@@ -1083,7 +1086,7 @@ function readOpts(){const K=KINDS[draft.kind];(K.o||[]).forEach(k=>{const el=doc
  const fp=document.getElementById("o_fpar");if(fp)draft.fpar=fp.value||"";
  Object.keys(XF).forEach(k=>{const el=document.getElementById("x_"+k);if(!el)return;draft[k]=XF[k].ty==="chk"?el.checked:(+el.value||0)})}
 function readSeg(){const g=id=>document.getElementById(id);if(g("sReuse"))draft.reuse=g("sReuse").checked;if(g("sDisOld"))draft.disOld=g("sDisOld").checked;if(g("sRm"))draft.rmPoles=g("sRm").checked}
-function readDlg(){readOpts();readSeg();draft.kind=$("#dKind").value;draft.note=$("#dNote").value.trim();const K=KINDS[draft.kind];draft.par=K.standalone?null:($("#dPar").value||null);draft.line=$("#dLine").value;draft.pole=$("#dPole").value;draft.cross=$("#dCross").value;const lv=$("#dLen").value;draft.len=lv===""?null:+lv;const gv=$("#dGap").value,nv=$("#dNMid").value;draft.gap=gv===""?null:+gv;draft.nMid=nv===""?null:Math.max(0,Math.round(+nv));const dv=$("#dDbMid").value;draft.dbMid=dv===""?null:Math.max(0,Math.round(+dv))}
+function readDlg(){readOpts();readSeg();draft.kind=$("#dKind").value;draft.note=$("#dNote").value.trim();const K=KINDS[draft.kind];draft.par=K.standalone?null:($("#dPar").value||null);draft.line=$("#dLine").value;draft.pole=$("#dPole").value;draft.cross=$("#dCross").value;const lv=$("#dLen").value;draft.len=lv===""?null:+lv;const gv=$("#dGap").value,nv=$("#dNMid").value;draft.gap=gv===""?null:+gv;draft.nMid=nv===""?null:Math.max(0,Math.round(+nv));const dv=$("#dDbMid").value;draft.dbMid=dv===""?null:Math.max(0,Math.round(+dv));draft.dbTyMid=$("#dDbTy").value||""}
 $("#ptDlg").addEventListener("input",keepPending);$("#ptDlg").addEventListener("change",keepPending);
 $("#ptDlg").addEventListener("close",()=>{if(DB.pending&&!keepOpen){delete DB.pending;save(false)}});let keepOpen=false;
 function keepPending(){try{readDlg()}catch(e){return}DB.pending={pid:P().id,editId:edit?edit.id:null,draft:JSON.parse(JSON.stringify(draft))};save(false)}
@@ -1321,7 +1324,7 @@ $("#lSave").onclick=()=>{const p=P(),b=LNB;if(!b)return;snap();
 $("#lDel").onclick=()=>{const p=P(),b=LNB;if(!b||!confirm("Delete this line? P"+b.no+" stays, unconnected."))return;snap();b.par=null;touch(p);$("#lnDlg").close();renderAll()};
 $("#lRev").onclick=()=>{const p=P(),b=LNB,a=p.pts.find(q=>q.id===b.par);if(!a)return;
  if(a.par&&!confirm("P"+a.no+" is itself fed from another point. Reversing makes P"+b.no+" feed P"+a.no+" and detaches P"+a.no+" from its feeder. Continue?"))return;
- snap();const keep={line:b.line,len:b.len,pole:b.pole,cross:b.cross,gap:b.gap,nMid:b.nMid,dbMid:b.dbMid};const kd=Array.isArray(b.dbAt)?b.dbAt.slice().reverse():null;delete b.dbAt;delete b.dbMid;if(kd)a.dbAt=kd;else delete a.dbAt;const km=Array.isArray(b.mids)?b.mids.map(t=>1-t):null;b.par=null;a.par=b.id;Object.assign(a,keep);if(km)setMids(a,km);else delete a.mids;delete b.len;delete b.gap;delete b.nMid;delete b.mids;touch(p);$("#lnDlg").close();renderAll()};
+ snap();const keep={line:b.line,len:b.len,pole:b.pole,cross:b.cross,gap:b.gap,nMid:b.nMid,dbMid:b.dbMid,dbTyMid:b.dbTyMid};delete b.dbTyMid;const kd=Array.isArray(b.dbAt)?b.dbAt.slice().reverse():null;delete b.dbAt;delete b.dbMid;if(kd)a.dbAt=kd;else delete a.dbAt;const km=Array.isArray(b.mids)?b.mids.map(t=>1-t):null;b.par=null;a.par=b.id;Object.assign(a,keep);if(km)setMids(a,km);else delete a.mids;delete b.len;delete b.gap;delete b.nMid;delete b.mids;touch(p);$("#lnDlg").close();renderAll()};
 function renderEst(c){const p=P(),m=p.meta;$("#mWork").value=m.work;$("#mWork").placeholder=autoWork(c);$("#mLoc").value=m.loc;$("#mPay").value=m.pay;$("#mDoc").value=m.doc;$("#mDate").value=m.date;$("#mSS").value=m.ss;$("#mFdr").value=m.fdr;$("#mFee").value=m.fee||0;
  const fl=c.flags.length?`<div class="warns flags"><b>Rates to check</b><ul>${c.flags.map(x=>`<li>${x}</li>`).join("")}</ul></div>`:"";
  $("#estWarn").innerHTML=warnBox(c)+fl;$("#estBox").innerHTML=c.pts.length?estHTML(c):'<p class="muted" style="padding:16px">Mark points on the Survey tab first.</p>'}
