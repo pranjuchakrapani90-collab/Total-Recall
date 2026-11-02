@@ -51,7 +51,14 @@ function calc(p,e){const mat=[],job=[];e.rows.forEach(r=>{const it=itemOf(r),G=i
  const A=mat.reduce((s,x)=>s+x.G,0),HA=mat.reduce((s,x)=>s+x.H,0),B=A*0.05,C=A+B,D=C*0.15,E=job.reduce((s,x)=>s+x.G,0),DE=D+E,F=C*(+e.kc||0),G=DE*(+e.ks||0),
   Hh=C+DE+F+G,I=+(p.meta.fee||0),J=Hh*0.09,K=Hh*0.09,L=Hh+I+J+K,H28=HA,H30=H28*0.09,H32=H28+H30*2,M=H32,N=+(e.meter||0),O=L-M-N,Pp=Math.ceil(O-1e-9);
  return{mat,job,A,HA,B,C,D,E,DE,F,G,Hh,I,J,K,L,H30,H32,M,N,O,P:Pp}}
-const titleOf=(p,c)=>p.meta.estTitle||("Provisional Estimate for "+workOf(c).replace(/^Construction/,"construction")+" at "+locOf()+(p.meta.fdr?" under "+p.meta.fdr:"")+".");
+/* line length in the heading: "(Line length: 0.197 km)" put just before " at <place>", kept up to date with the survey */
+const LENRX=/\s*\(Line length:[^()]*\)/i;
+function lenTxt(c){const w={"33 KV":0,"11 KV":0,"LT":0};(c&&c.segs||[]).forEach(s=>{if(s.L.ex||s.L.dis)return;w[s.kv===33?"33 KV":s.cls==="HV"?"11 KV":"LT"]+=s.len});
+ const k=Object.keys(w).filter(x=>w[x]>0),f=v=>(v/1000).toFixed(3)+" km";if(!k.length)return"";return"(Line length: "+(k.length===1?f(w[k[0]]):k.map(x=>x+" "+f(w[x])).join(", "))+")"}
+function withLen(t,p,c){t=t||"";if(!p.meta.lenHd)return t.replace(LENRX,"");const L=lenTxt(c);if(!L)return t.replace(LENRX,"");
+ if(LENRX.test(t))return t.replace(LENRX," "+L);if(/\d\s*km\b/i.test(t))return t;
+ const m=t.match(/\s+at\s+/i);if(m)return t.slice(0,m.index)+" "+L+" "+t.slice(m.index).trimStart();return/\.\s*$/.test(t)?t.replace(/\.\s*$/," "+L+"."):t+" "+L}
+const titleOf=(p,c)=>withLen(p.meta.estTitle,p,c)||withLen("Provisional Estimate for "+workOf(c).replace(/^Construction/,"construction")+" at "+locOf()+(p.meta.fdr?" under "+p.meta.fdr:"")+".",p,c);
 const docOf=p=>p.meta.doc||"SESD/"+new Date().getFullYear()+"/";
 const dtOf=p=>{const d=p.meta.date;if(!d)return"";const[y,m,dd]=d.split("-");return dd+"."+m+"."+y};
 
@@ -79,7 +86,7 @@ function sheetHTML(p,c,ed){const e=ensure(p,c),k=calc(p,e),HC=hasCol(e),N9=HC?9:
  <tr style="height:14px"><td colspan="6" rowspan="2" class="h2 c">PROVISIONAL ESTIMATE</td><td colspan="${N3}" class="ar b c">GSTIN :18AABCL1354J1ZJ</td>${ctl()}</tr>
  <tr style="height:16px"><td colspan="${N3}" class="ar b c">PROFORMA INVOICE</td>${ctl()}</tr>
  <tr style="height:14px"><td colspan="4" class="cal">Document No : ${ed?`<input class="ci" data-m="doc" value="${esc(docOf(p))}" style="width:70%">`:esc(docOf(p))}</td><td colspan="2" class="cal">Dt: ${ed?`<input class="ci" data-m="date" type="date" value="${esc(p.meta.date||"")}" style="width:72%">`:esc(dtOf(p))}</td><td colspan="${N3}" class="ar c">(not valid for Input Tax credit)</td>${ctl()}</tr>
- <tr style="height:46px"><td colspan="6" class="ti">${ed?`<textarea class="ci" data-m="estTitle" rows="3" placeholder="${esc(titleOf({meta:{...p.meta,estTitle:""}},c))}">${esc(p.meta.estTitle||titleOf(p,c))}</textarea>`:esc(titleOf(p,c))}</td><td colspan="${N3}" class="sr c">Rates as per SoR 2021-22</td>${ctl()}</tr>
+ <tr style="height:46px"><td colspan="6" class="ti">${ed?`<textarea class="ci" data-m="estTitle" rows="3" placeholder="${esc(titleOf({meta:{...p.meta,estTitle:""}},c))}">${esc(titleOf(p,c))}</textarea>`:esc(titleOf(p,c))}</td><td colspan="${N3}" class="sr c">Rates as per SoR 2021-22</td>${ctl(ed?`<label class="pc"><input type="checkbox" data-lh="1" ${p.meta.lenHd?"checked":""}> Line length<br>in heading${lenTxt(c)?"":" (no new line yet)"}</label>`:"")}</tr>
  ${e.sarma!==false?`<tr style="height:14px"><td colspan="${N9}" class="sa c">"This estimate has been prepared incorporating the recommendations of Hon'ble Justice H.N. Sarma Commission."</td>${ctl(ed?'<label class="pc"><input type="checkbox" data-g="sarma" checked> Sarma line</label>':"")}</tr>`:ed?`<tr class="add"><td colspan="${N9}"><label class="pc"><input type="checkbox" data-g="sarma"> Show the H.N. Sarma Commission line</label></td>${ctl()}</tr>`:""}
  <tr class="hd" style="height:72px"><td class="c nb">Sl. No.</td><td class="c">SOR Sl. No.</td><td class="c">Item Description</td><td class="c">Unit</td><td class="c">Quantity</td><td class="c">Ex. Work Price in Rs.</td><td class="c">Amount<br>in Rs.</td>${HC?`<td class="c">${ed?`<textarea class="ci c" data-g="hHead" rows="3">${esc(hHeadOf(e))}</textarea>`:esc(hHeadOf(e))}</td>`:""}<td class="c">Remarks</td>${ctl(ed?`<label class="pc"><input type="checkbox" data-g="stockCol" ${HC?"checked":""}> RDSS / O&amp;M / reusable column</label>`:"")}</tr>
  ${k.mat.map((x,i)=>itemRow(x,i,false)).join("")}${addRow(false)}
@@ -216,6 +223,7 @@ window.estHTML=function(c){return sheetHTML(P(),c,false)+disHTML(P(),c,false)};
 const rowById=(e,id)=>e.rows.find(r=>r.id===id);
 function edit(fn){const p=P(),c=compute(p),e=ensure(p,c);fn(p,e,c);e.edited=true;touch(p);renderAll()}
 box.addEventListener("change",ev=>{const t=ev.target,p=P();
+ if(t.dataset.lh){p.meta.lenHd=t.checked;if(p.meta.estTitle)p.meta.estTitle=withLen(p.meta.estTitle,p,compute(p));touch(p);renderAll();return}
  if(t.dataset.m){const k=t.dataset.m;let v=t.value;if(k==="fee")v=+v||0;if(k==="estTitle"){const c=compute(p);v=v.trim();if(v===titleOf({meta:{...p.meta,estTitle:""}},c))v=""}p.meta[k]=v;touch(p);renderAll();return}
  if(t.dataset.g){const k=t.dataset.g;edit((p,e)=>{if(k==="sarma")e.sarma=t.checked;else if(k==="stockCol"){e.stockCol=t.checked;if(!t.checked&&usedSk(e).length&&!confirm("Hide the RDSS / O&M / reusable column? Nothing will be deducted at M; your markings are kept and come back if you show the column again.")){e.stockCol=true}}
   else if(k==="hHead"||k==="mLab"){const v=t.value.trim(),def=k==="hHead"?hHeadOf({...e,hHead:""}):mLabOf({...e,mLab:""});e[k]=v&&v!==def?v:""}else if(k==="meter")e.meter=+t.value||0;else e[k]=(+t.value||0)/100});return}
