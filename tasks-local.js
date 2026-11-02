@@ -268,7 +268,11 @@ document.addEventListener("visibilitychange",function(){if(!document.hidden)requ
 (function(){var css=document.createElement("style");css.textContent=
 ".pte{padding:12px 16px 14px;display:flex;flex-direction:column;gap:12px;cursor:auto;text-align:left}"+
 ".pte .pn{font-size:15px;line-height:1.55;word-break:break-word}.pte .pn p{margin:0 0 7px}.pte .pn ul{margin:0 0 6px;padding-left:20px}.pte .pn hr{border:0;border-top:1px solid var(--tr-line,#e6e3db);margin:10px 0}"+
-".pte .pn a{word-break:break-all}.pte .pe{color:var(--tr-muted,#6b6a64);font-size:13.5px}"+
+".pte .pn a{word-break:break-all}.pte .pn a.lk{display:inline-block;word-break:normal;font-size:13px;font-weight:650;text-decoration:none;background:var(--tr-acc-soft,#eef2ff);color:var(--tr-acc-ink,#3730a3);border-radius:999px;padding:1px 10px;margin-left:4px;white-space:nowrap}"+
+".pte .pn .nd{display:inline-block;font-size:12px;font-weight:700;background:#f1efe8;color:#57534e;border-radius:6px;padding:0 6px;margin-right:8px}.pte .pn .nu{padding-left:0}"+
+".pte .pn .ns{font-size:12.5px;color:var(--tr-muted,#6b6a64)}.pte .pn .nh{font-size:12.5px;font-weight:700;color:var(--tr-muted,#6b6a64);text-transform:none;margin:4px 0 6px}"+
+".pte .pn .nb p{margin:0 0 4px}.pte .pn .nb{margin:0 0 8px}"+
+".pte .pe{color:var(--tr-muted,#6b6a64);font-size:13.5px}"+
 ".pte .pr{display:flex;gap:8px;align-items:center;flex-wrap:wrap}"+
 ".pte button{font:600 13px system-ui,sans-serif;border:1px solid var(--tr-line,#e6e3db);background:var(--tr-paper,#fff);color:var(--tr-ink,#1c1b19);border-radius:10px;padding:8px 12px;cursor:pointer}"+
 ".pte button.pri{background:var(--tr-acc,#4f46e5);border-color:var(--tr-acc,#4f46e5);color:#fff}.pte button.lnk{border:0;background:none;color:var(--tr-acc-ink,#3730a3);padding:4px 0}"+
@@ -281,10 +285,27 @@ document.addEventListener("visibilitychange",function(){if(!document.hidden)requ
 ".pte .ok{color:#15803d;font-size:12.5px;font-weight:650;min-height:16px}";
 (document.head||document.documentElement).appendChild(css);})();
 function escH(x){return String(x==null?"":x).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
-function linkify(h){return h.replace(/(https?:\/\/[^\s<]+)/g,'<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>').replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>")}
-function notesHtml(c){var out="",list=false;String(c||"").replace(/\r/g,"").split("\n").forEach(function(l){var x=l.trim();
-    if(/^-\s+/.test(x)){if(!list){out+="<ul>";list=true}out+="<li>"+linkify(escH(x.replace(/^-\s+/,"")))+"</li>";return}
-    if(list){out+="</ul>";list=false}if(!x)return;if(/^-{3,}$/.test(x)){out+="<hr>";return}out+="<p>"+linkify(escH(x))+"</p>";});
+/* readable notes (2 Nov 2026): TickTick's markdown escapes (\( \_ \=) are dropped; a long link shows as a short
+   "Open ↗" button after its label; "dd/mm/yyyy:" update lines get a date tag; "Source:" lines are small and grey;
+   "merged …" lines become a small heading; long paragraphs are split at sentence ends so they read in short lines. */
+function unesc(s){return String(s).replace(/\\([\\`*_{}\[\]()#+\-.!=|~<>:"'])/g,"$1")}
+function linkLabel(u){return /drive\.google\.com|docs\.google\.com/.test(u)?"Open in Drive ↗":/ticktick\.com/.test(u)?"Open in TickTick ↗":"Open link ↗"}
+function linkify(h){return h.replace(/(https?:\/\/[^\s<]+)/g,function(u){var raw=u.replace(/&amp;/g,"&");return '<a class="lk" href="'+u+'" target="_blank" rel="noopener noreferrer">'+linkLabel(raw)+'</a>'}).replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>")}
+function lineHtml(x){var h=escH(x),m;
+  h=h.replace(/\s*[–—-]\s*(?=https?:\/\/)/," ").replace(/:\s*(?=https?:\/\/)/," ");
+  if((m=h.match(/^(\d{2}\/\d{2}\/\d{4}):\s*(.*)$/))){
+    var mg=m[2].match(/^merged\s+&quot;(.*)&quot;$/);
+    if(mg)return '<div class="nh"><span class="nd">'+m[1]+'</span>Merged in: '+linkify(mg[1])+'</div>';
+    return '<p class="nu"><span class="nd">'+m[1]+'</span>'+linkify(m[2])+'</p>'}
+  if(/^source:/i.test(x))return '<p class="ns">'+linkify(h)+'</p>';
+  return '<p>'+linkify(h)+'</p>'}
+function split(x){if(x.length<160||/https?:\/\//.test(x))return [x];
+  return x.split(/(?<=[a-z0-9)\]][.])\s+(?=[A-Z0-9])/).map(function(s){return s.trim()}).filter(Boolean)}
+function notesHtml(c){var out="",list=false;unesc(String(c||"")).replace(/\r/g,"").split("\n").forEach(function(l){var x=l.trim();
+    if(/^-\s+/.test(x)){if(!list){out+="<ul>";list=true}out+="<li>"+lineHtml(x.replace(/^-\s+/,"")).replace(/^<p[^>]*>|<\/p>$/g,"")+"</li>";return}
+    if(list){out+="</ul>";list=false}if(!x)return;if(/^-{3,}$/.test(x)){out+="<hr>";return}
+    if(/^\d{2}\/\d{2}\/\d{4}:/.test(x)||/^source:/i.test(x)){out+=lineHtml(x);return}
+    var parts=split(x);out+=parts.length>1?'<div class="nb">'+parts.map(lineHtml).join("")+'</div>':lineHtml(x);});
   if(list)out+="</ul>";return out;}
 function dmy(){var p=today().split("-");return p[2]+"/"+p[1]+"/"+p[0]}
 function needDrive(){if(window.PosDrive)return Promise.resolve(window.PosDrive);return new Promise(function(res,rej){var s=document.createElement("script");s.src="drive.js?v=20261102t";
