@@ -10,7 +10,7 @@
 (function(){
 "use strict";
 var KEYS=["bomkits","tc-prog","p2b-cur","p2b-qck","p2b-std","p2b-drill","p2b-steps","p2b-legacy","totalRecallCompletedSuppressions_v1","totalRecallGoogleMapsKey_v1",
-  "gsp-skip","gs-metro-v1","health-range","dr-fb-snd","totalRecallCineSpeed","money-acct","est-practice","deleg","pos-tasks"];
+  "gsp-skip","gs-metro-v1","health-range","dr-fb-snd","totalRecallCineSpeed","money-acct","est-practice","deleg","pos-tasks","fwd-consumer"];
 var PREFIXES=["gsp-nudged-","gsp-celebrated-"];
 var SLOT="#kv",META="kvsync-meta-v1",SYNC_KEY="totalRecallSyncCode_v1",DEF="https://total-recall-ticktick.pranjuchakrapani90.workers.dev",SEP="\u0001";
 var ls;try{ls=window.localStorage;}catch(e){return;}

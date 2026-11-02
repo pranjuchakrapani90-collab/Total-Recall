@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="kvsync.js?v=20261102p" data-reload="fwd-consumer"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
+<title>Party Letter · Pranju OS</title>
+<link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="icon" href="icon-192.png" sizes="192x192"><link rel="apple-touch-icon" href="apple-touch-icon.png">
+<!-- Party Letter (2 Nov 2026): forwarding of an APPROVED estimate of up to Rs 1 lakh straight to the party who applied,
+     with a copy to the AGM, NED-II. Up to Rs 1 lakh the SDE is the sanctioning authority for deposit-work estimates;
+     above that the estimate goes to the AGM for approval (Line Survey's forwarding letter does that).
+     Wording follows his letter SDE/SESD/APDCL/CAR/T-7/2025/2351 dt 09/05/2025 (approved estimate for shifting of 11 kV
+     line at 16 No. Dijuvalley, to Competent Infrastructure) and the deposit terms of the AGM's approval letters.
+     Saved letters live in localStorage "fwd-consumer" and sync between phones through kvsync. -->
+<style>
+:root{--bg:#f4f7fb;--paper:#fff;--ink:#172033;--muted:#697386;--line:#e5e7eb;--steel:#0f766e;--steel-soft:#e6f4f2;--brass:#b45309;--brass-soft:#fef3e2;--bad:#b91c1c;--bad-soft:#fef2f2;--body:system-ui,-apple-system,"Segoe UI",sans-serif;color-scheme:light}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--body)}
+button,select,input,textarea{font:inherit}
+.top{background:linear-gradient(135deg,#0f766e,#1e3a5f);color:#fff;padding:14px 16px 14px}
+.tin{max-width:1100px;margin:0 auto}
+.backlink{font-size:13px;color:#fff;opacity:.9;text-decoration:none}
+h1{font:750 26px/1.15 var(--body);margin:6px 0 2px}
+.sub{color:#d5ece8;font-size:13px;margin:0}
+main{max-width:1100px;margin:0 auto;padding:14px 16px 60px}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:14px}
+.card h2{font:700 17px var(--body);margin:0 0 8px}
+.muted{color:var(--muted)}.small{font-size:13px}
+.f{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px 12px}
+.f label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:650;color:#334155}
+.f label.w{grid-column:1/-1}
+.f input,.f textarea{border:1px solid #cbd5e1;border-radius:10px;padding:9px 10px;font-weight:400;font-size:15px;background:#fff;color:var(--ink)}
+.f textarea{resize:vertical;min-height:44px}
+.f input.big{font-size:20px;font-weight:700}
+.wd{font-size:13px;color:#115e59;font-weight:600;margin-top:2px}
+details.more{margin-top:10px}details.more summary{cursor:pointer;font-weight:650;color:#0f766e;font-size:14px;padding:4px 0}
+.btn{background:var(--steel);color:#fff;border:0;border-radius:10px;padding:10px 14px;font-weight:650;cursor:pointer;display:inline-flex;align-items:center;gap:6px;text-decoration:none}
+.btn.alt{background:var(--paper);color:var(--ink);border:1px solid var(--line)}.btn.sm{padding:6px 10px;font-size:13px}
+.drow{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.warn{background:var(--brass-soft);border:1px solid #fcd34d;color:#78350f;border-radius:12px;padding:10px 12px;font-size:14px;margin:10px 0 0}
+.warn a{color:#92400e;font-weight:700}
+.ok{background:var(--steel-soft);border-radius:12px;padding:8px 12px;font-size:13px;color:#115e59;margin:10px 0 0}
+.list{display:flex;flex-direction:column;gap:6px}
+.li{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;cursor:pointer;background:#fff}
+.li.on{border-color:#0f766e;background:var(--steel-soft)}
+.li .t{flex:1;min-width:0}.li .t b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.li .t span{font-size:12.5px;color:var(--muted);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.li .a{font-weight:700;white-space:nowrap}.li button{border:0;background:none;color:var(--bad);font-size:16px;cursor:pointer;padding:2px 6px}
+/* the letter */
+.fwwrap{background:#e5e7eb;padding:14px 8px;border-radius:12px;overflow:auto}
+.fwp{background:#fff;width:210mm;min-height:297mm;margin:0 auto;padding:10mm 18mm 12mm 24mm;font:12pt/1.22 "Times New Roman",Tinos,"Liberation Serif",Times,serif;color:#000;box-shadow:0 2px 10px #0002}
+.fwp .lh{position:relative;text-align:center;font-size:9.6pt;line-height:1.17;padding:0 0 6px;border-bottom:1.6px solid #000;margin:0 -6mm 0 -10mm}
+.fwp .lh b{font-size:11pt}.fwp .lh img{position:absolute;left:2mm;top:-1mm;width:22mm;height:22mm}
+.fwp .rw{display:flex;justify-content:space-between;margin:12px 0 12px}.fwp .rw span{white-space:pre}
+.fwp .to{margin:0 0 10px}.fwp .to .ad{padding-left:13mm;white-space:pre-line}
+.fwp .sbj{display:flex;margin:0 0 6px;text-align:justify;font-weight:700}.fwp .sbj .k{width:13mm;flex:none}
+.fwp .ref{display:flex;margin:0 0 10px}.fwp .ref .k{width:13mm;flex:none}
+.fwp p{margin:0 0 9px;text-align:justify}.fwp p.ind{text-indent:13mm}
+.fwp table{border-collapse:collapse;width:100%;margin:0 0 4px}.fwp td{border:1px solid #000;padding:2px 6px;vertical-align:top}
+.fwp td.s{width:13%;text-align:center}.fwp td.a{width:27%;text-align:right}.fwp tr.h td{font-weight:700;text-align:center}.fwp tr.n td{font-weight:700}
+.fwp .words{text-align:center;font-weight:700;margin:0 0 9px}
+.fwp ol{margin:0 0 9px;padding-left:18mm}.fwp ol li{padding-left:2mm;text-align:justify;margin-bottom:2px}
+.fwp .sg{display:flex;justify-content:flex-end}.fwp .sg div{text-align:center;width:72mm}
+.fwp .ph{background:#fef9c3}
+@media print{.noprint,.top{display:none!important}body{background:#fff}main{padding:0;max-width:none}.fwwrap{background:#fff;padding:0}.fwp{box-shadow:none;width:auto;min-height:0;padding:0;font-size:11pt;line-height:1.18}.fwp .lh{margin:0}.fwp p{margin-bottom:6px}.fwp .rw{margin:8px 0}.fwp .ph{background:none}}
+@page{size:A4 portrait;margin:10mm 14mm 10mm 18mm}
+</style></head>
+<body>
+<header class="top noprint"><div class="tin"><a class="backlink" href="apdcl-studio.html">‹ Estimate Studio</a>
+<h1>Party Letter</h1><p class="sub">Approved estimate up to ₹1 lakh → straight to the party, copy to the AGM. Above ₹1 lakh, use Line Survey's forwarding letter to the AGM.</p></div></header>
+<main>
+<section class="card noprint">
+ <h2>Fill in</h2>
+ <div class="f">
+  <label class="w">Party (name of the applicant)<input id="party" placeholder="e.g. Competent Infrastructure and Consulting Pvt. Ltd."></label>
+  <label class="w">Work (with the place)<textarea id="work" rows="2" placeholder="e.g. shifting of 11 KV line at 16 No. Dijuvalley, Salonah"></textarea></label>
+  <label>Net amount to be deposited (₹)<input id="amt" class="big" inputmode="decimal" placeholder="e.g. 54321"><span class="wd" id="amtW"></span></label>
+ </div>
+ <div id="limit"></div>
+ <details class="more" id="more"><summary>More details (optional)</summary>
+  <div class="f" style="margin-top:8px">
+   <label class="w">Party address<textarea id="addr" rows="2" placeholder="e.g. Guwahati, Assam"></textarea></label>
+   <label>Total estimate incl. GST (₹)<input id="tot" inputmode="decimal" placeholder="if materials are deducted"></label>
+   <label>Less: party-supply / existing materials (₹)<input id="less" inputmode="decimal" placeholder="0"></label>
+   <label>Their application / letter No.<input id="ref" placeholder="if any"></label>
+   <label>Application date<input id="refDate" type="date"></label>
+   <label>App. No. / Consumer No.<input id="appNo" placeholder="if any"></label>
+   <label>Deposit by (due date)<input id="due" type="date"></label>
+   <label>Letter No. (leave blank to fill at dispatch)<input id="no" placeholder="SDE/SESD/APDCL/CAR/T-7/2026/"></label>
+   <label>Letter date<input id="dt" type="date"></label>
+   <label class="w">Terms and conditions (one per line)<textarea id="terms" rows="6"></textarea></label>
+   <label class="w">Enclosures<input id="encl"></label>
+  </div>
+  <div class="drow"><button class="btn alt sm" id="resetTerms" type="button">↺ Default terms and enclosures</button></div>
+ </details>
+ <div class="drow">
+  <button class="btn" id="print" type="button">🖨 Print / save PDF</button>
+  <button class="btn alt" id="docx" type="button">⬇ Word (.docx)</button>
+  <button class="btn alt" id="new" type="button">＋ New letter</button>
+ </div>
+ <div class="ok" id="saved" hidden></div>
+</section>
+
+<section class="fwwrap" id="letter"></section>
+
+<section class="card noprint" style="margin-top:14px"><h2>Letters made</h2><div class="list" id="list"></div><p class="muted small" id="none">None yet — each letter is kept here as you type.</p></section>
+</main>
+<script src="est-assets.js?v=20261029c"></script>
+<script>
+(function(){
+"use strict";
+const $=s=>document.querySelector(s),KEY="fwd-consumer",LIMIT=100000;
+const DEF_TERMS=[
+ "The amount shall be deposited in the Deposit Work account head of Nagaon Electrical Circle, APDCL through Demand Draft / RTGS / NEFT / online mode on or before the due date. In case of RTGS / NEFT / online payment, the transaction details (UTR) shall be intimated to the O/O the CEO, NEC and to this office.",
+ "The work will be taken up by APDCL only after realisation of the full amount. The party shall be responsible for any shortfall arising from deviation during final execution or revision of the estimate.",
+ "This approval shall stand cancelled automatically if the SoR of APDCL is revised before the amount is deposited.",
+ "Right of Way (RoW) and any permission required from other authorities shall be the responsibility of the party; APDCL will not be responsible for delay in execution due to RoW issues."];
+const DEF_ENCL="1. Approved provisional estimate.  2. Bill copy.";
+const esc=s=>String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+const num=v=>{const n=parseFloat(String(v||"").replace(/[₹,\s]/g,""));return isFinite(n)?n:0};
+const rin=v=>(+v||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
+const iso=d=>{const z=n=>String(n).padStart(2,"0");return d.getFullYear()+"-"+z(d.getMonth()+1)+"-"+z(d.getDate())};
+const dmy=s=>{if(!s)return"";const[y,m,d]=s.split("-");return d+"/"+m+"/"+y};
+const fy=s=>{const t=s?new Date(s):new Date(),y=t.getFullYear(),s0=t.getMonth()>=3?y:y-1;return s0+"-"+String((s0+1)%100).padStart(2,"0")};
+function words(n){n=Math.round(n);if(!n)return"Zero";
+ const a=["","One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Ten","Eleven","Twelve","Thirteen","Fourteen","Fifteen","Sixteen","Seventeen","Eighteen","Nineteen"],t=["","","Twenty","Thirty","Forty","Fifty","Sixty","Seventy","Eighty","Ninety"];
+ const two=x=>x<20?a[x]:t[Math.floor(x/10)]+(x%10?"-"+a[x%10]:"");
+ const cr=Math.floor(n/1e7),lk=Math.floor(n/1e5)%100,th=Math.floor(n/1e3)%100,hu=Math.floor(n/100)%10,rest=n%100,parts=[];
+ if(cr)parts.push((cr>=100?words(cr):two(cr))+" Crore");if(lk)parts.push(two(lk)+" Lakh");if(th)parts.push(two(th)+" Thousand");if(hu)parts.push(a[hu]+" Hundred");
+ let s=parts.join(" ");if(rest)s+=(s?" and ":"")+two(rest);return s}
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+
+/* ---------- store ---------- */
+function load(){try{const d=JSON.parse(localStorage.getItem(KEY)||"null");if(d&&d.items)return d}catch(_){}return{items:{},cur:null}}
+let D=load();
+function save(){try{localStorage.setItem(KEY,JSON.stringify(D))}catch(_){}}
+function blank(){const due=new Date();due.setDate(due.getDate()+15);
+ return{id:uid(),party:"",addr:"",work:"",amt:"",tot:"",less:"",ref:"",refDate:"",appNo:"",due:iso(due),no:"",dt:"",terms:DEF_TERMS.join("\n"),encl:DEF_ENCL,upd:Date.now()}}
+function cur(){let c=D.cur&&D.items[D.cur];if(!c||c.del){c=blank();D.items[c.id]=c;D.cur=c.id}return c}
+
+/* prefill from Line Survey: fwd-consumer.html?party=..&work=..&amt=..&tot=..&less=..&ref=..&refDate=.. */
+{const q=new URLSearchParams(location.search);if(q.get("party")||q.get("work")||q.get("amt")){const c=blank();
+ ["party","addr","work","amt","tot","less","ref","refDate","appNo"].forEach(k=>{if(q.get(k))c[k]=q.get(k)});
+ if(num(c.tot)&&num(c.tot)===num(c.amt))c.tot="";D.items[c.id]=c;D.cur=c.id;save();history.replaceState(null,"",location.pathname)}}
+
+const F=["party","addr","work","amt","tot","less","ref","refDate","appNo","due","no","dt","terms","encl"];
+function fill(){const c=cur();F.forEach(k=>{$("#"+k).value=c[k]||""});if(c.addr||c.tot||c.less||c.ref)$("#more").open=true}
+
+/* ---------- the letter model ---------- */
+function model(c){const net=num(c.amt),tot=num(c.tot),less=num(c.less);
+ const L=tot||(net+less),M=less||(tot&&tot>net?tot-net:0),P=net||Math.ceil(L-M);
+ const work=(c.work||"").trim().replace(/\.\s*$/,"");
+ const rows=[];if(M>0){rows.push(["Total estimate amount including GST",L]);rows.push(["Less: cost of party-supply / existing materials",M])}rows.push([M>0?"Net amount to be deposited (rounded)":"Estimate amount including GST, to be deposited",P]);
+ const to=[(c.party||"").trim()||"[Name of the Party]",...(c.addr||"").split("\n").map(s=>s.trim()).filter(Boolean)];if(c.appNo)to.push(/no\.?\s*[:\-]?/i.test(c.appNo)?c.appNo:"App. / Consumer No. "+c.appNo);
+ const w=work||"[work]";
+ const refT=c.ref||c.refDate?"Your application / letter"+(c.ref?" No. "+c.ref:"")+(c.refDate?" Dtd. "+dmy(c.refDate):"")+".":"";
+ const body="With regards to the subject"+(refT?" and reference":"")+" cited above, this is to inform you that the provisional estimate for "+w+" has been prepared as per APDCL Schedule of Rates 2021-22 and, the amount being within the delegated financial power of the undersigned, the same has been approved under Deposit Work. Therefore, I have the honour to submit herewith the approved estimate along with the bill copy of the estimate amount, the abstract of which is as under:";
+ const due=c.due?dmy(c.due):"";
+ const terms=(c.terms||"").split("\n").map(s=>s.trim()).filter(Boolean).map(s=>due?s.replace(/on or before the due date/i,"on or before "+due):s);
+ const fyr=fy(c.dt||null);
+ const no=(c.no||"").trim()||"No. SDE/SESD/APDCL/CAR/T-7/"+fyr.slice(0,4)+"/          ";
+ return{to,sub:"Submission of approved provisional estimate for "+w+" under Deposit Work.",refT,body,rows,P,inW:"(Rupees "+words(P)+" only)",
+  ask:"You are requested to deposit the above amount subject to the following terms and conditions:",terms,encl:"Enclosed: "+(c.encl||DEF_ENCL),
+  no:/^no\.?\s/i.test(no)?no:"No. "+no,dated:"Dated : "+(c.dt?dmy(c.dt):"          "),memo:"Memo No. "+no.replace(/^no\.?\s*/i,"")+"   (A)",
+  copy:["The Asst. General Manager, Nagaon Electrical Division-II, Nagaon, APDCL::CAR for favour of kind information.","Office Copy."],noWork:!work,noParty:!(c.party||"").trim(),noAmt:!P}}
+
+function letterHTML(m){const ph=(t,bad)=>bad?`<span class="ph">${esc(t)}</span>`:esc(t);
+ return`<div class="fwp"><div class="lh">${window.APDCL_LOGO?`<img src="${window.APDCL_LOGO}" alt="">`:""}<b>ASSAM POWER DISTRIBUTION COMPANY LIMITED</b><br>REGD OFFICE: BIJULEE BHABAN, PALTANBAZAR, GUWAHATI-781001, ASSAM<br>CIN: U40109AS2003SGC007242 &nbsp;|&nbsp; GSTIN: 18AABCL1354J1ZJ<br><b>OFFICE OF THE SUB-DIVISIONAL ENGINEER<br>SAMAGURI ELECTRICAL SUB-DIVISION</b><br>SAMAGURI, NAGAON, ASSAM-782140</div>
+ <div class="rw"><span>${esc(m.no)}</span><span>${esc(m.dated)}</span></div>
+ <div class="to">To,<div class="ad">${m.to.map((l,i)=>i===0?ph(l,m.noParty):esc(l)).join("\n")}</div></div>
+ <div class="sbj"><span class="k">Sub:</span><div>${m.noWork?esc(m.sub).replace("[work]",'<span class="ph">[work]</span>'):esc(m.sub)}</div></div>
+ ${m.refT?`<div class="ref"><span class="k">Ref:</span><div>${esc(m.refT)}</div></div>`:""}
+ <div style="margin:0 0 6px">Sir/Madam,</div>
+ <p class="ind">${m.noWork?esc(m.body).replace("[work]",'<span class="ph">[work]</span>'):esc(m.body)}</p>
+ <table><tr class="h"><td class="s">Sl. No.</td><td>Particulars</td><td class="a" style="text-align:center">Amount (Rs.)</td></tr>
+ ${m.rows.map((r,i)=>`<tr class="${i===m.rows.length-1?"n":""}"><td class="s">${i+1}</td><td>${esc(r[0])}</td><td class="a">${m.noAmt?'<span class="ph">________</span>':rin(r[1])}</td></tr>`).join("")}</table>
+ <div class="words">${m.noAmt?'<span class="ph">(Rupees ________ only)</span>':esc(m.inW)}</div>
+ <p class="ind">${esc(m.ask)}</p>
+ <ol>${m.terms.map(t=>`<li>${esc(t)}</li>`).join("")}</ol>
+ <div>Thanking You.</div><div style="margin:4px 0 0">${esc(m.encl)}</div>
+ <div class="sg"><div>Yours Faithfully<br><br><br><b>Sub Divisional Engineer</b><br>Samaguri Electrical Sub Division<br>APDCL::CAR</div></div>
+ <div class="rw" style="margin:10px 0 4px"><span>${esc(m.memo)}</span><span>${esc(m.dated)}</span></div>
+ <div>Copy to:</div><ol style="margin-bottom:4px">${m.copy.map(t=>`<li>${esc(t)}</li>`).join("")}</ol>
+ <div class="sg"><div><br><br><b>Sub Divisional Engineer</b><br>Samaguri Electrical Sub Division<br>APDCL::CAR</div></div></div>`}
+
+/* ---------- render ---------- */
+function render(){const c=cur(),m=model(c);
+ $("#letter").innerHTML=letterHTML(m);
+ $("#amtW").textContent=m.P?"Rupees "+words(m.P)+" only":"";
+ $("#limit").innerHTML=m.P>LIMIT?`<div class="warn"><b>₹${rin(m.P)} is above ₹1 lakh.</b> This estimate needs approval of the AGM (₹1–3 lakh) or CEO (₹3–10 lakh), so it should not go straight to the party. Use the forwarding letter to the AGM in <a href="sld-survey.html">Line Survey</a>.</div>`:"";
+ const it=Object.values(D.items).filter(x=>!x.del&&(x.party||x.work||x.amt)).sort((a,b)=>(b.upd||0)-(a.upd||0));
+ $("#none").hidden=it.length>0;
+ $("#list").innerHTML=it.map(x=>`<div class="li${x.id===D.cur?" on":""}" data-id="${x.id}"><div class="t"><b>${esc(x.party||"(no party)")}</b><span>${esc(x.work||"")}</span></div><span class="a">₹${rin(num(x.amt))}</span><button type="button" data-del="${x.id}" title="Delete">✕</button></div>`).join("")}
+let tm=null;
+F.forEach(k=>$("#"+k).addEventListener("input",()=>{const c=cur();c[k]=$("#"+k).value;c.upd=Date.now();clearTimeout(tm);tm=setTimeout(save,300);render()}));
+$("#resetTerms").onclick=()=>{const c=cur();c.terms=DEF_TERMS.join("\n");c.encl=DEF_ENCL;c.upd=Date.now();save();fill();render()};
+$("#new").onclick=()=>{const c=blank();D.items[c.id]=c;D.cur=c.id;save();fill();render();$("#party").focus()};
+$("#list").addEventListener("click",e=>{const del=e.target.closest("[data-del]");
+ if(del){if(!confirm("Delete this letter?"))return;const x=D.items[del.dataset.del];x.del=true;x.upd=Date.now();if(D.cur===x.id)D.cur=null;save();fill();render();return}
+ const li=e.target.closest(".li");if(li){D.cur=li.dataset.id;save();fill();render();scrollTo({top:0,behavior:"smooth"})}});
+window.addEventListener("kvsync",e=>{const d=(e&&e.detail)||[];if(d.indexOf(KEY)>=0){const k=D.cur;D=load();if(k&&D.items[k])D.cur=k;fill();render()}});
+function check(){const m=model(cur());const miss=[m.noParty&&"party",m.noWork&&"work",m.noAmt&&"amount"].filter(Boolean);
+ if(miss.length&&!confirm("Still blank: "+miss.join(", ")+". Make the letter anyway?"))return false;
+ if(m.P>LIMIT&&!confirm("₹"+rin(m.P)+" is above your ₹1 lakh power — the estimate should go to the AGM. Make this letter anyway?"))return false;return true}
+const fname=()=>{const c=cur();return"Approved_Estimate_"+((c.party||"Party").replace(/[^\w]+/g,"_").slice(0,40))+".docx"};
+$("#print").onclick=()=>{if(check())window.print()};
+
+/* ---------- Word ---------- */
+const CRC=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
+function crc32(u){let c=0xFFFFFFFF;for(let i=0;i<u.length;i++)c=CRC[(c^u[i])&255]^(c>>>8);return(c^0xFFFFFFFF)>>>0}
+function zipBin(files){const enc=new TextEncoder(),parts=[],cen=[];let off=0;
+ files.forEach(([name,data])=>{const nb=enc.encode(name),d=typeof data==="string"?enc.encode(data):data,crc=crc32(d),h=new DataView(new ArrayBuffer(30));
+  h.setUint32(0,0x04034b50,true);h.setUint16(4,20,true);h.setUint16(6,0x0800,true);h.setUint32(14,crc,true);h.setUint32(18,d.length,true);h.setUint32(22,d.length,true);h.setUint16(26,nb.length,true);
+  parts.push(new Uint8Array(h.buffer),nb,d);const cd=new DataView(new ArrayBuffer(46));cd.setUint32(0,0x02014b50,true);cd.setUint16(4,20,true);cd.setUint16(6,20,true);cd.setUint16(8,0x0800,true);cd.setUint32(16,crc,true);cd.setUint32(20,d.length,true);cd.setUint32(24,d.length,true);cd.setUint16(28,nb.length,true);cd.setUint32(42,off,true);
+  cen.push(new Uint8Array(cd.buffer),nb);off+=30+nb.length+d.length});
+ const cl=cen.reduce((s,x)=>s+x.length,0),end=new DataView(new ArrayBuffer(22));end.setUint32(0,0x06054b50,true);end.setUint16(8,files.length,true);end.setUint16(10,files.length,true);end.setUint32(12,cl,true);end.setUint32(16,off,true);
+ const all=[...parts,...cen,new Uint8Array(end.buffer)],out=new Uint8Array(all.reduce((s,x)=>s+x.length,0));let o=0;all.forEach(x=>{out.set(x,o);o+=x.length});return out}
+function b64u8(d){const s=atob(d.split(",")[1]),u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i);return u}
+function buildDocx(m){const X=s=>esc(s);
+ const run=(t,o={})=>`<w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:cs="Times New Roman"/>${o.b?"<w:b/>":""}<w:sz w:val="${o.sz||22}"/></w:rPr>${String(t).split("\n").map((l,i)=>(i?"<w:br/>":"")+`<w:t xml:space="preserve">${X(l)}</w:t>`).join("")}</w:r>`;
+ const para=(runs,o={})=>`<w:p><w:pPr><w:spacing w:after="${o.after==null?120:o.after}" w:line="240" w:lineRule="auto"/>${o.jc?`<w:jc w:val="${o.jc}"/>`:""}${o.ind?`<w:ind ${o.ind}/>`:""}${o.tabs?`<w:tabs>${o.tabs}</w:tabs>`:""}${o.bdr?`<w:pBdr><w:bottom w:val="single" w:sz="12" w:space="1" w:color="000000"/></w:pBdr>`:""}</w:pPr>${runs}</w:p>`;
+ const tab='<w:r><w:tab/></w:r>',hasLogo=!!window.APDCL_LOGO;
+ const img=hasLogo?`<w:r><w:drawing><wp:anchor distT="0" distB="0" distL="114300" distR="114300" simplePos="0" relativeHeight="2" behindDoc="0" locked="0" layoutInCell="1" allowOverlap="1"><wp:simplePos x="0" y="0"/><wp:positionH relativeFrom="margin"><wp:posOffset>-457200</wp:posOffset></wp:positionH><wp:positionV relativeFrom="paragraph"><wp:posOffset>0</wp:posOffset></wp:positionV><wp:extent cx="777240" cy="777240"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:wrapNone/><wp:docPr id="1" name="Logo"/><wp:cNvGraphicFramePr/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="1" name="logo.png"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rIdLogo"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="777240" cy="777240"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:anchor></w:drawing></w:r>`:"";
+ const B=[],RT='<w:tab w:val="right" w:pos="9356"/>',SIG='w:left="5400"';
+ [["ASSAM POWER DISTRIBUTION COMPANY LIMITED",1,22],["REGD OFFICE: BIJULEE BHABAN, PALTANBAZAR, GUWAHATI-781001, ASSAM",0,18],["CIN: U40109AS2003SGC007242  |  GSTIN: 18AABCL1354J1ZJ",0,18],["OFFICE OF THE SUB-DIVISIONAL ENGINEER",1,21],["SAMAGURI ELECTRICAL SUB-DIVISION",1,21],["SAMAGURI, NAGAON, ASSAM-782140",0,18]]
+  .forEach(([t,b,sz],i,a)=>B.push(para((i===0?img:"")+run(t,{b,sz}),{jc:"center",after:i===a.length-1?200:0,bdr:i===a.length-1})));
+ B.push(para(run(m.no)+tab+run(m.dated),{tabs:RT,after:160}));
+ B.push(para(run("To,"),{after:0}));m.to.forEach((l,i,a)=>B.push(para(run(l),{ind:'w:left="720"',after:i===a.length-1?160:0})));
+ B.push(para(run("Sub:",{b:1})+tab+run(m.sub,{b:1}),{ind:'w:left="720" w:hanging="720"',tabs:'<w:tab w:val="left" w:pos="720"/>',jc:"both",after:m.refT?60:160}));
+ if(m.refT)B.push(para(run("Ref:")+tab+run(m.refT),{ind:'w:left="720" w:hanging="720"',tabs:'<w:tab w:val="left" w:pos="720"/>',after:160}));
+ B.push(para(run("Sir/Madam,"),{after:80}));
+ B.push(para(run(m.body),{jc:"both",ind:'w:firstLine="720"'}));
+ const tc=(t,w,o={})=>`<w:tc><w:tcPr><w:tcW w:w="${w}" w:type="dxa"/></w:tcPr>${para(run(t,{b:o.b}),{after:0,jc:o.jc})}</w:tc>`;
+ const tr=[["Sl. No.","Particulars","Amount (Rs.)",{b:1,h:1}],...m.rows.map((r,i)=>[String(i+1),r[0],rin(r[1]),{b:i===m.rows.length-1}])];
+ B.push(`<w:tbl><w:tblPr><w:tblW w:w="9356" w:type="dxa"/><w:tblLayout w:type="fixed"/><w:tblBorders>${["top","left","bottom","right","insideH","insideV"].map(s=>`<w:${s} w:val="single" w:sz="4" w:space="0" w:color="000000"/>`).join("")}</w:tblBorders></w:tblPr><w:tblGrid><w:gridCol w:w="1100"/><w:gridCol w:w="5756"/><w:gridCol w:w="2500"/></w:tblGrid>${tr.map(r=>`<w:tr>${tc(r[0],1100,{b:r[3].b,jc:"center"})}${tc(r[1],5756,{b:r[3].b,jc:r[3].h?"center":""})}${tc(r[2],2500,{b:r[3].b,jc:r[3].h?"center":"right"})}</w:tr>`).join("")}</w:tbl>`);
+ B.push(para(run(m.inW,{b:1}),{jc:"center",after:120}));
+ B.push(para(run(m.ask),{jc:"both",ind:'w:firstLine="720"',after:60}));
+ m.terms.forEach((t,i)=>B.push(para(run((i+1)+".")+tab+run(t,{sz:21}),{jc:"both",ind:'w:left="1080" w:hanging="360"',tabs:'<w:tab w:val="left" w:pos="1080"/>',after:i===m.terms.length-1?120:20})));
+ B.push(para(run("Thanking You."),{after:40}));B.push(para(run(m.encl),{after:80}));
+ ["Yours Faithfully","","","Sub Divisional Engineer","Samaguri Electrical Sub Division","APDCL::CAR"].forEach(l=>B.push(para(run(l,{b:l==="Sub Divisional Engineer"}),{jc:"center",ind:SIG,after:0})));
+ B.push(para(run(m.memo)+tab+run(m.dated),{tabs:RT,after:40}).replace("<w:spacing ",'<w:spacing w:before="200" '));
+ B.push(para(run("Copy to:"),{after:0}));m.copy.forEach((t,i)=>B.push(para(run((i+1)+".")+tab+run(t),{ind:'w:left="1080" w:hanging="360"',tabs:'<w:tab w:val="left" w:pos="1080"/>',after:0})));
+ ["","","Sub Divisional Engineer","Samaguri Electrical Sub Division","APDCL::CAR"].forEach(l=>B.push(para(run(l,{b:l==="Sub Divisional Engineer"}),{jc:"center",ind:SIG,after:0})));
+ const doc=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"><w:body>${B.join("")}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="567" w:right="851" w:bottom="567" w:left="1134" w:header="300" w:footer="300" w:gutter="0"/></w:sectPr></w:body></w:document>`;
+ const ct=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>`;
+ const rels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`;
+ const drel=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${hasLogo?'<Relationship Id="rIdLogo" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/logo.png"/>':""}</Relationships>`;
+ const files=[["[Content_Types].xml",ct],["_rels/.rels",rels],["word/document.xml",doc],["word/_rels/document.xml.rels",drel]];if(hasLogo)files.push(["word/media/logo.png",b64u8(window.APDCL_LOGO)]);
+ return zipBin(files)}
+window.PartyLetter={model,buildDocx,words};
+$("#docx").onclick=()=>{if(!check())return;try{const u=buildDocx(model(cur())),b=new Blob([u],{type:"application/vnd.openxmlformats-officedocument.wordprocessingml.document"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=fname();document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}catch(e){alert("Couldn't build the Word file: "+e.message)}};
+
+save();fill();render();
+})();
+</script>
+</body></html>
