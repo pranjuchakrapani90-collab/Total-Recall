@@ -85,6 +85,10 @@ function act(id,kind,date){var t=get(id);if(!t)throw new Error("That task is no 
   if(t.st===2&&kind!=="reopen")return {ok:true,completed:false,reason:"closed"};
   t.h=Object.assign({},t.h);
   if(kind==="reopen"){t.st=0;t.cd="";put(t);return {ok:true};}
+  /* left pending yesterday (or earlier), doing it today: the missed day counts as pushed, the task is due today (2 Nov 2026) */
+  if(kind==="today"){var y=addDays(td,-1);if(!t.h[y])t.h[y]="push";if(!t.du||t.du!==td)t.du=td;put(t);return {ok:true,moved:true,next:td};}
+  /* undo today's choice: forget it and bring the task back to today */
+  if(kind==="undo"){var was=t.h[td];delete t.h[td];if(t.st===2&&t.cd===td&&was){t.st=0;t.cd="";}if(t.du&&t.du>td)t.du=td;put(t);return {ok:true,next:td};}
   if(kind==="fin"){t.st=2;t.cd=td;t.rp="";t.h[td]="fin";put(t);return {ok:true,completed:true,closed:true};}
   if(kind==="later"){if(!/^\d{4}-\d{2}-\d{2}$/.test(date||"")||date<=td)throw new Error("Pick a date after today");
     var added=!t.rp;t.du=date;if(!t.rp)t.rp=DAILY;t.h[td]="later";put(t);return {ok:true,moved:true,next:date,repeatAdded:added};}

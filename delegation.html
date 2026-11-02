@@ -184,6 +184,7 @@ input,select{font:inherit;width:100%;padding:10px 12px;border:1px solid var(--tr
 .oc button b{display:block;color:var(--c);font-weight:750}
 .oc button small{display:block;margin-top:2px;font-weight:500;font-size:11.5px;color:var(--tr-muted)}
 .oc button.on{background:var(--c)}.oc button.on b,.oc button.on small{color:#fff}
+.oc button[data-oc="today"]{grid-column:1/-1}
 .toastUndo{margin-left:14px;border:0;background:none;color:#a5b4fc;font:800 14px system-ui,sans-serif;padding:0;cursor:pointer}
 .oc button.arm{background:#eef2ff;box-shadow:0 0 0 3px #c7d2fe}.oc button.arm small{color:#3730a3;font-weight:650}
 .ocNote{text-align:center;color:#15803d;font-weight:650;padding:14px;border:1px dashed var(--tr-line);border-radius:12px}
@@ -384,7 +385,8 @@ const addDay=(iso,n)=>{const d=new Date(iso+"T12:00:00Z");d.setUTCDate(d.getUTCD
 const OUT={cont:{i:"✓",n:"Done · continues",h:"Work done today, back tomorrow",c:"#15803d"},
   fin:{i:"✔✔",n:"Done & dusted",h:"Finished, never repeats",c:"#4338ca"},
   push:{i:"↷",n:"Push to tomorrow",h:"Not done, back tomorrow",c:"#b45309"},
-  later:{i:"📅",n:"Push to a date",h:"Then daily until done",c:"#0369a1"}};
+  later:{i:"📅",n:"Push to a date",h:"Then daily until done",c:"#0369a1"},
+  today:{i:"↺",n:"Do it today",h:"Left yesterday — counts as pushed, stays on today's card",c:"#dc2626"}};
 function clearOutcome(a){delete a.s;delete a.on;delete a.until;delete a.d;}
 /* Done & dusted (1 Nov 2026): one tap; the task is closed for good only after 4 s, so the toast's Undo can still take it back */
 let finWait=null;
@@ -394,7 +396,11 @@ window.addEventListener("pagehide",flushFin);
 async function setOutcome(id,s,date,quiet,noRender){const a=D.assign[id];if(!a)return;const say=quiet?()=>{}:toast;const td=todayIST(),cur=stOf(id,a);
   if(finWait&&finWait.id!==id)flushFin();
   if(finWait&&finWait.id===id){clearTimeout(finWait.timer);finWait=null;}
-  if(cur===s&&quiet&&s!=="later")return;if(cur===s&&(s!=="later"||!date||date===a.until)){clearOutcome(a);save();render();say(window.PosTasks&&PosTasks.on()?"Back to pending on the card — the task's date stays as it is now":"Back to pending on the card",3200);return}
+  if(cur===s&&quiet&&s!=="later")return;if(cur===s&&(s!=="later"||!date||date===a.until)){clearOutcome(a);save();render();
+    if(window.PosTasks&&PosTasks.on()){try{PosTasks.act(id,"undo")}catch(e){}render();say("Undone · back on today's card",2600);}else say("Back to pending on the card",3200);return}
+  if(s==="today"){clearOutcome(a);a.s="push";a.on=addDay(td,-1);a.np=(a.np||0)+1;
+    if(window.PosTasks&&PosTasks.on()){try{PosTasks.act(id,"today")}catch(e){}}
+    save();if(!noRender)render();say("Kept for today · no longer marked as left",2600);return}
   clearOutcome(a);a.s=s;a.on=td;
   if(s==="cont")a.d=td;
   if(s==="push"||s==="later")a.np=(a.np||0)+1;
@@ -415,10 +421,11 @@ async function setOutcome(id,s,date,quiet,noRender){const a=D.assign[id];if(!a)r
     else if(d.reason==="already-done-today"||d.reason==="already-later")m+=" · already set for "+(d.next?fmtDay(d.next):"a later date");
     say(m,3400);
   }catch(e){say(label+" here, but "+SRC+" couldn't be updated: "+(e.message||e),3800)}}
-function outcomeHtml(id,a){const x=stOf(id,a),tt=closedTT(id,a)&&a.s!=="fin";
+function outcomeHtml(id,a){const x=stOf(id,a),tt=closedTT(id,a)&&a.s!=="fin",ms=missedOf(id,a),td=todayIST();
   if(tt)return `<div class="ocNote">✓ Closed in Pranju OS</div>`;
-  return `<div class="oc">${Object.keys(OUT).map(k=>{const o=OUT[k],on=x===k;
-    const sub=on?(k==="later"?"From "+fmtDay(a.until)+" · tap to undo":"Chosen · tap to undo"):o.h;
+  const keys=(ms?["today"]:[]).concat(["cont","fin","push","later"]);
+  return `<div class="oc">${keys.map(k=>{const o=OUT[k],on=x===k;
+    const sub=on?(k==="later"?"From "+fmtDay(a.until)+" · tap to undo":"Chosen · tap to undo"):(k==="push"?"Not done, back on "+fmtDay(addDay(td,1)):o.h);
     return `<button type="button" class="${on?"on":""}" data-oc="${k}" style="--c:${o.c}"><b>${o.i} ${o.n}</b><small>${esc(sub)}</small></button>`}).join("")}
     <button type="button" class="ocStep" data-oc="step" style="--c:#7c3aed"><b>➜ Done · next step</b><small>This step is done — write what comes next (same task, numbered)</small></button></div>`;}
 /* ---------- done → next step (1 Nov 2026): the task develops — "1. BUY PROZAC" becomes "2. WAIT FOR DELIVERY" ---------- */
