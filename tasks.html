@@ -111,7 +111,7 @@ textarea{min-height:110px;resize:vertical}
 const P=window.PosTasks,$=id=>document.getElementById(id);
 const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const TAGS=["sde-tech","sde-rev","sde-estt","home-manager","brother","son"],MORE=["guitar","read","watch","learn","chess","blog"];
-const TABS=[["today","Today"],["inbox","Inbox"],["schedule","Schedule"],["projects","Projects"],["checklists","Checklists"],["reference","Reference"],["archive","Archive"],["closed","Closed"]];
+const TABS=[["today","Today"],["inbox","Inbox"],["schedule","Schedule"],["projects","Projects"],["checklists","Checklists"],["reference","Reference"],["archive","Archive"],["abandoned","Abandoned"],["closed","Closed"]];
 const fmtDay=iso=>{try{return new Date(iso+"T12:00:00").toLocaleDateString("en-IN",{day:"numeric",month:"short",year:iso.slice(0,4)===P.today().slice(0,4)?undefined:"numeric"})}catch(e){return iso}};
 let tab="today",q="",tagF="",limit=150;
 try{const s=JSON.parse(sessionStorage.getItem("posTasksView")||"{}");if(s.tab)tab=s.tab;if(s.tag)tagF=s.tag;}catch(e){}

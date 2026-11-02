@@ -190,6 +190,7 @@ input,select{font:inherit;width:100%;padding:10px 12px;border:1px solid var(--tr
 .chip.ghost{box-shadow:0 8px 24px #0005;transform:scale(1.06);opacity:.95;animation:none}
 @keyframes wig{from{transform:rotate(-1deg)}to{transform:rotate(1deg)}}
 .fc-h button.arrOn{background:var(--tr-acc);color:#fff;border-color:var(--tr-acc)}.arrHint{font-size:12px;color:var(--tr-muted);text-align:center;margin:-2px 0 4px}
+.chip.ar2::before{content:"🗄 ";text-decoration:none}.chip.ab2::before{content:"🗑 ";text-decoration:none}
 .toastUndo{margin-left:14px;border:0;background:none;color:#a5b4fc;font:800 14px system-ui,sans-serif;padding:0;cursor:pointer}
 .oc button.arm{background:#eef2ff;box-shadow:0 0 0 3px #c7d2fe}.oc button.arm small{color:#3730a3;font-weight:650}
 .ocNote{text-align:center;color:#15803d;font-weight:650;padding:14px;border:1px dashed var(--tr-line);border-radius:12px}
@@ -267,12 +268,13 @@ const closedTT=(id,a)=>loaded&&!openIds.has(id)&&!openTitles.has(tkey(a.t));
 let lastNew=null,filterG="all",fi=0;const ORDER={};let ORDN=0,curPid=null;
 /* where a delegated task stands today: open · cont · fin · push · later */
 function stOf(id,a){const td=todayIST();
+  if(a.s==="arch"||a.s==="abn")return a.s;
   if(a.s==="fin"||closedTT(id,a))return "fin";
   if(a.s==="later"&&a.until&&a.until>td)return "later";
   if(a.s==="push"&&a.on===td)return "push";
   if(a.d===td)return "cont";
   return "open";}
-const isDone=(id,a)=>{const x=stOf(id,a);return x==="fin"||x==="cont"};
+const isDone=(id,a)=>{const x=stOf(id,a);return x==="fin"||x==="cont"||x==="arch"||x==="abn"};
 /* set to a future date (pushed, pushed to a date, or simply due later): kept off the card until that day (1 Nov 2026) */
 function aheadOf(id,a){if(isDone(id,a))return "";const t=window.PosTasks&&PosTasks.on()?PosTasks.get(id):null,td=todayIST();
   if(t&&t.st!==2&&t.du&&t.du>td)return t.du;if(stOf(id,a)==="later")return a.until;return "";}
@@ -305,7 +307,7 @@ function layout(items,cap){/* top one, then right, left, bottom, then the sides 
   const q=items.slice(),R={t:q.splice(0,L.t.length),l:[],r:[],b:[]},nl=L.l.length,nr=L.r.length;
   for(let k=0;k<Math.max(nl,nr);k++){if(k<nl)R.l.push(q.shift());if(k<nr)R.r.push(q.shift());}
   R.b=q;return R;}
-const CHIPC={cont:" dn",fin:" dn fn",push:" ps",later:" lt",open:""};
+const CHIPC={arch:" dn ar2",abn:" dn ab2",cont:" dn",fin:" dn fn",push:" ps",later:" lt",open:""};
 function chip(a){const x0=stOf(a.id,a),ah=aheadOf(a.id,a),x=ah?"later":x0,ms=missedOf(a.id,a);return `<button type="button" class="chip${CHIPC[x]}${ms?" ms":""}${ARR===a.p?" ar":""}${SEL.has(a.id)?" sl":""}${a.id===lastNew?" new":""}" data-t="${esc(a.id)}" title="${esc(a.t)}">${ARR===a.p&&a._n?`<i class="ordN">${a._n}</i>`:""}${esc(a.k||shortKw(a.t))}${x==="later"?`<small>${esc(fmtDay(ah||a.until))}</small>`:""}${ms?`<small>left ${missedDays(ms)>1?missedDays(ms)+" days":"yesterday"}</small>`:""}</button>`;}
 function cardHtml(p,cap){const g=GROUPS[p.g]||GROUPS.other,all=tasksOf(p.id),dn=all.filter(a=>isDone(a.id,a)).length,
     lt=all.filter(a=>isAhead(a.id,a)).length,mk=a=>missedOf(a.id,a)||"~",
@@ -433,6 +435,8 @@ const OUT={cont:{i:"✓",n:"Done · continues",h:"Work done today, back tomorrow
   fin:{i:"✔✔",n:"Done & dusted",h:"Finished, never repeats",c:"#4338ca"},
   push:{i:"↷",n:"Push to tomorrow",h:"Not done, back tomorrow",c:"#b45309"},
   later:{i:"📅",n:"Push to a date",h:"Then daily until done",c:"#0369a1"},
+  arch:{i:"🗄",n:"Archive",h:"Not needed now, maybe some day",c:"#475569"},
+  abn:{i:"🗑",n:"Abandon",h:"No future — drop it",c:"#991b1b"},
   today:{i:"↺",n:"Do it today",h:"Left yesterday — counts as pushed, stays on today's card",c:"#dc2626"}};
 function clearOutcome(a){delete a.s;delete a.on;delete a.until;delete a.d;}
 /* Done & dusted (1 Nov 2026): one tap; the task is closed for good only after 4 s, so the toast's Undo can still take it back */
@@ -445,6 +449,12 @@ async function setOutcome(id,s,date,quiet,noRender){const a=D.assign[id];if(!a)r
   if(finWait&&finWait.id===id){clearTimeout(finWait.timer);finWait=null;}
   if(cur===s&&quiet&&s!=="later")return;if(cur===s&&(s!=="later"||!date||date===a.until)){clearOutcome(a);save();render();
     if(window.PosTasks&&PosTasks.on()){try{PosTasks.act(id,"undo")}catch(e){}render();say("Undone · back on today's card",2600);}else say("Back to pending on the card",3200);return}
+  /* Archive / Abandon (2 Nov 2026): the task leaves every daily list for the Archive or Abandoned list; Undo brings it back */
+  if(s==="arch"||s==="abn"){const P=window.PosTasks&&PosTasks.on()?PosTasks:null;
+    if(cur===s){clearOutcome(a);if(P){try{P.act(id,"restore")}catch(e){}}save();render();say("Brought back to its list",2200);return}
+    clearOutcome(a);a.s=s;a.on=td;if(P){try{P.act(id,s==="arch"?"archive":"abandon")}catch(e){say(e.message||String(e),3000)}}
+    save();if(!noRender)render();
+    toast(s==="arch"?"Archived · see it in the weekly Archive review":"Abandoned · see it in the weekly Abandoned review",4000,()=>{clearOutcome(a);if(P){try{P.act(id,"restore")}catch(e){}}save();render();toast("Undone · back on the card",1800)});return}
   if(s==="today"){clearOutcome(a);a.s="push";a.on=addDay(td,-1);a.np=(a.np||0)+1;
     if(window.PosTasks&&PosTasks.on()){try{PosTasks.act(id,"today")}catch(e){}}
     save();if(!noRender)render();say("Kept for today · no longer marked as left",2600);return}
@@ -470,7 +480,7 @@ async function setOutcome(id,s,date,quiet,noRender){const a=D.assign[id];if(!a)r
   }catch(e){say(label+" here, but "+SRC+" couldn't be updated: "+(e.message||e),3800)}}
 function outcomeHtml(id,a){const x=stOf(id,a),tt=closedTT(id,a)&&a.s!=="fin",ms=missedOf(id,a),td=todayIST();
   if(tt)return `<div class="ocNote">✓ Closed in Pranju OS</div>`;
-  const keys=(ms?["today"]:[]).concat(["cont","fin","push","later"]);
+  const keys=(ms?["today"]:[]).concat(["cont","fin","push","later","arch","abn"]);
   return `<div class="oc">${keys.map(k=>{const o=OUT[k],on=x===k;
     const sub=on?(k==="later"?"From "+fmtDay(a.until)+" · tap to undo":"Chosen · tap to undo"):(k==="push"?"Not done, back on "+fmtDay(addDay(td,1)):o.h);
     return `<button type="button" class="${on?"on":""}" data-oc="${k}" style="--c:${o.c}"><b>${o.i} ${o.n}</b><small>${esc(sub)}</small></button>`}).join("")}

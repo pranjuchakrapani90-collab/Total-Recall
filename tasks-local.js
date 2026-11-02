@@ -18,7 +18,7 @@
 (function(){
 "use strict";
 var KEY="pos-tasks",TZ="Asia/Kolkata";
-var LISTS=[["inbox","Inbox"],["schedule","SCHEDULE"],["projects","PROJECTS"],["checklists","CHECKLISTS"],["reference","REFERENCE"],["archive","ARCHIVE"]];
+var LISTS=[["inbox","Inbox"],["schedule","SCHEDULE"],["projects","PROJECTS"],["checklists","CHECKLISTS"],["reference","REFERENCE"],["archive","ARCHIVE"],["abandoned","ABANDONED"]];
 var LISTNAME={};LISTS.forEach(function(l){LISTNAME[l[0]]=l[1]});
 var RESP=["SDE-TECH","SDE-REV","SDE-ESTT","HOME-MANAGER","BROTHER","SON"];
 var DAILY="RRULE:FREQ=DAILY;INTERVAL=1";
@@ -72,7 +72,7 @@ function clean(t){var o={ti:String(t.ti||"").trim()||"(Untitled task)",pj:LISTNA
   c:String(t.c||""),it:(t.it||[]).filter(function(x){return x&&String(x.ti||"").trim()}).map(function(x){return {ti:String(x.ti).trim(),d:x.d?1:0}}),
   du:/^\d{4}-\d{2}-\d{2}$/.test(t.du||"")?t.du:"",tm:/^\d{2}:\d{2}$/.test(t.tm||"")?t.tm:"",rp:String(t.rp||""),pr:[0,1,3,5].indexOf(+t.pr)>=0?+t.pr:0,
   st:t.st===2?2:0,cd:t.cd||"",cr:t.cr||nowIso(),md:nowIso(),h:t.h||{},cm:t.cm||[]};
-  if(t.src)o.src=t.src;if(o.tg.length>1)o.tg=o.tg.filter(function(x,i){return o.tg.indexOf(x)===i});return o;}
+  if(t.src)o.src=t.src;if(t.prev)o.prev=t.prev;if(t.ad)o.ad=t.ad;if(o.tg.length>1)o.tg=o.tg.filter(function(x,i){return o.tg.indexOf(x)===i});return o;}
 function put(t){var d=raw(),id=t.id||("l"+Date.now().toString(36)+Math.random().toString(36).slice(2,7));var o=clean(t);d.t[id]=enc(o);writeRaw(d);o.id=id;emit([id]);return o;}
 function del(id){var d=raw();if(!d.t[id])return;delete d.t[id];writeRaw(d);emit([id]);}
 function get(id){return all()[id]||null}
@@ -85,6 +85,12 @@ function act(id,kind,date){var t=get(id);if(!t)throw new Error("That task is no 
   if(t.st===2&&kind!=="reopen")return {ok:true,completed:false,reason:"closed"};
   t.h=Object.assign({},t.h);
   if(kind==="reopen"){t.st=0;t.cd="";put(t);return {ok:true};}
+  /* Archive (no longer needed now, may matter some day) / Abandon (no future): off every daily list, kept for review.
+     The task's old list, date and repeat are kept in t.prev so "restore" can bring it back (2 Nov 2026). */
+  if(kind==="archive"||kind==="abandon"){if(!(t.pj==="archive"||t.pj==="abandoned"))t.prev={pj:t.pj,du:t.du,rp:t.rp};
+    t.pj=kind==="archive"?"archive":"abandoned";t.du="";t.rp="";t.ad=td;t.h[td]=kind;put(t);return {ok:true,moved:true,list:t.pj};}
+  if(kind==="restore"){var pv=t.prev||{pj:"inbox",du:td,rp:""};t.pj=pv.pj&&pv.pj!=="archive"&&pv.pj!=="abandoned"?pv.pj:"inbox";
+    t.rp=pv.rp||"";t.du=!pv.du||pv.du<td?td:pv.du;delete t.prev;delete t.ad;if(t.h[td]==="archive"||t.h[td]==="abandon")delete t.h[td];put(t);return {ok:true,restored:true,list:t.pj,next:t.du};}
   /* left pending yesterday (or earlier), doing it today: the missed day counts as pushed, the task is due today (2 Nov 2026) */
   if(kind==="today"){var y=addDays(td,-1);if(!t.h[y])t.h[y]="push";if(!t.du||t.du!==td)t.du=td;put(t);return {ok:true,moved:true,next:td};}
   /* undo today's choice: forget it and bring the task back to today */
@@ -155,14 +161,15 @@ function detailRes(id){var t=get(id);if(!t)throw new Error("That task is no long
   return {task:{id:t.id,projectId:t.pj,title:t.ti,content:t.c,items:t.it.map(function(x){return {title:x.ti,status:x.d?2:0}}),tags:t.tg,dueDate:t.du?(t.du+(t.tm?" "+t.tm:"")):"",repeat:repeatLabel(t.rp),list:LISTNAME[t.pj],local:true},
     comments:(t.cm||[]).map(function(x){return {content:x.x,createdTime:x.at}})};}
 function inRange(d,s,e){return d&&(!s||d>=s)&&(!e||d<=e)}
-function referenceRes(s,e){var T=all(),tags={},n=0;Object.keys(T).forEach(function(id){var t=T[id];if(t.pj!=="reference"||t.st===2)return;
-    var cd=String(t.cr||"").slice(0,10);if((s||e)&&!inRange(cd,s,e))return;n++;var tg=upTags(t);
-    tg.forEach(function(g){(tags[g]=tags[g]||[]).push({id:t.id,title:t.ti,due:t.du,projectId:"reference",tags:tg})});});
-  return {section:"Reference",projectId:"reference",projectName:"REFERENCE",start:s||null,end:e||null,taskCount:n,tags:tags};}
-function completedRes(s,e){var T=all(),out=[];Object.keys(T).forEach(function(id){var t=T[id],ds=Object.keys(t.h||{}).filter(function(d){var k=t.h[d];return inRange(d,s,e)&&k!=="push"&&k!=="later"&&k!=="tick"}).sort();
+/* Reference / Archive / Abandoned review: list = reference (by date added) | archive | abandoned (by date moved there) */
+function referenceRes(s,e,list){list=list==="archive"||list==="abandoned"?list:"reference";var T=all(),tags={},n=0;Object.keys(T).forEach(function(id){var t=T[id];if(t.pj!==list||t.st===2)return;
+    var cd=list==="reference"?String(t.cr||"").slice(0,10):(t.ad||String(t.md||t.cr||"").slice(0,10));if((s||e)&&!inRange(cd,s,e))return;n++;var tg=upTags(t);if(!tg.length&&list!=="reference")tg=["UNTAGGED"];
+    tg.forEach(function(g){(tags[g]=tags[g]||[]).push({id:t.id,title:t.ti,due:t.du,projectId:list,tags:tg,moved:list==="reference"?"":cd})});});
+  return {section:LISTNAME[list],projectId:list,projectName:LISTNAME[list],start:s||null,end:e||null,taskCount:n,tags:tags};}
+function completedRes(s,e){var T=all(),out=[];Object.keys(T).forEach(function(id){var t=T[id],ds=Object.keys(t.h||{}).filter(function(d){var k=t.h[d];return inRange(d,s,e)&&k!=="push"&&k!=="later"&&k!=="tick"&&k!=="archive"&&k!=="abandon"}).sort();
     if(ds.length)out.push({id:t.id,title:t.ti,projectId:t.pj,tags:upTags(t),completionDates:ds,completionCount:ds.length});});
   out.sort(function(a,b){return a.title.localeCompare(b.title)});return {start:s,end:e,timeZone:TZ,uniqueCount:out.length,tasks:out};}
-function listRes(){var T=all(),out=[];Object.keys(T).forEach(function(id){var t=T[id];if(t.st===2||t.pj==="archive")return;
+function listRes(){var T=all(),out=[];Object.keys(T).forEach(function(id){var t=T[id];if(t.st===2||t.pj==="archive"||t.pj==="abandoned")return;
     out.push({id:t.id,projectId:t.pj,project:LISTNAME[t.pj],title:t.ti,tags:t.tg,m:t.md||t.cr||""})});
   out.sort(function(a,b){return String(b.m).localeCompare(String(a.m))});return {tasks:out};}
 function dateLabel(){return new Intl.DateTimeFormat("en-GB",{timeZone:TZ,day:"numeric",month:"short",year:"numeric"}).format(new Date())}
@@ -189,7 +196,7 @@ window.fetch=function(input,init){
   try{
     if(!mode&&(q.get("date")==="today"||u.pathname==="/responsibility-tasks"))return reply(todayRes());
     if(mode==="task-detail"||u.pathname==="/task-detail")return reply(detailRes(q.get("taskId")));
-    if(mode==="reference"||u.pathname==="/reference-tasks")return reply(referenceRes(q.get("start")||"",q.get("end")||""));
+    if(mode==="reference"||u.pathname==="/reference-tasks")return reply(referenceRes(q.get("start")||"",q.get("end")||"",q.get("list")||""));
     if(mode==="completed"||u.pathname==="/completed-tasks")return reply(completedRes(q.get("start")||addDays(today(),-6),q.get("end")||today()));
     if(mode==="deleg-done"){var b=body();return reply(act(b.taskId,b.action||"cont",b.date));}
     if(mode==="wa-review"&&method==="GET"&&q.get("list")==="tasks")return reply(listRes());

@@ -101,7 +101,7 @@ async function getJson(u){var r=await fetch(u,{cache:'no-store'});if(!r.ok)throw
 function buildFilm(kind,range,items){
   var groups={};items.forEach(function(t){var g=t._tag;(groups[g]=groups[g]||[]).push(t)});
   var tags=sortTags(Object.keys(groups)),slides=[],total=items.length;
-  var isDone=kind==='completed',name=isDone?'Completed Task Review':'Reference Review';
+  var isDone=kind==='completed',name=isDone?'Completed Task Review':refName()+' Review';
   slides.push({type:'intro',tag:tags[0]||'UNTAGGED',name:name,range:range,total:total,tags:tags,groups:groups});
   var n=0;
   tags.forEach(function(tag){
@@ -117,8 +117,11 @@ async function loadCompleted(range){
   var sup=(B().suppressed&&B().suppressed())||{};
   return (d.tasks||[]).filter(function(t){return !sup[String(t.title||'').trim().toLowerCase()]}).map(function(t){t._tag=primaryTag(t.tags);return t});
 }
+/* which list the Reference card is set to: reference | archive | abandoned (2 Nov 2026) */
+function refList(){var el=$('referenceList');return el&&el.value||'reference'}
+function refName(){return {reference:'Reference',archive:'Archive',abandoned:'Abandoned'}[refList()]||'Reference'}
 async function loadReferenceItems(range){
-  var d=await getJson(q('mode=reference&start='+encodeURIComponent(range.start)+'&end='+encodeURIComponent(range.end)));
+  var d=await getJson(q('mode=reference&list='+refList()+'&start='+encodeURIComponent(range.start)+'&end='+encodeURIComponent(range.end)));
   var seen={},out=[];
   Object.keys(d.tags||{}).forEach(function(tag){(d.tags[tag]||[]).forEach(function(t){if(!t.id||seen[t.id])return;seen[t.id]=1;t._tag=primaryTag(t.tags&&t.tags.length?t.tags:[tag]);out.push(t)})});
   return out;
@@ -245,7 +248,7 @@ async function open(kind,btn){
   var label=btn.textContent;btn.disabled=true;btn.textContent='Loading film…';
   try{
     var items=kind==='completed'?await loadCompleted(range):await loadReferenceItems(range);
-    if(!items.length){alert(kind==='completed'?'No completed tasks found for this period.':'No tagged Reference items found for this period.');return}
+    if(!items.length){alert(kind==='completed'?'No completed tasks found for this period.':'No '+refName()+' items found for this period.');return}
     injectStyles();S={slides:buildFilm(kind,range,items),i:0,playing:true,speed:Number(localStorage.getItem('totalRecallCineSpeed'))||1,details:{},kind:kind,logged:{}};
     if(SPEEDS.indexOf(S.speed)<0)S.speed=1;
     buildStage();$('cineSpeed').textContent=S.speed+'×';document.documentElement.style.overflow='hidden';
