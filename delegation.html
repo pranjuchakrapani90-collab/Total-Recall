@@ -185,6 +185,11 @@ input,select{font:inherit;width:100%;padding:10px 12px;border:1px solid var(--tr
 .oc button small{display:block;margin-top:2px;font-weight:500;font-size:11.5px;color:var(--tr-muted)}
 .oc button.on{background:var(--c)}.oc button.on b,.oc button.on small{color:#fff}
 .oc button[data-oc="today"]{grid-column:1/-1}
+.chip.ar{touch-action:none;cursor:grab;border-style:dashed;animation:wig .9s ease-in-out infinite alternate}.chip.ar.drg{opacity:.3;animation:none}.chip.tgt{outline:3px solid var(--tr-acc);outline-offset:2px}
+.ordN{display:inline-grid;place-items:center;min-width:1.4em;height:1.4em;border-radius:999px;background:var(--tr-acc);color:#fff;font:800 .75em system-ui,sans-serif;font-style:normal;margin-right:6px;vertical-align:1px}
+.chip.ghost{box-shadow:0 8px 24px #0005;transform:scale(1.06);opacity:.95;animation:none}
+@keyframes wig{from{transform:rotate(-1deg)}to{transform:rotate(1deg)}}
+.fc-h button.arrOn{background:var(--tr-acc);color:#fff;border-color:var(--tr-acc)}.arrHint{font-size:12px;color:var(--tr-muted);text-align:center;margin:-2px 0 4px}
 .toastUndo{margin-left:14px;border:0;background:none;color:#a5b4fc;font:800 14px system-ui,sans-serif;padding:0;cursor:pointer}
 .oc button.arm{background:#eef2ff;box-shadow:0 0 0 3px #c7d2fe}.oc button.arm small{color:#3730a3;font-weight:650}
 .ocNote{text-align:center;color:#15803d;font-weight:650;padding:14px;border:1px dashed var(--tr-line);border-radius:12px}
@@ -284,6 +289,11 @@ function missedOf(id,a){if(stOf(id,a)!=="open"||isAhead(id,a))return "";const td
   if(a.until&&a.until>since)since=a.until;
   if(t&&t.du&&t.du>since)since=t.du;
   return since<td?since:"";}
+/* order on a card (2 Nov 2026): tasks he has arranged by hand first, in his order; then left-pending ones (oldest first);
+   then the rest as given. Arranged with the Arrange button on the card: drag a bubble onto another to take its place. */
+function orderItems(list){const key=a=>{if(typeof a.o==="number")return [0,a.o];const m=missedOf(a.id,a);return m?[1,m]:[2,0]};
+  return list.slice().sort((x,y)=>{const kx=key(x),ky=key(y);return kx[0]-ky[0]||(kx[1]<ky[1]?-1:kx[1]>ky[1]?1:0)});}
+let ARR=null;
 const missedDays=since=>Math.round((new Date(todayIST()+"T12:00:00Z")-new Date(since+"T12:00:00Z"))/864e5);
 function tasksOf(pid){return Object.entries(D.assign).filter(([,a])=>a.p===pid).map(([id,a])=>({id,...a})).sort((a,b)=>a.at-b.at);}
 function openCount(pid){return tasksOf(pid).filter(a=>!isDone(a.id,a)&&!isAhead(a.id,a)).length;}
@@ -292,12 +302,13 @@ function layout(items,cap){/* top one, then right, left, bottom, then the sides 
   const L={t:[],r:[],l:[],b:[]},order=["t","r","l","b"];if(cap==null)cap=defCap(items.length);
   items.forEach((x,i)=>{let s=i<4?order[i]:(i%2?"l":"r");if((s==="l"||s==="r")&&L[s].length>=cap)s=L.t.length<=L.b.length?"t":"b";L[s].push(x);});return L;}
 const CHIPC={cont:" dn",fin:" dn fn",push:" ps",later:" lt",open:""};
-function chip(a){const x0=stOf(a.id,a),ah=aheadOf(a.id,a),x=ah?"later":x0,ms=missedOf(a.id,a);return `<button type="button" class="chip${CHIPC[x]}${ms?" ms":""}${SEL.has(a.id)?" sl":""}${a.id===lastNew?" new":""}" data-t="${esc(a.id)}" title="${esc(a.t)}">${esc(a.k||shortKw(a.t))}${x==="later"?`<small>${esc(fmtDay(ah||a.until))}</small>`:""}${ms?`<small>left ${missedDays(ms)>1?missedDays(ms)+" days":"yesterday"}</small>`:""}</button>`;}
+function chip(a){const x0=stOf(a.id,a),ah=aheadOf(a.id,a),x=ah?"later":x0,ms=missedOf(a.id,a);return `<button type="button" class="chip${CHIPC[x]}${ms?" ms":""}${ARR===a.p?" ar":""}${SEL.has(a.id)?" sl":""}${a.id===lastNew?" new":""}" data-t="${esc(a.id)}" title="${esc(a.t)}">${ARR===a.p&&a._n?`<i class="ordN">${a._n}</i>`:""}${esc(a.k||shortKw(a.t))}${x==="later"?`<small>${esc(fmtDay(ah||a.until))}</small>`:""}${ms?`<small>left ${missedDays(ms)>1?missedDays(ms)+" days":"yesterday"}</small>`:""}</button>`;}
 function cardHtml(p,cap){const g=GROUPS[p.g]||GROUPS.other,all=tasksOf(p.id),dn=all.filter(a=>isDone(a.id,a)).length,
     lt=all.filter(a=>isAhead(a.id,a)).length,mk=a=>missedOf(a.id,a)||"~",
-    items=p.items.slice().sort((x,y)=>{const a1=mk(x),b1=mk(y);return a1<b1?-1:a1>b1?1:0}),L=layout(items,cap),
+    items=orderItems(p.items).map((x,i)=>({...x,_n:i+1})),L=layout(items,cap),
     ms=all.filter(a=>missedOf(a.id,a)).length;
-  return `<div class="fc" style="--g:${g.c}" data-card="${esc(p.id)}"><div class="fc-h"><span class="grp">${esc(g.n)}</span><span>${ms?`<b class="msN">${ms} left from earlier · </b>`:""}${all.length-dn-lt} pending${lt?" · "+lt+" upcoming":""}${dn?" · "+dn+" done":""}</span><span class="sp"></span>${all.length-dn-lt?`<button type="button" data-share="${esc(p.id)}">Share</button>`:""}</div>
+  return `<div class="fc" style="--g:${g.c}" data-card="${esc(p.id)}"><div class="fc-h"><span class="grp">${esc(g.n)}</span><span>${ms?`<b class="msN">${ms} left from earlier · </b>`:""}${all.length-dn-lt} pending${lt?" · "+lt+" upcoming":""}${dn?" · "+dn+" done":""}</span><span class="sp"></span>${p.items.length>1?`<button type="button" data-arr="${esc(p.id)}" class="${ARR===p.id?"arrOn":""}">${ARR===p.id?"Done":"Arrange"}</button>`:""}${all.length-dn-lt&&ARR!==p.id?`<button type="button" data-share="${esc(p.id)}">Share</button>`:""}</div>
+    ${ARR===p.id?'<div class="arrHint">Drag a task onto another to put it in that place. Tap Done when finished.</div>':""}
     <div class="map"><svg class="ln" aria-hidden="true"></svg>
       <div class="row t">${L.t.map(chip).join("")}</div><div class="col l">${L.l.map(chip).join("")}</div>
       <div class="hub" data-person="${esc(p.id)}">${esc(p.name)}</div>
@@ -334,10 +345,28 @@ function renderCards(){const el=$("cards"),show=!!D.prefs.showDone,view=D.prefs.
   }else{MF.p=null;mf.hidden=true;if($("tflash").hidden)document.body.style.overflow="";}
   const nw=lastNew;requestAnimationFrame(()=>{if(MF.p)fitMember(nw);drawLines()});lastNew=null;}
 const MF={n:0,p:null};
-function bindCards(root){root.querySelectorAll("[data-t]").forEach(b=>{longPress(b,()=>selToggle(b.dataset.t,true));
+function bindCards(root){root.querySelectorAll("[data-arr]").forEach(b=>b.onclick=e=>{e.stopPropagation();ARR=ARR===b.dataset.arr?null:b.dataset.arr;curPid=ARR||curPid;render();});
+  root.querySelectorAll(".chip.ar").forEach(dragChip);
+  root.querySelectorAll("[data-t]:not(.ar)").forEach(b=>{longPress(b,()=>selToggle(b.dataset.t,true));
     b.onclick=()=>{if(lpEl===b){lpEl=null;return}if(selMode){selToggle(b.dataset.t);return}const c=b.closest("[data-card]");openFlash(c?c.dataset.card:(D.assign[b.dataset.t]||{}).p,b.dataset.t)};});
   root.querySelectorAll("[data-person]").forEach(b=>b.onclick=()=>personSheet(b.dataset.person));
   root.querySelectorAll("[data-share]").forEach(b=>b.onclick=()=>share(b.dataset.share));}
+/* drag to arrange (2 Nov 2026) */
+function dragChip(c){c.onclick=e=>{e.preventDefault();e.stopPropagation()};
+  c.onpointerdown=e=>{if(e.button>0)return;e.preventDefault();e.stopPropagation();const id=c.dataset.t,R=c.getBoundingClientRect();
+    const g=c.cloneNode(true);g.classList.add("ghost");g.style.cssText=`position:fixed;left:${R.left}px;top:${R.top}px;width:${R.width}px;margin:0;z-index:90;pointer-events:none;font-size:${getComputedStyle(c).fontSize}`;document.body.appendChild(g);
+    c.classList.add("drg");const dx=e.clientX-R.left,dy=e.clientY-R.top;let over=null;
+    const mv=ev=>{g.style.left=(ev.clientX-dx)+"px";g.style.top=(ev.clientY-dy)+"px";const el=document.elementFromPoint(ev.clientX,ev.clientY),t=el&&el.closest(".chip.ar");
+      const nt=t&&t!==c?t:null;if(nt!==over){if(over)over.classList.remove("tgt");over=nt;if(over)over.classList.add("tgt");}};
+    const up=()=>{document.removeEventListener("pointermove",mv);document.removeEventListener("pointerup",up);document.removeEventListener("pointercancel",up);
+      g.remove();c.classList.remove("drg");if(over){over.classList.remove("tgt");moveTask(id,over.dataset.t);}};
+    document.addEventListener("pointermove",mv);document.addEventListener("pointerup",up);document.addEventListener("pointercancel",up);};}
+function moveTask(id,target){const a=D.assign[id];if(!a)return;const pid=a.p,show=!!D.prefs.showDone;
+  const ids=orderItems(tasksOf(pid).filter(x=>show||(!isDone(x.id,x)&&!isAhead(x.id,x)))).map(x=>x.id);
+  const from=ids.indexOf(id),to=ids.indexOf(target);if(from<0||to<0)return;ids.splice(from,1);ids.splice(to,0,id);
+  ids.forEach((x,i)=>{D.assign[x].o=i});
+  tasksOf(pid).forEach(x=>{if(ids.indexOf(x.id)<0&&typeof D.assign[x.id].o==="number")D.assign[x.id].o=ids.length+D.assign[x.id].o;});
+  save();render();toast("Moved to place "+(to+1),1400);}
 /* fit the whole member card on the screen, like a slide: try a few ways of spreading the bubbles
    (more on the sides / more in the top and bottom rows), pick the one that allows the biggest text,
    and only if even the smallest text won't fit, scale the whole map down */
@@ -372,7 +401,7 @@ function slide(dir){const c=$("mfCard");c.classList.remove("in-l","in-r");void c
 function mfGo(d){const j=fi+d;if(j<0||j>=MF.n){slide(-d);return}fi=j;curPid=null;render();slide(d);}
 document.addEventListener("click",e=>{if(Date.now()-swipedAt<400&&e.target.closest("#mfCard,#tfCard")){e.stopPropagation();e.preventDefault();}},true);
 (()=>{let x0=null,y0=0;const c=$("mfCard");c.addEventListener("touchstart",e=>{x0=e.touches[0].clientX;y0=e.touches[0].clientY},{passive:true});
-  c.addEventListener("touchend",e=>{goFull();if(x0==null)return;const dx=e.changedTouches[0].clientX-x0,dy=e.changedTouches[0].clientY-y0;x0=null;if(Math.abs(dx)<50||Math.abs(dy)>Math.abs(dx))return;
+  c.addEventListener("touchend",e=>{if(ARR){x0=null;return}goFull();if(x0==null)return;const dx=e.changedTouches[0].clientX-x0,dy=e.changedTouches[0].clientY-y0;x0=null;if(Math.abs(dx)<50||Math.abs(dy)>Math.abs(dx))return;
     swipedAt=Date.now();mfGo(dx<0?1:-1);},{passive:true});})();
 document.addEventListener("keydown",e=>{if(!MF.p||TF||!$("scrim").hidden)return;if(e.key==="ArrowRight"||e.key===" "||e.key==="PageDown")mfGo(1);if(e.key==="ArrowLeft"||e.key==="PageUp")mfGo(-1);});
 
@@ -515,8 +544,8 @@ function personSheet(pid){const p=pid?D.people[pid]:null,n=pid?tasksOf(pid).leng
         Object.keys(D.assign).forEach(id=>{if(D.assign[id].p===pid)delete D.assign[id]});delete D.people[pid];save();closeSheet();render();};});}
 /* ---------- a task opens as a flash card, like Today's Tasks: tap to flip for its TickTick details ---------- */
 let TF=null;/* {pid, ids:[taskId…], i} */
-function openFlash(pid,id){const mk=a=>missedOf(a.id,a)||"~";const ids=tasksOf(pid).filter(a=>D.prefs.showDone||(!isDone(a.id,a)&&!isAhead(a.id,a))||a.id===id).sort((x,y)=>{const a1=mk(x),b1=mk(y);return a1<b1?-1:a1>b1?1:0}).map(a=>a.id);
-  TF={pid,ids,i:Math.max(0,ids.indexOf(id))};$("tflash").hidden=false;drawFlash();document.body.style.overflow="hidden";}
+let TF0=null;function openFlash(pid,id){const ids=tasksOf(pid).filter(a=>D.prefs.showDone||(!isDone(a.id,a)&&!isAhead(a.id,a))||a.id===id).map(a=>a.id);TF0=orderItems(ids.map(i=>({id:i,...D.assign[i]}))).map(a=>a.id);
+  TF={pid,ids:TF0,i:Math.max(0,TF0.indexOf(id))};$("tflash").hidden=false;drawFlash();document.body.style.overflow="hidden";}
 function closeFlash(){$("tflash").hidden=true;TF=null;render();}
 function drawFlash(){if(!TF)return;const p=D.people[TF.pid];TF.ids=TF.ids.filter(id=>D.assign[id]);
   if(!p||!TF.ids.length){closeFlash();return}TF.i=Math.min(TF.i,TF.ids.length-1);
