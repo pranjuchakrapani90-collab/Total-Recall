@@ -308,7 +308,7 @@ function cardHtml(p,cap){const g=GROUPS[p.g]||GROUPS.other,all=tasksOf(p.id),dn=
     items=orderItems(p.items).map((x,i)=>({...x,_n:i+1})),L=layout(items,cap),
     ms=all.filter(a=>missedOf(a.id,a)).length;
   return `<div class="fc" style="--g:${g.c}" data-card="${esc(p.id)}"><div class="fc-h"><span class="grp">${esc(g.n)}</span><span>${ms?`<b class="msN">${ms} left from earlier · </b>`:""}${all.length-dn-lt} pending${lt?" · "+lt+" upcoming":""}${dn?" · "+dn+" done":""}</span><span class="sp"></span>${p.items.length>1?`<button type="button" data-arr="${esc(p.id)}" class="${ARR===p.id?"arrOn":""}">${ARR===p.id?"Done":"Arrange"}</button>`:""}${all.length-dn-lt&&ARR!==p.id?`<button type="button" data-share="${esc(p.id)}">Share</button>`:""}</div>
-    ${ARR===p.id?'<div class="arrHint">Drag a task onto another to put it in that place. Tap Done when finished.</div>':""}
+    ${ARR===p.id?'<div class="arrHint">Tap a task to type its number (1 = first) — or drag it onto another. Tap Done when finished.</div>':""}
     <div class="map"><svg class="ln" aria-hidden="true"></svg>
       <div class="row t">${L.t.map(chip).join("")}</div><div class="col l">${L.l.map(chip).join("")}</div>
       <div class="hub" data-person="${esc(p.id)}">${esc(p.name)}</div>
@@ -354,19 +354,33 @@ function bindCards(root){root.querySelectorAll("[data-arr]").forEach(b=>b.onclic
 /* drag to arrange (2 Nov 2026) */
 function dragChip(c){c.onclick=e=>{e.preventDefault();e.stopPropagation()};
   c.onpointerdown=e=>{if(e.button>0)return;e.preventDefault();e.stopPropagation();const id=c.dataset.t,R=c.getBoundingClientRect();
-    const g=c.cloneNode(true);g.classList.add("ghost");g.style.cssText=`position:fixed;left:${R.left}px;top:${R.top}px;width:${R.width}px;margin:0;z-index:90;pointer-events:none;font-size:${getComputedStyle(c).fontSize}`;document.body.appendChild(g);
+    const g=c.cloneNode(true);g.classList.add("ghost");g.style.cssText=`position:fixed;visibility:hidden;left:${R.left}px;top:${R.top}px;width:${R.width}px;margin:0;z-index:90;pointer-events:none;font-size:${getComputedStyle(c).fontSize}`;document.body.appendChild(g);
     c.classList.add("drg");const dx=e.clientX-R.left,dy=e.clientY-R.top;let over=null;
-    const mv=ev=>{g.style.left=(ev.clientX-dx)+"px";g.style.top=(ev.clientY-dy)+"px";const el=document.elementFromPoint(ev.clientX,ev.clientY),t=el&&el.closest(".chip.ar");
+    let moved=false;const x0=e.clientX,y0=e.clientY;
+    const mv=ev=>{if(!moved&&Math.hypot(ev.clientX-x0,ev.clientY-y0)<8)return;moved=true;g.style.visibility="visible";g.style.left=(ev.clientX-dx)+"px";g.style.top=(ev.clientY-dy)+"px";const el=document.elementFromPoint(ev.clientX,ev.clientY),t=el&&el.closest(".chip.ar");
       const nt=t&&t!==c?t:null;if(nt!==over){if(over)over.classList.remove("tgt");over=nt;if(over)over.classList.add("tgt");}};
     const up=()=>{document.removeEventListener("pointermove",mv);document.removeEventListener("pointerup",up);document.removeEventListener("pointercancel",up);
-      g.remove();c.classList.remove("drg");if(over){over.classList.remove("tgt");moveTask(id,over.dataset.t);}};
+      g.remove();c.classList.remove("drg");if(!moved){placeSheet(id);return}if(over){over.classList.remove("tgt");moveTask(id,over.dataset.t);}};
     document.addEventListener("pointermove",mv);document.addEventListener("pointerup",up);document.addEventListener("pointercancel",up);};}
-function moveTask(id,target){const a=D.assign[id];if(!a)return;const pid=a.p,show=!!D.prefs.showDone;
-  const ids=orderItems(tasksOf(pid).filter(x=>show||(!isDone(x.id,x)&&!isAhead(x.id,x)))).map(x=>x.id);
-  const from=ids.indexOf(id),to=ids.indexOf(target);if(from<0||to<0)return;ids.splice(from,1);ids.splice(to,0,id);
+const shownIds=pid=>{const show=!!D.prefs.showDone;return orderItems(tasksOf(pid).filter(x=>show||(!isDone(x.id,x)&&!isAhead(x.id,x)))).map(x=>x.id)};
+function moveTask(id,target){const a=D.assign[id];if(!a)return;const ids=shownIds(a.p),to=ids.indexOf(target);if(to>=0)placeAt(id,to);}
+/* tap a bubble while arranging: type its place number; the others shift down (or up) to make room (2 Nov 2026) */
+function placeSheet(id){const a=D.assign[id];if(!a)return;const ids=shownIds(a.p),n=ids.length,cur=ids.indexOf(id)+1;
+  openSheet(`<div class="meta">Place in ${esc((D.people[a.p]||{}).name||"")}'s order · now ${cur} of ${n}</div><h3>${esc(a.k||shortKw(a.t))}</h3>
+    <label class="lbl" for="plN">New place (1 = first)</label>
+    <input id="plN" type="number" inputmode="numeric" min="1" max="${n}" value="${cur}" style="font-size:22px;font-weight:700;text-align:center">
+    <div class="ocQ" style="grid-template-columns:repeat(4,1fr);margin-top:10px">${[1,2,3,n].filter((v,i,a)=>v<=n&&a.indexOf(v)===i).map(v=>`<button type="button" class="btn" data-pl="${v}">${v===n&&n>3?"Last":v}</button>`).join("")}</div>
+    <div class="row2" style="margin-top:12px"><button class="btn pri" id="plGo" type="button">Move</button><button class="btn ghost" id="plX" type="button">Cancel</button></div>`,sh=>{
+      const inp=sh.querySelector("#plN");setTimeout(()=>{inp.focus();inp.select()},40);
+      const go=v=>{v=Math.round(Number(v));if(!(v>=1&&v<=n)){toast("Type a number from 1 to "+n);return}closeSheet();placeAt(id,v-1);};
+      sh.querySelector("#plGo").onclick=()=>go(inp.value);inp.onkeydown=e=>{if(e.key==="Enter")go(inp.value)};
+      sh.querySelectorAll("[data-pl]").forEach(b=>b.onclick=()=>go(b.dataset.pl));
+      sh.querySelector("#plX").onclick=closeSheet;});}
+function placeAt(id,to){const a=D.assign[id];if(!a)return;const pid=a.p,ids=shownIds(pid);
+  const from=ids.indexOf(id);if(from<0)return;ids.splice(from,1);ids.splice(to,0,id);
   ids.forEach((x,i)=>{D.assign[x].o=i});
   tasksOf(pid).forEach(x=>{if(ids.indexOf(x.id)<0&&typeof D.assign[x.id].o==="number")D.assign[x.id].o=ids.length+D.assign[x.id].o;});
-  save();render();toast("Moved to place "+(to+1),1400);}
+  save();render();toast(from===to?"Already at place "+(to+1):"Moved to place "+(to+1)+(to<from?" · the ones after it moved down one":" · the ones before it moved up one"),2200);}
 /* fit the whole member card on the screen, like a slide: try a few ways of spreading the bubbles
    (more on the sides / more in the top and bottom rows), pick the one that allows the biggest text,
    and only if even the smallest text won't fit, scale the whole map down */
