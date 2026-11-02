@@ -277,7 +277,9 @@ function stOf(id,a){const td=todayIST();
 const isDone=(id,a)=>{const x=stOf(id,a);return x==="fin"||x==="cont"||x==="arch"||x==="abn"};
 /* set to a future date (pushed, pushed to a date, or simply due later): kept off the card until that day (1 Nov 2026) */
 function aheadOf(id,a){if(isDone(id,a))return "";const t=window.PosTasks&&PosTasks.on()?PosTasks.get(id):null,td=todayIST();
-  if(t&&t.st!==2&&t.du&&t.du>td)return t.du;if(stOf(id,a)==="later")return a.until;return "";}
+  if(t&&t.st!==2&&t.du&&t.du>td)return t.du;const x=stOf(id,a);if(x==="later")return a.until;
+  /* pushed to tomorrow today: off today's card even before the task's own date has moved (2 Nov 2026) */
+  if(x==="push"&&a.on===td)return addDay(td,1);return "";}
 const isAhead=(id,a)=>!!aheadOf(id,a);
 /* left pending (1 Nov 2026): a task that sat on the card on an earlier day with no option tapped. It stays red and goes
    to the top of the card until something is done with it. Returns the first day it was left, or "". */
@@ -465,7 +467,7 @@ async function setOutcome(id,s,date,quiet,noRender){const a=D.assign[id];if(!a)r
   if(s==="push"||s==="later")a.np=(a.np||0)+1;
   if(s==="later")a.until=date;
   save();if(!noRender)render();
-  const pj=a.pj||projById[id],label=OUT[s].n,SRC="Pranju OS";if(!pj){say(label+" · saved here",2000);return}
+  const pj=a.pj||projById[id],label=OUT[s].n,SRC="Pranju OS",local=window.PosTasks&&PosTasks.on();if(!pj&&!local){say(label+" · saved here",2000);return}
   if(s==="fin"&&!quiet){await new Promise(res=>{
     finWait={id,run:res,timer:setTimeout(()=>{finWait=null;res()},4000),cancel:()=>{finWait=null;clearOutcome(a);save();render();toast("Undone · back on the card",1800)}};
     toast(label+" · closing for good",4000,()=>{if(finWait&&finWait.id===id){clearTimeout(finWait.timer);finWait.cancel()}});});
@@ -479,7 +481,9 @@ async function setOutcome(id,s,date,quiet,noRender){const a=D.assign[id];if(!a)r
     else if(d.reason==="not-repeating")m+=" · not a repeating task, so "+SRC+" is left as it is";
     else if(d.reason==="already-done-today"||d.reason==="already-later")m+=" · already set for "+(d.next?fmtDay(d.next):"a later date");
     say(m,3400);
-  }catch(e){say(label+" here, but "+SRC+" couldn't be updated: "+(e.message||e),3800)}}
+  }catch(e){say(label+" here, but "+SRC+" couldn't be updated: "+(e.message||e),3800)}
+  /* the task's date has moved now: draw the cards again so it leaves today's card */
+  if(!noRender&&$("scrim").hidden)render();}
 function outcomeHtml(id,a){const x=stOf(id,a),tt=closedTT(id,a)&&a.s!=="fin",ms=missedOf(id,a),td=todayIST();
   if(tt)return `<div class="ocNote">✓ Closed in Pranju OS</div>`;
   const keys=(ms?["today"]:[]).concat(["cont","fin","push","later","arch","abn"]);
@@ -684,6 +688,8 @@ let tt=0;function toast(m,ms,undo){let t=document.querySelector(".toast");if(!t)
   if(undo){const u=document.createElement("button");u.type="button";u.className="toastUndo";u.textContent="Undo";u.onclick=e=>{e.stopPropagation();t.style.opacity=0;t.style.pointerEvents="none";undo()};t.appendChild(u)}
   clearTimeout(tt);tt=setTimeout(()=>{t.style.opacity=0;t.style.pointerEvents="none"},ms||1600);}
 /* the other phone delegated something: take the change in place */
+/* a task's date or status changed in Pranju OS tasks: redraw (debounced) */
+let posT=0;window.addEventListener("pos-tasks",()=>{clearTimeout(posT);posT=setTimeout(()=>{if($("scrim").hidden)render()},120)});
 window.addEventListener("kvsync",e=>{if((e.detail||[]).indexOf(KEY)<0)return;D=load();if($("scrim").hidden)render();});
 window.addEventListener("storage",e=>{if(e.key===KEY){D=load();if($("scrim").hidden)render();}});
 render();fetchOpen();

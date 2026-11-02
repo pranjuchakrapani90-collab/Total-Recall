@@ -23,7 +23,7 @@ function people(D){return Object.keys(D.people).map(function(id){var p=D.people[
 /* pending = not "done today, continues" (a.d is today) and not "done & dusted" (a.s fin); pushed and later tasks still count */
 function todayIST(){return new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Kolkata",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date())}
 function pending(D,pid){var td=todayIST(),P=window.PosTasks&&PosTasks.on()?PosTasks:null;return Object.keys(D.assign).filter(function(id){var a=D.assign[id];if(a.p!==pid||a.s==="fin"||a.d===td)return false;
-  /* set to a future date: not pending yet */var t=P&&P.get(id);if(t&&(t.st===2||(t.du&&t.du>td)))return false;if(!t&&a.s==="later"&&a.until>td)return false;return true}).length;}
+  /* set to a future date: not pending yet */var t=P&&P.get(id);if(t&&(t.st===2||(t.du&&t.du>td)))return false;if(!t&&a.s==="later"&&a.until>td)return false;if(a.s==="push"&&a.on===td)return false;return true}).length;}
 function current(){try{var S=window.TRToday&&window.TRToday.state();if(!S||S.mode!=="resp"||!S.sub)return null;var arr=S.taskGroups[S.cards[S.idx].key]||[];var t=arr[S.subIdx];return t&&t.id?{task:t,tag:S.cards[S.idx].key}:null}catch(e){return null}}
 
 /* ---------- the row under the task card ---------- */
