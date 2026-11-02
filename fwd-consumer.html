@@ -149,7 +149,7 @@ function model(c){const net=num(c.amt),tot=num(c.tot),less=num(c.less);
  const to=[(c.party||"").trim()||"[Name of the Party]",...(c.addr||"").split("\n").map(s=>s.trim()).filter(Boolean)];if(c.appNo)to.push(/no\.?\s*[:\-]?/i.test(c.appNo)?c.appNo:"App. / Consumer No. "+c.appNo);
  const w=work||"[work]";
  const refT=c.ref||c.refDate?"Your application / letter"+(c.ref?" No. "+c.ref:"")+(c.refDate?" Dtd. "+dmy(c.refDate):"")+".":"";
- const body="With regards to the subject"+(refT?" and reference":"")+" cited above, this is to inform you that the provisional estimate for "+w+" has been prepared as per APDCL Schedule of Rates 2021-22 and the same has been approved under Deposit Work. Therefore, I have the honour to submit herewith the approved estimate along with the bill copy of the estimate amount, the abstract of which is as under:";
+ const body="With regards to the subject"+(refT?" and reference":"")+" cited above, this is to inform you that the provisional estimate for "+w+" has been prepared as per APDCL Schedule of Rates 2021-22. Therefore, I have the honour to submit herewith the approved estimate along with the bill copy of the estimate amount, the abstract of which is as under:";
  const due=c.due?dmy(c.due):"";
  const terms=(c.terms||"").split("\n").map(s=>s.trim()).filter(Boolean).map(s=>due?s.replace(/on or before the due date/i,"on or before "+due):s);
  const fyr=fy(c.dt||null);
