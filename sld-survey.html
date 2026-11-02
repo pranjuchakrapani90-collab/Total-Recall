@@ -592,7 +592,7 @@ function compute(p){
  const danger=kv=>kv===33?"720":kv===11?"721":"722";
  const stayKit=(kv,n,w)=>{if(!n)return;totStays+=n;if(kv>=11){add("653",n,w);add(kv===33?"616":"629",n,w);add("651",(kv===33?16:10)*n,kv===33?"16 kg per 33 kV stay":"10 kg per HT stay")}else{add("657",n,w);add("631",n,w);add("652",7*n,"7 kg per LT stay")}add("830",n,"1 per stay");add("428",n,"1 per stay")};
  const phOf=L=>L&&((L.abc&&L.ph===3)||L.w===4)?3:1;
- const dbKit=(ph,n,w)=>{if(!n)return;add(ph===3?"813":"811",n,w);add("805",(ph===3?4:2)*n,ph===3?"IPC for DB: 4 per 3-ph DB (R, Y, B, N)":"IPC for DB: 2 per 1-ph DB (P, N)");add("809",2*n,"2 m SS strap per DB (2 straps round the pole)");add("808",2*n,"1 buckle per strap")};
+ const dbKit=(ph,n,w)=>{if(!n)return;add(ph===3?"813":"811",n,w);add("805",(ph===3?4:2)*n,ph===3?"IPC for DB: 4 per 3-ph DB (R, Y, B + N taken from the messenger)":"IPC for DB: 2 per 1-ph DB (phase + N from the messenger)");add("809",2*n,"2 m SS strap per DB (2 straps round the pole)");add("808",2*n,"1 buckle per strap")};
  const earth=(n,w,chem)=>{if(!n)return;totEarth+=n;if(chem)add("481",n,w);else add("474",n,w);add("649",3*n,"3 kg per earthing")};
  const newPole=(len,n,kv,w)=>{if(!n)return;const pp=POLE[len]||POLE["8.5"];add(pp[0],n,w);add(pp[1],n,"1 per new pole ("+len+")");add(danger(kv),n,"1 per new pole");if(kv>=11)add("633",2*n,"anti-climbing 2 kg per HT pole")};
  const guard=w=>{add("637",5,w);add("650",35,"guarding lacing");add("649",6,"guarding");add("654",4,"guarding");add("474",2,"guarding earthing");totEarth+=2};
@@ -631,8 +631,8 @@ function compute(p){
     if(fitOK){if(bm>170)kit.t(L,1,"through-run at "+tag);else if(cls==="HV")hvStrain(L,"through-run cut at "+tag);else ltStrain(L,180-bm,"through-run at "+tag)}
     e.forEach((a,i)=>{if(best.includes(i))return;if(fitOK)kit.d(a.sg.L,1,"branch at "+tag);stays++;nd.stayDirs.push({x:-a.ux,y:-a.uy})})}
    nd.roles[cls]=role;nd.stays+=stays;
-   if(cls==="LT")e.forEach(a=>{if(a.sg.L.abc&&(e.length===1||src)&&x.kind!=="tABC")add("807",a.sg.L.ph===3?4:2,"end caps at each ABC run end")});
-   if(cls==="LT"&&EXLT.has(x.kind)&&(src||e.length===1))e.forEach(a=>{if(a.sg.L.abc){const n=a.sg.L.ph===3?4:2;add("802",n,"IPC joining the new ABC to the existing LT line at "+tag+" (1 per core)");nd.ipc=(nd.ipc||0)+n}});
+   if(cls==="LT")e.forEach(a=>{if(a.sg.L.abc&&(e.length===1||src)&&x.kind!=="tABC")add("807",a.sg.L.ph===3?3:1,"end caps on the phase cores at each ABC run end (the messenger-cum-neutral ends in the anchor clamp, no cap)")});
+   if(cls==="LT"&&EXLT.has(x.kind)&&(src||e.length===1))e.forEach(a=>{if(a.sg.L.abc){const n=a.sg.L.ph===3?4:2;add("802",n,"IPC joining the new ABC to the existing LT line at "+tag+" ("+(n===4?"3 phases":"1 phase")+" + 1 on the messenger for the neutral)");nd.ipc=(nd.ipc||0)+n}});
   });
   if(K.kitOnly&&!(K.def&&"stays" in K.def))nd.stays=0;
   const so=opt(x,"stays");if(so!==undefined&&so!==null&&so!==""){nd.stays=+so;nd.manualStays=true}
@@ -686,7 +686,7 @@ function compute(p){
     if(bore>0)add("HMB",bore,"horizontal machine boring under the track");nd.earth=2;nd.rail=true;break}
    case "xBridge":{const bl=+opt(x,"blen"),k33=kv===33;newPole("9.75",4,kv,"DPs at both ends of the bridge P"+x.no);add("641",4,"bridge end structures");add(k33?"46":"58",Math.round(bl*3*1.1),"cable along the bridge");add(k33?"251":"214",6,"cable termination kits");add("738",Math.round(bl*3),"HDPE along the bridge");add("637",Math.round(bl/2),"L-arms for cable support");add(k33?"674":"676",2,"LAs at both ends");add("646",Math.ceil(bl/10),"bridge fixing");earth(2,"bridge ends");flags.add("Bridge crossing: cable tray has no SoR rate — add at approved rate if needed");break}
    case "tMV":{if(!onEx)newPole(pl,1,kv,"transition pole P"+x.no);const mvL=(adj[x.id].find(a=>a.sg.L.mv)||{}).sg;add(mvL?mvL.L.term:"875",3,"bare–MVCC termination at P"+x.no);add(kv===33?"674":"676",1,"LA at transition");add(kv===33?"640":"638",1,"termination mounting");add("830",2,"transition");add("646",3,"transition");earth(1,"LA earthing at transition");nd.earth=1;break}
-   case "tABC":{if(!onEx)newPole(pl,1,kv,"transition pole P"+x.no);const ab=(adj[x.id].find(a=>a.sg.L.abc)||{}).sg;add("806",1,"ABC anchor at transition");add("810",1,"transition");add("807",ab&&ab.L.ph===1?2:4,"end caps at transition");add("802",4,"IPC bare-to-ABC");add("830",1,"transition");break}
+   case "tABC":{if(!onEx)newPole(pl,1,kv,"transition pole P"+x.no);const ab=(adj[x.id].find(a=>a.sg.L.abc)||{}).sg;add("806",1,"ABC anchor at transition");add("810",1,"transition");add("807",ab&&ab.L.ph===1?1:3,"end caps on the phase cores at transition");add("802",ab&&ab.L.ph===1?2:4,"IPC bare-to-ABC (phases + neutral on the messenger)");add("830",1,"transition");break}
    case "t13":if(!onEx)newPole(pl,1,kv,"conversion start P"+x.no);add("632",2,"dead-end for added wires");add("853",2,"dead-end for added wires");break;
    case "slight":{const n=+opt(x,"n");if(!onEx)newPole(pl,1,kv,"street-light pole P"+x.no);add("SC2",n*30,"30 m per street light");add("802",2*n,"2 IPC per light");flags.add("Service cable 2C×4 has no SoR number in the rate table (₹32/m used)");break}
    case "svc":{const n=+opt(x,"n");if(!onEx)newPole(pl,1,kv,"service pole P"+x.no);if(S.sSvc>0){add("SC2",n*S.sSvc,S.sSvc+" m per household");flags.add("Service cable 2C×4 has no SoR number in the rate table (₹32/m used)")}if(adj[x.id].some(a=>a.sg.L.abc))add("802",n,"1 IPC per service");break}
