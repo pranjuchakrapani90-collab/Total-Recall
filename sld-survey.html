@@ -270,7 +270,7 @@ table.boq{border-collapse:collapse;width:100%;min-width:720px;font-size:12.5px}
  </div>
  <div class="card">
   <h2>Rules for this survey</h2>
-  <p class="hint">Intermediate poles are added so that no span exceeds these lengths.</p>
+  <p class="hint">Intermediate poles are added so that no span exceeds these lengths. To decide the spacing or number of poles on one span yourself, open its end point and fill in "Pole spacing" or "Intermediate poles" — or tap an intermediate pole on the map to move or delete it.</p>
   <div class="f">
    <label>11 kV bare, max span (m)<input type="number" id="sHV" min="20" max="80"></label>
    <label>11 kV MVCC, max span (m)<input type="number" id="sMV" min="20" max="60"></label>
@@ -305,8 +305,11 @@ table.boq{border-collapse:collapse;width:100%;min-width:720px;font-size:12.5px}
    <label>Line<select id="dLine"></select></label>
    <label>Pole for new poles<select id="dPole"><option value="">Auto</option><option value="9.75">PSC 9.75 m</option><option value="8.5">PSC 8.5 m</option><option value="7.5">PSC 7.5 m</option><option value="SP-56">SP-56 (11 m)</option><option value="SP-60">SP-60 (12 m)</option><option value="SP-66">SP-66 (12 m)</option><option value="SP-76">SP-76 (14.5 m)</option></select></label>
    <label>Span length (m)<input type="number" id="dLen" min="0" step="1" placeholder="auto"></label>
+   <label>Pole spacing (m)<input type="number" id="dGap" min="5" step="1" placeholder="auto"></label>
+   <label>Intermediate poles (no.)<input type="number" id="dNMid" min="0" step="1" placeholder="auto"></label>
    <label>Crossing on this span<select id="dCross"><option value="">None</option><option value="road">Road (guarding)</option><option value="line">Other line (guarding)</option></select></label>
   </div>
+  <div class="hint" id="dMidInfo" style="margin:2px 0 6px"></div>
   <div class="chk" id="dSegOpts"></div>
  </div>
  <div class="f"><label>Name / remark<input id="dNote" placeholder="e.g. near Baghbar Ali LP school"></label></div>
@@ -326,10 +329,13 @@ table.boq{border-collapse:collapse;width:100%;min-width:720px;font-size:12.5px}
   <label>To<input id="lTo" disabled></label>
   <label>Line<select id="lLine"></select></label>
   <label>Length (m)<input type="number" id="lLen" min="0" step="1" placeholder="auto"></label>
+  <label>Pole spacing (m)<input type="number" id="lGap" min="5" step="1" placeholder="auto"></label>
+  <label>Intermediate poles (no.)<input type="number" id="lNMid" min="0" step="1" placeholder="auto"></label>
   <label>Pole for new poles<select id="lPole"></select></label>
   <label>Colour of this line<span style="display:flex;gap:8px;align-items:center"><input type="color" id="lCol" style="width:44px;height:30px;padding:0"><label class="ck" style="margin:0"><input type="checkbox" id="lColDef"> default</label></span></label>
   <label>Crossing on this span<select id="lCross"><option value="">None</option><option value="road">Road (guarding)</option><option value="line">Other line (guarding)</option></select></label>
  </div>
+ <div class="hint" id="lMidInfo" style="margin:2px 0 6px"></div>
  <div class="sec">
   <b style="font-size:14px">On the drawing</b>
   <div class="f">
@@ -543,6 +549,19 @@ function parseCoord(s){s=(s||"").trim().toUpperCase().replace(/[°'′"″]/g," 
 const dm=(v,pos,neg)=>{const a=Math.abs(v),d=Math.floor(a);return(v<0?neg:pos)+d+" "+((a-d)*60).toFixed(3)};
 const gpsTxt=p=>dm(p.lat,"N","S")+" / "+dm(p.lng,"E","W");
 
+/* ================= Intermediate poles on one span =================
+   Priority: poles placed by hand on the map (b.mids, fractions 0–1 along the span)
+   > exact number set by the user (b.nMid) > spacing set by the user (b.gap) > survey rule (max span). */
+const hasNum=v=>v!==null&&v!==undefined&&v!==""&&isFinite(+v);
+function midCount(b,len,maxS){if(hasNum(b.nMid)&&+b.nMid>=0)return Math.round(+b.nMid);const g=hasNum(b.gap)&&+b.gap>0?+b.gap:maxS;return Math.max(0,Math.ceil(len/g-1e-9)-1)}
+function midTs(b,len,maxS){if(Array.isArray(b.mids))return b.mids.filter(t=>t>0&&t<1).sort((x,y)=>x-y);const n=midCount(b,len,maxS),r=[];for(let i=1;i<=n;i++)r.push(i/(n+1));return r}
+function midRule(b,maxS){return Array.isArray(b.mids)?"placed by hand":hasNum(b.nMid)&&+b.nMid>=0?"number set by you":hasNum(b.gap)&&+b.gap>0?"your spacing "+(+b.gap)+" m":"rule: max "+maxS+" m"}
+function maxSpanFor(lineKey){const S={...DEF_SET,...(P().set||{})},L=LINES[lineKey]||{};return L.abc?S.sABC:L.kv===33?S.sEHV:L.mv?S.sMV:L.cls==="HV"?S.sHV:S.sLT}
+function midInfo(o,pa,lineKey){const L=LINES[lineKey]||{};if(!pa||L.ex)return L.ex&&pa?"Existing line — no new intermediate poles.":"";
+ const len=+o.len>0?+o.len:hav(pa,o),mx=maxSpanFor(lineKey),ts=midTs(o,len,mx),n=ts.length,sp=[...ts,1].map((t,i)=>(t-(i?ts[i-1]:0))*len),lg=Math.max(...sp),hand=Array.isArray(o.mids);
+ return`<b>${Math.round(len)} m → ${n} intermediate pole${n===1?"":"s"}</b>, ${n+1} span${n?"s":""} ${hand?"(longest "+Math.round(lg)+" m)":"of ~"+Math.round(len/(n+1))+" m"} · ${midRule(o,mx)}`+(lg>mx+0.5?` <span style="color:#b45309">· a span is longer than the ${mx} m rule</span>`:"")+(hand?` <button type="button" class="btn alt sm" data-midreset>Back to automatic</button>`:"")}
+function setMids(b,ts){b.mids=ts.filter(t=>t>0.002&&t<0.998).sort((x,y)=>x-y).map(t=>+t.toFixed(5))}
+
 /* ================= The engine: survey → poles, structures, quantities ================= */
 function compute(p){
  const S={...DEF_SET,...(p.set||{})},pts=p.pts,byId={};pts.forEach(x=>byId[x.id]=x);
@@ -556,9 +575,9 @@ function compute(p){
  const work=L=>!L.ex&&!L.dis;
  const maxSpan=L=>L.abc?S.sABC:L.kv===33?S.sEHV:L.mv?S.sMV:L.cls==="HV"?S.sHV:S.sLT;
  const poleOf=sg=>sg.pole||(sg.kv===33?"SP-76":sg.cls==="HV"?"9.75":"8.5");
- segs.forEach(sg=>{const L=sg.L,n=(L.ex)?0:Math.max(0,Math.ceil(sg.len/maxSpan(L)-1e-9)-1);sg.mid=[];
-  for(let i=1;i<=n;i++){const t=i/(n+1);sg.mid.push({lat:sg.a.lat+(sg.b.lat-sg.a.lat)*t,lng:sg.a.lng+(sg.b.lng-sg.a.lng)*t,gen:true,i,exist:!!(L.onEx||L.dis)})}
-  sg.spans=n+1});
+ segs.forEach(sg=>{const L=sg.L,ts=L.ex?[]:midTs(sg.b,sg.len,maxSpan(L));sg.mid=[];sg.hand=!L.ex&&Array.isArray(sg.b.mids);sg.gapRule=midRule(sg.b,maxSpan(L));
+  ts.forEach((t,k)=>sg.mid.push({lat:sg.a.lat+(sg.b.lat-sg.a.lat)*t,lng:sg.a.lng+(sg.b.lng-sg.a.lng)*t,gen:true,i:k+1,t,hand:sg.hand,exist:!!(L.onEx||L.dis)}));
+  sg.spans=ts.length+1});
  const adj={};pts.forEach(x=>adj[x.id]=[]);
  segs.forEach(sg=>{const A=xy(sg.a,o),B=xy(sg.b,o),dx=B.x-A.x,dy=B.y-A.y,l=Math.hypot(dx,dy)||1;
   adj[sg.a.id].push({sg,ux:dx/l,uy:dy/l,other:sg.b});adj[sg.b.id].push({sg,ux:-dx/l,uy:-dy/l,other:sg.a})});
@@ -776,7 +795,7 @@ function sldSVG(c,so){
  const TR=F||{ox,oy,s,mnx,mxy,olat:c.o.lat,olng:c.o.lng};LASTT=TR;
  const geoT=pt=>{const q=xy(pt,{lat:TR.olat,lng:TR.olng});return[TR.ox+(q.x-TR.mnx)*TR.s,TR.oy+(TR.mxy-q.y)*TR.s]};
  const T=pt=>{if(pt.gen&&pt._a){const A=T(pt._a),B=T(pt._b);return[A[0]+(B[0]-A[0])*pt._t,A[1]+(B[1]-A[1])*pt._t]}const v=pt.id&&lay.pos&&lay.pos[pt.id];return v?[v[0],v[1]]:geoT(pt)};
- c.segs.forEach(sg=>sg.mid.forEach(m=>{m._a=sg.a;m._b=sg.b;m._t=m.i/(sg.mid.length+1)}));
+ c.segs.forEach(sg=>sg.mid.forEach(m=>{m._a=sg.a;m._b=sg.b;m._t=m.t}));
  let CTX="",CN=0;const ctx=k=>{CTX=k;CN=0};
  // pole layouts: DP = two poles side by side, 3-pole = triangle (apex up), 4-pole = square, all with clear separation
  const GEO={1:[[0,0]],2:[[-7,0],[7,0]],3:[[0,-9],[7.8,4.5],[-7.8,4.5]],4:[[-6.5,-6.5],[6.5,-6.5],[6.5,6.5],[-6.5,6.5]],d:[[-13,-9],[13,-9],[13,9],[-13,9]]},TOP={1:8,2:9,3:14,4:13,d:14},BOT={1:12,2:13,3:16,4:16,d:19},HW={1:4,2:10,3:11,4:10,d:16};
@@ -963,15 +982,38 @@ function initMap(){if(typeof L==="undefined"){$("#map").innerHTML='<p style="pad
 }
 function setTap(on){tapMode=on;$("#mapwrap").classList.toggle("tapping",on);$("#tapBtn").textContent=on?"✕ Cancel tap":"✚ Tap on map";$("#status").textContent=on?"Tap the map where the point goes.":statusText()}
 function drawMap(c,fit){if(!map)return;grp.clearLayers();const col=L2=>L2.dis?"#C92A2A":L2.ex?"#1F4E9C":L2.cls==="HV"?"#2B8A3E":"#C2410C";
- c.segs.forEach(sg=>{L.polyline([[sg.a.lat,sg.a.lng],[sg.b.lat,sg.b.lng]],{color:col(sg.L),weight:sg.L.cls==="HV"?4:3,dashArray:sg.L.dis?"2 6":sg.L.cls==="LT"&&!sg.L.ex?"8 6":null}).addTo(grp)
-   .bindTooltip(LINES[sg.line].t+" · "+Math.round(sg.len)+" m · "+sg.mid.length+" intermediate pole"+(sg.mid.length===1?"":"s"));
-  sg.mid.forEach(m=>L.circleMarker([m.lat,m.lng],{radius:3.5,color:"#111",weight:1,fillColor:m.exist?"#111":"#fff",fillOpacity:1}).addTo(grp).bindTooltip(m.lab+(m.exist?" (existing, assumed)":" (computed)")))});
+ c.segs.forEach(sg=>{const pl=L.polyline([[sg.a.lat,sg.a.lng],[sg.b.lat,sg.b.lng]],{color:col(sg.L),weight:sg.L.cls==="HV"?4:3,dashArray:sg.L.dis?"2 6":sg.L.cls==="LT"&&!sg.L.ex?"8 6":null}).addTo(grp)
+   .bindTooltip(LINES[sg.line].t+" · "+Math.round(sg.len)+" m · "+sg.mid.length+" intermediate pole"+(sg.mid.length===1?"":"s")+(sg.L.ex?"":" · tap the line to add a pole"));
+  if(sg.L.ex)return;
+  pl.on("click",e=>{if(tapMode||QR.mapKind)return;L.DomEvent.stopPropagation(e);midPop(sg,null,e.latlng)});
+  sg.mid.forEach((m,k)=>{const html=`<div style="width:12px;height:12px;border-radius:50%;background:${m.exist?"#111":"#fff"};border:2px solid ${m.hand?"#0f766e":"#111"};transform:translate(-50%,-50%);box-shadow:0 1px 3px #0005"></div>`;
+   const mk=L.marker([m.lat,m.lng],{draggable:true,icon:L.divIcon({className:"",html,iconSize:[0,0]})}).addTo(grp).bindTooltip(m.lab+(m.exist?" (existing, assumed)":m.hand?" (placed by hand)":" (computed)")+" · drag to move, tap for options");
+   mk.on("click",e=>{L.DomEvent.stopPropagation(e);midPop(sg,k,e.latlng)});
+   mk.on("dragend",e=>{const ts=sg.mid.map(q=>q.t);ts[k]=Math.min(0.995,Math.max(0.005,projT(sg,e.target.getLatLng())));midSave(sg,ts)})})});
  (c.fedges||[]).forEach(e=>{const st={road:{color:"#6b7280",weight:7,opacity:.6},rail:{color:"#111",weight:3,dashArray:"2 4"},river:{color:"#3b82f6",weight:8,opacity:.5},drain:{color:"#2563eb",weight:2,dashArray:"5 4"}}[e.ty];L.polyline([[e.a.lat,e.a.lng],[e.b.lat,e.b.lng]],st).addTo(grp).bindTooltip((e.name||opt(e.b,"lmType")))});
  c.pts.forEach(x=>{const k=x.kind,g=KINDS[k].g,ic=k==="lm"?"⌂":k==="rmPole"?"✕":g===3||k==="htc"?"⚡":g===2?"Ⅱ":g===0?"◎":g===4?"≋":g===9||k==="exPole"||k==="exFit"?"●":g===10?"◐":"○";
   const html=`<div style="background:${KINDS[k].src?"#C92A2A":k==="lm"?"#8a6a4b":k==="rmPole"?"#7f1d1d":x.id===selId?"#0f766e":"#1e3a5f"};color:#fff;border-radius:12px;padding:2px 6px;font:700 11px system-ui;white-space:nowrap;box-shadow:0 2px 6px #0004;transform:translate(-50%,-50%);display:inline-block">${ic} P${x.no}</div>`;
   const mk=L.marker([x.lat,x.lng],{draggable:true,icon:L.divIcon({className:"",html,iconSize:[0,0]})}).addTo(grp);
   mk.on("click",()=>openPoint(x));mk.on("dragend",e=>{const ll=e.target.getLatLng();x.lat=ll.lat;x.lng=ll.lng;x.acc=null;x.src="moved";touch(P());renderAll()})});
  if(fit&&c.pts.length){const b=L.latLngBounds(c.pts.map(x=>[x.lat,x.lng]));map.fitBounds(b.pad(0.25),{maxZoom:18})}}
+
+/* intermediate poles on the map: move / delete / add / reset */
+function projT(sg,ll){const c=Math.cos(sg.a.lat*D2R),ax=sg.a.lng*c,ay=sg.a.lat,bx=sg.b.lng*c-ax,by=sg.b.lat-ay,px=ll.lng*c-ax,py=ll.lat-ay,d=bx*bx+by*by;return d?(px*bx+py*by)/d:0.5}
+function midSave(sg,ts){const p=P();if(typeof snap==="function")snap();setMids(sg.b,ts);touch(p);if(map)map.closePopup();renderAll()}
+function midPop(sg,k,ll){const n=sg.mid.length,lab=k==null?"Span P"+sg.a.no+"–P"+sg.b.no:sg.mid[k].lab,t=k==null?Math.min(0.995,Math.max(0.005,projT(sg,ll))):null;
+ const div=document.createElement("div");div.style.cssText="font:13px system-ui;display:grid;gap:6px;min-width:170px";
+ div.innerHTML=`<b>${lab}</b><span class="small muted">${Math.round(sg.len)} m · ${n} intermediate pole${n===1?"":"s"} · ${sg.gapRule}</span>`+
+  (k!=null?`<button class="btn bad sm" type="button" data-a="del">Delete this pole</button>`:`<button class="btn sm" type="button" data-a="add">Add a pole here</button>`)+
+  (n?`<button class="btn alt sm" type="button" data-a="none">Delete all poles on this span</button>`:"")+
+  (sg.hand?`<button class="btn alt sm" type="button" data-a="auto">Back to automatic</button>`:"")+
+  `<button class="btn alt sm" type="button" data-a="set">Set spacing / number…</button>`;
+ div.addEventListener("click",e=>{const a=e.target.closest("[data-a]");if(!a)return;const ts=sg.mid.map(q=>q.t);
+  if(a.dataset.a==="del"){ts.splice(k,1);midSave(sg,ts)}
+  else if(a.dataset.a==="add"){ts.push(t);midSave(sg,ts)}
+  else if(a.dataset.a==="none"){if(confirm("Remove all intermediate poles on P"+sg.a.no+"–P"+sg.b.no+"?"))midSave(sg,[])}
+  else if(a.dataset.a==="auto"){if(typeof snap==="function")snap();delete sg.b.mids;touch(P());map.closePopup();renderAll()}
+  else if(a.dataset.a==="set"){map.closePopup();openPoint(sg.b);setTimeout(()=>{const g=$("#dGap");if(g){g.scrollIntoView({block:"center"});g.focus()}},50)}});
+ L.popup().setLatLng(ll).setContent(div).openOn(map)}
 
 /* ================= Point dialog ================= */
 let edit=null,draft=null;
@@ -1010,19 +1052,25 @@ function renderDlgLine(){const p=P(),K=KINDS[draft.kind];$("#dLineSec").hidden=!
  const desc=new Set();(function mark(id){desc.add(id);p.pts.filter(q=>q.par===id).forEach(q=>mark(q.id))})(draft.id);
  $("#dPar").innerHTML=(K.src?'<option value="">— none (this is a source) —</option>':'<option value="">— not connected —</option>')+p.pts.filter(q=>!desc.has(q.id)&&!isStand(q)).map(q=>`<option value="${q.id}" ${q.id===draft.par?"selected":""}>P${q.no} · ${KINDS[q.kind].t}${q.note?" · "+q.note:""}</option>`).join("");
  $("#dLine").innerHTML=Object.entries(LG).map(([g,gl])=>`<optgroup label="${gl}">`+Object.entries(LINES).filter(([,v])=>v.g===g).map(([k,v])=>`<option value="${k}" ${k===draft.line?"selected":""}>${v.t}</option>`).join("")+"</optgroup>").join("");
- $("#dPole").value=draft.pole||"";$("#dCross").value=draft.cross||"";{const pa=p.pts.find(q=>q.id===draft.par);$("#dLen").value=draft.len||"";$("#dLen").placeholder=pa?"auto: "+Math.round(hav(pa,draft))+" m":"auto"}renderSegOpts()}
+ $("#dPole").value=draft.pole||"";$("#dCross").value=draft.cross||"";{const pa=p.pts.find(q=>q.id===draft.par);$("#dLen").value=draft.len||"";$("#dLen").placeholder=pa?"auto: "+Math.round(hav(pa,draft))+" m":"auto"}$("#dGap").value=hasNum(draft.gap)?draft.gap:"";$("#dNMid").value=hasNum(draft.nMid)?draft.nMid:"";renderSegOpts();dMidUpd()}
+function dMidUpd(){const p=P(),g=$("#dGap");g.placeholder="auto: max "+maxSpanFor($("#dLine").value)+" m";
+ const o={lat:draft.lat,lng:draft.lng,len:$("#dLen").value,gap:$("#dGap").value,nMid:$("#dNMid").value,mids:draft.mids},pa=p.pts.find(q=>q.id===$("#dPar").value);$("#dMidInfo").innerHTML=midInfo(o,pa,$("#dLine").value)}
+$("#dGap").addEventListener("input",()=>{delete draft.mids;$("#dNMid").value="";dMidUpd()});
+$("#dNMid").addEventListener("input",()=>{delete draft.mids;$("#dGap").value="";dMidUpd()});
+["#dLen","#dPar"].forEach(k=>$(k).addEventListener("input",dMidUpd));$("#dPar").addEventListener("change",dMidUpd);
+$("#dMidInfo").addEventListener("click",e=>{if(e.target.closest("[data-midreset]")){delete draft.mids;dMidUpd();keepPending()}});
 function renderSegOpts(){const L=LINES[$("#dLine").value]||{};let h="";
  if(!L.ex&&!L.dis)h+=`<label class="ck"><input type="checkbox" id="sReuse" ${draft.reuse?"checked":""}> Conductor from RDSS dismantled / existing stock</label>`;
  if(L.onEx&&L.old)h+=`<label class="ck"><input type="checkbox" id="sDisOld" ${draft.disOld?"checked":""}> Old conductor to dismantling</label>`;
  if(L.dis)h+=`<label class="ck"><input type="checkbox" id="sRm" ${draft.rmPoles!==false?"checked":""}> Poles along it removed too</label>`;
  $("#dSegOpts").innerHTML=h}
-$("#dLine").onchange=()=>{readSeg();draft.line=$("#dLine").value;renderSegOpts()};
+$("#dLine").onchange=()=>{readSeg();draft.line=$("#dLine").value;renderSegOpts();dMidUpd()};
 function readOpts(){const K=KINDS[draft.kind];(K.o||[]).forEach(k=>{const el=document.getElementById("o_"+k);if(!el)return;const f=OPTF[k];
   if(f.ty==="chk")draft[k]=el.checked;else if(f.ty==="num")draft[k]=el.value===""?(k==="stays"?null:0):+el.value;else draft[k]=el.value});
  const fp=document.getElementById("o_fpar");if(fp)draft.fpar=fp.value||"";
  Object.keys(XF).forEach(k=>{const el=document.getElementById("x_"+k);if(!el)return;draft[k]=XF[k].ty==="chk"?el.checked:(+el.value||0)})}
 function readSeg(){const g=id=>document.getElementById(id);if(g("sReuse"))draft.reuse=g("sReuse").checked;if(g("sDisOld"))draft.disOld=g("sDisOld").checked;if(g("sRm"))draft.rmPoles=g("sRm").checked}
-function readDlg(){readOpts();readSeg();draft.kind=$("#dKind").value;draft.note=$("#dNote").value.trim();const K=KINDS[draft.kind];draft.par=K.standalone?null:($("#dPar").value||null);draft.line=$("#dLine").value;draft.pole=$("#dPole").value;draft.cross=$("#dCross").value;const lv=$("#dLen").value;draft.len=lv===""?null:+lv}
+function readDlg(){readOpts();readSeg();draft.kind=$("#dKind").value;draft.note=$("#dNote").value.trim();const K=KINDS[draft.kind];draft.par=K.standalone?null:($("#dPar").value||null);draft.line=$("#dLine").value;draft.pole=$("#dPole").value;draft.cross=$("#dCross").value;const lv=$("#dLen").value;draft.len=lv===""?null:+lv;const gv=$("#dGap").value,nv=$("#dNMid").value;draft.gap=gv===""?null:+gv;draft.nMid=nv===""?null:Math.max(0,Math.round(+nv))}
 $("#ptDlg").addEventListener("input",keepPending);$("#ptDlg").addEventListener("change",keepPending);
 $("#ptDlg").addEventListener("close",()=>{if(DB.pending&&!keepOpen){delete DB.pending;save(false)}});let keepOpen=false;
 function keepPending(){try{readDlg()}catch(e){return}DB.pending={pid:P().id,editId:edit?edit.id:null,draft:JSON.parse(JSON.stringify(draft))};save(false)}
@@ -1104,7 +1152,7 @@ function renderSurvey(c,fit){const p=P();qRender();$("#status").textContent=stat
  $("#surveySum").innerHTML=c.pts.length?[["11 kV",((c.km.HV+c.km.MV)/1000).toFixed(3)+" km"],...(c.km.EHV?[["33 kV",(c.km.EHV/1000).toFixed(3)+" km"]]:[]),["LT",(c.km.LT/1000).toFixed(3)+" km"],["New poles",Math.round(newPoles)],["Computed",c.nGen+" interm."],["Stays",c.totStays],["Estimate","₹"+(b?b.P.toLocaleString("en-IN"):0)]].map(([k,v])=>`<div><b>${v}</b><span>${k}</span></div>`).join(""):"";
  $("#plist").innerHTML=p.pts.map(x=>{const nd=c.nodes[x.id]||{},sg=c.segs.find(s=>s.b===x),r=Object.entries(nd.roles||{}).map(([k,v])=>v).join(" / ");
   return`<div class="pt ${x.id===selId?"sel":""}" data-id="${x.id}"><span class="no">P${x.no}</span><div><b>${KINDS[x.kind].t}${(KINDS[x.kind].o||[]).includes("kva")?" "+opt(x,"kva")+" kVA":""}${x.kind==="lm"?": "+(x.note||opt(x,"lmType")):""}</b>${x.qk?'<span class="pend">details pending</span>':""} <span class="small muted">${c.lab[x.id]||""}${r?" · "+r:""}${nd.dev?" · "+nd.dev+"°":""}${nd.stays?" · "+nd.stays+" stay"+(nd.stays>1?"s":""):""}${x.db?" · DB "+x.db+" cons.":""}</span>
-   <div class="meta">${sg?"from P"+sg.a.no+" · "+LINES[x.line].t+" · "+Math.round(sg.len)+" m"+(sg.mid.length?" · +"+sg.mid.length+" pole"+(sg.mid.length>1?"s":""):""):KINDS[x.kind].src?"source":isStand(x)?"no line":"not connected"}${x.note?" · "+x.note:""}${x.acc?" · ±"+Math.round(x.acc)+" m":x.src?" · "+x.src:""}</div></div>
+   <div class="meta">${sg?"from P"+sg.a.no+" · "+LINES[x.line].t+" · "+Math.round(sg.len)+" m"+(sg.mid.length?" · +"+sg.mid.length+" pole"+(sg.mid.length>1?"s":"")+" ("+sg.gapRule+")":!sg.L.ex&&(sg.hand||hasNum(x.nMid))?" · no intermediate pole ("+sg.gapRule+")":""):KINDS[x.kind].src?"source":isStand(x)?"no line":"not connected"}${x.note?" · "+x.note:""}${x.acc?" · ±"+Math.round(x.acc)+" m":x.src?" · "+x.src:""}</div></div>
    <button class="btn alt sm" type="button">Edit</button></div>`}).join("")||'<div class="card muted">No points yet.</div>';
  $("#plist").querySelectorAll(".pt").forEach(el=>{el.onclick=()=>{const x=p.pts.find(q=>q.id===el.dataset.id);selId=x.id;if(map)map.panTo([x.lat,x.lng]);openPoint(x)}});
  drawMap(c,fit)}
@@ -1238,14 +1286,21 @@ function openLine(b){const p=P();LNB=b;const a=p.pts.find(q=>q.id===b.par);
  $("#lLine").innerHTML=Object.entries(LG).map(([g,gl])=>`<optgroup label="${gl}">`+Object.entries(LINES).filter(([,v])=>v.g===g).map(([k,v])=>`<option value="${k}" ${k===b.line?"selected":""}>${v.t}</option>`).join("")+"</optgroup>").join("");
  $("#lPole").innerHTML=$("#dPole").innerHTML;$("#lPole").value=b.pole||"";$("#lCross").value=b.cross||"";{const L=LINES[b.line]||{},C={...DEFCOL,...(p.opt.col||{})};$("#lCol").value=b.lcol||(L.dis?C.dis:L.ex?C.ex:L.cls==="HV"?C.hv:C.lt);$("#lColDef").checked=!b.lcol}
  $("#lLen").value=b.len||"";$("#lLen").placeholder=a?"auto: "+Math.round(hav(a,b))+" m":"auto";
+ $("#lGap").value=hasNum(b.gap)?b.gap:"";$("#lNMid").value=hasNum(b.nMid)?b.nMid:"";LNM=Array.isArray(b.mids)?b.mids.slice():null;lMidUpd();
  const A=a&&posOf(a.id),B=posOf(b.id);if(A&&B){const ang=Math.round(Math.atan2(A[1]-B[1],B[0]-A[0])*R2D);$("#lAng").value=(ang+360)%360;$("#lMm").value=Math.round(Math.hypot(B[0]-A[0],B[1]-A[1])*MM)}else{$("#lAng").value="";$("#lMm").value=""}
  LN0={a:$("#lAng").value,m:$("#lMm").value,par:b.par};
  $("#lAngs").innerHTML=[["→",0],["↗",45],["↑",90],["↖",135],["←",180],["↙",225],["↓",270],["↘",315]].map(([t,v])=>`<button type="button" data-a="${v}">${t} ${v}°</button>`).join("");
  $("#lAngs").querySelectorAll("button").forEach(x=>x.onclick=()=>$("#lAng").value=x.dataset.a);
  $("#lnDlg").showModal()}
+let LNM=null;
+function lMidUpd(){const p=P(),b=LNB;if(!b)return;$("#lGap").placeholder="auto: max "+maxSpanFor($("#lLine").value)+" m";const pa=p.pts.find(q=>q.id===$("#lFrom").value);
+ const o={lat:b.lat,lng:b.lng,len:$("#lLen").value,gap:$("#lGap").value,nMid:$("#lNMid").value,mids:LNM||undefined};$("#lMidInfo").innerHTML=midInfo(o,pa,$("#lLine").value)}
+$("#lGap").addEventListener("input",()=>{LNM=null;$("#lNMid").value="";lMidUpd()});$("#lNMid").addEventListener("input",()=>{LNM=null;$("#lGap").value="";lMidUpd()});
+["#lLen","#lFrom","#lLine"].forEach(k=>{$(k).addEventListener("input",lMidUpd);$(k).addEventListener("change",lMidUpd)});
+$("#lMidInfo").addEventListener("click",e=>{if(e.target.closest("[data-midreset]")){LNM=null;lMidUpd()}});
 $("#lCancel").onclick=()=>$("#lnDlg").close();$("#lCol").addEventListener("input",()=>$("#lColDef").checked=false);
 $("#lSave").onclick=()=>{const p=P(),b=LNB;if(!b)return;snap();
- const nf=$("#lFrom").value||null;b.par=nf;b.line=$("#lLine").value;b.pole=$("#lPole").value;b.cross=$("#lCross").value;if($("#lColDef").checked)delete b.lcol;else b.lcol=$("#lCol").value;const lv=$("#lLen").value;b.len=lv===""?null:+lv;
+ const nf=$("#lFrom").value||null;b.par=nf;b.line=$("#lLine").value;b.pole=$("#lPole").value;b.cross=$("#lCross").value;if($("#lColDef").checked)delete b.lcol;else b.lcol=$("#lCol").value;const lv=$("#lLen").value;b.len=lv===""?null:+lv;{const gv=$("#lGap").value,nv=$("#lNMid").value;b.gap=gv===""?null:+gv;b.nMid=nv===""?null:Math.max(0,Math.round(+nv));if(LNM)b.mids=LNM;else delete b.mids}
  const ang=$("#lAng").value,mm=$("#lMm").value;
  if(nf&&ang!==""&&mm!==""&&(ang!==LN0.a||mm!==LN0.m||nf!==LN0.par)){const A=posOf(nf),B=posOf(b.id);if(A&&B){freeze(p);const r=(+ang)*D2R,d=(+mm)/MM,X=A[0]+Math.cos(r)*d,Y=A[1]-Math.sin(r)*d,dx=X-B[0],dy=Y-B[1];
   const sub=$("#lSub").checked?subtree(p,b.id).map(q=>[q,posOf(q.id)]):[];setPos(p,b,X,Y);sub.forEach(([q,Q])=>{if(Q)setPos(p,q,Q[0]+dx,Q[1]+dy)})}}
@@ -1253,7 +1308,7 @@ $("#lSave").onclick=()=>{const p=P(),b=LNB;if(!b)return;snap();
 $("#lDel").onclick=()=>{const p=P(),b=LNB;if(!b||!confirm("Delete this line? P"+b.no+" stays, unconnected."))return;snap();b.par=null;touch(p);$("#lnDlg").close();renderAll()};
 $("#lRev").onclick=()=>{const p=P(),b=LNB,a=p.pts.find(q=>q.id===b.par);if(!a)return;
  if(a.par&&!confirm("P"+a.no+" is itself fed from another point. Reversing makes P"+b.no+" feed P"+a.no+" and detaches P"+a.no+" from its feeder. Continue?"))return;
- snap();const keep={line:b.line,len:b.len,pole:b.pole,cross:b.cross};b.par=null;a.par=b.id;Object.assign(a,keep);delete b.len;touch(p);$("#lnDlg").close();renderAll()};
+ snap();const keep={line:b.line,len:b.len,pole:b.pole,cross:b.cross,gap:b.gap,nMid:b.nMid};const km=Array.isArray(b.mids)?b.mids.map(t=>1-t):null;b.par=null;a.par=b.id;Object.assign(a,keep);if(km)setMids(a,km);else delete a.mids;delete b.len;delete b.gap;delete b.nMid;delete b.mids;touch(p);$("#lnDlg").close();renderAll()};
 function renderEst(c){const p=P(),m=p.meta;$("#mWork").value=m.work;$("#mWork").placeholder=autoWork(c);$("#mLoc").value=m.loc;$("#mPay").value=m.pay;$("#mDoc").value=m.doc;$("#mDate").value=m.date;$("#mSS").value=m.ss;$("#mFdr").value=m.fdr;$("#mFee").value=m.fee||0;
  const fl=c.flags.length?`<div class="warns flags"><b>Rates to check</b><ul>${c.flags.map(x=>`<li>${x}</li>`).join("")}</ul></div>`:"";
  $("#estWarn").innerHTML=warnBox(c)+fl;$("#estBox").innerHTML=c.pts.length?estHTML(c):'<p class="muted" style="padding:16px">Mark points on the Survey tab first.</p>'}
@@ -1444,7 +1499,7 @@ function buildXlsx(){const c=compute(P()),p=P(),m=p.meta,b=boq(c),ws=Sheet("Esti
  ["Pole","Point","Type","Structure","Latitude","Longitude","GPS (deg-min)","Span from previous (m)","Line","Stays","Earthing","Position from","Remark"].forEach((h,i)=>ps.set(1,i+1,h,4));
  let pr=2;const addRow=a=>{a.forEach((v,i)=>ps.set(pr,i+1,v,18));pr++};
  function walk(x,span,line){const nd=c.nodes[x.id]||{};addRow([c.lab[x.id],"P"+x.no,KINDS[x.kind].t+(x.kind==="dtr"?" "+(x.kva||100)+" kVA":""),Object.values(nd.roles||{}).join(" / "),+x.lat.toFixed(6),+x.lng.toFixed(6),gpsTxt(x),span==null?"":Math.round(span),line||"",nd.stays||0,nd.earth||0,x.src==="gps"?"GPS ±"+Math.round(x.acc||0)+" m":x.src||"",x.note||""]);
-  c.kids[x.id].forEach(sg=>{const seq=[sg.a,...sg.mid,sg.b];sg.mid.forEach((mm,k)=>addRow([mm.lab,"","New pole (computed)","tangent",+mm.lat.toFixed(6),+mm.lng.toFixed(6),gpsTxt(mm),Math.round(hav(seq[k],mm)),sg.L.t,mm.stay?1:0,mm.earth?1:0,"interpolated",""]));walk(sg.b,hav(seq[seq.length-2],sg.b),sg.L.t)})}
+  c.kids[x.id].forEach(sg=>{const seq=[sg.a,...sg.mid,sg.b];sg.mid.forEach((mm,k)=>addRow([mm.lab,"",mm.hand?"New pole (placed by hand)":"New pole (computed)","tangent",+mm.lat.toFixed(6),+mm.lng.toFixed(6),gpsTxt(mm),Math.round(hav(seq[k],mm)),sg.L.t,mm.stay?1:0,mm.earth?1:0,"interpolated",""]));walk(sg.b,hav(seq[seq.length-2],sg.b),sg.L.t)})}
  c.roots.forEach(x=>walk(x,null,""));
  const sheets=[ws,qb,ps],d=dism(c);
  if(d){const dw=Sheet("Dismantling");dw.cols([6,8,46,7,10,13,16,15]);const mr=(r,t,st,h)=>{dw.set(r,1,t,st);dw.merge(r,1,r,8);if(h)dw.height(r,h)};
