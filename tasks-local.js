@@ -273,7 +273,7 @@ document.addEventListener("visibilitychange",function(){if(!document.hidden)requ
 ".pte button{font:600 13px system-ui,sans-serif;border:1px solid var(--tr-line,#e6e3db);background:var(--tr-paper,#fff);color:var(--tr-ink,#1c1b19);border-radius:10px;padding:8px 12px;cursor:pointer}"+
 ".pte button.pri{background:var(--tr-acc,#4f46e5);border-color:var(--tr-acc,#4f46e5);color:#fff}.pte button.lnk{border:0;background:none;color:var(--tr-acc-ink,#3730a3);padding:4px 0}"+
 ".pte input[type=text],.pte textarea{font:inherit;font-size:15px;width:100%;box-sizing:border-box;padding:9px 11px;border:1px solid var(--tr-line,#e6e3db);border-radius:10px;background:#fff;color:var(--tr-ink,#1c1b19)}"+
-".pte textarea{min-height:160px;resize:vertical}.pte .pa{display:grid;grid-template-columns:1fr auto;gap:8px}"+
+".pte textarea{min-height:160px;resize:vertical}.pte .pa{display:grid;grid-template-columns:1fr auto auto;gap:8px}"+
 ".pte .ph{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--tr-muted,#6b6a64);margin-bottom:2px}"+
 ".pte .ck{display:flex;flex-direction:column;gap:2px}.pte .ck label{display:flex;gap:10px;align-items:flex-start;padding:6px 0;font-size:15px;line-height:1.35;cursor:pointer}"+
 ".pte .ck input[type=checkbox]{width:20px;height:20px;flex:0 0 auto;margin:0;accent-color:#15803d}.pte .ck label.dn span{text-decoration:line-through;color:var(--tr-muted,#6b6a64)}"+
@@ -287,11 +287,13 @@ function notesHtml(c){var out="",list=false;String(c||"").replace(/\r/g,"").spli
     if(list){out+="</ul>";list=false}if(!x)return;if(/^-{3,}$/.test(x)){out+="<hr>";return}out+="<p>"+linkify(escH(x))+"</p>";});
   if(list)out+="</ul>";return out;}
 function dmy(){var p=today().split("-");return p[2]+"/"+p[1]+"/"+p[0]}
+function needDrive(){if(window.PosDrive)return Promise.resolve(window.PosDrive);return new Promise(function(res,rej){var s=document.createElement("script");s.src="drive.js?v=20261102t";
+  s.onload=function(){window.PosDrive?res(window.PosDrive):rej(new Error("Couldn't load the Drive helper."))};s.onerror=function(){rej(new Error("Couldn't load the Drive helper — are you online?"))};document.head.appendChild(s)})}
 function editorHtml(t,editing){var it=t.it||[];
   return '<div class="pte" data-pte="'+escH(t.id)+'">'+
     (editing?'<div><div class="ph">Notes</div><textarea data-pe="txt">'+escH(t.c||"")+'</textarea></div><div class="pr"><button type="button" class="pri" data-pe="save">Save notes</button><button type="button" data-pe="cancel">Cancel</button></div>'
       :'<div><div class="pn">'+(String(t.c||"").trim()?notesHtml(t.c):'<span class="pe">No notes yet.</span>')+'</div><button type="button" class="lnk" data-pe="edit">✎ Edit notes</button></div>')+
-    (function(){var upd='<div><div class="ph">Add an update</div><div class="pa"><input type="text" data-pe="upd" placeholder="'+dmy()+': what happened…" autocomplete="off"><button type="button" class="pri" data-pe="add">Add</button></div></div>',
+    (function(){var upd='<div><div class="ph">Add an update</div><div class="pa"><input type="text" data-pe="upd" placeholder="'+dmy()+': what happened…" autocomplete="off"><button type="button" data-pe="att" title="Attach files — they go to Google Drive and the link goes in the notes">📎</button><button type="button" class="pri" data-pe="add">Add</button></div><input type="file" data-pe="file" multiple hidden></div>',
       ck='<div><div class="ph">Checklist'+(it.length?" · "+it.filter(function(x){return x.d}).length+"/"+it.length:"")+'</div><div class="ck">'+
       it.map(function(x,i){return '<label class="'+(x.d?"dn":"")+'"><input type="checkbox" data-ci="'+i+'"'+(x.d?" checked":"")+'><span>'+escH(x.ti)+'</span></label>'}).join("")+
       '</div><input type="text" data-pe="item" placeholder="+ add a checklist item" autocomplete="off"></div>';
@@ -309,6 +311,23 @@ function mountEditor(root,id,editing){var host=root&&(root.querySelector(".pteMo
   if(q("save"))q("save").onclick=function(){var x=get(id);x.c=q("txt").value;put(x);redraw(false,"Notes saved ✓")};
   var add=function(){var v=q("upd").value.trim();if(!v)return;var x=get(id);x.c=(String(x.c||"").replace(/\s+$/,"")?String(x.c).replace(/\s+$/,"")+"\n":"")+dmy()+": "+v;put(x);redraw(false,"Update added ✓")};
   q("add").onclick=add;q("upd").onkeydown=function(e){if(e.key==="Enter"){e.preventDefault();add()}};
+  /* 📎 files with an update (2 Nov 2026): each file goes straight to Google Drive (Pranju OS / Task files) and its link
+     is written into the notes under the day's update line — files live in Drive, the task keeps only links. */
+  var fi=q("file"),ok=q("ok"),busy=false;
+  q("att").onclick=function(){if(!busy)fi.click()};
+  fi.onchange=function(){var files=[].slice.call(fi.files||[]);fi.value="";if(!files.length)return;busy=true;q("att").disabled=true;
+    var say=function(m){var o=el.querySelector('[data-pe="ok"]');if(o)o.textContent=m};
+    needDrive().then(function(D){if(!D.connected())return D.status().then(function(s){if(!s.connected)throw new Error("Google Drive isn't connected — connect it once from Travel Trace, then attach again.");return D})
+        .catch(function(e){throw e&&/connect/.test(e.message)?e:new Error("Google Drive isn't connected — connect it once from Travel Trace, then attach again.")});return D})
+     .then(function(D){var x=get(id),stamp=today(),links=[],i=0,
+        safe=String(x&&x.ti||"task").replace(/[\\/:*?"<>|]+/g," ").replace(/\s+/g," ").trim().slice(0,50);
+      var next=function(){if(i>=files.length)return Promise.resolve();var f=files[i++];say("Uploading "+i+" of "+files.length+" to Drive…");
+        return D.uploadSub("tasks","Task files",stamp+" · "+safe+" · "+f.name,f,{posTask:String(id)}).then(function(r){links.push("- "+f.name+": "+D.viewUrl(r.id));return next()})};
+      return next().then(function(){return links})})
+     .then(function(links){var v=q("upd").value.trim(),x=get(id);if(!x)return;
+      var body=String(x.c||"").replace(/\s+$/,"");x.c=(body?body+"\n":"")+dmy()+": "+(v||(links.length>1?links.length+" files attached":"file attached"))+"\n"+links.join("\n");
+      put(x);busy=false;redraw(false,links.length+(links.length>1?" files":" file")+" saved to Drive ✓ — link"+(links.length>1?"s":"")+" added to the notes")})
+     .catch(function(e){busy=false;var b=q("att");if(b)b.disabled=false;say("⚠ "+(e&&e.message||e))})};
   el.querySelectorAll("[data-ci]").forEach(function(c){c.onchange=function(){var x=get(id),i=+c.dataset.ci;if(!x.it[i])return;x.it[i].d=c.checked?1:0;put(x);redraw(false,c.checked?"Ticked ✓":"Unticked")}});
   var item=q("item");item.onkeydown=function(e){if(e.key==="Enter"&&item.value.trim()){e.preventDefault();var x=get(id);x.it=(x.it||[]).concat([{ti:item.value.trim(),d:0}]);var p=el.parentNode;put(x);redraw(false,"Item added ✓");var ni=p&&p.querySelector('[data-pe="item"]');if(ni)ni.focus()}};
   if(editing){var ta=q("txt");setTimeout(function(){ta.focus()},30)}}

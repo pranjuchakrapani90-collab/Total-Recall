@@ -8,6 +8,7 @@
      disconnect()
      find({key:value})                 -> [{id,name,size}] files this app made with those appProperties
      upload(folder, name, blob, props) -> {id,name,size}   folder: "gps" | "photos" (resumable, any size)
+     uploadSub(key, label, name, blob, props) -> same, into a sub-folder of Pranju OS made on first use (e.g. "Task files")
      download(id)                      -> Blob
      trash(id)                         -> moves to Drive's bin (recoverable for 30 days)
      viewUrl(id)                       -> link that opens the file in Drive
@@ -48,11 +49,29 @@ async function find(props){
 async function upload(folder,name,blob,props,again){
   var t=await token(again),parent=t.folders[folder];
   if(!parent)throw new Error("the Drive folder for "+folder+" is missing");
+  return send(parent,name,blob,props,function(){return upload(folder,name,blob,props,true)},again)}
+/* Task files (2 Nov 2026): a sub-folder of "Pranju OS" made here, so the Worker's own folder list is not touched.
+   uploadSub("tasks","Task files",name,blob,props) -> {id,name,size} */
+function subCache(){try{return JSON.parse(localStorage.getItem("posDriveSub")||"{}")}catch(e){return {}}}
+async function subFolder(key,label,again){
+  var c=subCache();if(c[key]&&!again)return c[key];
+  var t=await token(again),root=t.folders.root;if(!root)throw new Error("the Pranju OS folder in Drive is missing");
+  var q="mimeType='application/vnd.google-apps.folder' and trashed=false and appProperties has { key='pos' and value='"+key+"' }";
+  var r=await gfetch(API+"/files?spaces=drive&fields=files(id)&q="+encodeURIComponent(q));if(!r.ok)throw await fail(r,"Drive search");
+  var f=(await r.json()).files||[],id=f.length?f[0].id:"";
+  if(!id){r=await gfetch(API+"/files?fields=id",{method:"POST",headers:{"Content-Type":"application/json; charset=UTF-8"},
+      body:JSON.stringify({name:label,mimeType:"application/vnd.google-apps.folder",parents:[root],appProperties:{pos:key}})});
+    if(!r.ok)throw await fail(r,"Drive folder");id=(await r.json()).id}
+  c[key]=id;try{localStorage.setItem("posDriveSub",JSON.stringify(c))}catch(e){}return id}
+async function uploadSub(key,label,name,blob,props,again){
+  var parent=await subFolder(key,label,again);
+  return send(parent,name,blob,props,function(){return uploadSub(key,label,name,blob,props,true)},again)}
+async function send(parent,name,blob,props,retry,again){
   var type=blob.type||"application/octet-stream";
   var start=await gfetch(UP+"/files?uploadType=resumable&fields=id,name,size",{method:"POST",
     headers:{"Content-Type":"application/json; charset=UTF-8","X-Upload-Content-Type":type,"X-Upload-Content-Length":String(blob.size)},
     body:JSON.stringify({name:name,parents:[parent],appProperties:props||{}})});
-  if(start.status===404&&!again)return upload(folder,name,blob,props,true); // folder deleted in Drive: recreate and retry
+  if(start.status===404&&!again)return retry(); // folder deleted in Drive: recreate and retry
   if(!start.ok)throw await fail(start,"Drive upload");
   var loc=start.headers.get("Location");if(!loc)throw new Error("Google Drive did not return an upload address");
   var put=await fetch(loc,{method:"PUT",headers:{"Content-Type":type},body:blob});
@@ -75,7 +94,7 @@ async function exportText(id,mime){
   if(!r.ok)throw await fail(r,"Drive read");return r.text()}
 async function download(id){var r=await gfetch(API+"/files/"+encodeURIComponent(id)+"?alt=media");if(!r.ok)throw await fail(r,"Drive download");return r.blob()}
 async function trash(id){var r=await gfetch(API+"/files/"+encodeURIComponent(id),{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({trashed:true})});if(!r.ok&&r.status!==404)throw await fail(r,"Drive delete")}
-window.PosDrive={status:status,connected:connected,connect:connect,disconnect:disconnect,find:find,upload:upload,download:download,trash:trash,create:create,put:put,exportText:exportText,
+window.PosDrive={status:status,connected:connected,connect:connect,disconnect:disconnect,find:find,upload:upload,uploadSub:uploadSub,download:download,trash:trash,create:create,put:put,exportText:exportText,
   viewUrl:function(id){return "https://drive.google.com/file/d/"+encodeURIComponent(id)+"/view"},
   get result(){var r=result;result="";return r}};
 })();
