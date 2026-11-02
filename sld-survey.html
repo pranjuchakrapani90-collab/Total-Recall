@@ -186,6 +186,7 @@ table.boq{border-collapse:collapse;width:100%;min-width:720px;font-size:12.5px}
    <label><input type="checkbox" id="oSign"> Signature block</label>
    <label><input type="checkbox" id="oArrow" checked> Power-flow arrows</label>
    <label><input type="checkbox" id="oStay" checked> Stay symbols</label>
+   <label><input type="checkbox" id="oLegend" checked> Legend</label>
   </div>
   <div class="cols">
    <b>Colours</b>
@@ -818,7 +819,7 @@ function sldSVG(c,so){
   const cand=[];for(let i=0;i<g.length;i++){const a=g[i],b=g[(i+1)%g.length];cand.push([(a[0]+b[0])/2,(a[1]+b[1])/2])}
   cand.forEach(([mx,my])=>{const ml=Math.hypot(mx,my)||1,d=(mx*dx+my*dy)/(ml*l);if(d>bd+1e-6){bd=d;best=[mx,my]}});
   return[P[0]+best[0],P[1]+best[1]]};
- const out=[],TB=[],LS=[];
+ const out=[],TB=[],LS=[],U={};
  const tbox=(x,y,str,o={})=>{const fs=o.fs||7.5,w=String(str).length*fs*0.56,h=fs*1.05,a=o.a||"middle",x0=a==="start"?0:a==="end"?-w:-w/2,c=[[x0,-h*0.8],[x0+w,-h*0.8],[x0+w,h*0.25],[x0,h*0.25]],r=(o.rot||0)*D2R,cs=Math.cos(r),sn=Math.sin(r),P=c.map(([u,v])=>[x+u*cs-v*sn,y+u*sn+v*cs]);
   return{x1:Math.min(...P.map(q=>q[0])),y1:Math.min(...P.map(q=>q[1])),x2:Math.max(...P.map(q=>q[0])),y2:Math.max(...P.map(q=>q[1]))}};
  const t=(x,y,str,o={})=>{const key=o.k||(CTX?CTX+":"+(CN++):""),ov=key&&lay.txt&&lay.txt[key];if(ov){if(ov.hide&&!so.edit)return;if(ov.t!=null&&ov.t!=="")str=ov.t;x+=ov.dx||0;y+=ov.dy||0}
@@ -861,27 +862,27 @@ function sldSVG(c,so){
  c.segs.forEach(sg=>{ctx("s:"+sg.b.id);const[a1,a2]=T(sg.a),[b1,b2]=T(sg.b),L=sg.L,SC=sg.b.lcol||col(sg.L),{nx,ny,l:len}=nrm(a1,a2,b1,b2),rot=rotOf(a1,a2,b1,b2);segN[sg.b.id]={nx,ny};
   const ta=trimTo(sg.a,[a1,a2],sg.mid.length?T(sg.mid[0]):[b1,b2]),tb=trimTo(sg.b,[b1,b2],sg.mid.length?T(sg.mid[sg.mid.length-1]):[a1,a2]);
   {const ps=[ta,...sg.mid.map(T),tb];for(let i=0;i<ps.length-1;i++)LS.push([ps[i][0],ps[i][1],ps[i+1][0],ps[i+1][1]])}
-  const cE=sg.b.kind==="cont"?1:sg.a.kind==="cont"?-1:0,SW=L.cls==="HV"?2.2:1.6;
+  const cE=sg.b.kind==="cont"?1:sg.a.kind==="cont"?-1:0,SW=L.cls==="HV"?2.2:1.6;U[L.dis?"lDis":L.ex?"lEx":L.cls==="HV"?(sg.kv===33?"l33":"l11"):"lLT"]=1;
   if(cE){const k=cE>0?0.5:0.5,S=[ta[0]+(tb[0]-ta[0])*k,ta[1]+(tb[1]-ta[1])*k],near=cE>0?ta:tb,far=cE>0?tb:ta;
    out.push(`<line x1="${near[0].toFixed(1)}" y1="${near[1].toFixed(1)}" x2="${S[0].toFixed(1)}" y2="${S[1].toFixed(1)}" stroke="${SC}" stroke-width="${SW}" stroke-linecap="round"/><line x1="${S[0].toFixed(1)}" y1="${S[1].toFixed(1)}" x2="${far[0].toFixed(1)}" y2="${far[1].toFixed(1)}" stroke="${SC}" stroke-width="${SW}" stroke-dasharray="7 4"/>`)}
   else out.push(`<line x1="${ta[0].toFixed(1)}" y1="${ta[1].toFixed(1)}" x2="${tb[0].toFixed(1)}" y2="${tb[1].toFixed(1)}" stroke="${SC}" stroke-width="${SW}" ${L.dis?'stroke-dasharray="2 3"':L.cls==="LT"&&!L.ex?'stroke-dasharray="6 3"':""} stroke-linecap="round"/>`);if(so.edit)out.push(`<line x1="${ta[0].toFixed(1)}" y1="${ta[1].toFixed(1)}" x2="${tb[0].toFixed(1)}" y2="${tb[1].toFixed(1)}" stroke="transparent" stroke-width="12" class="lhit" data-s="${sg.b.id}"/>`);
   const mx=(a1+b1)/2,my=(a2+b2)/2;
   if(cE){if(len>40)t(mx-nx*14,my-ny*14+2.5,L.sh,{fs:6.6,fw:700,c:SC,rot})}else if(sg.runLab!=null){if(len>70)t(mx-nx*21,my-ny*21+2.5,L.sh+" · "+(sg.runLab/1000).toFixed(3)+" KM",{fs:7,fw:700,c:SC,rot});else if(len>30)t(mx-nx*21,my-ny*21+2.5,L.sh.replace(/^(11 KV|33 KV|LT) /,"")+" · "+(sg.runLab/1000).toFixed(3)+" KM",{fs:6,fw:700,c:SC,rot})}
-  if(so.arrow!==false&&!L.ex&&!L.dis&&len>24){const ux=(b1-a1)/len,uy=(b2-a2)/len,ptsOn=[sg.a,...sg.mid,sg.b].map(T);let bi=0,bl=0;for(let i=0;i<ptsOn.length-1;i++){const d=Math.hypot(ptsOn[i+1][0]-ptsOn[i][0],ptsOn[i+1][1]-ptsOn[i][1]);if(d>bl){bl=d;bi=i}}
+  if(so.arrow!==false&&!L.ex&&!L.dis&&len>24){U.arrow=1;const ux=(b1-a1)/len,uy=(b2-a2)/len,ptsOn=[sg.a,...sg.mid,sg.b].map(T);let bi=0,bl=0;for(let i=0;i<ptsOn.length-1;i++){const d=Math.hypot(ptsOn[i+1][0]-ptsOn[i][0],ptsOn[i+1][1]-ptsOn[i][1]);if(d>bl){bl=d;bi=i}}
    const k=Math.floor(ptsOn.length/2)-1>=0?Math.floor((ptsOn.length-1)/2):0,P1=ptsOn[k],P2=ptsOn[k+1]||ptsOn[k],cx=(P1[0]+P2[0])/2,cy=(P1[1]+P2[1])/2,r=4.5;
    out.push(`<path d="M${(cx+ux*r).toFixed(1)},${(cy+uy*r).toFixed(1)} L${(cx-ux*r-uy*r*.8).toFixed(1)},${(cy-uy*r+ux*r*.8).toFixed(1)} L${(cx-ux*r+uy*r*.8).toFixed(1)},${(cy-uy*r-ux*r*.8).toFixed(1)} Z" fill="${SC}"/>`)}
   if(so.span&&!L.ex&&!L.dis){const ptsOn=[sg.a,...sg.mid,sg.b];for(let i=0;i<ptsOn.length-1;i++){const[p1,p2]=T(ptsOn[i]),[q1,q2]=T(ptsOn[i+1]);if(Math.hypot(q1-p1,q2-p2)<24)continue;t((p1+q1)/2-nx*9,(p2+q2)/2-ny*9+2.3,Math.round(hav(ptsOn[i],ptsOn[i+1])*(+sg.b.len>0?sg.len/Math.max(hav(sg.a,sg.b),0.01):1))+" m",{fs:6,c:"#374151",rot})}}
-  sg.mid.forEach(m=>{const[x,y]=T(m);out.push(`<circle cx="${x}" cy="${y}" r="2.8" fill="${m.exist?"#111":"#fff"}" stroke="#111" stroke-width="1"/>`);if(m.earth)earthSym(x,y);if(m.stay){const A=xy(sg.a,c.o),B=xy(sg.b,c.o);stay(x,y,{x:-(B.y-A.y),y:B.x-A.x})}const sp=len/(sg.mid.length+1),step=Math.max(1,Math.ceil(20/Math.max(sp,1)));if(m.i%step===0)t(x+nx*9,y+ny*9+2.2,m.lab,{fs:6})});
+  sg.mid.forEach(m=>{const[x,y]=T(m);U[m.exist?"exP":"newP"]=1;out.push(`<circle cx="${x}" cy="${y}" r="2.8" fill="${m.exist?"#111":"#fff"}" stroke="#111" stroke-width="1"/>`);if(m.earth)earthSym(x,y);if(m.stay){const A=xy(sg.a,c.o),B=xy(sg.b,c.o);stay(x,y,{x:-(B.y-A.y),y:B.x-A.x})}const sp=len/(sg.mid.length+1),step=Math.max(1,Math.ceil(20/Math.max(sp,1)));if(m.i%step===0)t(x+nx*9,y+ny*9+2.2,m.lab,{fs:6})});
  });
- function earthSym(x,y){out.push(`<path d="M${x},${y+3} v4 M${x-3.5},${y+7} h7 M${x-2.3},${y+8.8} h4.6 M${x-1.1},${y+10.5} h2.2" stroke="#111" stroke-width="0.7" fill="none"/>`)}
- function stay(x,y,d){if(so.stay===false)return;const l=Math.hypot(d.x,d.y)||1,ux=d.x/l,uy=-d.y/l,ex=x+ux*15,ey=y+uy*15;LS.push([x,y,ex,ey]);out.push(`<line x1="${x}" y1="${y}" x2="${ex}" y2="${ey}" stroke="#6b7280" stroke-width="0.9"/><path d="M${ex},${ey} l${(-ux*4-uy*2.4).toFixed(1)},${(-uy*4+ux*2.4).toFixed(1)} M${ex},${ey} l${(-ux*4+uy*2.4).toFixed(1)},${(-uy*4-ux*2.4).toFixed(1)}" stroke="#6b7280" stroke-width="0.9" fill="none"/>`)}
+ function earthSym(x,y){U.earth=1;out.push(`<path d="M${x},${y+3} v4 M${x-3.5},${y+7} h7 M${x-2.3},${y+8.8} h4.6 M${x-1.1},${y+10.5} h2.2" stroke="#111" stroke-width="0.7" fill="none"/>`)}
+ function stay(x,y,d){if(so.stay===false)return;U.stay=1;const l=Math.hypot(d.x,d.y)||1,ux=d.x/l,uy=-d.y/l,ex=x+ux*15,ey=y+uy*15;LS.push([x,y,ex,ey]);out.push(`<line x1="${x}" y1="${y}" x2="${ex}" y2="${ey}" stroke="#6b7280" stroke-width="0.9"/><path d="M${ex},${ey} l${(-ux*4-uy*2.4).toFixed(1)},${(-uy*4+ux*2.4).toFixed(1)} M${ex},${ey} l${(-ux*4+uy*2.4).toFixed(1)},${(-uy*4-ux*2.4).toFixed(1)}" stroke="#6b7280" stroke-width="0.9" fill="none"/>`)}
  // nodes
  const SH=(X,Y,s)=>out.push(s.replace(/\$X/g,X.toFixed(1)).replace(/\$Y/g,Y.toFixed(1)));
- const dtrSym=(X,Y,l1,l2,fence)=>{out.push(`<rect x="${X-13}" y="${Y-9}" width="26" height="18" fill="#fff" stroke="#111" stroke-width="1"/><circle cx="${X-3.4}" cy="${Y}" r="5.5" fill="none" stroke="#111"/><circle cx="${X+3.4}" cy="${Y}" r="5.5" fill="none" stroke="#111"/>`);block(X,Y,"d",[{txt:l1,fs:7.5,fw:700},{txt:l2,fs:6.3}]);if(fence)out.push(`<rect x="${X-18}" y="${Y-12}" width="36" height="24" fill="none" stroke="#6b7280" stroke-width="0.6" stroke-dasharray="2 2"/>`)};
+ const dtrSym=(X,Y,l1,l2,fence)=>{U.dtr=1;out.push(`<rect x="${X-13}" y="${Y-9}" width="26" height="18" fill="#fff" stroke="#111" stroke-width="1"/><circle cx="${X-3.4}" cy="${Y}" r="5.5" fill="none" stroke="#111"/><circle cx="${X+3.4}" cy="${Y}" r="5.5" fill="none" stroke="#111"/>`);block(X,Y,"d",[{txt:l1,fs:7.5,fw:700},{txt:l2,fs:6.3}]);if(fence)out.push(`<rect x="${X-18}" y="${Y-12}" width="36" height="24" fill="none" stroke="#6b7280" stroke-width="0.6" stroke-dasharray="2 2"/>`)};
  const dpSym=(X,Y,lb,sub)=>{poleGrp(X,Y,["n","n"],false,nwSq);block(X,Y,2,[{txt:lb,fs:7,fw:700},{txt:sub,fs:6.3}])};
  let exSq=false,nwSq=false;const exNm=x=>{const v=opt(x,"exType");return v&&v!=="PSC"?({RCC:"RCC",Steel:"STEEL",Rail:"RAIL",RSJ:"RSJ"}[v]||v)+" ":""};
  // pole layouts: DP = two poles side by side, 3-pole = triangle, 4-pole = square, all with clear separation
- const poleGrp=(X,Y,st,sqE,sqN)=>{const n=st.length,P=GEO[n],r=2.8,f=v=>v.toFixed(1);
+ const poleGrp=(X,Y,st,sqE,sqN)=>{if(st.length>1)U["g"+st.length]=1;const n=st.length,P=GEO[n],r=2.8,f=v=>v.toFixed(1);
   if(n>1)out.push(`<path d="M${P.map(q=>f(X+q[0])+","+f(Y+q[1])).join(" L")}${n>2?" Z":""}" stroke="#111" stroke-width="0.8" fill="none"/>`);
   P.forEach((q,i)=>{const cx=X+q[0],cy=Y+q[1],e=st[i]==="e",sq=e?sqE:sqN;out.push(sq?`<rect x="${f(cx-r)}" y="${f(cy-r)}" width="${2*r}" height="${2*r}" fill="${e?"#111":"#fff"}" stroke="#111" stroke-width="1"/>`:`<circle cx="${f(cx)}" cy="${f(cy)}" r="${r}" fill="${e?"#111":"#fff"}" stroke="#111" stroke-width="1"/>`)})};
  let subEnd=0;
@@ -905,12 +906,13 @@ function sldSVG(c,so){
  const eqTxt=x=>[opt(x,"goab")&&"GOAB",opt(x,"dof")&&"DO",opt(x,"la")&&"LA"].filter(Boolean).join(" + ");
  const crossSym0=(X,Y,nn,label,rail)=>{const ux=nn.nx,uy=nn.ny;[-5,5].forEach(d=>{const sx=X-uy*d,sy=Y+ux*d;out.push(`<line x1="${(sx-ux*22).toFixed(1)}" y1="${(sy-uy*22).toFixed(1)}" x2="${(sx+ux*22).toFixed(1)}" y2="${(sy+uy*22).toFixed(1)}" stroke="#6b7280" stroke-width="${rail?1.4:0.9}" stroke-dasharray="${rail?"2 2":"6 2 1.5 2"}"/>`)});
   t(X+ux*30,Y+uy*30+2.5,label,{fs:6.5,fw:700,c:"#4b5563"})};
- c.pts.forEach(x=>{ctx("n:"+x.id);out.push(`<g data-p="${x.id}">`);const[X,Y]=T(x),nd=c.nodes[x.id]||{},lb=c.lab[x.id]||("P"+x.no),nn=segN[x.id]||{nx:0,ny:-1},plab=()=>t(X+nn.nx*10,Y+nn.ny*10+2.4,lb,{fs:6.8,fw:700}),open=(r=3.4)=>out.push(`<circle cx="${X}" cy="${Y}" r="${r}" fill="#fff" stroke="#111" stroke-width="1.2"/>`);
+ c.pts.forEach(x=>{ctx("n:"+x.id);out.push(`<g data-p="${x.id}">`);const[X,Y]=T(x),nd=c.nodes[x.id]||{},lb=c.lab[x.id]||("P"+x.no),nn=segN[x.id]||{nx:0,ny:-1},plab=()=>t(X+nn.nx*10,Y+nn.ny*10+2.4,lb,{fs:6.8,fw:700}),open=(r=3.4)=>(U.newP=1,out.push(`<circle cx="${X}" cy="${Y}" r="${r}" fill="#fff" stroke="#111" stroke-width="1.2"/>`));
   (nd.stayDirs||[]).slice(0,nd.stays||0).forEach(d=>stay(X,Y,d));
   subEnd=0;CUR=x;noteDone=false;{let sx=0,sy=0,m=0;(c.adj[x.id]||[]).forEach(a=>{const sg=a.sg,nb=sg.a===x?(sg.mid[0]||sg.b):(sg.mid[sg.mid.length-1]||sg.a),[qx,qy]=T(nb),l=Math.hypot(qx-X,qy-Y)||1;sx+=(qx-X)/l;sy+=(qy-Y)/l;m++});
    if(!m)FREE={x:0,y:1};else if(Math.hypot(sx,sy)>0.5)FREE={x:-sx,y:-sy};else{const a=(c.adj[x.id]||[])[0].sg,[p1,p2]=T(a.a),[q1,q2]=T(a.b),dx=q1-p1,dy=q2-p2;FREE=Math.abs(dx)>=Math.abs(dy)?{x:0,y:-1}:{x:1,y:0}}}
   exSq=/^(SP|Steel|Rail|RSJ)/.test(opt(x,"exType")||"");nwSq=/^SP/.test(opt(x,"poleLen")||"")||(exSq&&/^SP/.test(opt(x,"exType"))&&!opt(x,"poleLen"));
-  const kva=opt(x,"kva"),onEx=!!opt(x,"onEx"),filled=()=>out.push(`<circle cx="${X}" cy="${Y}" r="3.2" fill="#111"/>`);
+  const kva=opt(x,"kva"),onEx=!!opt(x,"onEx"),filled=()=>(U.exP=1,out.push(`<circle cx="${X}" cy="${Y}" r="3.2" fill="#111"/>`));
+  if(x.kind.startsWith("src"))U.src=1;if(x.kind==="exPole"||x.kind==="exFit")U.exP=1;if(x.kind==="steel"||(x.kind==="pole"&&/^SP/.test(opt(x,"poleLen")||"")))U.steel=1;if(x.kind==="rmPole")U.rm=1;
   switch(x.kind){
    case "src11":case "src33":case "srcLT":case "srcDTR":{const mp=x.kind!=="srcDTR"&&["DP","TP","4P"].includes(opt(x,"srcStr"));out.push((mp?"":`<circle cx="${X}" cy="${Y}" r="3.2" fill="#111"/>`)+`<circle cx="${X}" cy="${Y}" r="${mp?14:9}" fill="none" stroke="#C92A2A" stroke-width="1.2" stroke-dasharray="3 2"/>`);
     const ss=opt(x,"srcStr"),sw=exNm(x)+({SP:"POLE",DP:"DP",TP:"3-POLE STRUCTURE","4P":"4-POLE STRUCTURE",ST:"STEEL / RAIL POLE"}[ss]||"POLE");
@@ -974,10 +976,33 @@ function sldSVG(c,so){
  });ctx("");(lay.notes||[]).forEach(n=>t(n.x,n.y,n.t,{k:"a:"+n.id,fs:n.fs||7.5,fw:n.b?700:400,a:"start"}));ctx("foot");
  if(so.north){out.push(`<g transform="translate(790 ${top+10})"><path d="M0,-14 L6,8 L0,3 L-6,8 Z" fill="#111"/><text x="0" y="-18" font-size="10" font-weight="700" text-anchor="middle" font-family="Arial">N</text></g>`)}
  // existing-vs-new key is part of the drawing language; tiny scale note
- t(lft,H-24,"Schematic, drawn from GPS survey. Not to scale. All lengths in metres unless shown in KM.",{fs:6.2,a:"start",c:"#6b7280"});
+ if(so.legend!==false)legend();
  if(so.sign){t(W-40,H-58,"Sub-Divisional Engineer",{fs:8,fw:700,a:"end"});t(W-40,H-47,"Samaguri Electrical Sub-Division",{fs:7.5,a:"end"});t(W-40,H-37,"APDCL, CAR, Samaguri",{fs:7.5,a:"end"});
   t(40,H-58,"Junior Manager (FME)",{fs:8,fw:700,a:"start"});t(40,H-47,"Samaguri Electrical Sub-Division",{fs:7.5,a:"start"})}
  return`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">${out.join("")}</svg>`;
+ // legend: only the symbols this drawing uses, in plain words; placed in the emptiest corner
+ function legend(){const f=v=>v.toFixed(1),ln=(c,w,d)=>(x,y)=>`<line x1="${f(x)}" y1="${f(y)}" x2="${f(x+18)}" y2="${f(y)}" stroke="${c}" stroke-width="${w}" ${d?`stroke-dasharray="${d}"`:""}/>`;
+  const I=[
+   ["src",(x,y)=>`<circle cx="${f(x+9)}" cy="${f(y)}" r="2" fill="#111"/><circle cx="${f(x+9)}" cy="${f(y)}" r="4.8" fill="none" stroke="#C92A2A" stroke-width="1" stroke-dasharray="2 1.5"/>`,"Supply taken from here"],
+   ["newP",(x,y)=>`<circle cx="${f(x+9)}" cy="${f(y)}" r="2.8" fill="#fff" stroke="#111" stroke-width="1"/>`,"New pole"],
+   ["exP",(x,y)=>`<circle cx="${f(x+9)}" cy="${f(y)}" r="2.8" fill="#111"/>`,"Existing pole"],
+   ["steel",(x,y)=>`<rect x="${f(x+6)}" y="${f(y-3)}" width="6" height="6" fill="#fff" stroke="#111" stroke-width="1"/>`,"New steel pole"],
+   ["g2",(x,y)=>`<path d="M${f(x+4)},${f(y)} H${f(x+14)}" stroke="#111" stroke-width="0.8"/><circle cx="${f(x+4)}" cy="${f(y)}" r="2.4" fill="#fff" stroke="#111"/><circle cx="${f(x+14)}" cy="${f(y)}" r="2.4" fill="#fff" stroke="#111"/>`,"Double pole (DP)"],
+   ["g3",(x,y)=>`<path d="M${f(x+9)},${f(y-3.5)} L${f(x+13)},${f(y+3)} L${f(x+5)},${f(y+3)} Z" stroke="#111" stroke-width="0.8" fill="none"/>`,"3-pole structure"],
+   ["g4",(x,y)=>`<rect x="${f(x+5.5)}" y="${f(y-3.5)}" width="7" height="7" stroke="#111" stroke-width="0.8" fill="none"/>`,"4-pole structure"],
+   ["dtr",(x,y)=>`<rect x="${f(x+2)}" y="${f(y-4.5)}" width="14" height="9" fill="#fff" stroke="#111" stroke-width="0.8"/><circle cx="${f(x+7.3)}" cy="${f(y)}" r="2.8" fill="none" stroke="#111" stroke-width="0.7"/><circle cx="${f(x+10.7)}" cy="${f(y)}" r="2.8" fill="none" stroke="#111" stroke-width="0.7"/>`,"Transformer (DTR)"],
+   ["l33",ln(PAL.hv,2.2),"New 33 kV line"],["l11",ln(PAL.hv,2.2),"New 11 kV line"],["lLT",ln(PAL.lt,1.6,"6 3"),"New LT line"],["lEx",ln(PAL.ex,1.6),"Existing line"],["lDis",ln(PAL.dis,1.6,"2 3"),"Line to be removed"],
+   ["arrow",(x,y)=>`<path d="M${f(x+14)},${f(y)} L${f(x+6)},${f(y-3.5)} L${f(x+6)},${f(y+3.5)} Z" fill="#111"/>`,"Direction of power"],
+   ["stay",(x,y)=>`<line x1="${f(x+3)}" y1="${f(y)}" x2="${f(x+16)}" y2="${f(y)}" stroke="#6b7280" stroke-width="0.9"/><path d="M${f(x+16)},${f(y)} l-4,-2.4 M${f(x+16)},${f(y)} l-4,2.4" stroke="#6b7280" stroke-width="0.9" fill="none"/>`,"Stay wire"],
+   ["earth",(x,y)=>`<path d="M${f(x+9)},${f(y-4)} v4 M${f(x+5.5)},${f(y)} h7 M${f(x+6.7)},${f(y+1.8)} h4.6 M${f(x+7.9)},${f(y+3.5)} h2.2" stroke="#111" stroke-width="0.7" fill="none"/>`,"Earthing"],
+   ["rm",(x,y)=>`<path d="M${f(x+5)},${f(y-4)} L${f(x+13)},${f(y+4)} M${f(x+13)},${f(y-4)} L${f(x+5)},${f(y+4)}" stroke="#C92A2A" stroke-width="1.2"/>`,"To be removed"]
+  ].filter(i=>U[i[0]]);if(!I.length)return;
+  const rh=11,pad=6,w=pad*2+22+Math.max(...I.map(i=>i[2].length))*6.6*0.56,h=pad*2+12+I.length*rh,yMin=top-12,yMax=so.sign?470:572;
+  const cand=[[812-w,yMax-h],[30,yMax-h],[812-w,yMin],[30,yMin]];let best=null;
+  cand.forEach(([x0,y0],k)=>{const b={x1:x0,y1:y0,x2:x0+w,y2:y0+h};let sc=k*0.1;LS.forEach(L=>{if(segHit(b,L))sc+=10});TB.forEach(q=>{if(boxHit(b,q))sc+=4});if(!best||sc<best.sc)best={x0,y0,sc}});
+  const{x0,y0}=best;out.push(`<rect x="${f(x0)}" y="${f(y0)}" width="${f(w)}" height="${f(h)}" fill="#fff" stroke="#111" stroke-width="0.7"/>`);
+  out.push(`<text x="${f(x0+pad)}" y="${f(y0+pad+6)}" font-size="7" font-weight="700" fill="#111" font-family="Arial">LEGEND</text>`);
+  I.forEach((it,i)=>{const y=y0+pad+12+i*rh+rh/2;out.push(it[1](x0+pad,y));out.push(`<text x="${f(x0+pad+24)}" y="${f(y+2.3)}" font-size="6.6" fill="#111" font-family="Arial">${it[2]}</text>`)})}
 }
 function wrap(s,n,mx=3){const w=s.split(" "),l=[];let cur="";w.forEach(x=>{if((cur+" "+x).trim().length>n){l.push(cur.trim());cur=x}else cur+=" "+x});if(cur.trim())l.push(cur.trim());return l.slice(0,mx)}
 
@@ -1171,7 +1196,7 @@ function renderSurvey(c,fit){const p=P();qRender();$("#status").textContent=stat
    <button class="btn alt sm" type="button">Edit</button></div>`}).join("")||'<div class="card muted">No points yet.</div>';
  $("#plist").querySelectorAll(".pt").forEach(el=>{el.onclick=()=>{const x=p.pts.find(q=>q.id===el.dataset.id);selId=x.id;if(map)map.panTo([x.lat,x.lng]);openPoint(x)}});
  drawMap(c,fit)}
-function renderSLD(c){const p=P(),o=p.opt;$("#oArrow").checked=o.arrow!==false;$("#oStay").checked=o.stay!==false;{const C={...DEFCOL,...(o.col||{})};$("#cHv").value=C.hv;$("#cLt").value=C.lt;$("#cEx").value=C.ex;$("#cDis").value=C.dis}["North","Gps","Span","Sign"].forEach(k=>$("#o"+k).checked=!!o[k.toLowerCase()]);$("#sldTitle").value=p.meta.title||"";$("#sldTitle").placeholder="Auto: SINGLE LINE DIAGRAM FOR "+workOf(c).toUpperCase()+"…";
+function renderSLD(c){const p=P(),o=p.opt;$("#oArrow").checked=o.arrow!==false;$("#oStay").checked=o.stay!==false;$("#oLegend").checked=o.legend!==false;{const C={...DEFCOL,...(o.col||{})};$("#cHv").value=C.hv;$("#cLt").value=C.lt;$("#cEx").value=C.ex;$("#cDis").value=C.dis}["North","Gps","Span","Sign"].forEach(k=>$("#o"+k).checked=!!o[k.toLowerCase()]);$("#sldTitle").value=p.meta.title||"";$("#sldTitle").placeholder="Auto: SINGLE LINE DIAGRAM FOR "+workOf(c).toUpperCase()+"…";
  if(EDIT&&!c.pts.length&&!(p.lay&&p.lay.f)){p.lay=p.lay||{};p.lay.f={ox:150,oy:300,s:0.6,mnx:0,mxy:0,olat:26.4,olng:92.9}}
  $("#sldBox").innerHTML=c.pts.length||EDIT?sldSVG(c,{...o,edit:EDIT}):'<p class="muted" style="padding:16px">Mark points on the Survey tab, or tap ✎ Edit drawing to draw the SLD directly.</p>';
  $("#sldBox").classList.toggle("editing",EDIT);$("#sldBox").classList.toggle("adding",EDIT&&EDMODE==="add");edUI()}
@@ -1397,7 +1422,7 @@ $("#newProj").onclick=()=>{const n=prompt("Name of the survey (e.g. Baghbar Ali 
 $("#sldTitle").addEventListener("change",e=>{const p=P();p.meta.title=e.target.value.trim();touch(p);renderAll()});
 $("#survName").addEventListener("change",e=>renameSurvey(P(),e.target.value));
 $("#renProj").onclick=()=>{const p=P(),n=prompt("Survey name",p.name);if(n===null||!n.trim())return;renameSurvey(p,n)};
-["Arrow","Stay"].forEach(k=>$("#o"+k).addEventListener("change",e=>{const p=P();p.opt[k.toLowerCase()]=e.target.checked;touch(p);renderAll()}));
+["Arrow","Stay","Legend"].forEach(k=>$("#o"+k).addEventListener("change",e=>{const p=P();p.opt[k.toLowerCase()]=e.target.checked;touch(p);renderAll()}));
 [["cHv","hv"],["cLt","lt"],["cEx","ex"],["cDis","dis"]].forEach(([id,k])=>$("#"+id).addEventListener("change",e=>{const p=P();p.opt.col={...(p.opt.col||{}),[k]:e.target.value};touch(p);renderAll()}));
 $("#cBw").onclick=()=>{const p=P();p.opt.col={...BWCOL};touch(p);renderAll()};$("#cDef").onclick=()=>{const p=P();delete p.opt.col;p.pts.forEach(x=>delete x.lcol);touch(p);renderAll()};
 ["North","Gps","Span","Sign"].forEach(k=>$("#o"+k).addEventListener("change",e=>{const p=P();p.opt[k.toLowerCase()]=e.target.checked;touch(p);renderAll()}));
