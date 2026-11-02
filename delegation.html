@@ -554,9 +554,11 @@ function taskSheet(id){const a=D.assign[id];if(!a)return;const p=D.people[a.p]||
     ${others.length?`<span class="lbl">Move to</span><div class="people">${others.map(x=>`<button type="button" class="pchip" data-mv="${esc(x.id)}" style="--g:${(GROUPS[x.g]||GROUPS.other).c}"><i></i>${esc(x.name)}</button>`).join("")}</div>`:""}
     <div class="row2" style="margin-top:18px"><button class="btn danger" id="sBack" type="button">Remove from card</button><span style="flex:1"></span><button class="btn ghost" id="sClose" type="button">Close</button></div>`,s=>{
       const sk=s.querySelector("#sk");
-      s.querySelector("#sSave").onclick=()=>{a.k=sk.value.trim()||shortKw(a.t);save();closeSheet();render()};
-      s.querySelectorAll("[data-mv]").forEach(b=>b.onclick=()=>{a.p=b.dataset.mv;a.k=sk.value.trim()||a.k;D.people[a.p].u=Date.now();lastNew=id;save();closeSheet();render();toast("Moved to "+D.people[a.p].name)});
-      s.querySelector("#sBack").onclick=()=>{delete D.assign[id];save();closeSheet();render();toast("Removed from the card")};
+      /* after any change here, go straight back to the member card the task was opened from (2 Nov 2026) */
+      const home=()=>{closeSheet();if(TF){$("tflash").hidden=true;TF=null;}render();document.body.style.overflow=$("mflash").hidden?"":"hidden";};
+      s.querySelector("#sSave").onclick=()=>{a.k=sk.value.trim()||shortKw(a.t);save();home();toast("Saved")};
+      s.querySelectorAll("[data-mv]").forEach(b=>b.onclick=()=>{a.p=b.dataset.mv;a.k=sk.value.trim()||a.k;lastNew=id;save();home();toast("Moved to "+D.people[a.p].name)});
+      s.querySelector("#sBack").onclick=()=>{delete D.assign[id];save();home();toast("Removed from the card")};
       s.querySelector("#sClose").onclick=closeSheet;});}
 function personSheet(pid){const p=pid?D.people[pid]:null,n=pid?tasksOf(pid).length:0;
   openSheet(`<h3>${p?"Edit person":"New person"}</h3>
