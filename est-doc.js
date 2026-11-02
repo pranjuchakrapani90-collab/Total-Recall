@@ -417,11 +417,11 @@ function setK(o,path,v){const ks=path.split("."),last=ks.pop(),t=ks.reduce((x,k)
 window.renderFw=function(c){const p=P();$("#fwBox").innerHTML=partyNote(p,c)+fwHTML(p,c,true)};
 /* up to Rs 1 lakh the SDE approves the deposit-work estimate himself and sends it straight to the party (copy to AGM):
    offer the Party Letter, pre-filled. Above Rs 1 lakh this AGM letter stays the one to use. (2 Nov 2026) */
-function partyNote(p,c){const k=calc(p,ensure(p,c));if(!(k.P>0)||k.P>100000)return"";const a=app(p),q=new URLSearchParams();
+function partyNote(p,c){const k=calc(p,ensure(p,c));if(!(k.P>0)||k.L>100000)return""; // the ₹1 lakh limit is on the total estimate (L), not the net after deductionsconst a=app(p),q=new URLSearchParams();
  const tt=(p.meta.estTitle||"").replace(/^\s*provisional estimate for\s*/i,"").replace(/\.\s*$/,"")||lc(workOf(c))+" at "+locOf();
  q.set("party",a.name||"");q.set("work",tt);q.set("amt",String(k.P));if(k.M>0){q.set("tot",String(Math.round(k.L*100)/100));q.set("less",String(Math.round(k.M*100)/100))}
  if(a.ref)q.set("ref",a.ref);if(a.date)q.set("refDate",a.date);
- return`<div class="noprint" style="max-width:210mm;margin:0 auto 12px;background:#fef3e2;border:1px solid #fcd34d;border-radius:12px;padding:10px 12px;font:14px system-ui;color:#78350f">Net <b>${rin(k.P)}</b> is within your ₹1 lakh power — you approve it yourself and send it straight to the party, with a copy to the AGM. <a href="fwd-consumer.html?${q}" style="color:#92400e;font-weight:700">✉ Make the Party Letter →</a></div>`}
+ return`<div class="noprint" style="max-width:210mm;margin:0 auto 12px;background:#fef3e2;border:1px solid #fcd34d;border-radius:12px;padding:10px 12px;font:14px system-ui;color:#78350f">Total estimate <b>${rin(k.L)}</b> is within your ₹1 lakh power — you approve it yourself and send it straight to the party, with a copy to the AGM. <a href="fwd-consumer.html?${q}" style="color:#92400e;font-weight:700">✉ Make the Party Letter →</a></div>`}
 $("#fwBox").addEventListener("input",e=>{const el=e.target.closest("[data-k]");if(!el)return;const p=P();setK(fwOf(p,compute(p)),el.dataset.k,el.innerText.replace(/ /g," ").replace(/\n$/,""));p.upd=Date.now();save()});
 $("#fwBox").addEventListener("focusout",e=>{if(e.target.closest("[data-k]"))touch(P())});
 $("#fwBox").addEventListener("click",e=>{const b=e.target.closest("button[data-fw]");if(!b)return;const p=P(),f=fwOf(p,compute(p)),i=+b.dataset.i,a=b.dataset.fw;

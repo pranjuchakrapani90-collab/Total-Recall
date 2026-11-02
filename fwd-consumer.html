@@ -62,7 +62,7 @@ details.more{margin-top:10px}details.more summary{cursor:pointer;font-weight:650
 </style></head>
 <body>
 <header class="top noprint"><div class="tin"><a class="backlink" href="apdcl-studio.html">‹ Estimate Studio</a>
-<h1>Party Letter</h1><p class="sub">Approved estimate up to ₹1 lakh → straight to the party, copy to the AGM. Above ₹1 lakh, use Line Survey's forwarding letter to the AGM.</p></div></header>
+<h1>Party Letter</h1><p class="sub">Approved estimate with total up to ₹1 lakh → straight to the party, copy to the AGM. Above ₹1 lakh, use Line Survey's forwarding letter to the AGM.</p></div></header>
 <main>
 <section class="card noprint">
  <h2>Fill in</h2>
@@ -154,7 +154,7 @@ function model(c){const net=num(c.amt),tot=num(c.tot),less=num(c.less);
  const terms=(c.terms||"").split("\n").map(s=>s.trim()).filter(Boolean).map(s=>due?s.replace(/on or before the due date/i,"on or before "+due):s);
  const fyr=fy(c.dt||null);
  const no=(c.no||"").trim()||"No. SDE/SESD/APDCL/CAR/T-7/"+fyr.slice(0,4)+"/          ";
- return{to,sub:"Submission of approved provisional estimate for "+w+" under Deposit Work.",refT,body,rows,P,inW:"(Rupees "+words(P)+" only)",
+ return{L,to,sub:"Submission of approved provisional estimate for "+w+" under Deposit Work.",refT,body,rows,P,inW:"(Rupees "+words(P)+" only)",
   ask:"You are requested to deposit the above amount subject to the following terms and conditions:",terms,encl:"Enclosed: "+(c.encl||DEF_ENCL),
   no:/^no\.?\s/i.test(no)?no:"No. "+no,dated:"Dated : "+(c.dt?dmy(c.dt):"          "),memo:"Memo No. "+no.replace(/^no\.?\s*/i,"")+"   (A)",
   copy:["The Asst. General Manager, Nagaon Electrical Division-II, Nagaon, APDCL::CAR for favour of kind information.","Office Copy."],noWork:!work,noParty:!(c.party||"").trim(),noAmt:!P}}
@@ -182,7 +182,7 @@ function letterHTML(m){const ph=(t,bad)=>bad?`<span class="ph">${esc(t)}</span>`
 function render(){const c=cur(),m=model(c);
  $("#letter").innerHTML=letterHTML(m);
  $("#amtW").textContent=m.P?"Rupees "+words(m.P)+" only":"";
- $("#limit").innerHTML=m.P>LIMIT?`<div class="warn"><b>₹${rin(m.P)} is above ₹1 lakh.</b> This estimate needs approval of the AGM (₹1–3 lakh) or CEO (₹3–10 lakh), so it should not go straight to the party. Use the forwarding letter to the AGM in <a href="sld-survey.html">Line Survey</a>.</div>`:"";
+ $("#limit").innerHTML=m.L>LIMIT?`<div class="warn"><b>Total estimate ₹${rin(m.L)} is above ₹1 lakh</b>${m.L!==m.P?` (even though the net to deposit is ₹${rin(m.P)})`:""}. The limit is on the total estimate, so it needs approval of the AGM (₹1–3 lakh) or CEO (₹3–10 lakh) and should not go straight to the party. Use the forwarding letter to the AGM in <a href="sld-survey.html">Line Survey</a>.</div>`:"";
  const it=Object.values(D.items).filter(x=>!x.del&&(x.party||x.work||x.amt)).sort((a,b)=>(b.upd||0)-(a.upd||0));
  $("#none").hidden=it.length>0;
  $("#list").innerHTML=it.map(x=>`<div class="li${x.id===D.cur?" on":""}" data-id="${x.id}"><div class="t"><b>${esc(x.party||"(no party)")}</b><span>${esc(x.work||"")}</span></div><span class="a">₹${rin(num(x.amt))}</span><button type="button" data-del="${x.id}" title="Delete">✕</button></div>`).join("")}
@@ -196,7 +196,7 @@ $("#list").addEventListener("click",e=>{const del=e.target.closest("[data-del]")
 window.addEventListener("kvsync",e=>{const d=(e&&e.detail)||[];if(d.indexOf(KEY)>=0){const k=D.cur;D=load();if(k&&D.items[k])D.cur=k;fill();render()}});
 function check(){const m=model(cur());const miss=[m.noParty&&"party",m.noWork&&"work",m.noAmt&&"amount"].filter(Boolean);
  if(miss.length&&!confirm("Still blank: "+miss.join(", ")+". Make the letter anyway?"))return false;
- if(m.P>LIMIT&&!confirm("₹"+rin(m.P)+" is above your ₹1 lakh power — the estimate should go to the AGM. Make this letter anyway?"))return false;return true}
+ if(m.L>LIMIT&&!confirm("Total estimate ₹"+rin(m.L)+" is above your ₹1 lakh power — the estimate should go to the AGM. Make this letter anyway?"))return false;return true}
 const fname=()=>{const c=cur();return"Approved_Estimate_"+((c.party||"Party").replace(/[^\w]+/g,"_").slice(0,40))+".docx"};
 $("#print").onclick=()=>{if(check())window.print()};
 
