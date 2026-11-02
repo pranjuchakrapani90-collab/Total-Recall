@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="drive.js?v=20261027"></script><script src="vault.js?v=20261101c"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
+<html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="drive.js?v=20261027"></script><script src="vault.js?v=20261102a"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
 <title>Vault · Pranju OS</title>
 <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="stylesheet" href="tr-theme.css?v=20261020">
@@ -55,7 +55,7 @@ function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return
 function mark(s,w){s=esc(s);w.forEach(function(x){if(x.length<2)return;s=s.replace(new RegExp("("+x.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+")","ig"),"<mark>$1</mark>")});return s}
 function when(iso){if(!iso)return "";var d=new Date(iso);return isNaN(d)?String(iso):d.toLocaleString("en-IN",{day:"numeric",month:"short",hour:"numeric",minute:"2-digit"})}
 function status(){if(!data){$("st").textContent="Not downloaded yet";return}
-  var m=data.meta;$("st").textContent=m.count.toLocaleString("en-IN")+" documents"+(m.batch!==""?" · batch "+m.batch:"")+" · Gemini wrote it "+when(m.modified)}
+  var m=data.meta;$("st").textContent=m.count.toLocaleString("en-IN")+" documents"+(m.batch!==""?" · batch "+m.batch:"")+" · Gemini wrote it "+when(m.modified)+(PosVault.checkedAt()?" · Drive checked "+when(new Date(PosVault.checkedAt()).toISOString()):"")}
 function chips(){if(!data){$("chips").innerHTML="";return}var d=data.meta.domains,ks=Object.keys(d).sort(function(a,b){return d[b]-d[a]});
   $("chips").innerHTML='<button type="button" data-d="" class="'+(dom?"":"on")+'">All<b>'+data.meta.count+'</b></button>'+ks.map(function(k){
     return '<button type="button" data-d="'+esc(k)+'" class="'+(dom===k?"on":"")+'">'+esc(PosVault.domainLabel(k))+'<b>'+d[k]+'</b></button>'}).join("")}
@@ -71,7 +71,7 @@ function render(){if(!data){$("list").innerHTML="";return}
     (rows.length>n?'<button class="btn" type="button" id="more">Show more ('+(rows.length-n)+' left)</button>':'')}
 function err(e){var m=String(e&&e.message||e),c=e&&e.code;
   $("note").innerHTML='<div class="msg err">'+esc(m)+(c==="need_full"||c==="not_connected"?' <a href="index.html#travel">Open Travel Trace</a>':'')+'</div>'}
-async function go(force){$("refresh").disabled=true;$("note").innerHTML=force||!data?'<div class="msg">Checking Drive for the newest vault… (it is about 2 MB the first time)</div>':"";
+async function go(force){$("refresh").disabled=true;$("note").innerHTML=!data?'<div class="msg">Checking Drive for the newest vault… (it is about 2 MB the first time)</div>':'<div class="msg">Checking Drive for a newer vault…</div>';
   try{data=await PosVault.ensure(force);$("note").innerHTML=""}catch(e){err(e)}
   $("refresh").disabled=false;status();chips();render()}
 $("q").addEventListener("input",function(){more=0;render()});
@@ -93,7 +93,8 @@ async function cov(){var c=$("cov");c.innerHTML='<span class="muted">Counting ev
   catch(e){c.innerHTML='<div class="msg err">'+esc(e.message)+'</div>'}}
 $("cov").addEventListener("click",function(e){if(e.target.id==="covGo")cov()});
 $("refresh").addEventListener("click",function(){go(true)});
-PosVault.load().then(function(d){data=d;status();chips();render();go(false)});
+/* 2 Nov 2026: always ask Drive on open (only file details; the 2 MB file downloads only when Gemini wrote a new one) */
+PosVault.load().then(function(d){data=d;status();chips();render();go(true)});
 })();
 </script>
 </body></html>

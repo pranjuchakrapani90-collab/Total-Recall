@@ -2,7 +2,7 @@
    Gemini writes a new master_document_vault.json into Drive on every run. The Worker (?mode=backup&op=vault) says
    which copy is newest; this file downloads it straight from Drive (PosDrive), turns every record that carries a Drive
    file_id into a small searchable entry and keeps them on the phone (IndexedDB "pos-vault"), refreshed when Gemini
-   has written a newer copy (checked at most every 6 hours, or on demand).
+   has written a newer copy (2 Nov 2026: the Vault page checks every time it opens; background checks at most every 10 minutes).
    Needs drive.js and pos-guard.js loaded first.
    window.PosVault:
      load()            -> {meta, entries} from the phone (no network); null before the first download
@@ -56,11 +56,12 @@ function parse(json){
   var doms={};entries.forEach(function(e){doms[e.d]=(doms[e.d]||0)+1});meta.domains=doms;
   return {meta:meta,entries:entries}}
 
+function checkedAt(){var n=0;try{n=Number(localStorage.getItem(CK)||0)}catch(e){}return n||0}
 async function load(){if(mem)return mem;try{mem=await get("data")||null}catch(e){mem=null}return mem}
 async function ensure(force){
   var cur=await load();
   var last=0;try{last=Number(localStorage.getItem(CK)||0)}catch(e){}
-  if(!force&&cur&&cur.meta&&cur.meta.v===2&&Date.now()-last<6*3600000)return cur;
+  if(!force&&cur&&cur.meta&&cur.meta.v===2&&Date.now()-last<10*60000)return cur;
   var info=await worker("vault");
   try{localStorage.setItem(CK,String(Date.now()))}catch(e){}
   var f=info.vault;if(!f)throw new Error("No master_document_vault.json was found in your Drive.");
@@ -111,5 +112,5 @@ function search(q,max){
     res.push(Object.assign({score:score},e))});
   res.sort(function(a,b){return b.score-a.score||a.t.localeCompare(b.t)});
   return res.slice(0,max||50)}
-window.PosVault={coverage:coverage,load:load,ensure:ensure,search:search,domainLabel:label};
+window.PosVault={coverage:coverage,checkedAt:checkedAt,load:load,ensure:ensure,search:search,domainLabel:label};
 })();

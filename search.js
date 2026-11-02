@@ -79,7 +79,7 @@ function init(){
     ".srNone,.srNote{color:var(--tr-muted,#777);font-size:13px;margin:6px 2px}";
   document.head.appendChild(css);
   if(window.PosVault)PosVault.load().then(function(d){window.__posVaultMeta=d&&d.meta||null;
-    /* refresh the vault quietly in the background (at most every 6 hours) */
+    /* refresh the vault quietly in the background (at most every 10 minutes) */
     if(window.PosDrive&&PosDrive.connected())PosVault.ensure(false).then(function(d2){window.__posVaultMeta=d2&&d2.meta||null}).catch(function(){})});
 }
 /* a Travel memory result opens Travel Trace on that memory's day */
