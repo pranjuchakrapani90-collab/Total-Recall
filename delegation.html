@@ -300,7 +300,11 @@ function openCount(pid){return tasksOf(pid).filter(a=>!isDone(a.id,a)&&!isAhead(
 const defCap=n=>n>10?Math.ceil((n-2)/2.6):99;
 function layout(items,cap){/* top one, then right, left, bottom, then the sides take turns; overflow goes to the top and bottom rows */
   const L={t:[],r:[],l:[],b:[]},order=["t","r","l","b"];if(cap==null)cap=defCap(items.length);
-  items.forEach((x,i)=>{let s=i<4?order[i]:(i%2?"l":"r");if((s==="l"||s==="r")&&L[s].length>=cap)s=L.t.length<=L.b.length?"t":"b";L[s].push(x);});return L;}
+  items.forEach((x,i)=>{let s=i<4?order[i]:(i%2?"l":"r");if((s==="l"||s==="r")&&L[s].length>=cap)s=L.t.length<=L.b.length?"t":"b";L[s].push(x);});
+  /* same shape, but filled in reading order (2 Nov 2026): top rows left→right, then each side row left then right, then the bottom rows */
+  const q=items.slice(),R={t:q.splice(0,L.t.length),l:[],r:[],b:[]},nl=L.l.length,nr=L.r.length;
+  for(let k=0;k<Math.max(nl,nr);k++){if(k<nl)R.l.push(q.shift());if(k<nr)R.r.push(q.shift());}
+  R.b=q;return R;}
 const CHIPC={cont:" dn",fin:" dn fn",push:" ps",later:" lt",open:""};
 function chip(a){const x0=stOf(a.id,a),ah=aheadOf(a.id,a),x=ah?"later":x0,ms=missedOf(a.id,a);return `<button type="button" class="chip${CHIPC[x]}${ms?" ms":""}${ARR===a.p?" ar":""}${SEL.has(a.id)?" sl":""}${a.id===lastNew?" new":""}" data-t="${esc(a.id)}" title="${esc(a.t)}">${ARR===a.p&&a._n?`<i class="ordN">${a._n}</i>`:""}${esc(a.k||shortKw(a.t))}${x==="later"?`<small>${esc(fmtDay(ah||a.until))}</small>`:""}${ms?`<small>left ${missedDays(ms)>1?missedDays(ms)+" days":"yesterday"}</small>`:""}</button>`;}
 function cardHtml(p,cap){const g=GROUPS[p.g]||GROUPS.other,all=tasksOf(p.id),dn=all.filter(a=>isDone(a.id,a)).length,
