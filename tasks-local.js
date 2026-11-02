@@ -24,7 +24,8 @@ var RESP=["SDE-TECH","SDE-REV","SDE-ESTT","HOME-MANAGER","BROTHER","SON"];
 var DAILY="RRULE:FREQ=DAILY;INTERVAL=1";
 
 /* ---------- dates (India time) ---------- */
-function today(){return new Intl.DateTimeFormat("en-CA",{timeZone:TZ,year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date())}
+var FMT=new Intl.DateTimeFormat("en-CA",{timeZone:TZ,year:"numeric",month:"2-digit",day:"2-digit"}),tdC="",tdAt=0;
+function today(){var n=Date.now();if(n-tdAt>20000){tdC=FMT.format(new Date(n));tdAt=n}return tdC}
 function addDays(iso,n){var d=new Date(iso+"T12:00:00Z");d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)}
 function dow(iso){return new Date(iso+"T12:00:00Z").getUTCDay()}
 function daysIn(y,m){return new Date(Date.UTC(y,m+1,0)).getUTCDate()}
@@ -62,11 +63,14 @@ var ls;try{ls=window.localStorage}catch(e){ls=null}
 function raw(){var d={};try{d=JSON.parse(ls.getItem(KEY)||"{}")||{}}catch(e){}d.t=d.t||{};d.meta=d.meta||{};return d;}
 function dec(s){try{var t=typeof s==="string"?JSON.parse(s):s;return t&&t.ti!=null?t:null}catch(e){return null}}
 function enc(t){return JSON.stringify(t)}
-var cache=null,cacheRaw=null;
-function all(){var s=ls?ls.getItem(KEY):null;if(cache&&s===cacheRaw)return cache;var d=raw(),out={};
-  Object.keys(d.t).forEach(function(id){var t=dec(d.t[id]);if(t){t.id=id;out[id]=t}});cache=out;cacheRaw=s;return out;}
-function on(){return !!raw().meta.on}
-function meta(){return raw().meta}
+/* parsed tasks are cached: reading the 1–2 MB store on every call made screens slow (2 Nov 2026). The cache is dropped on
+   every write here, when the other phone's changes arrive (kvsync) or another tab writes (storage), and re-checked every 3 s. */
+var cache=null,cacheRaw=null,cacheAt=0,cacheMeta={};
+function all(){var now=Date.now();if(cache&&now-cacheAt<3000)return cache;var s=ls?ls.getItem(KEY):null;if(cache&&s===cacheRaw){cacheAt=now;return cache}var d=raw(),out={};
+  Object.keys(d.t).forEach(function(id){var t=dec(d.t[id]);if(t){t.id=id;out[id]=t}});cache=out;cacheRaw=s;cacheAt=now;cacheMeta=d.meta;return out;}
+try{window.addEventListener("kvsync",function(){cache=null});window.addEventListener("storage",function(e){if(!e.key||e.key===KEY)cache=null});}catch(e){}
+function on(){all();return !!cacheMeta.on}
+function meta(){all();return cacheMeta}
 function writeRaw(d){try{ls.setItem(KEY,JSON.stringify(d));cache=null;return true}catch(e){console.warn("Pranju OS tasks: could not save",e);throw new Error("This phone's storage is full — the task was not saved.")}}
 function clean(t){var o={ti:String(t.ti||"").trim()||"(Untitled task)",pj:LISTNAME[t.pj]?t.pj:"inbox",tg:(t.tg||[]).map(function(x){return String(x).trim().replace(/^#/,"").toLowerCase().replace(/\s+/g,"-")}).filter(Boolean),
   c:String(t.c||""),it:(t.it||[]).filter(function(x){return x&&String(x.ti||"").trim()}).map(function(x){return {ti:String(x.ti).trim(),d:x.d?1:0}}),

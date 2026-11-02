@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="kvsync.js?v=20261031z"></script><script src="tasks-local.js?v=20261101c"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
+<html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="kvsync.js?v=20261031z"></script><script src="tasks-local.js?v=20261102a"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
 <title>Delegation · Pranju OS</title>
 <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="icon" href="icon-192.png" sizes="192x192"><link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>
@@ -281,7 +281,8 @@ function aheadOf(id,a){if(isDone(id,a))return "";const t=window.PosTasks&&PosTas
 const isAhead=(id,a)=>!!aheadOf(id,a);
 /* left pending (1 Nov 2026): a task that sat on the card on an earlier day with no option tapped. It stays red and goes
    to the top of the card until something is done with it. Returns the first day it was left, or "". */
-const istDay=ms=>{try{return new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Kolkata",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date(ms))}catch(e){return ""}};
+var FMT_IST=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Kolkata",year:"numeric",month:"2-digit",day:"2-digit"});
+const istDay=ms=>{try{return FMT_IST.format(new Date(ms))}catch(e){return ""}};
 function missedOf(id,a){if(stOf(id,a)!=="open"||isAhead(id,a))return "";const td=todayIST();
   let since=typeof a.at==="number"?istDay(a.at):String(a.at||"").slice(0,10);if(!since||since>=td)return "";
   const t=window.PosTasks&&PosTasks.on()?PosTasks.get(id):null;
@@ -428,7 +429,8 @@ document.addEventListener("keydown",e=>{if(!MF.p||TF||!$("scrim").hidden)return;
 /* ---------- the four outcomes on a task card ----------
    In TickTick he ticks a daily task "done" both when the work is done and just to push it on, so the app keeps which one it was.
    The worker then does the matching step in TickTick (see handleDelegDone in ticktick-worker.js). */
-const todayIST=()=>new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Kolkata",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+let tdC="",tdAt=0;
+const todayIST=()=>{const n=Date.now();if(n-tdAt>20000){tdC=FMT_IST.format(new Date(n));tdAt=n}return tdC};
 const fmtDay=iso=>{try{return new Date(iso+"T12:00:00").toLocaleDateString("en-IN",{day:"numeric",month:"short"})}catch(e){return iso}};
 const addDay=(iso,n)=>{const d=new Date(iso+"T12:00:00Z");d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10)};
 const OUT={cont:{i:"✓",n:"Done · continues",h:"Work done today, back tomorrow",c:"#15803d"},
