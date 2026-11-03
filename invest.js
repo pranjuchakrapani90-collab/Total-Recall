@@ -145,8 +145,8 @@ function form(o){
    Cash moves with the records:
      in  — every ETF sale (proceeds after charges; tax isn't taken from Kite), every PKP sale (whole proceeds),
            ETF "money in"
-     out — every ETF buy, every PKP BID (buy-in-dip) buy, ETF "money out"
-     PKP SIP buys are fresh money, so they don't touch it.
+     out — every ETF buy, every PKP buy (SIP and BID alike: the SIP is bought with Kite cash too), ETF "money out"
+     Money sent to Zerodha from the Money Book comes in as ETF "money in".
    "Update balance" records the real Kite cash and LiquidBees units on a date; after that only newer records move it.
    Balances are kept in the encrypted PKP record set on the phones, never in this repo. */
 const LIQ="LIQUIDBEES";
@@ -170,8 +170,11 @@ function kiteFund(){
   Object.values(e.lots).forEach(l=>{if(!l||!ok(l.price)||!ok(l.qty))return;const v=l.price*l.qty;add(l.date,l.t,-v,"etf",charges("buy",v),"bought "+l.code);
     if(ok(l.sellPrice))sell(l.sellDate,l.t,l.code,l.sellPrice*l.qty,"etf");});
   const sym=(S.symbol||"JUNIORBEES").toUpperCase(),T=Object.values(k.tx).filter(Boolean).sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.seq||0)-(b.seq||0));let level=0;
-  T.forEach(x=>{if(x.type==="buy"){if(ok(x.bid)&&x.bid>level){const v=x.amount||x.price*x.units;add(x.date,x.t,-v,"bid",charges("buy",v),"BID "+x.bid+" "+sym);}if(ok(x.bid))level=x.bid;}
-    else{sell(x.date,x.t,sym,x.units*x.price,"sale");level=0;}});
+  /* when a PKP trade was first recorded (seq), so editing an old SIP later doesn't pull it past the balance date */
+  const when=x=>x.seq>1e12?x.seq:(x.t||0);
+  T.forEach(x=>{if(x.type==="buy"){const v=x.amount||x.price*x.units,bid=ok(x.bid)&&x.bid>level;
+      add(x.date,when(x),-v,bid?"bid":"sip",charges("buy",v),(bid?"BID "+x.bid:"SIP")+" "+sym);if(ok(x.bid))level=x.bid;}
+    else{sell(x.date,when(x),sym,x.units*x.price,"sale");level=0;}});
   /* LiquidBees sales are kept as records: units out of LiquidBees, proceeds into cash */
   const sales=Object.entries(k.liq).filter(([,x])=>x&&ok(x.units)&&ok(x.price)).map(([id,x])=>({id,...x})).sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.t||0)-(b.t||0));
   sales.forEach(x=>sell(x.date,x.t,LIQ,x.units*x.price,"liq"));
@@ -183,7 +186,7 @@ function kiteFund(){
 function fundForm(after){const F=kiteFund();
   const lines=F.flows.slice(-8).map(f=>`${dshort(f.date)} ${f.what} ${f.amt>0?"+":"−"}${Math.abs(f.amt).toFixed(2)}${f.chg?` (charges ${f.chg.toFixed(2)})`:""}`);
   form({title:"Kite fund",note:F.A?`Kite cash ${F.A.bal.toFixed(2)} on ${dshort(F.A.date)}, then: ${lines.join(" · ")||"no records"}. Now ${F.cash.toFixed(2)} (charges included: ${F.chg.toFixed(2)}). If Kite still differs, enter its figures below.`
-      :"Enter the cash Kite shows now and your LiquidBees units. From then on, sales add to the cash and BID or ETF buys take from it (SIP buys don't).",
+      :"Enter the cash Kite shows now and your LiquidBees units. From then on, sales and money sent to Zerodha add to the cash; ETF buys and every JuniorBees buy (SIP and BID) take from it.",
     fields:[{k:"bal",label:"Cash in Kite (₹)",type:"number",value:F.A?r2(F.cash):""},{k:"liq",label:"LiquidBees units",type:"number",step:"1",value:F.liqUnits||"",hint:"The units grow a little each day from the daily dividend."},
       {k:"date",label:"As on",type:"date",value:ist().iso}],ok:"Save",
     onSubmit:v=>{if(!ok(v.bal))return "Enter the cash balance.";if(!(v.liq>=0))return "Enter the LiquidBees units (0 if none).";
@@ -206,7 +209,7 @@ function liqForm(after,pre){pre=pre||{};const F=kiteFund(),held=F.liqUnits+(pre.
    same day (since Oct 2024); one rupee per ₹1,000 plus the DP charge covers price moves and charges. */
 const LIQ_SAME_DAY=1;
 function liqToSell(gap){const F=kiteFund();if(!(gap>0)||!ok(F.liqPrice))return 0;return Math.min(F.liqUnits,Math.ceil((gap*1.001+CHG.dpLiq+1)/(F.liqPrice*LIQ_SAME_DAY)));}
-/* need = money the next BID or ETF buy takes */
+/* need = money the next SIP, BID or ETF buy takes */
 function fundBar(need){const F=kiteFund();let note="";
   if(ok(need)&&need>F.cash){const gap=need-F.cash;
     note=ok(F.liqPrice)&&F.liqUnits*F.liqPrice>=gap?`<small class="warn">Cash short ${inr(gap)} for the next buy · sell ${liqToSell(gap)} LiquidBees in market hours</small>`

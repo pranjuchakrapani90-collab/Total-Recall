@@ -69,7 +69,7 @@ function model(){
   const lines=[];
   if(E.n||E.booked)lines.push({grp:"mkt",name:"ETF Shop",inv:E.inv,val:E.val,href:"etf-shop.html",sub:`${E.n} lot${E.n===1?"":"s"}`});
   if(P.units||P.booked)lines.push({grp:"mkt",name:"JuniorBees PKP",inv:P.inv,val:P.val,href:"pkp.html",sub:`${P.units} units`});
-  if(F.A){lines.push({grp:"cash",name:"Kite cash",inv:F.cash,val:F.cash,href:"#kite",sub:"for BIDs and ETF buys"});
+  if(F.A){lines.push({grp:"cash",name:"Kite cash",inv:F.cash,val:F.cash,href:"#kite",sub:"for SIP, BIDs and ETF buys"});
     lines.push({grp:"cash",name:"LiquidBees",inv:liqV,val:liqV,href:"#kite",sub:`${F.liqUnits} units${ok(F.liqPrice)?" × "+price(F.liqPrice):""}`});}
   /* wallet and bank as the Money Book keeps them */
   let apdclVal=0;

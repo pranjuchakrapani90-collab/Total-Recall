@@ -221,7 +221,10 @@ function empty(){return `<section class="card empty"><b>No records yet</b><p cla
 
 function draw(){
   const M=model();
-  $("out").innerHTML=M.T.length?month(M)+I.fundBar(M.units&&M.gttB&&M.gttB.sug&&(M.gttB.g||M.nb&&M.nb.price/M.cmp>0.97)?M.gttB.sug.units*M.gttB.sug.lim:NaN)+stats(M)+details(M)+setup(M):empty();
+  /* Kite cash needed: the SIP when its AMO is due and not placed yet, plus the next BID once it's close */
+  const N=M.sipNext,sipDue=!M.S.sipAmo&&(N.amoToday||N.late||N.days===0)&&ok(M.sipQty)&&ok(M.cmp)?M.sipQty*M.cmp:0,
+    bidNeed=M.units&&M.gttB&&M.gttB.sug&&(M.gttB.g||M.nb&&M.nb.price/M.cmp>0.97)?M.gttB.sug.units*M.gttB.sug.lim:0;
+  $("out").innerHTML=M.T.length?month(M)+I.fundBar(sipDue+bidNeed||NaN)+stats(M)+details(M)+setup(M):empty();
   const on=(id,f)=>{const e=$(id);if(e)e.onclick=f;};
   on("fSip",()=>{I.setSettings(KEY,{sipAmo:{units:M.sipQty,lim:r2(M.cmp),placed:today(),session:I.ist().open?today():I.orderSession()}});draw();});
   on("sUndo",()=>{I.setSettings(KEY,{sipAmo:null});draw();});
