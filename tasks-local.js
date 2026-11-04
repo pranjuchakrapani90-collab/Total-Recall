@@ -240,6 +240,7 @@ function fieldsOnto(t,j){if(j.title!=null)t.ti=String(j.title).toUpperCase();if(
   if(t.pj==="reference"&&j.list!=null&&j.due==null){t.du="";t.rp="";}return t;}
 function applyReq(x){var j={};try{j=x.json?JSON.parse(x.json):{}}catch(e){throw new Error("JSON in column F is not valid")}
   var op=x.op;
+  if(op==="sld-new")return sldNew(x,j);
   if(op==="add"){var o=put(fieldsOnto({ti:"",pj:"inbox",tg:[],c:"",du:"",rp:""},j));return "added "+o.id;}
   var t=get(x.task);if(!t)throw new Error("no task with id "+x.task);
   if(op==="update"||op==="move"){put(fieldsOnto(t,j));return "updated";}
@@ -248,6 +249,21 @@ function applyReq(x){var j={};try{j=x.json?JSON.parse(x.json):{}}catch(e){throw 
   if(op==="reopen"){act(t.id,"reopen");return "reopened";}
   if(op==="delete"){del(t.id);return "deleted";}
   throw new Error("unknown op "+op);}
+/* op "sld-new" (4 Nov 2026): Claude's WhatsApp review found locations he sent "To claude" for an SLD. A new Line Survey
+   (localStorage "sld-survey-v1", synced by sld-survey.html) is created with each location as a "Marked point (details later)".
+   JSON: {name, title?, loc?, fdr?, ss?, note?, points:[{lat,lng,label?,time?}]}. Same request id -> same survey (never twice). */
+function sldNew(x,j){var pts=(Array.isArray(j.points)?j.points:[]).filter(function(p){return isFinite(+p.lat)&&isFinite(+p.lng)&&Math.abs(+p.lat)<=90&&Math.abs(+p.lng)<=180});
+  if(!pts.length)throw new Error("no valid points (lat/lng)");
+  var K="sld-survey-v1",db;try{db=JSON.parse(localStorage.getItem(K)||"null")}catch(e){db=null}if(!db||!db.projects)db={projects:{},cur:null};
+  var pid="wa"+String(x.id).replace(/[^A-Za-z0-9]/g,"").slice(0,24);if(db.projects[pid]&&!db.projects[pid].del)return "survey already there";
+  var d=today(),yr=d.slice(0,4),n=0,mk=function(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)};
+  var p={id:pid,name:String(j.name||("WhatsApp points "+d)).slice(0,120),upd:Date.now(),
+    meta:{work:"",loc:String(j.loc||""),pay:"dept",doc:"SESD/"+yr+"/",date:d,ss:String(j.ss||""),fdr:String(j.fdr||""),fee:0,title:String(j.title||"")},
+    opt:{north:false,gps:false,span:true,sign:false},set:{sHV:45,sMV:32,sEHV:33,sLT:40,sABC:33,sEarth:5,sStay:0,sSvc:30,sDB:1,sDBph:1},
+    pts:pts.map(function(q){n++;return {id:mk(),no:n,kind:"mark",lat:+q.lat,lng:+q.lng,acc:null,src:"whatsapp",par:null,line:"",pole:"",cross:"",note:String(q.label||"").slice(0,80),qk:true,qt:"From WhatsApp"+(q.time?" "+q.time:"")}}),
+    from:{wa:String(j.note||"").slice(0,500),req:String(x.id)}};
+  db.projects[pid]=p;db.cur=pid;localStorage.setItem(K,JSON.stringify(db));
+  return "survey \""+p.name+"\" created with "+n+" point"+(n>1?"s":"")+" (open Line Survey to sync it to your other devices)";}
 var reqBusy=false;
 function requests(force){if(!on()||!hasCode()||reqBusy)return;var last=+(lget("pos-tasks-req-at")||0);if(!force&&Date.now()-last<5*60e3)return;reqBusy=true;lset("pos-tasks-req-at",String(Date.now()));
   var dev=lget("pos-dev");if(!dev){dev=Math.random().toString(36).slice(2,10);lset("pos-dev",dev)}

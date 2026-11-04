@@ -472,6 +472,7 @@ const KINDS={
  slight:{g:6,t:"Street-light point",d:"Street-light connections from this pole",o:["n","onEx"],def:{onEx:true}},
  svc:{g:6,t:"Service connections",d:"Households served from this pole",o:["n","onEx"],def:{onEx:true,n:5}},
  rmPole:{g:7,t:"Existing pole / DP to be removed",d:"Goes to the dismantling estimate",standalone:true,kitOnly:true,o:["oldPole","oldStruct"]},
+ mark:{g:8,t:"Marked point (details later)",d:"A spot marked on site or sent from WhatsApp. No cost. Open it later and choose what it is (pole, DTR, tapping point…) and the point it joins from",standalone:true,kitOnly:true,o:[]},
  lm:{g:8,t:"Landmark / road / railway / river",d:"Drawn on the SLD as an identifier, no cost. For a road, track, river or drain, mark 2 or more points along it",standalone:true,kitOnly:true,o:["lmType"]}
 };
 const LMT=["School","College","Temple","Namghar","Mosque","Church","Bank","Hospital","Office","Market","Household cluster","Tea garden","Pond","Culvert","Bridge","Road junction","Road","Railway track","River / canal","Drain / nallah"];
@@ -740,7 +741,7 @@ function compute(p){
  function nameOf(x){switch(x.kind){case "dtr":case "dtrShift":return"DTR-"+nx("T");case "htc":return"S/S-"+nx("H");case "dtrAug":case "dtrTemp":return"DTR-"+nx("T");case "dp":case "iso33":case "ctpt":case "vcb11":case "exDP":case "sp2dp":case "ltdp":return"DP-"+nx("D");case "p4":case "ex4P":case "dp24p":return"4P-"+nx("4");case "tp":case "exTP":case "dp2tp":case "sp2tp":return"3P-"+nx("3");case "exDTR":return x.dtrNo?"DTR "+x.dtrNo:"DTR-"+nx("T");case "regrout":return"E-"+nx("E");
   case "cont":return"";case "exPole":case "exFit":return"E-"+nx("E");case "src11":case "src33":return"TP-"+nx("S");case "srcLT":return"LS-"+nx("S");case "srcDTR":return x.dtrNo?"DTR "+x.dtrNo:"EX-DTR";case "xRail":return"RTC-"+nx("R");case "xBridge":return"BR-"+nx("B");default:return"N-"+nx("N")}}
  function walk(x){lab[x.id]=nameOf(x);kids[x.id].forEach(sg=>{sg.mid.forEach(m=>{m.lab=m.exist?"E-"+nx("E"):"N-"+nx("N")});walk(sg.b)})}
- roots.forEach(walk);pts.filter(isStand).forEach(x=>lab[x.id]=x.kind==="rmPole"?"OLD-"+nx("O"):"");
+ roots.forEach(walk);pts.filter(isStand).forEach(x=>lab[x.id]=x.kind==="rmPole"?"OLD-"+nx("O"):x.kind==="mark"?"M-"+nx("M"):"");
  pts.forEach(x=>{if(!lab[x.id]&&!isStand(x))lab[x.id]=nameOf(x)});
  // linear features (roads, tracks, rivers, drains) and crossing checks
  const fedges=[],fsingle=[],grpOf={};const root=x=>{let k=x,g=0;while(k.fpar&&byId[k.fpar]&&g++<500)k=byId[k.fpar];return k.id};
@@ -912,7 +913,7 @@ function sldSVG(c,so){
    if(!m)FREE={x:0,y:1};else if(Math.hypot(sx,sy)>0.5)FREE={x:-sx,y:-sy};else{const a=(c.adj[x.id]||[])[0].sg,[p1,p2]=T(a.a),[q1,q2]=T(a.b),dx=q1-p1,dy=q2-p2;FREE=Math.abs(dx)>=Math.abs(dy)?{x:0,y:-1}:{x:1,y:0}}}
   exSq=/^(SP|Steel|Rail|RSJ)/.test(opt(x,"exType")||"");nwSq=/^SP/.test(opt(x,"poleLen")||"")||(exSq&&/^SP/.test(opt(x,"exType"))&&!opt(x,"poleLen"));
   const kva=opt(x,"kva"),onEx=!!opt(x,"onEx"),filled=()=>(U.exP=1,out.push(`<circle cx="${X}" cy="${Y}" r="3.2" fill="#111"/>`));
-  if(x.kind.startsWith("src"))U.src=1;if(x.kind==="exPole"||x.kind==="exFit")U.exP=1;if(x.kind==="steel"||(x.kind==="pole"&&/^SP/.test(opt(x,"poleLen")||"")))U.steel=1;if(x.kind==="rmPole")U.rm=1;
+  if(x.kind.startsWith("src"))U.src=1;if(x.kind==="exPole"||x.kind==="exFit")U.exP=1;if(x.kind==="steel"||(x.kind==="pole"&&/^SP/.test(opt(x,"poleLen")||"")))U.steel=1;if(x.kind==="rmPole")U.rm=1;if(x.kind==="mark")U.mark=1;
   switch(x.kind){
    case "src11":case "src33":case "srcLT":case "srcDTR":{const mp=x.kind!=="srcDTR"&&["DP","TP","4P"].includes(opt(x,"srcStr"));out.push((mp?"":`<circle cx="${X}" cy="${Y}" r="3.2" fill="#111"/>`)+`<circle cx="${X}" cy="${Y}" r="${mp?14:9}" fill="none" stroke="#C92A2A" stroke-width="1.2" stroke-dasharray="3 2"/>`);
     const ss=opt(x,"srcStr"),sw=exNm(x)+({SP:"POLE",DP:"DP",TP:"3-POLE STRUCTURE","4P":"4-POLE STRUCTURE",ST:"STEEL / RAIL POLE"}[ss]||"POLE");
@@ -966,6 +967,7 @@ function sldSVG(c,so){
      Mosque:`<path d="M${gx-4},${gy+4} v-3 h8 v3 z M${gx-4},${gy+1} a4,4 0 0 1 8,0 z" stroke="#3b2a1a" stroke-width="0.6" fill="#fff"/>`,Church:`<path d="M${gx},${gy-5} v9 M${gx-3},${gy-2} h6" stroke="#3b2a1a" stroke-width="1.1"/>`,
      Hospital:`<path d="M${gx},${gy-4} v8 M${gx-4},${gy} h8" stroke="#C92A2A" stroke-width="2"/>`,Bank:`<text x="${gx}" y="${gy+3}" font-size="8" font-weight="700" text-anchor="middle" fill="#3b2a1a" font-family="Arial">₹</text>`};
     out.push(G[ty]||`<rect x="${gx-4}" y="${gy-4}" width="8" height="8" fill="#fff" stroke="#3b2a1a" stroke-width="0.6"/>`);t(X+5,Y+2.4,nm,{fs:6.4,fw:700,c:"#3b2a1a"});break}
+   case "mark":out.push(`<circle cx="${X}" cy="${Y}" r="5.5" fill="none" stroke="#b45309" stroke-width="1.1" stroke-dasharray="2 1.5"/><circle cx="${X}" cy="${Y}" r="1.8" fill="#b45309"/>`);t(X,Y-9,"POINT "+lb,{fs:6.4,fw:700,c:"#92400e"});break;
    case "pole":if(/^SP/.test(opt(x,"poleLen")||"")){out.push(`<rect x="${X-3.4}" y="${Y-3.4}" width="6.8" height="6.8" fill="#fff" stroke="#111" stroke-width="1.2"/>`);plab();t(X-nn.nx*12,Y-nn.ny*12+2.4,opt(x,"poleLen"),{fs:6})}else{open();plab()}break;
    default:open();plab();
   }
@@ -995,7 +997,8 @@ function sldSVG(c,so){
    ["arrow",(x,y)=>`<path d="M${f(x+14)},${f(y)} L${f(x+6)},${f(y-3.5)} L${f(x+6)},${f(y+3.5)} Z" fill="#111"/>`,"Direction of power"],
    ["stay",(x,y)=>`<line x1="${f(x+3)}" y1="${f(y)}" x2="${f(x+16)}" y2="${f(y)}" stroke="#6b7280" stroke-width="0.9"/><path d="M${f(x+16)},${f(y)} l-4,-2.4 M${f(x+16)},${f(y)} l-4,2.4" stroke="#6b7280" stroke-width="0.9" fill="none"/>`,"Stay wire"],
    ["earth",(x,y)=>`<path d="M${f(x+9)},${f(y-4)} v4 M${f(x+5.5)},${f(y)} h7 M${f(x+6.7)},${f(y+1.8)} h4.6 M${f(x+7.9)},${f(y+3.5)} h2.2" stroke="#111" stroke-width="0.7" fill="none"/>`,"Earthing"],
-   ["rm",(x,y)=>`<path d="M${f(x+5)},${f(y-4)} L${f(x+13)},${f(y+4)} M${f(x+13)},${f(y-4)} L${f(x+5)},${f(y+4)}" stroke="#C92A2A" stroke-width="1.2"/>`,"To be removed"]
+   ["rm",(x,y)=>`<path d="M${f(x+5)},${f(y-4)} L${f(x+13)},${f(y+4)} M${f(x+13)},${f(y-4)} L${f(x+5)},${f(y+4)}" stroke="#C92A2A" stroke-width="1.2"/>`,"To be removed"],
+   ["mark",(x,y)=>`<circle cx="${f(x+9)}" cy="${f(y)}" r="4.5" fill="none" stroke="#b45309" stroke-width="1" stroke-dasharray="2 1.5"/><circle cx="${f(x+9)}" cy="${f(y)}" r="1.5" fill="#b45309"/>`,"Marked point, details to come"]
   ].filter(i=>U[i[0]]);if(!I.length)return;
   const rh=11,pad=6,w=pad*2+22+Math.max(...I.map(i=>i[2].length))*6.6*0.56,h=pad*2+12+I.length*rh,yMin=top-12,yMax=so.sign?470:572;
   const cand=[[812-w,yMax-h],[30,yMax-h],[812-w,yMin],[30,yMin]];let best=null;
@@ -1027,8 +1030,8 @@ function drawMap(c,fit){if(!map)return;grp.clearLayers();const col=L2=>L2.dis?"#
    mk.on("click",e=>{L.DomEvent.stopPropagation(e);midPop(sg,k,e.latlng)});
    mk.on("dragend",e=>{const ts=sg.mid.map(q=>q.t);ts[k]=Math.min(0.995,Math.max(0.005,projT(sg,e.target.getLatLng())));midSave(sg,ts)})})});
  (c.fedges||[]).forEach(e=>{const st={road:{color:"#6b7280",weight:7,opacity:.6},rail:{color:"#111",weight:3,dashArray:"2 4"},river:{color:"#3b82f6",weight:8,opacity:.5},drain:{color:"#2563eb",weight:2,dashArray:"5 4"}}[e.ty];L.polyline([[e.a.lat,e.a.lng],[e.b.lat,e.b.lng]],st).addTo(grp).bindTooltip((e.name||opt(e.b,"lmType")))});
- c.pts.forEach(x=>{const k=x.kind,g=KINDS[k].g,ic=k==="lm"?"⌂":k==="rmPole"?"✕":g===3||k==="htc"?"⚡":g===2?"Ⅱ":g===0?"◎":g===4?"≋":g===9||k==="exPole"||k==="exFit"?"●":g===10?"◐":"○";
-  const html=`<div style="background:${KINDS[k].src?"#C92A2A":k==="lm"?"#8a6a4b":k==="rmPole"?"#7f1d1d":x.id===selId?"#0f766e":"#1e3a5f"};color:#fff;border-radius:12px;padding:2px 6px;font:700 11px system-ui;white-space:nowrap;box-shadow:0 2px 6px #0004;transform:translate(-50%,-50%);display:inline-block">${ic} P${x.no}</div>`;
+ c.pts.forEach(x=>{const k=x.kind,g=KINDS[k].g,ic=k==="lm"?"⌂":k==="mark"?"◇":k==="rmPole"?"✕":g===3||k==="htc"?"⚡":g===2?"Ⅱ":g===0?"◎":g===4?"≋":g===9||k==="exPole"||k==="exFit"?"●":g===10?"◐":"○";
+  const html=`<div style="background:${KINDS[k].src?"#C92A2A":k==="lm"?"#8a6a4b":k==="mark"?"#b45309":k==="rmPole"?"#7f1d1d":x.id===selId?"#0f766e":"#1e3a5f"};color:#fff;border-radius:12px;padding:2px 6px;font:700 11px system-ui;white-space:nowrap;box-shadow:0 2px 6px #0004;transform:translate(-50%,-50%);display:inline-block">${ic} P${x.no}</div>`;
   const mk=L.marker([x.lat,x.lng],{draggable:true,icon:L.divIcon({className:"",html,iconSize:[0,0]})}).addTo(grp);
   mk.on("click",()=>openPoint(x));mk.on("dragend",e=>{const ll=e.target.getLatLng();x.lat=ll.lat;x.lng=ll.lng;x.acc=null;x.src="moved";touch(P());renderAll()})});
  if(fit&&c.pts.length){const b=L.latLngBounds(c.pts.map(x=>[x.lat,x.lng]));map.fitBounds(b.pad(0.25),{maxZoom:18})}}
@@ -1565,6 +1568,8 @@ try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}
 if(DB.pending&&DB.projects[DB.pending.pid]&&!DB.projects[DB.pending.pid].del){const pd=DB.pending;DB.cur=pd.pid;renderAll(true);const ex=pd.editId?P().pts.find(q=>q.id===pd.editId):null;openPoint(ex,null,pd.draft);$("#dTitle").textContent+=" · restored, not yet saved"}
 setSync(syncCode()?"busy":"off");cloudSync();
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)cloudSync()});
+/* surveys added on another page (WhatsApp review → Requests op "sld-new", applied by tasks-local.js) */
+window.addEventListener("storage",e=>{if(e.key!==LS||!e.newValue)return;try{if(mergeRemote(JSON.parse(e.newValue)))renderAll()}catch(_){}});
 window.__test={compute,boq,P,DB,save,renderAll,sldSVG,buildXlsx,words};
 </script>
 <script>
