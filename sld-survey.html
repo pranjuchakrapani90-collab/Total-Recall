@@ -498,6 +498,8 @@ const OPTF={
  oldStruct:{l:"Structure removed",ty:"sel",o:[["1","Single pole"],["2","Double pole (DP)"],["3","3-pole structure"],["4","4-pole structure"]],def:"1"}
 };
 const XF={exBarbed:{l:"Barbed wire (kg)",ty:"num",def:0},exDanger:{l:"Extra danger plates",ty:"num",def:0},exEarth:{l:"Extra earthing",ty:"num",def:0},exGuard:{l:"Guarding set",ty:"chk",def:false},exGoab:{l:"GOAB on this pole",ty:"chk",def:false},exDo:{l:"DO fuse set",ty:"chk",def:false},exLa:{l:"LA set",ty:"chk",def:false}};
+const isBuilt=x=>!!(x&&x.build&&x.build.on);
+function sorRate(k){const S=window.SOR2122;if(RATES[k])return RATES[k];const r=S&&S[k];if(!r)return null;RATES[k]=[r[2],/^km\.?$/i.test(r[3])?"Km.":r[3],+r[4]];if(/^(Job|Rm|Sqm|Cum)\.?$/i.test(r[3]))EJOB.add(k);return RATES[k]}
 function opt(x,k){const v=x[k];if(v!==undefined&&v!==null&&v!=="")return v;const K=KINDS[x.kind]||{};if(K.def&&k in K.def)return K.def[k];const f=OPTF[k]||XF[k];return f?f.def:undefined}
 const POLE={"9.75":["748","427"],"8.5":["747","426"],"7.5":["746","425"],"SP-56":["751","422"],"SP-60":["752","422"],"SP-66":["753","423"],"SP-76":["754","423"]};
 const OLDP={"PSC 8.5":"747","PSC 7.5":"746","PSC 9.75":"748","SP-56":"751","SP-60":"752","SP-66":"753","SP-76":"754","Rail":"756","RSJ":"757"};
@@ -575,7 +577,10 @@ function compute(p){
  const S={...DEF_SET,...(p.set||{})},pts=p.pts,byId={};pts.forEach(x=>byId[x.id]=x);
  const o=pts.length?{lat:pts[0].lat,lng:pts[0].lng}:{lat:26.4,lng:92.9};
  const Q={},EX={},DM={},why={},dwhy={},warn=[],flags=new Set();
- const add=(sor,q,w,ex)=>{if(!q)return;if(!RATES[sor]){warn.push("No rate for SoR "+sor);return}Q[sor]=(Q[sor]||0)+q;if(ex)EX[sor]=(EX[sor]||0)+q;(why[sor]=why[sor]||[]);if(w&&!why[sor].includes(w))why[sor].push(w)};
+ const AUTO={},AWHY={};let SINK=null;   // SINK = id of a point built step by step: the app's own items for it go to AUTO, not into the estimate
+ const add=(sor,q,w,ex)=>{if(!q)return;if(!RATES[sor]&&!sorRate(sor)){warn.push("No rate for SoR "+sor);return}
+  if(SINK){const A=AUTO[SINK]=AUTO[SINK]||{},W=AWHY[SINK]=AWHY[SINK]||{};A[sor]=(A[sor]||0)+q;(W[sor]=W[sor]||[]);if(w&&!W[sor].includes(w))W[sor].push(w);return}
+  Q[sor]=(Q[sor]||0)+q;if(ex)EX[sor]=(EX[sor]||0)+q;(why[sor]=why[sor]||[]);if(w&&!why[sor].includes(w))why[sor].push(w)};
  const addEx=(sor,q,w)=>add(sor,q,w+" (existing / O&M stock)",true);
  const dis=(sor,q,w)=>{if(!q)return;if(!RATES[sor]){warn.push("No rate for SoR "+sor);return}DM[sor]=(DM[sor]||0)+q;(dwhy[sor]=dwhy[sor]||[]);if(w&&!dwhy[sor].includes(w))dwhy[sor].push(w)};
  const segs=[];pts.forEach(b=>{if(!b.par)return;const a=byId[b.par];if(!a||isStand(b)){b.par=null;return}
@@ -621,7 +626,7 @@ function compute(p){
   if(goab){add("518",1,"GOAB at "+tag);add("638",2,"GOAB mounting");add("830",4,"GOAB mounting")}
   earth(3,"3 pits per DTR substation",chem);add("649",6,"DTR earthing leads (15 kg total)");add("476",20,"GI strip for DTR earthing")}
  // ---- per point
- pts.forEach(x=>{
+ pts.forEach(x=>{SINK=isBuilt(x)?x.id:null;
   const K=KINDS[x.kind]||KINDS.pole,src=isSrc(x),tag=K.t+" P"+x.no;
   const nd=nodes[x.id]={roles:{},stays:0,earth:0,stayDirs:[]};
   const segIn=adj[x.id].find(a=>a.sg.b===x),inL=segIn&&segIn.sg.L,kv=kvAt(x),mainCls=kv>=11?"HV":"LT";
@@ -709,6 +714,8 @@ function compute(p){
   if(!K.standalone){const b=+opt(x,"exBarbed");if(b)add("633",b,"extra anti-climbing at P"+x.no);const dg=+opt(x,"exDanger");if(dg)add(danger(kv),dg,"extra danger plate at P"+x.no);
    const ee=+opt(x,"exEarth");if(ee){earth(ee,"extra earthing at P"+x.no);nd.earth=(nd.earth||0)+ee}if(opt(x,"exGuard"))guard("guarding at P"+x.no);
    if(opt(x,"exGoab")){add(kv===33?"660":"518",1,"isolator / GOAB at P"+x.no);add("638",2,"GOAB mounting");add("830",4,"GOAB mounting")}if(opt(x,"exDo"))add("513",1,"DO set at P"+x.no);if(opt(x,"exLa"))add(kv===33?"674":"676",1,"LA set at P"+x.no)}
+  if(SINK){SINK=null;const bi=x.build.items||[];bi.forEach(it=>{if(+it.q>0)add(it.sor,+it.q,"P"+x.no+" built step by step: "+(it.step||"")+(it.note?" ("+it.note+")":""))});
+   const sum=re=>bi.filter(it=>re.test(it.sor)).reduce((a,it)=>a+(+it.q||0),0);nd.stays=sum(/^(653|657)$/);nd.earth=sum(/^(474|473|481)$/);nd.built=true}
  });
  function abcMidDb(sg){if(!sg.L.abc)return;const b=sg.b,at=Array.isArray(b.dbAt)?b.dbAt:[],per=hasNum(b.dbMid)?Math.max(0,Math.round(+b.dbMid)):S.sDB;let tot=0;
   sg.mid.forEach((m,k)=>{m.db=hasNum(at[k])?Math.max(0,Math.round(+at[k])):per;tot+=m.db});dbKit(dbPh(sg.L,b.dbTyMid),tot,"on intermediate poles: "+(hasNum(b.dbMid)?b.dbMid+" per pole (set for this span)":S.sDB+" per pole (survey rule)")+(at.some(hasNum)?", changed on some poles":""))}
@@ -729,7 +736,7 @@ function compute(p){
     const stl=/^SP/.test(pl),ne=stl?n:S.sEarth>0?Math.floor(n/S.sEarth):0;earth(ne,stl?"every steel intermediate pole":"every "+S.sEarth+"th intermediate pole");sg.mid.forEach(m=>{m.earth=stl||S.sEarth>0&&m.i%S.sEarth===0});
     const ns=S.sStay>0?Math.floor(n/S.sStay):0;if(ns){stayKit(sg.kv,ns,"storm stay every "+S.sStay+"th pole");sg.mid.forEach(m=>{m.stay=m.i%S.sStay===0})}}}
   if(L.bare&&L.cls==="HV")add(L.sl,Math.ceil(sg.len/1000*3),"3 sleeves per route-km");
-  if(L.mv){add(L.jt,Math.floor(sg.len/1000*3),"3 joints per route-km");[sg.a,sg.b].forEach(x=>{if(["dtr","htc","tMV","dtrShift"].includes(x.kind))return;const e=adj[x.id].filter(a=>work(a.sg.L)&&a.sg.cls==="HV");if(e.length===1||isSrc(x)||e.some(a=>!a.sg.L.mv))add(L.term,3,"MVCC termination at P"+x.no)})}
+  if(L.mv){add(L.jt,Math.floor(sg.len/1000*3),"3 joints per route-km");[sg.a,sg.b].forEach(x=>{if(["dtr","htc","tMV","dtrShift"].includes(x.kind))return;SINK=isBuilt(x)?x.id:null;const e=adj[x.id].filter(a=>work(a.sg.L)&&a.sg.cls==="HV");if(e.length===1||isSrc(x)||e.some(a=>!a.sg.L.mv))add(L.term,3,"MVCC termination at P"+x.no);SINK=null})}
   if(L.onEx&&sg.disOld&&L.old)dis(L.old,sg.len*L.ow*1.03/1000,"old conductor returned from "+lab);
   if(sg.cross&&!L.abc&&!L.mv)guard("guarding set ("+sg.cross+" crossing "+lab+")");
  });
@@ -763,7 +770,7 @@ function compute(p){
   const ok=fixK[e.ty].some(k=>sg.a.kind===k||sg.b.kind===k)||(e.ty==="road"&&(sg.cross||sg.L.abc||sg.L.mv));
   const msg="Span P"+sg.a.no+"–P"+sg.b.no+" crosses the "+fnm[e.ty]+(e.name?" ("+e.name+")":"")+(ok?"":e.ty==="road"?". Set 'Crossing on this span' to Road or mark a Road crossing point for guarding.":e.ty==="rail"?". Mark a Railway crossing (UG) point.":". Mark the river banks (River / nallah bank) or a Bridge crossing.");
   if(!ok&&!warn.includes(msg))warn.push(msg);(sg.fx=sg.fx||[]).push(e.ty)})});
- return{S,pts,segs,nodes,adj,Q,EX,DM,why,dwhy,warn,flags:[...flags],lab,o,km,totStays,totEarth,nGen,nExMid,kids,roots,fedges,fsingle};
+ return{S,pts,segs,nodes,adj,Q,EX,DM,why,dwhy,AUTO,AWHY,warn,flags:[...flags],lab,o,km,totStays,totEarth,nGen,nExMid,kids,roots,fedges,fsingle};
 }
 /* ================= Money ================= */
 const inr=v=>(+v).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -1638,5 +1645,5 @@ window.__test={compute,boq,P,DB,save,renderAll,sldSVG,buildXlsx,words};
   if(!a){a=document.createElement("a");a.id="pracChip";a.style.cssText="position:fixed;right:14px;bottom:16px;z-index:1200;background:#18221f;color:#fff;text-decoration:none;border-radius:999px;padding:10px 16px;font:650 14px system-ui,sans-serif;box-shadow:0 6px 20px #0004";document.body.appendChild(a)}
   a.href="est-practice.html?t="+encodeURIComponent(p.practice);a.textContent="Practice "+p.practice+" · check my estimate ›"}catch(e){}};renderAll(false)})();
 </script>
-<script src="drive.js?v=20261102t"></script><script src="est-assets.js?v=20261105a"></script><script src="est-doc.js?v=20261105a"></script>
+<script src="drive.js?v=20261102t"></script><script src="est-assets.js?v=20261105a"></script><script src="est-doc.js?v=20261105a"></script><script src="build-steps.js?v=20261105a"></script>
 </body></html>
