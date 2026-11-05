@@ -211,7 +211,7 @@ table.boq{border-collapse:collapse;width:100%;min-width:720px;font-size:12.5px}
     <button class="tb" data-tool="select" type="button" title="Drag a box to select part of the drawing">⬚<span>Select</span></button>
     <button class="tb" data-tool="add" type="button" title="Place a structure">✚<span>Structure</span></button>
     <button class="tb" data-tool="line" type="button" title="Draw a line from one structure to another">╱<span>Line</span></button>
-    <button class="tb" data-tool="turn" type="button" title="Turn a DP, 3-pole, 4-pole or DTR">⟳<span>Turn</span></button>
+    <button class="tb" data-tool="turn" type="button" title="Turn any object">⟳<span>Turn</span></button>
     <button class="tb" data-tool="text" type="button" title="Add free text">T<span>Text</span></button>
     <button class="tb" data-tool="del" type="button" title="Delete what you tap">🗑<span>Delete</span></button>
     <i class="sep"></i>
@@ -852,7 +852,7 @@ function sldSVG(c,so){
   const a=P[bi],b=P[bi+1]||P[bi],L=Math.hypot(b[0]-a[0],b[1]-a[1])||1,nx=-(b[1]-a[1])/L,ny=(b[0]-a[0])/L,off=ty==="road"||ty==="river"?13:8;labAlong([a[0]+nx*off,a[1]+ny*off],[b[0]+nx*off,b[1]+ny*off],r.txt,{fs:6.6,fw:700,c:r.c})};
  {const grp={};(c.fedges||[]).forEach(e=>{(grp[e.grp]=grp[e.grp]||[]).push(e)});
   Object.values(grp).forEach(es=>{const ty=es[0].ty,nm=es[0].name;const chains=[];es.forEach(e=>{const A=T(e.a),B=T(e.b);const ch=chains.find(ch=>ch.last===e.a.id);if(ch){ch.P.push(B);ch.last=e.b.id}else chains.push({P:[A,B],last:e.b.id})});chains.forEach((ch,k)=>drawFeat(ty,ch.P,nm,k===0?null:-1))});
-  (c.fsingle||[]).forEach(x=>{const[X,Y]=T(x);drawFeat(LIN[opt(x,"lmType")],[[X-30,Y],[X+30,Y]],x.note,0)})}
+  (c.fsingle||[]).forEach(x=>{const[X,Y]=T(x),r=(+x.rot||0)*D2R,ux=Math.cos(r)*30,uy=Math.sin(r)*30;drawFeat(LIN[opt(x,"lmType")],[[X-ux,Y-uy],[X+ux,Y+uy]],x.note,0)})}
  const nearFeat=(ty,X,Y,R=20)=>fpolys.some(f=>f.ty===ty&&f.P.some((q,i)=>{const r=f.P[i+1];if(!r)return false;const dx=r[0]-q[0],dy=r[1]-q[1],L2=dx*dx+dy*dy||1,tt=Math.max(0,Math.min(1,((X-q[0])*dx+(Y-q[1])*dy)/L2));return Math.hypot(q[0]+tt*dx-X,q[1]+tt*dy-Y)<R}));
  const acrossAt=(X,Y,ux,uy,ty,nm,half=30,R=20)=>{if(nearFeat(ty,X,Y,R))return;const px=-uy,py=ux;FSTY[ty]([[X-px*half,Y-py*half],[X+px*half,Y+py*half]],nm);fpolys.push({ty,P:[[X-px*half,Y-py*half],[X+px*half,Y+py*half]]});const r={road:"ROAD",rail:"RAILWAY TRACK",river:"RIVER",drain:"DRAIN",ehv:"EHV LINE",line:"EXISTING LINE"}[ty];
   t(X+px*(half+4)+ux*0,Y+py*(half+4)+(py>=0?8:-3),(nm||r).toUpperCase(),{fs:6.4,fw:700,c:ty==="river"||ty==="drain"?"#1e40af":ty==="ehv"?"#5b21b6":"#374151"})};
@@ -930,7 +930,7 @@ function sldSVG(c,so){
  const eqTxt=x=>[opt(x,"goab")&&"GOAB",opt(x,"dof")&&"DO",opt(x,"la")&&"LA"].filter(Boolean).join(" + ");
  const crossSym0=(X,Y,nn,label,rail)=>{const ux=nn.nx,uy=nn.ny;[-5,5].forEach(d=>{const sx=X-uy*d,sy=Y+ux*d;out.push(`<line x1="${(sx-ux*22).toFixed(1)}" y1="${(sy-uy*22).toFixed(1)}" x2="${(sx+ux*22).toFixed(1)}" y2="${(sy+uy*22).toFixed(1)}" stroke="#6b7280" stroke-width="${rail?1.4:0.9}" stroke-dasharray="${rail?"2 2":"6 2 1.5 2"}"/>`)});
   t(X+ux*30,Y+uy*30+2.5,label,{fs:6.5,fw:700,c:"#4b5563"})};
- c.pts.forEach(x=>{ctx("n:"+x.id);out.push(`<g data-p="${x.id}">`);const[X,Y]=T(x),nd=c.nodes[x.id]||{},lb=c.lab[x.id]||("P"+x.no),nn=segN[x.id]||{nx:0,ny:-1},plab=()=>t(X+nn.nx*10,Y+nn.ny*10+2.4,lb,{fs:6.8,fw:700}),open=(r=3.4)=>(U.newP=1,out.push(`<circle cx="${X}" cy="${Y}" r="${r}" fill="#fff" stroke="#111" stroke-width="1.2"/>`));
+ c.pts.forEach(x=>{ctx("n:"+x.id);out.push(`<g data-p="${x.id}">`);const GR=!!(+x.rot)&&NP(x)===1&&x.kind!=="cont"&&!(x.kind==="lm"&&LIN[opt(x,"lmType")]);if(GR){const[X0,Y0]=T(x);out.push(`<g transform="rotate(${+x.rot} ${X0.toFixed(1)} ${Y0.toFixed(1)})">`)}const[X,Y]=T(x),nd=c.nodes[x.id]||{},lb=c.lab[x.id]||("P"+x.no),nn=segN[x.id]||{nx:0,ny:-1},plab=()=>t(X+nn.nx*10,Y+nn.ny*10+2.4,lb,{fs:6.8,fw:700}),open=(r=3.4)=>(U.newP=1,out.push(`<circle cx="${X}" cy="${Y}" r="${r}" fill="#fff" stroke="#111" stroke-width="1.2"/>`));
   (nd.stayDirs||[]).slice(0,nd.stays||0).forEach(d=>stay(X,Y,d));
   subEnd=0;CUR=x;noteDone=false;ROT=NP(x)!==1?((+x.rot||0)%360+360)%360:0;{let sx=0,sy=0,m=0;(c.adj[x.id]||[]).forEach(a=>{const sg=a.sg,nb=sg.a===x?(sg.mid[0]||sg.b):(sg.mid[sg.mid.length-1]||sg.a),[qx,qy]=T(nb),l=Math.hypot(qx-X,qy-Y)||1;sx+=(qx-X)/l;sy+=(qy-Y)/l;m++});
    if(!m)FREE={x:0,y:1};else if(Math.hypot(sx,sy)>0.5)FREE={x:-sx,y:-sy};else{const a=(c.adj[x.id]||[])[0].sg,[p1,p2]=T(a.a),[q1,q2]=T(a.b),dx=q1-p1,dy=q2-p2;FREE=Math.abs(dx)>=Math.abs(dy)?{x:0,y:-1}:{x:1,y:0}}}
@@ -954,8 +954,8 @@ function sldSVG(c,so){
    case "dp24p":multiSym(X,Y,["n","n","e","e"],lb,"EXISTING "+exNm(x)+"DP → 4-POLE (+2 NEW "+(nwSq?spOf(x):"")+"POLES)","#1e3a5f");break;
    case "cont":{noteDone=true;const e=(c.adj[x.id]||[])[0];if(!e)break;const[OX,OY]=T(e.other),l=Math.hypot(X-OX,Y-OY)||1,ux=(X-OX)/l,uy=(Y-OY)/l,a=ux>0.35?"start":ux<-0.35?"end":"middle";
     if(opt(x,"ctrl")){U.ctrl=1;const w=24,h=14,d=Math.min(Math.abs(ux)>1e-3?w/Math.abs(ux):1e9,Math.abs(uy)>1e-3?h/Math.abs(uy):1e9)+1,CX=X+ux*d,CY=Y+uy*d,f=v=>v.toFixed(1);
-     out.push(`<rect x="${f(CX-w)}" y="${f(CY-h)}" width="${2*w}" height="${2*h}" fill="#f3f4f6" stroke="#111" stroke-width="1.3"/><rect x="${f(CX-w+2.5)}" y="${f(CY-h+2.5)}" width="${2*w-5}" height="${2*h-5}" fill="none" stroke="#111" stroke-width="0.5"/><path d="M${f(CX-w+6)},${f(CY+h-6)} h${2*w-12}" stroke="#111" stroke-width="1.4"/>`);
-     t(CX,CY-2,"33/11 KV",{fs:6.2,fw:700,nobox:true});t(CX,CY+4.6,"CONTROL ROOM",{fs:5.4,fw:700,nobox:true});
+     out.push((x.rot?`<g transform="rotate(${+x.rot} ${f(CX)} ${f(CY)})">`:"<g>")+`<rect x="${f(CX-w)}" y="${f(CY-h)}" width="${2*w}" height="${2*h}" fill="#f3f4f6" stroke="#111" stroke-width="1.3"/><rect x="${f(CX-w+2.5)}" y="${f(CY-h+2.5)}" width="${2*w-5}" height="${2*h-5}" fill="none" stroke="#111" stroke-width="0.5"/><path d="M${f(CX-w+6)},${f(CY+h-6)} h${2*w-12}" stroke="#111" stroke-width="1.4"/>`);
+     t(CX,CY-2,"33/11 KV",{fs:6.2,fw:700,nobox:true});t(CX,CY+4.6,"CONTROL ROOM",{fs:5.4,fw:700,nobox:true});out.push("</g>");
      const nm=(x.note||"").toUpperCase().replace(/^TO\s+/,"").trim(),lbl=!nm?"33/11 KV SUB-STATION":/S\/S|SUB.?STATION|SS\b/.test(nm)?nm:nm+(/33\/11/.test(nm)?"":" 33/11 KV")+" S/S";
      const la=ux>0.35?"start":ux<-0.35?"end":"middle",lx=la==="middle"?CX:CX+ux*(w+5),ly=la==="middle"?CY+(uy>=0?h+10:-h-5):CY+2.4;
      t(lx,ly,lbl,{fs:6.8,fw:700,c:"#111",a:la});break}
@@ -1004,6 +1004,7 @@ function sldSVG(c,so){
   if(nd.earth&&["pole","steel","replace","xRiver","tMV","shift"].includes(x.kind))earthSym(X,Y);
   if(x.note&&x.kind!=="lm"&&!noteDone)t(X,Y+(subEnd?subEnd+8:["dtr","htc","dtrAug","dtrTemp","dtrShift","exDTR"].includes(x.kind)?27:x.kind.startsWith("src")?(p.meta.fdr?35:27):17),x.note,{fs:6.3,c:"#4b5563"});
   if(so.gps&&x.kind!=="lm")t(X+10,Y-2,gpsTxt(x),{fs:5.6,c:"#4b5563",a:"start"});
+  if(GR)out.push("</g>");
   {const[GX,GY]=T(x);out.push(so.edit?`<circle cx="${GX.toFixed(1)}" cy="${GY.toFixed(1)}" r="12" fill="#0f766e" fill-opacity="0.08" stroke="#0f766e" stroke-opacity="0.5" stroke-dasharray="2 2" class="grab"/></g>`:"</g>")}
  });ctx("");(lay.notes||[]).forEach(n=>t(n.x,n.y,n.t,{k:"a:"+n.id,fs:n.fs||7.5,fw:n.b?700:400,a:"start"}));ctx("foot");
  if(so.north){out.push(`<g transform="translate(790 ${top+10})"><path d="M0,-14 L6,8 L0,3 L-6,8 Z" fill="#111"/><text x="0" y="-18" font-size="10" font-weight="700" text-anchor="middle" font-family="Arial">N</text></g>`)}
@@ -1242,7 +1243,7 @@ const HINTS={move:"Drag a structure or any text to move it. Tap a structure to c
  line:"Tap the structure the line starts from, then tap where it goes: another structure, or an empty spot for a new pole. Then set the line type and length.",
  text:"Tap where the text goes and type it. Drag it later to adjust; tap it to change it.",
  del:"Tap a structure, a line or a text to delete it. Undo brings it back.",
- turn:"Tap a DP, 3-pole, 4-pole or DTR to turn it 45°. Or drag around it to turn it freely (15° steps with Snap on). Long-press it to type an exact angle or set it back to normal."};
+ turn:"Tap anything (structure, DTR, control room, landmark, road, crossing, pole) to turn it 45°. Or drag around it to turn it freely (15° steps with Snap on). Long-press it to type an exact angle or set it back to normal."};
 function edUI(){$("#edBtn").textContent=EDIT?"✓ Done editing":"✎ Edit drawing";$("#edBtn").classList.toggle("on",EDIT);$("#edTools").hidden=!EDIT;
  document.querySelectorAll(".tb[data-tool]").forEach(b=>b.classList.toggle("on",b.dataset.tool===EDMODE));$("#edSnap").classList.toggle("on",SNAP);$("#edUndo").disabled=!HIST.length;$("#edRedo").disabled=!FUT.length;
  const bx=$("#sldBox");["adding","lining","texting","deleting","selecting","turning"].forEach((c,i)=>bx.classList.toggle(c,EDIT&&EDMODE===["add","line","text","del","select","turn"][i]));
@@ -1291,7 +1292,7 @@ $("#sldBox").addEventListener("pointerdown",e=>{if(!EDIT)return;const xy0=svgXY(
   if(g){const x=p.pts.find(q=>q.id===g.dataset.p);if(!x)return;if(!PICK){if(isStand(x))return;PICK=x.id;edUI();return}if(x.id===PICK){PICK=null;renderAll();return}const a=p.pts.find(q=>q.id===PICK);PICK=null;connect(p,a,x);return}
   if(PICK){const a=PICK;PICK=null;let[X,Y]=xy0;const A=posOf(a);if(SNAP&&A){if(Math.abs(A[0]-X)<10)X=A[0];if(Math.abs(A[1]-Y)<10)Y=A[1]}snap();newAt(p,X,Y,a)}return}
  if(EDMODE==="turn"){e.preventDefault();if(!g)return;const x=p.pts.find(q=>q.id===g.dataset.p);if(!x)return;
-  if(!turnable(x)){alert("Only a DP, 3-pole, 4-pole or DTR can be turned. A single pole looks the same any way round.");return}
+  if(!turnable(x)){alert("This "+String(opt(x,"lmType")).toLowerCase()+" is drawn through several points, so it follows them. Move its points to change its direction.");return}
   const C=posOf(x.id)||[0,0];ED={k:"r",el:g,id:x.id,s:xy0,m:false,c:C,a0:Math.atan2(xy0[1]-C[1],xy0[0]-C[0])*R2D,r0:+x.rot||0,lp:setTimeout(()=>{if(ED&&ED.k==="r"&&!ED.m){const D=ED;ED=null;askRot(p,x)}},650)};
   try{$("#sldBox").setPointerCapture(e.pointerId)}catch(_){}return}
  if(EDMODE==="text"&&!tx&&!g){e.preventDefault();const v=prompt("Text to place on the drawing:");if(!v||!v.trim())return;snap();freeze(p);lay(p).notes.push({id:uid(),x:+xy0[0].toFixed(1),y:+xy0[1].toFixed(1),t:v.trim()});touch(p);renderAll();return}
@@ -1313,7 +1314,7 @@ $("#sldBox").addEventListener("pointerup",()=>{const D=ED;ED=null;if(!D)return;c
  else{const x=p.pts.find(q=>q.id===D.id);if(!x)return;setPos(p,x,D.c[0]+dx,D.c[1]+dy)}
  touch(p);renderAll()});
 $("#sldBox").addEventListener("pointercancel",()=>{ED=null;renderAll()});
-const turnable=x=>{const k=x.kind;return["dtr","htc","dtrAug","dtrTemp","dtrShift","dp","iso33","ctpt","vcb11","exDP","sp2dp","ltdp","xRail","xBridge","tp","exTP","dp2tp","sp2tp","p4","ex4P","dp24p"].includes(k)};
+const turnable=x=>{if(x.kind!=="lm"||!LIN[opt(x,"lmType")])return true;const ty=opt(x,"lmType");return!P().pts.some(q=>q.kind==="lm"&&opt(q,"lmType")===ty&&(q.fpar===x.id||x.fpar===q.id))};
 function setRot(p,x,a){a=((Math.round(a)%360)+360)%360;if(a===(+x.rot||0)%360){renderAll();return}snap();if(a)x.rot=a;else delete x.rot;touch(p);renderAll()}
 function askRot(p,x){const v=prompt("Turn P"+x.no+" to what angle? (degrees clockwise; 0 = normal, 90 = upright for a DP)",String(+x.rot||0));if(v===null)return;const a=parseFloat(v);if(isNaN(a)){alert("Type a number, e.g. 45");return}setRot(p,x,a)}
 function delPoint(p,x){p.pts.forEach(q=>{if(q.par===x.id)q.par=x.par;if(q.fpar===x.id)q.fpar=x.fpar||""});p.pts=p.pts.filter(q=>q!==x);if(p.lay&&p.lay.pos)delete p.lay.pos[x.id]}
