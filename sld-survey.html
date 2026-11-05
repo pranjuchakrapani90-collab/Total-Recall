@@ -444,7 +444,7 @@ const KINDS={
  exDP:{g:9,t:"Existing DP",d:"Double pole already standing. New line fittings are added for the line(s) you join to it",o:["exType","exEq","fit","db","dbn","dbTy","stays"]},
  exTP:{g:9,t:"Existing 3-pole structure",d:"Three-pole structure already standing",o:["exType","exEq","fit","stays"]},
  ex4P:{g:9,t:"Existing 4-pole structure",d:"Four-pole structure already standing",o:["exType","exEq","fit","stays"]},
- cont:{g:9,t:"Line continues beyond (end of drawing)",d:"Where an existing line carries on outside this work. Drawn solid from the structure, then dashed to here. No cost. Put the destination in Name / remark, e.g. TO 33/11 KV SAMAGURI S/S",kitOnly:true,o:[]},
+ cont:{g:9,t:"Line continues beyond (end of drawing)",d:"Where an existing line carries on outside this work. Drawn solid from the structure, then dashed to here. No cost. Put the destination in Name / remark, e.g. TO 33/11 KV SAMAGURI S/S. Tick the control-room box to draw the 33/11 kV substation control room there (Name / remark = substation name, e.g. SAMAGURI)",kitOnly:true,o:["ctrl"]},
  exDTR:{g:9,t:"Existing DTR S/S on the route",d:"New HT line taps or passes at an existing DTR substation; LT can start from it",o:["dtrNo","kva","fit","stays"]},
  sp2dp:{g:10,t:"Existing pole → DP (add 1 pole)",d:"One new pole beside the existing pole, tied with channels",o:["exType","poleLen","goab","dof","la","stays"]},
  dp2tp:{g:10,t:"Existing DP → 3-pole (add 1 pole)",d:"One new pole added to an existing DP; 3.2 m channels tie all three",o:["exType","poleLen","newCh","goab","dof","la","stays"]},
@@ -481,7 +481,7 @@ const LIN={"Road":"road","Railway track":"rail","River / canal":"river","Drain /
 const OPTF={
  kva:{l:"DTR rating (kVA)",ty:"sel",o:[25,63,100,250],def:100},kvaFrom:{l:"Existing DTR (kVA)",ty:"sel",o:[16,25,63,100,160,200,250],def:63},
  goab:{l:"GOAB",ty:"chk",def:true},fence:{l:"Fencing (Type-II)",ty:"chk",def:true},dof:{l:"DO fuse set",ty:"chk",def:false},la:{l:"LA",ty:"chk",def:false},chem:{l:"Chemical earthing",ty:"chk",def:false},
- onEx:{l:"On existing pole / structure",ty:"chk",def:false},oldDP:{l:"Remove old DP",ty:"chk",def:true},
+ onEx:{l:"On existing pole / structure",ty:"chk",def:false},ctrl:{l:"Show 33/11 kV control room at the end",ty:"chk",def:false},oldDP:{l:"Remove old DP",ty:"chk",def:true},
  db:{l:"Consumers to connect (sizes the DBs; 0 = not set)",ty:"num",def:0},dbn:{l:"Distribution boxes (blank = auto)",ty:"num",blank:true},dbTy:{l:"Distribution box type",ty:"sel",o:[["","As survey rule"],["1","Single-phase (811)"],["3","Three-phase (813)"]],def:""},n:{l:"Number",ty:"num",def:1},stays:{l:"Stays (blank = auto)",ty:"num",blank:true},
  poleLen:{l:"Pole",ty:"sel",o:[["","Auto"],["9.75","PSC 9.75 m"],["8.5","PSC 8.5 m"],["7.5","PSC 7.5 m"],["SP-56","SP-56 steel tubular (11 m)"],["SP-60","SP-60 steel tubular (12 m)"],["SP-66","SP-66 steel tubular (12 m)"],["SP-76","SP-76 steel tubular (14.5 m)"]],def:""},
  steelType:{l:"Steel pole",ty:"sel",o:[["SP-56","SP-56 (11 m)"],["SP-60","SP-60 (12 m)"],["SP-66","SP-66 (12 m)"],["SP-76","SP-76 (14.5 m)"]],def:"SP-56"},
@@ -936,6 +936,12 @@ function sldSVG(c,so){
    case "sp2tp":multiSym(X,Y,["n","e","n"],lb,"EXISTING "+exNm(x)+"POLE → 3-POLE (+2 NEW "+(nwSq?spOf(x):"")+"POLES)"+(eqTxt(x)?", "+eqTxt(x):""),"#1e3a5f");break;
    case "dp24p":multiSym(X,Y,["n","n","e","e"],lb,"EXISTING "+exNm(x)+"DP → 4-POLE (+2 NEW "+(nwSq?spOf(x):"")+"POLES)","#1e3a5f");break;
    case "cont":{noteDone=true;const e=(c.adj[x.id]||[])[0];if(!e)break;const[OX,OY]=T(e.other),l=Math.hypot(X-OX,Y-OY)||1,ux=(X-OX)/l,uy=(Y-OY)/l,a=ux>0.35?"start":ux<-0.35?"end":"middle";
+    if(opt(x,"ctrl")){U.ctrl=1;const w=24,h=14,d=Math.min(Math.abs(ux)>1e-3?w/Math.abs(ux):1e9,Math.abs(uy)>1e-3?h/Math.abs(uy):1e9)+1,CX=X+ux*d,CY=Y+uy*d,f=v=>v.toFixed(1);
+     out.push(`<rect x="${f(CX-w)}" y="${f(CY-h)}" width="${2*w}" height="${2*h}" fill="#f3f4f6" stroke="#111" stroke-width="1.3"/><rect x="${f(CX-w+2.5)}" y="${f(CY-h+2.5)}" width="${2*w-5}" height="${2*h-5}" fill="none" stroke="#111" stroke-width="0.5"/><path d="M${f(CX-w+6)},${f(CY+h-6)} h${2*w-12}" stroke="#111" stroke-width="1.4"/>`);
+     t(CX,CY-2,"33/11 KV",{fs:6.2,fw:700,nobox:true});t(CX,CY+4.6,"CONTROL ROOM",{fs:5.4,fw:700,nobox:true});
+     const nm=(x.note||"").toUpperCase().replace(/^TO\s+/,"").trim(),lbl=!nm?"33/11 KV SUB-STATION":/S\/S|SUB.?STATION|SS\b/.test(nm)?nm:nm+(/33\/11/.test(nm)?"":" 33/11 KV")+" S/S";
+     const la=ux>0.35?"start":ux<-0.35?"end":"middle",lx=la==="middle"?CX:CX+ux*(w+5),ly=la==="middle"?CY+(uy>=0?h+10:-h-5):CY+2.4;
+     t(lx,ly,lbl,{fs:6.8,fw:700,c:"#111",a:la});break}
     t(X+ux*7,Y+uy*(a==="middle"?11:7)+2.4,(x.note||"LINE CONTINUES").toUpperCase(),{fs:6.6,fw:700,c:"#4b5563",a});break}
    case "exDTR":out.push(`<rect x="${X-13}" y="${Y-9}" width="26" height="18" fill="#e5e7eb" stroke="#111" stroke-width="1"/><circle cx="${X-3.4}" cy="${Y}" r="5.5" fill="none" stroke="#111"/><circle cx="${X+3.4}" cy="${Y}" r="5.5" fill="none" stroke="#111"/>`);block(X,Y,"d",[{txt:"EXISTING "+kva+" KVA DTR"+(x.dtrNo?" NO. "+x.dtrNo:""),fs:7.2,fw:700,c:"#1F4E9C"},{txt:"11/0.433 KV (NO NEW WORK ON DTR)",fs:6,c:"#1F4E9C"}]);break;
    case "shift":open();out.push(`<circle cx="${X}" cy="${Y}" r="6" fill="none" stroke="#b45309" stroke-width="0.9"/>`);plab();t(X-nn.nx*13,Y-nn.ny*13+2.4,opt(x,"reuseOld")?"POLE SHIFTED (OLD POLE RE-USED)":"POLE SHIFTED HERE",{fs:6,c:"#b45309"});break;
@@ -1000,6 +1006,7 @@ function sldSVG(c,so){
    ["g3",(x,y)=>`<path d="M${f(x+9)},${f(y-3.5)} L${f(x+13)},${f(y+3)} L${f(x+5)},${f(y+3)} Z" stroke="#111" stroke-width="0.8" fill="none"/>`,"3-pole structure"],
    ["g4",(x,y)=>`<rect x="${f(x+5.5)}" y="${f(y-3.5)}" width="7" height="7" stroke="#111" stroke-width="0.8" fill="none"/>`,"4-pole structure"],
    ["dtr",(x,y)=>`<rect x="${f(x+2)}" y="${f(y-4.5)}" width="14" height="9" fill="#fff" stroke="#111" stroke-width="0.8"/><circle cx="${f(x+7.3)}" cy="${f(y)}" r="2.8" fill="none" stroke="#111" stroke-width="0.7"/><circle cx="${f(x+10.7)}" cy="${f(y)}" r="2.8" fill="none" stroke="#111" stroke-width="0.7"/>`,"Transformer (DTR)"],
+   ["ctrl",(x,y)=>`<rect x="${f(x+2)}" y="${f(y-4.5)}" width="14" height="9" fill="#f3f4f6" stroke="#111" stroke-width="0.9"/><path d="M${f(x+4.5)},${f(y+2)} h9" stroke="#111" stroke-width="1"/>`,"33/11 kV control room (sub-station)"],
    ["l33",ln(PAL.hv,2.2),"New 33 kV line"],["l11",ln(PAL.hv,2.2),"New 11 kV line"],["lLT",ln(PAL.lt,1.6,"6 3"),"New LT line"],["lEx",ln(PAL.ex,1.6),"Existing line"],["lDis",ln(PAL.dis,1.6,"2 3"),"Line to be removed"],
    ["arrow",(x,y)=>`<path d="M${f(x+14)},${f(y)} L${f(x+6)},${f(y-3.5)} L${f(x+6)},${f(y+3.5)} Z" fill="#111"/>`,"Direction of power"],
    ["stay",(x,y)=>`<line x1="${f(x+3)}" y1="${f(y)}" x2="${f(x+16)}" y2="${f(y)}" stroke="#6b7280" stroke-width="0.9"/><path d="M${f(x+16)},${f(y)} l-4,-2.4 M${f(x+16)},${f(y)} l-4,2.4" stroke="#6b7280" stroke-width="0.9" fill="none"/>`,"Stay wire"],
