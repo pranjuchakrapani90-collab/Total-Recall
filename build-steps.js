@@ -49,7 +49,7 @@ function steps(ctx){const hv=ctx.kv>=11,k33=ctx.kv===33,S=[];
   S.push({id:"stay",t:"Stays",ask:"Where does the pull come from? Put a stay against each unbalanced pull.",it:k33?["653","616","651","428"]:["653","629","651","428"]});
   S.push({id:"earth",t:"Earthing",ask:"Earth pits and leads — pole, LA, DTR body and neutral.",it:["474","473","481","649","650","476"]});
   S.push({id:"safe",t:"Safety",ask:"Danger plate, anti-climbing barbed wire, guarding.",it:[k33?"720":"721","633","637","650","654"]});
-  if(ctx.dtr)S.push({id:"civil",t:"Fencing / plinth",ask:"Fencing round the DTR, plinth if it sits on the ground.",it:["420","440"]});
+  if(ctx.dtr)S.push({id:"civil",t:"Fencing / plinth",ask:"Fencing round the DTR (CGM memo 1150 dt 06.03.2024: Type-II rural / Type-I urban & semi-urban; 2.95 m size for 100 kVA & above, 2.60 m up to 63 kVA), plinth if it sits on the ground.",it:["1150/2","1150/4","1150/1","1150/3","440"]});
  }else{
   S.push({id:"pole",t:"Erect new pole(s)",ask:"Do you need a new pole here? Which one, and how many?",it:["747","746","748"]});
   S.push({id:"grout",t:"Dig and grout",ask:"Digging and grouting of the new pole.",it:["426","425","427"]});
