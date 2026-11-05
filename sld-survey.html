@@ -894,21 +894,19 @@ function sldSVG(c,so){
   if(n>1)out.push(`<path d="M${P.map(q=>f(X+q[0])+","+f(Y+q[1])).join(" L")}${n>2?" Z":""}" stroke="#111" stroke-width="0.8" fill="none"/>`);
   P.forEach((q,i)=>{const cx=X+q[0],cy=Y+q[1],e=st[i]==="e",sq=e?sqE:sqN;out.push(sq?`<rect x="${f(cx-r)}" y="${f(cy-r)}" width="${2*r}" height="${2*r}" fill="${e?"#111":"#fff"}" stroke="#111" stroke-width="1"/>`:`<circle cx="${f(cx)}" cy="${f(cy)}" r="${r}" fill="${e?"#111":"#fff"}" stroke="#111" stroke-width="1"/>`)})};
  // premises / campus wall around a DTR: brown boundary, a gate gap wherever a line crosses it, name on top
- function premSym(X,Y,x){U.prem=1;const[w,h]={S:[46,32],M:[66,44],L:[92,60]}[opt(x,"premSz")]||[66,44],f=v=>v.toFixed(1),G=7;
-  const C=[[X-w,Y-h],[X+w,Y-h],[X+w,Y+h],[X-w,Y+h]],gaps=[[],[],[],[]];
-  // follow each line outward (through its intermediate poles) to where it first leaves the premises
-  const inR=(q)=>Math.abs(q[0]-X)<w&&Math.abs(q[1]-Y)<h;
-  (c.adj[x.id]||[]).forEach(a=>{const sg=a.sg,pts=(sg.a===x?[sg.a,...sg.mid,sg.b]:[sg.b,...sg.mid.slice().reverse(),sg.a]).map(T);
-   for(let i=0;i<pts.length-1;i++){const P0=pts[i],P1=pts[i+1];if(!inR(P0)||inR(P1))continue;const dx=P1[0]-P0[0],dy=P1[1]-P0[1];let best=null;
-    [[1,w],[3,-w]].forEach(([e,ox])=>{if(!dx)return;const k=(X+ox-P0[0])/dx,y=P0[1]+dy*k;if(k>=0&&k<=1&&Math.abs(y-Y)<=h&&(!best||k<best.k))best={k,e,v:y}});
-    [[2,h],[0,-h]].forEach(([e,oy])=>{if(!dy)return;const k=(Y+oy-P0[1])/dy,xx=P0[0]+dx*k;if(k>=0&&k<=1&&Math.abs(xx-X)<=w&&(!best||k<best.k))best={k,e,v:xx}});
-    if(best)gaps[best.e].push(best.v);break}});
-  let d="";for(let i=0;i<4;i++){const A=C[i],B=C[(i+1)%4],hz=A[1]===B[1],a0=hz?A[0]:A[1],a1=hz?B[0]:B[1],sgn=a1>a0?1:-1;
+ // premises / campus wall: a brown boundary that can sit anywhere around the DTR (drag it / its corner in Move mode),
+ // with a gate gap wherever any line crosses it, and the name on top; other structures can be placed inside it freely
+ function premSym(X,Y,x){U.prem=1;const D0={S:[46,32],M:[66,44],L:[92,60]}[opt(x,"premSz")]||[66,44],B=x.premBox||{},w=B.w||D0[0],h=B.h||D0[1],CX=X+(B.dx||0),CY=Y+(B.dy||0),f=v=>v.toFixed(1),G=7;
+  const C=[[CX-w,CY-h],[CX+w,CY-h],[CX+w,CY+h],[CX-w,CY+h]],gaps=[[],[],[],[]];
+  c.segs.forEach(sg=>{const pts=[sg.a,...sg.mid,sg.b].map(T);for(let i=0;i<pts.length-1;i++){const P0=pts[i],P1=pts[i+1],dx=P1[0]-P0[0],dy=P1[1]-P0[1];
+   [[1,w],[3,-w]].forEach(([e,ox])=>{if(!dx)return;const k=(CX+ox-P0[0])/dx,y=P0[1]+dy*k;if(k>0&&k<1&&Math.abs(y-CY)<=h)gaps[e].push(y)});
+   [[2,h],[0,-h]].forEach(([e,oy])=>{if(!dy)return;const k=(CY+oy-P0[1])/dy,xx=P0[0]+dx*k;if(k>0&&k<1&&Math.abs(xx-CX)<=w)gaps[e].push(xx)})}});
+  let d="";for(let i=0;i<4;i++){const A=C[i],Bq=C[(i+1)%4],hz=A[1]===Bq[1],a0=hz?A[0]:A[1],a1=hz?Bq[0]:Bq[1],sgn=a1>a0?1:-1;
    const cuts=gaps[i].map(v=>[v-G*sgn,v+G*sgn]).sort((p,q)=>(p[0]-q[0])*sgn);let cur=a0;
    const seg=(u,v)=>{if((v-u)*sgn<=0.5)return;const P1=hz?[u,A[1]]:[A[0],u],P2=hz?[v,A[1]]:[A[0],v];d+=`M${f(P1[0])},${f(P1[1])} L${f(P2[0])},${f(P2[1])} `;LS.push([P1[0],P1[1],P2[0],P2[1]])};
-   cuts.forEach(([u,v])=>{seg(cur,u);cur=v});seg(cur,a1)}
-  out.push(`<rect x="${f(X-w)}" y="${f(Y-h)}" width="${2*w}" height="${2*h}" fill="#8a6a4b" fill-opacity="0.05" stroke="none"/><path d="${d}" stroke="#8a6a4b" stroke-width="1.6" fill="none"/><path d="${d}" stroke="#fff" stroke-width="0.5" fill="none" stroke-dasharray="3 3"/>`);
-  t(X,Y-h-4,String(opt(x,"prem")).toUpperCase()+" (PREMISES)",{fs:6.6,fw:700,c:"#6b4f33"})}
+   cuts.forEach(([u,v])=>{if((u-cur)*sgn<0){cur=Math.max(cur*sgn,v*sgn)*sgn;return}seg(cur,u);cur=v});seg(cur,a1)}
+  out.push(`<g class="premG"><rect x="${f(CX-w)}" y="${f(CY-h)}" width="${2*w}" height="${2*h}" fill="#8a6a4b" fill-opacity="0.05" stroke="none" ${so.edit?`class="premH" data-w="${w}" data-h="${h}" style="cursor:move"`:""}/><path d="${d}" stroke="#8a6a4b" stroke-width="1.6" fill="none"/><path d="${d}" stroke="#fff" stroke-width="0.5" fill="none" stroke-dasharray="3 3"/>`+(so.edit?`<rect x="${f(CX+w-5)}" y="${f(CY+h-5)}" width="10" height="10" fill="#fff" stroke="#8a6a4b" stroke-width="1.2" class="premR" data-w="${w}" data-h="${h}" style="cursor:nwse-resize"/>`:""));
+  t(CX,CY-h-4,String(opt(x,"prem")).toUpperCase()+" (PREMISES)",{fs:6.6,fw:700,c:"#6b4f33"});out.push("</g>")}
  let subEnd=0;
  let CUR=null,FREE=null,noteDone=false,ROT=0;
  // stack label / description / note on the side of the structure that no line runs into
@@ -1238,7 +1236,7 @@ function renderSLD(c){const p=P(),o=p.opt;$("#oArrow").checked=o.arrow!==false;$
  $("#sldBox").classList.toggle("editing",EDIT);$("#sldBox").classList.toggle("adding",EDIT&&EDMODE==="add");edUI()}
 /* ================= Drawing editor (SLD tab) ================= */
 let EDIT=false,EDMODE="move",ED=null,PICK=null,SNAP=true,ZOOM=1;const HIST=[],FUT=[];
-const HINTS={move:"Drag a structure or any text to move it. Tap a structure to change it, tap a line to set its type, length and direction, tap a text to rewrite it.",
+const HINTS={move:"Drag a structure or any text to move it. Drag inside a premises wall to move the wall; drag its corner square to resize it. Tap a structure to change it, tap a line to set its type, length and direction, tap a text to rewrite it.",
  add:"Tap an empty spot to place a structure there. It joins from the structure you last tapped; you can change that in the box.",
  line:"Tap the structure the line starts from, then tap where it goes: another structure, or an empty spot for a new pole. Then set the line type and length.",
  text:"Tap where the text goes and type it. Drag it later to adjust; tap it to change it.",
@@ -1296,7 +1294,9 @@ $("#sldBox").addEventListener("pointerdown",e=>{if(!EDIT)return;const xy0=svgXY(
   const C=posOf(x.id)||[0,0];ED={k:"r",el:g,id:x.id,s:xy0,m:false,c:C,a0:Math.atan2(xy0[1]-C[1],xy0[0]-C[0])*R2D,r0:+x.rot||0,lp:setTimeout(()=>{if(ED&&ED.k==="r"&&!ED.m){const D=ED;ED=null;askRot(p,x)}},650)};
   try{$("#sldBox").setPointerCapture(e.pointerId)}catch(_){}return}
  if(EDMODE==="text"&&!tx&&!g){e.preventDefault();const v=prompt("Text to place on the drawing:");if(!v||!v.trim())return;snap();freeze(p);lay(p).notes.push({id:uid(),x:+xy0[0].toFixed(1),y:+xy0[1].toFixed(1),t:v.trim()});touch(p);renderAll();return}
- if(tx)ED={k:"t",el:tx,key:tx.dataset.k,s:xy0,m:false};
+ const ph=EDMODE==="move"&&e.target.closest(".premH,.premR");
+ if(ph&&g){const rs=ph.classList.contains("premR");ED={k:rs?"pr":"pm",el:rs?ph:ph.closest(".premG"),id:g.dataset.p,s:xy0,m:false,w:+ph.dataset.w,h:+ph.dataset.h}}
+ else if(tx)ED={k:"t",el:tx,key:tx.dataset.k,s:xy0,m:false};
  else if(g)ED={k:"n",el:g,id:g.dataset.p,s:xy0,m:false,c:posOf(g.dataset.p)||[0,0]};
  else if(ln)ED={k:"l",id:ln.dataset.s,s:xy0,m:false};
  else if(EDMODE==="add"){snap();newAt(p,xy0[0],xy0[1],selId);return}
@@ -1305,8 +1305,13 @@ $("#sldBox").addEventListener("pointerdown",e=>{if(!EDIT)return;const xy0=svgXY(
 $("#sldBox").addEventListener("pointermove",e=>{if(!ED)return;const q=svgXY(e);if(!q)return;let dx=q[0]-ED.s[0],dy=q[1]-ED.s[1];if(Math.hypot(dx,dy)>3)ED.m=true;if(!ED.m)return;
  if(ED.k==="r"){clearTimeout(ED.lp);let d=Math.atan2(q[1]-ED.c[1],q[0]-ED.c[0])*R2D-ED.a0;d=SNAP?Math.round(d/15)*15:Math.round(d);ED.d=d;ED.el.setAttribute("transform",`rotate(${d} ${ED.c[0]} ${ED.c[1]})`);return}
  if(ED.k==="n"){const p=P(),x=p.pts.find(z=>z.id===ED.id),[X,Y]=snapXY(p,x,ED.c[0]+dx,ED.c[1]+dy);dx=X-ED.c[0];dy=Y-ED.c[1]}
+ if(ED.k==="pr"){const k=SNAP?5:1;dx=Math.round(Math.max(-2*ED.w+30,dx)/k)*k;dy=Math.round(Math.max(-2*ED.h+24,dy)/k)*k}
  if(ED.k!=="l")ED.el.setAttribute("transform",`translate(${dx.toFixed(1)} ${dy.toFixed(1)})`);ED.d=[dx,dy]});
 $("#sldBox").addEventListener("pointerup",()=>{const D=ED;ED=null;if(!D)return;const p=P(),L=lay(p);
+ if((D.k==="pm"||D.k==="pr")&&D.m&&D.d){const x=p.pts.find(q=>q.id===D.id);if(!x)return;const[dx,dy]=D.d,B={...(x.premBox||{})};snap();
+  if(D.k==="pm"){B.dx=+((B.dx||0)+dx).toFixed(1);B.dy=+((B.dy||0)+dy).toFixed(1)}else{B.w=+(D.w+dx/2).toFixed(1);B.h=+(D.h+dy/2).toFixed(1);B.dx=+((B.dx||0)+dx/2).toFixed(1);B.dy=+((B.dy||0)+dy/2).toFixed(1)}
+  x.premBox=B;touch(p);renderAll();return}
+ if(D.k==="pm"||D.k==="pr")D.k="n";
  if(D.k==="r"){clearTimeout(D.lp);const x=p.pts.find(q=>q.id===D.id);if(!x)return;setRot(p,x,D.m?D.r0+(D.d||0):D.r0+45);return}
  if(!D.m){if(D.k==="n"){const x=p.pts.find(q=>q.id===D.id);if(x){selId=x.id;snap();openPoint(x)}}else if(D.k==="l"){const b=p.pts.find(q=>q.id===D.id);if(b)openLine(b)}else editText(p,D.key,D.el);return}
  if(D.k==="l"||!D.d)return;const[dx,dy]=D.d;snap();freeze(p);
