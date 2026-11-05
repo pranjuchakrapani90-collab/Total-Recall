@@ -76,7 +76,7 @@ function clean(t){var o={ti:String(t.ti||"").trim()||"(Untitled task)",pj:LISTNA
   c:String(t.c||""),it:(t.it||[]).filter(function(x){return x&&String(x.ti||"").trim()}).map(function(x){return {ti:String(x.ti).trim(),d:x.d?1:0}}),
   du:/^\d{4}-\d{2}-\d{2}$/.test(t.du||"")?t.du:"",tm:/^\d{2}:\d{2}$/.test(t.tm||"")?t.tm:"",rp:String(t.rp||""),pr:[0,1,3,5].indexOf(+t.pr)>=0?+t.pr:0,
   st:t.st===2?2:0,cd:t.cd||"",cr:t.cr||nowIso(),md:nowIso(),h:t.h||{},cm:t.cm||[]};
-  if(t.src)o.src=t.src;if(t.prev)o.prev=t.prev;if(t.ad)o.ad=t.ad;if(o.tg.length>1)o.tg=o.tg.filter(function(x,i){return o.tg.indexOf(x)===i});return o;}
+  if(t.src)o.src=t.src;if(t.prev)o.prev=t.prev;if(Array.isArray(t.hold)&&t.hold.length)o.hold=t.hold.map(function(x){return {ti:String(x.ti||x)}});if(t.ad)o.ad=t.ad;if(o.tg.length>1)o.tg=o.tg.filter(function(x,i){return o.tg.indexOf(x)===i});return o;}
 function put(t){var d=raw(),id=t.id||("l"+Date.now().toString(36)+Math.random().toString(36).slice(2,7));var o=clean(t);d.t[id]=enc(o);writeRaw(d);o.id=id;emit([id]);return o;}
 function del(id){var d=raw();if(!d.t[id])return;delete d.t[id];writeRaw(d);emit([id]);}
 function get(id){return all()[id]||null}
@@ -393,10 +393,16 @@ function merge(keepId,ids){var k=get(keepId);if(!k)throw new Error("The task to 
    A divider line "──── step N · now ────" separates the finished steps from the notes of the step in hand. */
 var STEPRX=/^──── step (\d+) · now ────$/m;
 function stepOf(t){var m=String(t.c||"").match(STEPRX);if(m)return +m[1];var n=String(t.ti||"").match(/^(\d{1,2})\.\s+\S/);return n?+n[1]:1;}
-function nextStep(id,title,date){var t=get(id);if(!t)throw new Error("That task is no longer in Pranju OS.");
+/* how: "done" (default) · "first" (the step in hand waits; the new step must be done before it) · "back" (back to the waiting step) */
+function nextStep(id,title,date,how){var t=get(id);if(!t)throw new Error("That task is no longer in Pranju OS.");
+  how=how||"done";var hold=(t.hold||[]).slice();
+  if(how==="back"){if(!hold.length)throw new Error("No step is waiting on this one.");title=hold.pop().ti;date="";}
   title=String(title||"").trim().replace(/^\d{1,2}\.\s+/,"").toUpperCase();if(!title)throw new Error("Write the next step first.");
   var td=today(),dd=today().split("-"),stamp=+dd[2]+" "+["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][+dd[1]-1],
-    c=String(t.c||"").replace(/\s+$/,""),n=stepOf(t),old=String(t.ti||"").replace(/^\d{1,2}\.\s+/,""),head="**"+n+". "+old+"** · done "+stamp;
+    c=String(t.c||"").replace(/\s+$/,""),n=stepOf(t),old=String(t.ti||"").replace(/^\d{1,2}\.\s+/,""),
+    head="**"+n+". "+old+"** · "+(how==="first"?"on hold "+stamp+" — "+title+" needed first":"done "+stamp+(how==="back"?" — back to "+title:""));
+  if(how==="first")hold.push({ti:old});
+  t.hold=hold;
   if(STEPRX.test(c))c=c.replace(STEPRX,head);/* the step in hand becomes a finished step; its notes stay under it */
   else if(n>1)c=(c?c+"\n\n":"")+head;/* numbered by hand before (earlier steps already in the notes) */
   else c=head+(c?"\n"+c:"");
@@ -405,8 +411,12 @@ function nextStep(id,title,date){var t=get(id);if(!t)throw new Error("That task 
   if(t.st===2){t.st=0;t.cd="";}
   if(date&&/^\d{4}-\d{2}-\d{2}$/.test(date)&&date>td){t.du=date;if(!t.rp)t.rp=DAILY;}
   else if(!t.du||t.du>td||t.rp)t.du=td;/* comes up today */
+  if(how==="back")t.du=td;/* the waiting step is back on today's card */
   put(t);return get(id);}
 
-window.PosTasks={KEY:KEY,stepOf:stepOf,nextStep:nextStep,LISTS:LISTS,LISTNAME:LISTNAME,DAILY:DAILY,on:on,meta:meta,all:all,get:get,put:put,del:del,act:act,today:today,addDays:addDays,
+/* the waiting step is no longer needed: it leaves the queue, with a line in the notes */
+function dropHold(id){var t=get(id);if(!t||!t.hold||!t.hold.length)return t;var d=t.hold.pop(),dd=today().split("-");
+  t.c=String(t.c||"").replace(/\s+$/,"")+"\n\n_"+d.ti+" — no longer needed ("+(+dd[2])+" "+["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][+dd[1]-1]+")_";put(t);return get(id);}
+window.PosTasks={KEY:KEY,stepOf:stepOf,nextStep:nextStep,dropHold:dropHold,LISTS:LISTS,LISTNAME:LISTNAME,DAILY:DAILY,on:on,meta:meta,all:all,get:get,put:put,del:del,act:act,today:today,addDays:addDays,
   nextOcc:nextOcc,advance:advance,repeatLabel:repeatLabel,parseRule:parseRule,importTick:importTick,importBackup:importBackup,mountEditor:mountEditor,merge:merge,todayRes:todayRes,mirror:mirror,requests:requests};
 })();

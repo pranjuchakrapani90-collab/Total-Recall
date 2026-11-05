@@ -490,27 +490,33 @@ function outcomeHtml(id,a){const x=stOf(id,a),tt=closedTT(id,a)&&a.s!=="fin",ms=
   return `<div class="oc">${keys.map(k=>{const o=OUT[k],on=x===k;
     const sub=on?(k==="later"?"From "+fmtDay(a.until)+" · tap to undo":"Chosen · tap to undo"):(k==="push"?"Not done, back on "+fmtDay(addDay(td,1)):o.h);
     return `<button type="button" class="${on?"on":""}" data-oc="${k}" style="--c:${o.c}"><b>${o.i} ${o.n}</b><small>${esc(sub)}</small></button>`}).join("")}
-    <button type="button" class="ocStep" data-oc="step" style="--c:#7c3aed"><b>➜ Done · next step</b><small>This step is done — write what comes next (same task, numbered)</small></button></div>`;}
+    ${holdTop(id)?`<button type="button" class="ocStep" data-oc="back" style="--c:#0d9488"><b>↩ Done · back to ${esc(holdTop(id))}</b><small>This step is done — ${esc(holdTop(id))} comes back on today's card</small></button>`:""}
+    <button type="button" class="ocStep" data-oc="step" style="--c:#7c3aed"><b>➜ Done · next step</b><small>This step is done — write what comes next (same task, numbered)${holdTop(id)?" · "+esc(holdTop(id))+" keeps waiting":""}</small></button>
+    <button type="button" class="ocStep" data-oc="first" style="--c:#c2410c"><b>⤴ Do something first</b><small>This step waits — write what must be done before it; it comes back when that's done</small></button>
+    ${holdTop(id)?`<button type="button" class="ocStep" data-oc="drop" style="--c:#64748b"><b>✕ ${esc(holdTop(id))} not needed now</b><small>Take it off the waiting list (a line is kept in the notes)</small></button>`:""}</div>`;}
+/* the step waiting for this one, if any (5 Nov 2026) */
+function holdTop(id){const t=window.PosTasks&&PosTasks.on()?PosTasks.get(id):null,h=t&&t.hold;return h&&h.length?h[h.length-1].ti:"";}
 /* ---------- done → next step (1 Nov 2026): the task develops — "1. BUY PROZAC" becomes "2. WAIT FOR DELIVERY" ---------- */
-function stepHtml(id,a){const t=window.PosTasks&&PosTasks.on()?PosTasks.get(id):null,td=todayIST();
+function stepHtml(id,a,first){const t=window.PosTasks&&PosTasks.on()?PosTasks.get(id):null,td=todayIST();
   if(!t)return `<div class="ocLater" style="border-color:#7c3aed"><b style="color:#7c3aed">Next step</b><p class="meta" style="margin:8px 0">This task is no longer in Pranju OS's task list (it may have been deleted).</p><button type="button" class="btn ghost" id="ocCancel">Back</button></div>`;
   const n=PosTasks.stepOf(t),cur=String(t.ti).replace(/^\d{1,2}\.\s+/,"");
-  return `<div class="ocLater ocStepBox"><b>✓ ${n}. ${esc(cur)}</b>
-    <label class="lbl" for="ocNext" style="margin-top:8px">${n+1}. What's the immediate next step?</label>
+  return `<div class="ocLater ocStepBox"><b>${first?"⏸":"✓"} ${n}. ${esc(cur)}${first?" — waits":""}</b>
+    <label class="lbl" for="ocNext" style="margin-top:8px">${n+1}. ${first?"What must be done first?":"What's the immediate next step?"}</label>
     <input id="ocNext" autocomplete="off" placeholder="e.g. WAIT FOR DELIVERY" style="text-transform:uppercase">
     <div class="ocQ" style="grid-template-columns:repeat(4,1fr)">${[[0,"Today"],[1,"Tomorrow"],[3,"In 3 days"],[7,"In a week"]].map(([k,l],i)=>`<button type="button" class="btn${i?"":" on"}" data-sd="${addDay(td,k)}">${l}<small>${k?fmtDay(addDay(td,k)):"on the card"}</small></button>`).join("")}</div>
-    <div class="ocPick"><input type="date" id="ocDate" min="${td}" value="${td}"><button type="button" class="btn pri" id="ocSet">Save step ${n+1}</button><button type="button" class="btn ghost" id="ocCancel">Cancel</button></div></div>`;}
-function bindStep(box,id){const back=box.querySelector("#ocCancel");back.onclick=e=>{e.stopPropagation();if(TF)drawFlash()};
+    <div class="ocPick"><input type="date" id="ocDate" min="${td}" value="${td}"><button type="button" class="btn pri" id="ocSet">${first?"Do this first":"Save step "+(n+1)}</button><button type="button" class="btn ghost" id="ocCancel">Cancel</button></div></div>`;}
+function bindStep(box,id,first){const back=box.querySelector("#ocCancel");back.onclick=e=>{e.stopPropagation();if(TF)drawFlash()};
   const inp=box.querySelector("#ocNext");if(!inp)return;const dt=box.querySelector("#ocDate");setTimeout(()=>inp.focus(),30);
   box.querySelectorAll("[data-sd]").forEach(b=>b.onclick=e=>{e.stopPropagation();dt.value=b.dataset.sd;box.querySelectorAll("[data-sd]").forEach(x=>x.classList.toggle("on",x===b))});
   dt.onchange=()=>box.querySelectorAll("[data-sd]").forEach(x=>x.classList.toggle("on",x.dataset.sd===dt.value));
   const go=e=>{e&&e.stopPropagation();const v=inp.value.trim();if(!v){toast("Write the next step first");inp.focus();return}
     const td=todayIST(),d=dt.value&&dt.value>td?dt.value:td,a=D.assign[id];let t;
-    try{t=PosTasks.nextStep(id,v,d)}catch(err){toast(err.message||String(err),3500);return}
-    const n=PosTasks.stepOf(t),body=String(t.ti).replace(/^\d{1,2}\.\s+/,"");
-    clearOutcome(a);a.t=t.ti;a.k=n+". "+shortKw(body);if(d>td){a.s="later";a.on=td;a.until=d;}
-    lastNew=id;save();toast(`Step ${n-1} done · now ${n}. ${body}`+(d>td?" · from "+fmtDay(d):""),3200);backToCard();};
+    try{t=PosTasks.nextStep(id,v,d,first?"first":"done")}catch(err){toast(err.message||String(err),3500);return}
+    stepSaved(id,t,d,first?`Step ${PosTasks.stepOf(t)-1} waits`:`Step ${PosTasks.stepOf(t)-1} done`);};
   box.querySelector("#ocSet").onclick=go;inp.onkeydown=e=>{if(e.key==="Enter")go(e)};}
+function stepSaved(id,t,d,what){const td=todayIST(),a=D.assign[id],n=PosTasks.stepOf(t),body=String(t.ti).replace(/^\d{1,2}\.\s+/,"");
+  clearOutcome(a);a.t=t.ti;a.k=n+". "+shortKw(body);if(d>td){a.s="later";a.on=td;a.until=d;}
+  lastNew=id;save();toast(`${what} · now ${n}. ${body}`+(d>td?" · from "+fmtDay(d):""),3200);backToCard();}
 function laterHtml(a){const td=todayIST(),pick=a.s==="later"&&a.until>td?a.until:addDay(td,2);
   const wd=new Date(td+"T12:00:00Z").getUTCDay(),toMon=((8-wd)%7)||7;
   const q=[[2,"Day after tomorrow"],[3,"In 3 days"],[toMon,"Next Monday"],[7,"In a week"]].filter((v,i,arr)=>arr.findIndex(w=>w[0]===v[0])===i);
@@ -519,7 +525,9 @@ function laterHtml(a){const td=todayIST(),pick=a.s==="later"&&a.until>td?a.until
 function bindOutcome(box,id){const a=D.assign[id];if(!a)return;
   box.querySelectorAll("[data-oc]").forEach(b=>b.onclick=e=>{e.stopPropagation();const k=b.dataset.oc,cur=stOf(id,a);
     if(k==="later"&&cur!=="later"){box.innerHTML=laterHtml(a);bindLater(box,id);return}
-    if(k==="step"){box.innerHTML=stepHtml(id,a);bindStep(box,id);return}
+    if(k==="step"||k==="first"){box.innerHTML=stepHtml(id,a,k==="first");bindStep(box,id,k==="first");return}
+    if(k==="back"){let t;try{t=PosTasks.nextStep(id,"",todayIST(),"back")}catch(err){toast(err.message||String(err),3500);return}stepSaved(id,t,todayIST(),`Step ${PosTasks.stepOf(t)-1} done`);return}
+    if(k==="drop"){const w=holdTop(id);if(!confirm(w+" is no longer needed?"))return;PosTasks.dropHold(id);toast(w+" taken off the waiting list",2600);if(TF)drawFlash();return}
     /* instant feedback, then straight back to the member's card (one render) */
     if(cur!==k){b.classList.add("on");setOutcome(id,k,null,false,true);advance(id);}
     else{setOutcome(id,k);}});}
