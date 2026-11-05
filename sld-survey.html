@@ -429,8 +429,8 @@ const LINES={
 const KG=["Sources & tapping","New poles & structures","Switching, protection & metering","DTR","Crossings","Change of line type","Consumer end","Existing & dismantling","Landmark (drawing only)","Existing structures on the route","Upgrade / convert an existing structure"];
 const KORD=[0,1,9,10,2,3,4,5,6,7,8];   // order the groups appear in the picker
 const KINDS={
- src11:{g:0,t:"11 kV tapping point",d:"Existing 11 kV pole / DP / structure the new line taps from",src:"HV",o:["exType","srcStr","dof","stays"]},
- src33:{g:0,t:"33 kV tapping point",d:"Existing 33 kV pole / DP / structure the new line taps from",src:"HV",o:["exType","srcStr","stays"]},
+ src11:{g:0,t:"11 kV tapping point",d:"Existing 11 kV pole / DP / structure the new line taps from",src:"HV",o:["exType","srcStr","exCond","dof","stays"]},
+ src33:{g:0,t:"33 kV tapping point",d:"Existing 33 kV pole / DP / structure the new line taps from",src:"HV",o:["exType","srcStr","exCond","stays"],def:{exCond:"W"}},
  srcDTR:{g:0,t:"Existing DTR (LT side)",d:"Supply taken from the LT side of an existing DTR",src:"LT",o:["dtrNo","kva","stays"]},
  srcLT:{g:0,t:"LT source (existing LT pole)",d:"Existing LT pole the new LT line starts from",src:"LT",o:["exType","srcStr","stays"]},
  pole:{g:1,t:"New pole (PSC)",d:"Turning point, line end or any pole you fix",o:["poleLen","db","dbn","dbTy","stays"]},
@@ -492,6 +492,7 @@ const OPTF={
  dtrNo:{l:"DTR No.",ty:"txt",def:""},prem:{l:"Inside premises / campus (name; blank = not shown)",ty:"txt",def:""},premSz:{l:"Premises size on drawing",ty:"sel",o:[["S","Small"],["M","Medium"],["L","Large"]],def:"M"},lmType:{l:"Landmark",ty:"sel",o:LMT,def:"School"},lmLen:{l:"Length on drawing (road / track / river / drain marked with one point)",ty:"sel",o:[["S","Short"],["M","Medium"],["L","Long"],["F","Full: straight right across the sheet"]],def:"S"},
  fit:{l:"New line fittings on it (cross-arm / channel, insulators, jumpers)",ty:"chk",def:true},
  exEq:{l:"Equipment already on it",ty:"sel",o:[["","None"],["GOAB","GOAB"],["DO","DO fuse"],["LA","LA"],["GOAB + DO","GOAB + DO"],["GOAB + DO + LA","GOAB + DO + LA"],["DTR","DTR"]],def:""},
+ exCond:{l:"Existing line conductor (sizes PG clamps / jumpers when the new line is MVCC)",ty:"sel",o:[["R","ACSR Raccoon"],["B","ACSR Rabbit"],["D","ACSR Dog"],["W","ACSR Wolf"],["M","MVCC / covered (no PG)"]],def:"R"},
  exType:{l:"Existing pole(s) type",ty:"sel",o:[["PSC","PSC"],["RCC","RCC"],["SP-56","SP-56 steel tubular"],["SP-60","SP-60 steel tubular"],["SP-66","SP-66 steel tubular"],["SP-76","SP-76 steel tubular"],["Steel","Steel tubular (other)"],["Rail","Rail pole"],["RSJ","RS joist"]],def:"PSC"},
  srcStr:{l:"Tapping structure",ty:"sel",o:[["SP","Single pole"],["DP","Double pole (DP)"],["TP","3-pole structure"],["4P","4-pole structure"],["ST","Steel / rail pole"]],def:"SP"},
  newCh:{l:"New 3.2 m channels (old DP channels to dismantling)",ty:"chk",def:true},
@@ -509,6 +510,7 @@ const OLDP={"PSC 8.5":"747","PSC 7.5":"746","PSC 9.75":"748","SP-56":"751","SP-6
 const DTRK={16:"770",25:"771",63:"772",100:"774",160:"778",200:"780",250:"782"};
 const DEF_SET={sHV:45,sMV:32,sEHV:33,sLT:40,sABC:33,sEarth:5,sStay:0,sSvc:30,sDB:1,sDBph:1};
 const EXLT=new Set(["srcLT","exPole","exFit","exDP"]),AUTODB=new Set(["pole","steel","ltdp","exFit","exPole","exDP"]);
+const EXC={R:{pg:"827",c:"447",n:"ACSR Raccoon"},B:{pg:"826",c:"446",n:"ACSR Rabbit"},D:{pg:"827",c:"448",n:"ACSR Dog (PG priced at Raccoon 827, check)"},W:{pg:"828",c:"449",n:"ACSR Wolf"}};
 const isSrc=x=>!!(KINDS[x.kind]&&KINDS[x.kind].src),isStand=x=>!!(KINDS[x.kind]&&KINDS[x.kind].standalone);
 /* ================= Storage + sync ================= */
 const LS="sld-survey-v1";
@@ -641,7 +643,7 @@ function compute(p){
   if(!K.standalone)["HV","LT"].forEach(cls=>{
    const e=adj[x.id].filter(a=>a.sg.cls===cls&&work(a.sg.L));if(!e.length)return;
    const inc=e.find(a=>a.sg.b===x)||e[0],L=inc.sg.L,kit=KT[cls];let role,stays=0;
-   if(src){role="tap";e.forEach(a=>{if(fitOK){kit.d(a.sg.L,1,"tap-off at "+tag);if(cls==="HV"&&a.sg.L.bare)add(a.sg.L.pg,6,"jumpers to the existing line at "+tag)}stays++;nd.stayDirs.push({x:-a.ux,y:-a.uy})})}
+   if(src){role="tap";e.forEach(a=>{if(fitOK){kit.d(a.sg.L,1,"tap-off at "+tag);if(cls==="HV"&&a.sg.L.bare)add(a.sg.L.pg,6,"jumpers to the existing line at "+tag);else if(cls==="HV"&&a.sg.L.mv){const xc=EXC[opt(x,"exCond")];if(xc){add(xc.pg,6,"PG clamps joining the bare jumpers to the existing "+xc.n+" line at "+tag+" (MVCC tap: line not cut)");add(xc.c,0.015,"bare "+xc.n+" jumpers, 3 phases x ~5 m, existing line to GOAB / MVCC termination at "+tag)}}}stays++;nd.stayDirs.push({x:-a.ux,y:-a.uy})})}
    else if(e.length===1){role="dead-end";if(fitOK)kit.d(e[0].sg.L,1,"dead-end at "+tag);stays=1;nd.stayDirs.push({x:-e[0].ux,y:-e[0].uy})}
    else if(e.length===2){const dev=180-angleOf(e[0],e[1]);nd.dev=Math.round(dev);
     if(dev<10){role="tangent";if(fitOK)kit.t(L,1,"tangent at "+tag)}
