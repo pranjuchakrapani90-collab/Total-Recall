@@ -134,6 +134,48 @@ function fetchDetail(task){
 }
 function prefetch(from){for(var k=from;k<Math.min(S.slides.length,from+3);k++){var s=S.slides[k];if(s.type==='item')fetchDetail(s.task)}}
 
+/* ---------- task journeys: a multi-step task told step by step (5 Nov 2026) ---------- */
+var HEAD=/^\*\*(\d+)\.\s+(.+?)\*\*\s*·\s*(.*)$/,NOWRX=/^──── step (\d+) · now ────$/;
+function stripNo(x){return String(x||'').replace(/^\d{1,2}\.\s+/,'')}
+function parseJourney(t){
+  var lines=String(t.c||'').split('\n'),steps=[],pre=[],cur=null,now=null;
+  lines.forEach(function(L){var m=L.match(HEAD),k=L.match(NOWRX);
+    if(m){cur={n:+m[1],title:m[2],status:m[3],notes:[]};steps.push(cur);return}
+    if(k){now={notes:[]};cur=now;return}
+    (cur?cur.notes:pre).push(L)});
+  var closed=t.st===2,last={n:(window.PosTasks&&PosTasks.stepOf?PosTasks.stepOf(t):steps.length+1),title:stripNo(t.ti),
+    status:closed?'done and dusted '+fmtDay(t.cd):'in hand now',notes:now?now.notes:(steps.length?[]:pre),current:!closed,closed:closed};
+  steps.forEach(function(x){x.kind=/^on hold/.test(x.status)?'hold':'done'});
+  steps.push(last);
+  var p=pre.join('\n').trim();if(steps.length>1&&p)steps[0].notes=pre.concat(['']).concat(steps[0].notes);
+  steps.forEach(function(x){x.notes=Array.isArray(x.notes)?x.notes.join('\n').trim():x.notes});
+  return steps;
+}
+function jPeriod(){var el=$('journeyPeriod');return el?el.value:'all'}
+function lastStepDay(t){var ds=Object.keys(t.h||{}).filter(function(d){return t.h[d]==='step'}).sort();return ds[ds.length-1]||''}
+function loadJourneys(){
+  var P=window.PosTasks;if(!P||!P.all)throw new Error('The task list is not available on this page.');
+  var key=jPeriod(),days={'7':7,'30':30,'90':90}[key],from=days?P.addDays(P.today(),-days+1):'';
+  var T=P.all(),out=[];
+  Object.keys(T).forEach(function(id){var t=T[id];if(t.pj==='archive'||t.pj==='abandoned')return;
+    var steps=parseJourney(t);if(steps.length<2)return;
+    var when=t.st===2?t.cd:lastStepDay(t);if(from&&(!when||when<from))return;
+    out.push({task:t,steps:steps,when:when||''})});
+  out.sort(function(a,b){return (a.task.st===2)-(b.task.st===2)||String(b.when).localeCompare(String(a.when))});
+  return out;
+}
+function buildJourneyFilm(list){
+  var name='Task Journeys',slides=[],total=list.length,tags={};
+  list.forEach(function(j){var g=primaryTag((j.task.tg||[]).map(function(x){return String(x).toUpperCase()}));j.tag=g;tags[g]=(tags[g]||0)+1});
+  slides.push({type:'intro',tag:list[0].tag,name:name,total:total,journeys:list});
+  list.forEach(function(j,ji){
+    slides.push({type:'journey',tag:j.tag,name:name,j:j,pos:ji+1,of:total});
+    j.steps.forEach(function(st,k){slides.push({type:'step',tag:j.tag,name:name,j:j,st:st,k:k+1,of:j.steps.length})});
+  });
+  slides.push({type:'outro',tag:list[list.length-1].tag,name:name,total:total,journeys:list});
+  return slides;
+}
+
 /* ---------- rendering ---------- */
 function detailHtml(data,task){
   if(!data)return '<div class="muted">Details are not available for this item.</div>';
@@ -155,10 +197,13 @@ function render(){
   root.style.setProperty('--hue',hueOf(s.tag));
   $('cineLbl').textContent=s.name+(s.type==='item'||s.type==='chapter'?' · '+tagLabel(s.tag):'');
   var items=S.slides.filter(function(x){return x.type==='item'}).length,itemNo=s.type==='item'?s.n:null;
-  $('cineCount').textContent=itemNo?itemNo+' / '+items:(s.type==='intro'?'Start':s.type==='outro'?'End':'—');
+  if(S.kind==='journey'){items=s.of;itemNo=s.type==='step'?s.k:s.type==='journey'?null:null}
+  $('cineCount').textContent=S.kind==='journey'&&s.type==='journey'?'Task '+s.pos+' / '+s.of:itemNo?(S.kind==='journey'?'Step ':'')+itemNo+' / '+items:(s.type==='intro'?'Start':s.type==='outro'?'End':'—');
+  if(S.kind==='journey'&&(s.type==='journey'||s.type==='step'))$('cineLbl').textContent=s.name+' · '+stripNo(s.j.task.ti);
   $('cineFill').style.width=(S.i/(S.slides.length-1||1)*100)+'%';
   var html='';
-  if(s.type==='intro'){
+  if(S.kind==='journey'){html=journeyHtml(s)}
+  else if(s.type==='intro'){
     html='<div class="kicker">Pranju OS · '+h(s.name)+'</div><div class="title big">'+(S.kind==='completed'?'What you got done':'What you filed away')+'</div>'+
       '<div class="sub">'+h(fmtRange(s.range))+' · '+s.total+' item'+(s.total===1?'':'s')+' across '+s.tags.length+' area'+(s.tags.length===1?'':'s')+'</div>'+
       '<div class="pills">'+s.tags.map(function(t){return '<span class="pill">'+h(tagLabel(t))+' · '+s.groups[t].length+'</span>'}).join('')+'</div>';
@@ -189,6 +234,29 @@ function render(){
   schedule(s,node);
 }
 
+function notesHtml(md,t){if(!md)return '<div class="muted">No notes written during this step.</div>';try{return B().tickContentHtml?B().tickContentHtml(md,t):h(md).replace(/\n/g,'<br>')}catch(_){return h(md).replace(/\n/g,'<br>')}}
+function journeyHtml(s){
+  if(s.type==='intro'){var open=s.journeys.filter(function(j){return j.task.st!==2}).length;
+    return '<div class="kicker">Pranju OS · Task Journeys</div><div class="title big">How your tasks evolved</div>'+
+      '<div class="sub">'+s.total+' multi-step task'+(s.total===1?'':'s')+' · '+(s.total-open)+' done and dusted · '+open+' still moving</div>'+
+      '<div class="pills">'+s.journeys.slice(0,12).map(function(j){return '<span class="pill">'+h(stripNo(j.task.ti))+' · '+j.steps.length+' steps</span>'}).join('')+(s.journeys.length>12?'<span class="pill">+'+(s.journeys.length-12)+' more</span>':'')+'</div>'}
+  if(s.type==='journey'){var t=s.j.task,holds=s.j.steps.filter(function(x){return x.kind==='hold'}).length;
+    return '<div class="kicker">Journey '+s.pos+' of '+s.of+' · '+h(tagLabel(s.tag))+'</div><div class="title big">'+h(stripNo(t.ti))+'</div>'+
+      '<div class="sub">'+s.j.steps.length+' steps'+(holds?' · '+holds+' detour'+(holds===1?'':'s'):'')+'</div>'+
+      '<div class="pills"><span class="pill">'+(t.st===2?'✓ Done and dusted · '+h(fmtDay(t.cd)):'▶ Still moving · now on step '+s.j.steps[s.j.steps.length-1].n)+'</span>'+
+      ((t.hold||[]).length?'<span class="pill">⏸ Waiting: '+t.hold.map(function(x){return h(x.ti)}).join(', ')+'</span>':'')+'</div>'+
+      '<div class="dates">'+s.j.steps.map(function(x){return '<span class="date">'+x.n+'. '+h(x.title)+'</span>'}).join('')+'</div>'}
+  if(s.type==='step'){var x=s.st,t2=s.j.task,pill=x.closed?'✓ Done and dusted · '+h(fmtDay(t2.cd)):x.current?'▶ In hand now':(x.kind==='hold'?'⏸ ':'✓ ')+h(x.status);
+    return '<div class="kicker">'+h(stripNo(t2.ti))+' · step '+s.k+' of '+s.of+'</div><div class="title">'+x.n+'. '+h(x.title)+'</div>'+
+      '<div class="pills"><span class="pill">'+pill+'</span></div>'+
+      '<div class="detail"><div class="detailInner">'+notesHtml(x.notes,t2)+'</div></div>'+
+      (x.current||x.closed?'<div class="actions" style="margin-top:14px"><a href="'+taskLink(t2)+'">Open task ✎</a></div>':'')}
+  var done=s.journeys.filter(function(j){return j.task.st===2}).length;
+  return '<div class="kicker">The end</div><div class="title big">'+s.total+' journeys</div>'+
+    '<div class="summary"><div class="sumCard"><b>'+done+'</b><span>Done and dusted</span></div><div class="sumCard"><b>'+(s.total-done)+'</b><span>Still moving</span></div><div class="sumCard"><b>'+s.journeys.reduce(function(a,j){return a+j.steps.length},0)+'</b><span>Steps in all</span></div></div>'+
+    '<div class="actions"><button class="primary" id="cineAgain">↺ Watch again</button><button id="cineDone">Close</button></div>';
+}
+
 /* ---------- timing ---------- */
 function stopTimers(){clearTimeout(S.timer);cancelAnimationFrame(S.raf);S.timer=null}
 function schedule(s,node){
@@ -196,6 +264,8 @@ function schedule(s,node){
   var token=S.token=(S.token||0)+1;
   if(s.type==='intro'){arm(5500);return}
   if(s.type==='chapter'){arm(3200);return}
+  if(s.type==='journey'){arm(4200);return}
+  if(s.type==='step'){var w=textLen(node.innerHTML);arm(Math.min(30000,Math.max(5000,3000+w*240)),true);return}
   if(s.type==='outro'){S.dur=0;setNow(1);pause(true);$('cine').classList.remove('isPaused');return}
   var waited=Promise.race([fetchDetail(s.task),new Promise(function(r){setTimeout(function(){r('__slow')},6000)})]);
   waited.then(function(data){
@@ -227,7 +297,7 @@ function rollCredits(p){var n=S.node,box=n&&n.querySelector('.detail'),inner=n&&
 function setNow(p){var n=S.slides.length-1||1,w=100/n;$('cineNow').style.left=(S.i/n*100)+'%';$('cineNow').style.width=(S.i>=n?0:w*p)+'%'}
 
 function go(i,force){if(i<0)i=0;if(i>=S.slides.length)i=S.slides.length-1;if(i===S.i&&!force)return;S.i=i;render()}
-function nextChapter(){for(var k=S.i+1;k<S.slides.length;k++){if(S.slides[k].type==='chapter'||S.slides[k].type==='outro'){go(k);return}}}
+function nextChapter(){for(var k=S.i+1;k<S.slides.length;k++){if(S.slides[k].type==='chapter'||S.slides[k].type==='journey'||S.slides[k].type==='outro'){go(k);return}}}
 function play(silent){S.playing=true;$('cine').classList.remove('isPaused');$('cinePlay').textContent='⏸';if(S.slides[S.i].type==='outro'&&!silent){go(0,true);return}run()}
 function pause(auto){S.playing=false;stopTimers();$('cinePlay').textContent='▶';if(!auto)$('cine').classList.add('isPaused');$('cine').classList.remove('idle')}
 function toggle(){S.playing?pause():play()}
@@ -243,13 +313,13 @@ function logReference(t){
 
 /* ---------- open / close ---------- */
 async function open(kind,btn){
-  var sel=$(kind==='completed'?'completedPeriod':'referencePeriod'),range=B().periodRange?B().periodRange(sel&&sel.value):null;
+  var sel=$(kind==='completed'?'completedPeriod':'referencePeriod'),range=kind==='journey'?{}:(B().periodRange?B().periodRange(sel&&sel.value):null);
   if(!range){alert('Please select a review period first.');return}
   var label=btn.textContent;btn.disabled=true;btn.textContent='Loading film…';
   try{
-    var items=kind==='completed'?await loadCompleted(range):await loadReferenceItems(range);
-    if(!items.length){alert(kind==='completed'?'No completed tasks found for this period.':'No '+refName()+' items found for this period.');return}
-    injectStyles();S={slides:buildFilm(kind,range,items),i:0,playing:true,speed:Number(localStorage.getItem('totalRecallCineSpeed'))||1,details:{},kind:kind,logged:{}};
+    var items=kind==='journey'?loadJourneys():kind==='completed'?await loadCompleted(range):await loadReferenceItems(range);
+    if(!items.length){alert(kind==='journey'?'No multi-step tasks found for this period.':kind==='completed'?'No completed tasks found for this period.':'No '+refName()+' items found for this period.');return}
+    injectStyles();S={slides:kind==='journey'?buildJourneyFilm(items):buildFilm(kind,range,items),i:0,playing:true,speed:Number(localStorage.getItem('totalRecallCineSpeed'))||1,details:{},kind:kind,logged:{}};
     if(SPEEDS.indexOf(S.speed)<0)S.speed=1;
     buildStage();$('cineSpeed').textContent=S.speed+'×';document.documentElement.style.overflow='hidden';
     try{if(navigator.wakeLock)S.wake=await navigator.wakeLock.request('screen')}catch(_){}
@@ -269,6 +339,7 @@ function mount(){
   injectStyles();
   var a=$('reviewCompletedBtn'),b=$('startReference');
   if(a&&!$('cineCompletedBtn')){var x=document.createElement('button');x.id='cineCompletedBtn';x.className='cineBtn';x.textContent='🎬 Cinematic review';x.title='Play every completed task in this period, one after another';x.onclick=function(){open('completed',x)};a.parentNode.insertBefore(x,a.nextSibling)}
+  var j=$('journeyPlay');if(j&&!j._cine){j._cine=1;j.onclick=function(){open('journey',j)}}
   if(b&&!$('cineReferenceBtn')){var y=document.createElement('button');y.id='cineReferenceBtn';y.className='cineBtn';y.textContent='🎬 Cinematic review';y.title='Play every Reference item in this period, one after another';y.onclick=function(){open('reference',y)};b.parentNode.insertBefore(y,b.nextSibling)}
 }
 window.CinematicReview={open:open,close:close};
