@@ -43,8 +43,8 @@ function steps(ctx){const hv=ctx.kv>=11,k33=ctx.kv===33,S=[];
    it:(ctx.mv?(k33?["869","898"]:["873","875","872","902","904","878","879"]):[]).concat(k33?["828","449"]:["826","827","828","446","447","448"])});
   S.push({id:"sw",t:"Switchgear",ask:"Any GOAB, DO fuse set or LA on this structure?",it:k33?["660","674"]:["518","519","513","514","676"]});
   if(ctx.dtr){
-   S.push({id:"dtr",t:"Mount the transformer",ask:"Which DTR goes on the DP?",it:["770","771","772","774","778","780","782"]});
-   S.push({id:"ltside",t:"LT side of the DTR",ask:"MCCB, LT cable from the DTR to the MCCB / DB, lugs.",it:["354","355","356","357","358","124","71","683","686","811","813"]})}
+   S.push({id:"dtr",t:"Mount the transformer",ask:"Which DTR goes on the DP? It sits on the platform channels and is belted down with GI angle.",it:["637","770","771","772","774","778","780","782"]});
+   S.push({id:"ltside",t:"LT side of the DTR",ask:"MCB / MCCB and the LT box (metering cabinet) it sits in, GI angle frame for the box, LT cable from the DTR to the box, lugs.",it:["352","354","355","356","357","358","124","71","683","686","507","637","811","813"]})}
   if(ctx.lt)S.push({id:"ltw",t:"LT line on this pole",ask:"Is the LT line also carried here? Cross arm, pins, shackles, ABC clamps, boxes.",it:["645","630","842","632","853","800","806","810","807","802","811","813","805","809","808"]});
   S.push({id:"stay",t:"Stays",ask:"Where does the pull come from? Put a stay against each unbalanced pull.",it:k33?["653","616","651","428"]:["653","629","651","428"]});
   S.push({id:"earth",t:"Earthing",ask:"Earth pits and leads — pole, LA, DTR body and neutral.",it:["474","473","481","649","650","476"]});
