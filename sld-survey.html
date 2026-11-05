@@ -89,7 +89,7 @@ dialog::backdrop{background:#0006}
 .tools{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;align-items:stretch}.tools .sep{width:1px;background:var(--line);margin:2px 2px}
 .tb{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:52px;padding:5px 6px;border:1px solid var(--line);border-radius:10px;background:#fff;font:700 16px system-ui;cursor:pointer;color:#1e293b}
 .tb span{font:600 10px system-ui;margin-top:2px;color:#475569}.tb.on{background:#0f766e;border-color:#0f766e;color:#fff}.tb.on span{color:#e6fffa}.tb:disabled{opacity:.4}
-.sldbox.editing.adding svg,.sldbox.editing.lining svg,.sldbox.editing.texting svg{cursor:crosshair}.sldbox.editing.deleting svg{cursor:not-allowed}
+.sldbox.editing.adding svg,.sldbox.editing.lining svg,.sldbox.editing.texting svg{cursor:crosshair}.sldbox.editing.deleting svg{cursor:not-allowed}.sldbox.editing.turning svg{cursor:alias}
 .sldbox g.sel .grab{fill:#2563eb;fill-opacity:.22;stroke:#1d4ed8;stroke-opacity:1;stroke-dasharray:none}.sldbox .seln{fill:#1d4ed8}.sldbox.editing.selecting svg{cursor:crosshair}
 .sldbox .pick .grab{fill:#f59e0b;fill-opacity:.35;stroke:#b45309;stroke-opacity:1}.sldbox.editing .lhit{cursor:pointer}.sldbox.editing .lhit:hover{stroke:#f59e0b;stroke-opacity:.35}
 /* estimate */
@@ -211,6 +211,7 @@ table.boq{border-collapse:collapse;width:100%;min-width:720px;font-size:12.5px}
     <button class="tb" data-tool="select" type="button" title="Drag a box to select part of the drawing">⬚<span>Select</span></button>
     <button class="tb" data-tool="add" type="button" title="Place a structure">✚<span>Structure</span></button>
     <button class="tb" data-tool="line" type="button" title="Draw a line from one structure to another">╱<span>Line</span></button>
+    <button class="tb" data-tool="turn" type="button" title="Turn a DP, 3-pole, 4-pole or DTR">⟳<span>Turn</span></button>
     <button class="tb" data-tool="text" type="button" title="Add free text">T<span>Text</span></button>
     <button class="tb" data-tool="del" type="button" title="Delete what you tap">🗑<span>Delete</span></button>
     <i class="sep"></i>
@@ -813,10 +814,16 @@ function sldSVG(c,so){
  let CTX="",CN=0;const ctx=k=>{CTX=k;CN=0};
  // pole layouts: DP = two poles side by side, 3-pole = triangle (apex up), 4-pole = square, all with clear separation
  const GEO={1:[[0,0]],2:[[-7,0],[7,0]],3:[[0,-9],[7.8,4.5],[-7.8,4.5]],4:[[-6.5,-6.5],[6.5,-6.5],[6.5,6.5],[-6.5,6.5]],d:[[-13,-9],[13,-9],[13,9],[-13,9]]},TOP={1:8,2:9,3:14,4:13,d:14},BOT={1:12,2:13,3:16,4:16,d:19},HW={1:4,2:10,3:11,4:10,d:16};
+ // orientation: a DP / 3-pole / 4-pole / DTR can be turned (x.rot, degrees clockwise); the outline and label space turn with it
+ const rotQ=(q,a)=>{if(!a)return q;const r=a*D2R,c=Math.cos(r),s=Math.sin(r);return[q[0]*c-q[1]*s,q[0]*s+q[1]*c]};
+ const GEOr=(n,a)=>GEO[n].map(q=>rotQ(q,a));
+ const EXT=(n,a)=>{if(!a||n===1)return{top:TOP[n],bot:BOT[n],hw:HW[n]};const g0=GEO[n],g=GEOr(n,a),mn=v=>Math.min(...v),mx=v=>Math.max(...v);
+  const mT=TOP[n]+mn(g0.map(q=>q[1])),mB=BOT[n]-mx(g0.map(q=>q[1])),mH=HW[n]-mx(g0.map(q=>q[0]));
+  return{top:mT-mn(g.map(q=>q[1])),bot:mB+mx(g.map(q=>q[1])),hw:mH+mx(g.map(q=>Math.abs(q[0])))}};
  const NP=x=>{const k=x.kind;if(["dtr","htc","dtrAug","dtrTemp","dtrShift","exDTR"].includes(k))return"d";if(["dp","iso33","ctpt","vcb11","exDP","sp2dp","ltdp","xRail","xBridge"].includes(k))return 2;if(["tp","exTP","dp2tp","sp2tp"].includes(k))return 3;if(["p4","ex4P","dp24p"].includes(k))return 4;if(k.startsWith("src")&&k!=="srcDTR")return{DP:2,TP:3,"4P":4}[opt(x,"srcStr")]||1;return 1};
  // a line ends on the outline of a 3-pole / 4-pole structure (DP: mid of the tie, single pole: the pole itself)
  // a line meets a 3-pole / 4-pole structure or a DTR exactly at the middle of the side facing it (DP: middle of the tie, single pole: the pole)
- const trimTo=(x,P,Q)=>{const n=NP(x);if(n!=="d"&&n<3)return P;const g=GEO[n],dx=Q[0]-P[0],dy=Q[1]-P[1],l=Math.hypot(dx,dy)||1;let best=null,bd=-2;
+ const trimTo=(x,P,Q)=>{const n=NP(x);if(n!=="d"&&n<3)return P;const g=GEOr(n,+x.rot||0),dx=Q[0]-P[0],dy=Q[1]-P[1],l=Math.hypot(dx,dy)||1;let best=null,bd=-2;
   const cand=[];for(let i=0;i<g.length;i++){const a=g[i],b=g[(i+1)%g.length];cand.push([(a[0]+b[0])/2,(a[1]+b[1])/2])}
   cand.forEach(([mx,my])=>{const ml=Math.hypot(mx,my)||1,d=(mx*dx+my*dy)/(ml*l);if(d>bd+1e-6){bd=d;best=[mx,my]}});
   return[P[0]+best[0],P[1]+best[1]]};
@@ -879,24 +886,24 @@ function sldSVG(c,so){
  function stay(x,y,d){if(so.stay===false)return;U.stay=1;const l=Math.hypot(d.x,d.y)||1,ux=d.x/l,uy=-d.y/l,ex=x+ux*15,ey=y+uy*15;LS.push([x,y,ex,ey]);out.push(`<line x1="${x}" y1="${y}" x2="${ex}" y2="${ey}" stroke="#6b7280" stroke-width="0.9"/><path d="M${ex},${ey} l${(-ux*4-uy*2.4).toFixed(1)},${(-uy*4+ux*2.4).toFixed(1)} M${ex},${ey} l${(-ux*4+uy*2.4).toFixed(1)},${(-uy*4-ux*2.4).toFixed(1)}" stroke="#6b7280" stroke-width="0.9" fill="none"/>`)}
  // nodes
  const SH=(X,Y,s)=>out.push(s.replace(/\$X/g,X.toFixed(1)).replace(/\$Y/g,Y.toFixed(1)));
- const dtrSym=(X,Y,l1,l2,fence)=>{U.dtr=1;out.push(`<rect x="${X-13}" y="${Y-9}" width="26" height="18" fill="#fff" stroke="#111" stroke-width="1"/><circle cx="${X-3.4}" cy="${Y}" r="5.5" fill="none" stroke="#111"/><circle cx="${X+3.4}" cy="${Y}" r="5.5" fill="none" stroke="#111"/>`);block(X,Y,"d",[{txt:l1,fs:7.5,fw:700},{txt:l2,fs:6.3}]);if(fence)out.push(`<rect x="${X-18}" y="${Y-12}" width="36" height="24" fill="none" stroke="#6b7280" stroke-width="0.6" stroke-dasharray="2 2"/>`)};
+ const dtrSym=(X,Y,l1,l2,fence)=>{U.dtr=1;out.push((ROT?`<g transform="rotate(${ROT} ${X} ${Y})">`:"<g>")+`<rect x="${X-13}" y="${Y-9}" width="26" height="18" fill="#fff" stroke="#111" stroke-width="1"/><circle cx="${X-3.4}" cy="${Y}" r="5.5" fill="none" stroke="#111"/><circle cx="${X+3.4}" cy="${Y}" r="5.5" fill="none" stroke="#111"/>`+(fence?`<rect x="${X-18}" y="${Y-12}" width="36" height="24" fill="none" stroke="#6b7280" stroke-width="0.6" stroke-dasharray="2 2"/>`:"")+"</g>");block(X,Y,"d",[{txt:l1,fs:7.5,fw:700},{txt:l2,fs:6.3}])};
  const dpSym=(X,Y,lb,sub)=>{poleGrp(X,Y,["n","n"],false,nwSq);block(X,Y,2,[{txt:lb,fs:7,fw:700},{txt:sub,fs:6.3}])};
  let exSq=false,nwSq=false;const exNm=x=>{const v=opt(x,"exType");return v&&v!=="PSC"?({RCC:"RCC",Steel:"STEEL",Rail:"RAIL",RSJ:"RSJ"}[v]||v)+" ":""};
  // pole layouts: DP = two poles side by side, 3-pole = triangle, 4-pole = square, all with clear separation
- const poleGrp=(X,Y,st,sqE,sqN)=>{if(st.length>1)U["g"+st.length]=1;const n=st.length,P=GEO[n],r=2.8,f=v=>v.toFixed(1);
+ const poleGrp=(X,Y,st,sqE,sqN)=>{if(st.length>1)U["g"+st.length]=1;const n=st.length,P=GEOr(n,ROT),r=2.8,f=v=>v.toFixed(1);
   if(n>1)out.push(`<path d="M${P.map(q=>f(X+q[0])+","+f(Y+q[1])).join(" L")}${n>2?" Z":""}" stroke="#111" stroke-width="0.8" fill="none"/>`);
   P.forEach((q,i)=>{const cx=X+q[0],cy=Y+q[1],e=st[i]==="e",sq=e?sqE:sqN;out.push(sq?`<rect x="${f(cx-r)}" y="${f(cy-r)}" width="${2*r}" height="${2*r}" fill="${e?"#111":"#fff"}" stroke="#111" stroke-width="1"/>`:`<circle cx="${f(cx)}" cy="${f(cy)}" r="${r}" fill="${e?"#111":"#fff"}" stroke="#111" stroke-width="1"/>`)})};
  let subEnd=0;
- let CUR=null,FREE=null,noteDone=false;
+ let CUR=null,FREE=null,noteDone=false,ROT=0;
  // stack label / description / note on the side of the structure that no line runs into
  const segHit=(b,L)=>{let t0=0,t1=1;const dx=L[2]-L[0],dy=L[3]-L[1],pp=[-dx,dx,-dy,dy],qq=[L[0]-b.x1,b.x2-L[0],L[1]-b.y1,b.y2-L[1]];for(let i=0;i<4;i++){if(pp[i]===0){if(qq[i]<0)return false}else{const r=qq[i]/pp[i];if(pp[i]<0){if(r>t1)return false;if(r>t0)t0=r}else{if(r<t0)return false;if(r<t1)t1=r}}}return true};
  const boxHit=(a,b)=>a.x1<b.x2&&b.x1<a.x2&&a.y1<b.y2&&b.y1<a.y2;
  // stack label / description / note on the side of the structure that is clear of lines and other labels
  const block=(X,Y,n,rows)=>{rows=rows.filter(r=>r&&r.txt);if(CUR&&CUR.note&&CUR.kind!=="lm"){rows.push({txt:CUR.note,fs:6.3,c:"#4b5563"});noteDone=true}
   const f=FREE||{x:0,y:1},k=rows.length,gap=9,pref=Math.abs(f.y)>=Math.abs(f.x)*0.75?(f.y<0?"up":"down"):(f.x>0?"right":"left");
-  const up=i=>Y-TOP[n]-(k-1-i)*gap,dn=i=>Y+BOT[n]+i*gap;
-  const pos=(mode,i)=>({up:[X,up(i),"middle"],down:[X,dn(i),"middle"],ur:[X-HW[n],up(i),"start"],ul:[X+HW[n],up(i),"end"],dr:[X-HW[n],dn(i),"start"],dl:[X+HW[n],dn(i),"end"],
-   right:[X+HW[n]+5,Y+2.4+(i-(k-1)/2)*gap,"start"],left:[X-HW[n]-5,Y+2.4+(i-(k-1)/2)*gap,"end"]})[mode];
+  const E=EXT(n,ROT),up=i=>Y-E.top-(k-1-i)*gap,dn=i=>Y+E.bot+i*gap;
+  const pos=(mode,i)=>({up:[X,up(i),"middle"],down:[X,dn(i),"middle"],ur:[X-E.hw,up(i),"start"],ul:[X+E.hw,up(i),"end"],dr:[X-E.hw,dn(i),"start"],dl:[X+E.hw,dn(i),"end"],
+   right:[X+E.hw+5,Y+2.4+(i-(k-1)/2)*gap,"start"],left:[X-E.hw-5,Y+2.4+(i-(k-1)/2)*gap,"end"]})[mode];
   const ALT={up:["up","ur","ul"],down:["down","dr","dl"],right:["right","ur","dr"],left:["left","ul","dl"]};
   let best=null;[...new Set([...ALT[pref],"up","down","right","left","ur","ul","dr","dl"])].forEach((mode,ord)=>{let sc=ord*0.5;
    rows.forEach((r,i)=>{const[x,y,a]=pos(mode,i),b=tbox(x,y,r.txt,{fs:r.fs,a});LS.forEach(L=>{if(segHit(b,L))sc+=10});TB.forEach(q=>{if(boxHit(b,q))sc+=4});if(b.x1<20||b.x2>W-20||b.y1<60||b.y2>H-28)sc+=20});
@@ -909,7 +916,7 @@ function sldSVG(c,so){
   t(X+ux*30,Y+uy*30+2.5,label,{fs:6.5,fw:700,c:"#4b5563"})};
  c.pts.forEach(x=>{ctx("n:"+x.id);out.push(`<g data-p="${x.id}">`);const[X,Y]=T(x),nd=c.nodes[x.id]||{},lb=c.lab[x.id]||("P"+x.no),nn=segN[x.id]||{nx:0,ny:-1},plab=()=>t(X+nn.nx*10,Y+nn.ny*10+2.4,lb,{fs:6.8,fw:700}),open=(r=3.4)=>(U.newP=1,out.push(`<circle cx="${X}" cy="${Y}" r="${r}" fill="#fff" stroke="#111" stroke-width="1.2"/>`));
   (nd.stayDirs||[]).slice(0,nd.stays||0).forEach(d=>stay(X,Y,d));
-  subEnd=0;CUR=x;noteDone=false;{let sx=0,sy=0,m=0;(c.adj[x.id]||[]).forEach(a=>{const sg=a.sg,nb=sg.a===x?(sg.mid[0]||sg.b):(sg.mid[sg.mid.length-1]||sg.a),[qx,qy]=T(nb),l=Math.hypot(qx-X,qy-Y)||1;sx+=(qx-X)/l;sy+=(qy-Y)/l;m++});
+  subEnd=0;CUR=x;noteDone=false;ROT=NP(x)!==1?((+x.rot||0)%360+360)%360:0;{let sx=0,sy=0,m=0;(c.adj[x.id]||[]).forEach(a=>{const sg=a.sg,nb=sg.a===x?(sg.mid[0]||sg.b):(sg.mid[sg.mid.length-1]||sg.a),[qx,qy]=T(nb),l=Math.hypot(qx-X,qy-Y)||1;sx+=(qx-X)/l;sy+=(qy-Y)/l;m++});
    if(!m)FREE={x:0,y:1};else if(Math.hypot(sx,sy)>0.5)FREE={x:-sx,y:-sy};else{const a=(c.adj[x.id]||[])[0].sg,[p1,p2]=T(a.a),[q1,q2]=T(a.b),dx=q1-p1,dy=q2-p2;FREE=Math.abs(dx)>=Math.abs(dy)?{x:0,y:-1}:{x:1,y:0}}}
   exSq=/^(SP|Steel|Rail|RSJ)/.test(opt(x,"exType")||"");nwSq=/^SP/.test(opt(x,"poleLen")||"")||(exSq&&/^SP/.test(opt(x,"exType"))&&!opt(x,"poleLen"));
   const kva=opt(x,"kva"),onEx=!!opt(x,"onEx"),filled=()=>(U.exP=1,out.push(`<circle cx="${X}" cy="${Y}" r="3.2" fill="#111"/>`));
@@ -1209,10 +1216,11 @@ const HINTS={move:"Drag a structure or any text to move it. Tap a structure to c
  add:"Tap an empty spot to place a structure there. It joins from the structure you last tapped; you can change that in the box.",
  line:"Tap the structure the line starts from, then tap where it goes: another structure, or an empty spot for a new pole. Then set the line type and length.",
  text:"Tap where the text goes and type it. Drag it later to adjust; tap it to change it.",
- del:"Tap a structure, a line or a text to delete it. Undo brings it back."};
+ del:"Tap a structure, a line or a text to delete it. Undo brings it back.",
+ turn:"Tap a DP, 3-pole, 4-pole or DTR to turn it 45°. Or drag around it to turn it freely (15° steps with Snap on). Long-press it to type an exact angle or set it back to normal."};
 function edUI(){$("#edBtn").textContent=EDIT?"✓ Done editing":"✎ Edit drawing";$("#edBtn").classList.toggle("on",EDIT);$("#edTools").hidden=!EDIT;
  document.querySelectorAll(".tb[data-tool]").forEach(b=>b.classList.toggle("on",b.dataset.tool===EDMODE));$("#edSnap").classList.toggle("on",SNAP);$("#edUndo").disabled=!HIST.length;$("#edRedo").disabled=!FUT.length;
- const bx=$("#sldBox");["adding","lining","texting","deleting","selecting"].forEach((c,i)=>bx.classList.toggle(c,EDIT&&EDMODE===["add","line","text","del","select"][i]));
+ const bx=$("#sldBox");["adding","lining","texting","deleting","selecting","turning"].forEach((c,i)=>bx.classList.toggle(c,EDIT&&EDMODE===["add","line","text","del","select","turn"][i]));
  const svg=bx.querySelector("svg");if(svg)svg.style.width=(ZOOM*100)+"%";
  const pk=PICK&&P().pts.find(q=>q.id===PICK);
  $("#edHint").hidden=!EDIT;$("#edHint").textContent=EDMODE==="line"&&pk?"Now tap where the line goes from P"+pk.no+": another structure, or an empty spot for a new pole. Esc cancels.":HINTS[EDMODE];
@@ -1257,6 +1265,10 @@ $("#sldBox").addEventListener("pointerdown",e=>{if(!EDIT)return;const xy0=svgXY(
  if(EDMODE==="line"){e.preventDefault();
   if(g){const x=p.pts.find(q=>q.id===g.dataset.p);if(!x)return;if(!PICK){if(isStand(x))return;PICK=x.id;edUI();return}if(x.id===PICK){PICK=null;renderAll();return}const a=p.pts.find(q=>q.id===PICK);PICK=null;connect(p,a,x);return}
   if(PICK){const a=PICK;PICK=null;let[X,Y]=xy0;const A=posOf(a);if(SNAP&&A){if(Math.abs(A[0]-X)<10)X=A[0];if(Math.abs(A[1]-Y)<10)Y=A[1]}snap();newAt(p,X,Y,a)}return}
+ if(EDMODE==="turn"){e.preventDefault();if(!g)return;const x=p.pts.find(q=>q.id===g.dataset.p);if(!x)return;
+  if(!turnable(x)){alert("Only a DP, 3-pole, 4-pole or DTR can be turned. A single pole looks the same any way round.");return}
+  const C=posOf(x.id)||[0,0];ED={k:"r",el:g,id:x.id,s:xy0,m:false,c:C,a0:Math.atan2(xy0[1]-C[1],xy0[0]-C[0])*R2D,r0:+x.rot||0,lp:setTimeout(()=>{if(ED&&ED.k==="r"&&!ED.m){const D=ED;ED=null;askRot(p,x)}},650)};
+  try{$("#sldBox").setPointerCapture(e.pointerId)}catch(_){}return}
  if(EDMODE==="text"&&!tx&&!g){e.preventDefault();const v=prompt("Text to place on the drawing:");if(!v||!v.trim())return;snap();freeze(p);lay(p).notes.push({id:uid(),x:+xy0[0].toFixed(1),y:+xy0[1].toFixed(1),t:v.trim()});touch(p);renderAll();return}
  if(tx)ED={k:"t",el:tx,key:tx.dataset.k,s:xy0,m:false};
  else if(g)ED={k:"n",el:g,id:g.dataset.p,s:xy0,m:false,c:posOf(g.dataset.p)||[0,0]};
@@ -1265,15 +1277,20 @@ $("#sldBox").addEventListener("pointerdown",e=>{if(!EDIT)return;const xy0=svgXY(
  else return;
  e.preventDefault();try{$("#sldBox").setPointerCapture(e.pointerId)}catch(_){}});
 $("#sldBox").addEventListener("pointermove",e=>{if(!ED)return;const q=svgXY(e);if(!q)return;let dx=q[0]-ED.s[0],dy=q[1]-ED.s[1];if(Math.hypot(dx,dy)>3)ED.m=true;if(!ED.m)return;
+ if(ED.k==="r"){clearTimeout(ED.lp);let d=Math.atan2(q[1]-ED.c[1],q[0]-ED.c[0])*R2D-ED.a0;d=SNAP?Math.round(d/15)*15:Math.round(d);ED.d=d;ED.el.setAttribute("transform",`rotate(${d} ${ED.c[0]} ${ED.c[1]})`);return}
  if(ED.k==="n"){const p=P(),x=p.pts.find(z=>z.id===ED.id),[X,Y]=snapXY(p,x,ED.c[0]+dx,ED.c[1]+dy);dx=X-ED.c[0];dy=Y-ED.c[1]}
  if(ED.k!=="l")ED.el.setAttribute("transform",`translate(${dx.toFixed(1)} ${dy.toFixed(1)})`);ED.d=[dx,dy]});
 $("#sldBox").addEventListener("pointerup",()=>{const D=ED;ED=null;if(!D)return;const p=P(),L=lay(p);
+ if(D.k==="r"){clearTimeout(D.lp);const x=p.pts.find(q=>q.id===D.id);if(!x)return;setRot(p,x,D.m?D.r0+(D.d||0):D.r0+45);return}
  if(!D.m){if(D.k==="n"){const x=p.pts.find(q=>q.id===D.id);if(x){selId=x.id;snap();openPoint(x)}}else if(D.k==="l"){const b=p.pts.find(q=>q.id===D.id);if(b)openLine(b)}else editText(p,D.key,D.el);return}
  if(D.k==="l"||!D.d)return;const[dx,dy]=D.d;snap();freeze(p);
  if(D.k==="t"){if(D.key.startsWith("a:")){const n=L.notes.find(n=>"a:"+n.id===D.key);if(n){n.x=+(n.x+dx).toFixed(1);n.y=+(n.y+dy).toFixed(1)}}else{const o=L.txt[D.key]=L.txt[D.key]||{};o.dx=(o.dx||0)+dx;o.dy=(o.dy||0)+dy}}
  else{const x=p.pts.find(q=>q.id===D.id);if(!x)return;setPos(p,x,D.c[0]+dx,D.c[1]+dy)}
  touch(p);renderAll()});
 $("#sldBox").addEventListener("pointercancel",()=>{ED=null;renderAll()});
+const turnable=x=>{const k=x.kind;return["dtr","htc","dtrAug","dtrTemp","dtrShift","dp","iso33","ctpt","vcb11","exDP","sp2dp","ltdp","xRail","xBridge","tp","exTP","dp2tp","sp2tp","p4","ex4P","dp24p"].includes(k)};
+function setRot(p,x,a){a=((Math.round(a)%360)+360)%360;if(a===(+x.rot||0)%360){renderAll();return}snap();if(a)x.rot=a;else delete x.rot;touch(p);renderAll()}
+function askRot(p,x){const v=prompt("Turn P"+x.no+" to what angle? (degrees clockwise; 0 = normal, 90 = upright for a DP)",String(+x.rot||0));if(v===null)return;const a=parseFloat(v);if(isNaN(a)){alert("Type a number, e.g. 45");return}setRot(p,x,a)}
 function delPoint(p,x){p.pts.forEach(q=>{if(q.par===x.id)q.par=x.par;if(q.fpar===x.id)q.fpar=x.fpar||""});p.pts=p.pts.filter(q=>q!==x);if(p.lay&&p.lay.pos)delete p.lay.pos[x.id]}
 function editText(p,key,el){const L=lay(p);
  if(key.startsWith("a:")){const n=L.notes.find(n=>"a:"+n.id===key);if(!n)return;const v=prompt("Edit this text (type a single - to delete it):",n.t);if(v===null)return;snap();if(v.trim()==="-"||!v.trim())L.notes=L.notes.filter(q=>q!==n);else n.t=v.trim();touch(p);renderAll();return}
