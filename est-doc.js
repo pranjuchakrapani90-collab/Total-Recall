@@ -8,7 +8,7 @@
    Loaded after the main Line Survey script; it uses that script's globals (P, compute, boq, touch, renderAll …). */
 (function(){
 "use strict";
-const SOR=window.SOR2122||{},SECS=window.SOR_SECS||[];
+const SOR0=window.SOR2122||{},SOR=Object.assign({},SOR0,window.SOR_EXTRA||{}),SECS=window.SOR_SECS||[];
 const esc=s=>String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 const r2=v=>Math.round((v+Number.EPSILON)*100)/100;
 const rup=v=>"₹ "+(+v||0).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});      // Excel "₹ "#,##0.00
@@ -39,14 +39,16 @@ function words(n){n=Math.round(n);if(!n)return"Zero";
 function itemOf(r){const s=r.sor&&SOR[r.sor];if(s&&!r.cust)return{desc:s[2],unit:s[3],rate:+s[4],ok:true};return{desc:r.d||"",unit:r.u||"",rate:+r.r||0,ok:!r.sor||!!r.cust}}
 function sigOf(c){const b=boq(c);return JSON.stringify([b.mat.map(r=>[r.sor,r.q,r.eq]),b.job.map(r=>[r.sor,r.q])])}
 function genRows(c){const b=boq(c),rows=[],U=()=>uid();
- const push=(r,q,st,job)=>{if(!(q>0))return;const k=/^\d+$/.test(r.sor)&&SOR[r.sor]?r.sor:"";
+ const push=(r,q,st,job)=>{if(!(q>0))return;const k=SOR[r.sor]?String(r.sor):"";
   rows.push({id:U(),sor:k,q:Math.round(q*1000)/1000,st:!!st,sk:st?(isCond(r.sor)?"rdss":"om"):"",job:!!job,rem:st?(isCond(r.sor)?"RDSS DISMANTLED":"O&M SUPPLY"):"",
    ...(k?{}:{cust:true,sor0:r.sor,d:r.desc,u:r.unit,r:r.rate})})};
  b.mat.forEach(r=>{const eq=Math.min(r.eq||0,r.q);if(eq>=r.q)push(r,r.q,true);else{push(r,r.q-eq,false);push(r,eq,true)}});
  b.job.forEach(r=>push(r,r.q,false,true));return rows}
 function defaults(p){const m=p.meta,dep=m.pay==="dep";return{kc:dep?0.03:0,ks:dep?0.15:0}}
+function fence1150(e,c){if(e.f1150)return;e.f1150=1;const j=(boq(c).job||[]).find(r=>/^1150\/\d$/.test(r.sor));const k=j?j.sor:"1150/2";
+ (e.rows||[]).forEach(r=>{if(String(r.sor)==="420"&&!r.cust){r.sor=k;r.job=true}})}
 function ensure(p,c){if(!p.est){p.est={v:1,rows:genRows(c),sig:sigOf(c),edited:false,...defaults(p),meter:0,sarma:true};return p.est}
- const e=p.est;if(!e.edited){const sg=sigOf(c);if(sg!==e.sig){e.rows=genRows(c);e.sig=sg}}return e}
+ const e=p.est;fence1150(e,c);if(!e.edited){const sg=sigOf(c);if(sg!==e.sig){e.rows=genRows(c);e.sig=sg}}return e}
 function calc(p,e){const mat=[],job=[];e.rows.forEach(r=>{const it=itemOf(r),G=it.rate*(+r.q||0);(r.job?job:mat).push({r,it,G,H:hasCol(e)&&skOf(r)?G:0})});
  const A=mat.reduce((s,x)=>s+x.G,0),HA=mat.reduce((s,x)=>s+x.H,0),B=A*0.05,C=A+B,D=C*0.15,E=job.reduce((s,x)=>s+x.G,0),DE=D+E,F=C*(+e.kc||0),G=(D+E*0.15)*(+e.ks||0),
   Hh=C+DE+F+G,I=+(p.meta.fee||0),J=Hh*0.09,K=Hh*0.09,L=Hh+I+J+K,H28=HA,H30=H28*0.09,H32=H28+H30*2,M=H32,N=+(e.meter||0),O=L-M-N,Pp=Math.ceil(O-1e-9);
@@ -297,7 +299,7 @@ function buildEstXlsx(p,c){const e=ensure(p,c),k=calc(p,e),rows=[],merges=[];let
  row(72,[S("A",104,"Sl. No."),S("B",105,"SOR Sl. No."),S("C",105,"Item Description"),S("D",105,"Unit"),S("E",106,"Quantity"),S("F",107,"Ex. Work Price in Rs."),S("G",108,"Amount\nin Rs."),S("H",109,hHeadOf(e)),S("I",130,"Remarks")]);
  const VL=(r,col)=>`VLOOKUP(B${r},'SOR-21-22 (2)'!$A$2:$${colL(col)}$931,${col},0)`;
  const htOf=d=>{const L=Math.max(1,Math.ceil(String(d).length/72));return L>1?+(L*14.4+1).toFixed(1):15};
- const item=(x,sl,job)=>{const r=x.r,it=x.it,rr=R+1,lk=!!(r.sor&&SOR[r.sor]&&!r.cust),eSt=job?160:isKm(it.unit)||!Number.isInteger(+r.q)?158:157;
+ const item=(x,sl,job)=>{const r=x.r,it=x.it,rr=R+1,lk=!!(r.sor&&SOR0[r.sor]&&!r.cust),eSt=job?160:isKm(it.unit)||!Number.isInteger(+r.q)?158:157;
   const cells=[job?S("A",118,sl):N("A",110,sl),lk?N("B",job?119:111,+r.sor):(r.sor?S("B",job?119:111,r.sor):E("B",job?119:111)),
    lk?F("C",job?120:112,VL(rr,4),it.desc,true):S("C",job?120:112,it.desc),lk?F("D",job?121:110,VL(rr,5),it.unit,true):S("D",job?121:110,it.unit),
    N("E",eSt,+r.q||0),lk?F("F",job?122:113,VL(rr,6),it.rate):N("F",job?122:113,it.rate),F("G",job?122:114,`F${rr}*E${rr}`,x.G),
@@ -331,7 +333,7 @@ function buildEstXlsx(p,c){const e=ensure(p,c),k=calc(p,e),rows=[],merges=[];let
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><dimension ref="A1:K${R}"/><sheetViews><sheetView tabSelected="1" zoomScaleNormal="100" workbookViewId="0"/></sheetViews><sheetFormatPr defaultColWidth="8.6640625" defaultRowHeight="14.4"/><cols><col min="1" max="1" width="6.109375" customWidth="1"/><col min="2" max="2" width="7" customWidth="1"/><col min="3" max="3" width="61.109375" customWidth="1"/><col min="4" max="4" width="4.88671875" customWidth="1"/><col min="6" max="6" width="12.6640625" customWidth="1"/><col min="7" max="7" width="15.88671875" customWidth="1"/><col min="8" max="8" width="12" customWidth="1"${hasCol(e)?"":' hidden="1"'}/><col min="9" max="9" width="16.5546875" customWidth="1"/><col min="10" max="10" width="52" customWidth="1"/></cols><sheetData>${rows.join("")}</sheetData><mergeCells count="${merges.length}">${merges.map(m=>`<mergeCell ref="${m}"/>`).join("")}</mergeCells><pageMargins left="0.75" right="0.75" top="1" bottom="1" header="0.511811023622047" footer="0.511811023622047"/><pageSetup paperSize="9" orientation="portrait"${fit} horizontalDpi="300" verticalDpi="300"/></worksheet>`;
  // hidden SoR sheet that the VLOOKUPs read — every SoR 2021-22 item, same layout as the workbook
  const sx=[`<row r="1" ht="110.25" customHeight="1">${(window.SOR_HDR||[]).map((h,i)=>`<c r="${colL(i+1)}1" s="${[51,52,51,51,51,53,54,54][i]}" t="inlineStr"><is><t>${xe(h)}</t></is></c>`).join("")}</row>`];let rn=1;
- Object.keys(SOR).sort((a,b)=>+a-+b).forEach(k2=>{const s=SOR[k2];rn++;const v=(col,st,x)=>x===""||x==null?`<c r="${col}${rn}" s="${st}"/>`:typeof x==="number"?`<c r="${col}${rn}" s="${st}"><v>${x}</v></c>`:`<c r="${col}${rn}" s="${st}" t="inlineStr"><is><t>${xe(x)}</t></is></c>`;
+ Object.keys(SOR0).sort((a,b)=>+a-+b).forEach(k2=>{const s=SOR[k2];rn++;const v=(col,st,x)=>x===""||x==null?`<c r="${col}${rn}" s="${st}"/>`:typeof x==="number"?`<c r="${col}${rn}" s="${st}"><v>${x}</v></c>`:`<c r="${col}${rn}" s="${st}" t="inlineStr"><is><t>${xe(x)}</t></is></c>`;
   sx.push(`<row r="${rn}">${v("A",57,+k2)}${v("B",57,s[0])}${v("C",57,s[1])}${v("D",58,s[2])}${v("E",57,s[3])}${v("F",59,s[4])}${v("G",60,s[5])}${v("H",60,s[6])}</row>`)});
  const sh2=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><dimension ref="A1:H${rn}"/><sheetViews><sheetView workbookViewId="0"/></sheetViews><sheetFormatPr defaultColWidth="9.109375" defaultRowHeight="14.4"/><cols><col min="1" max="1" width="9.88671875" style="45" customWidth="1"/><col min="2" max="2" width="8.88671875" style="46" customWidth="1"/><col min="3" max="3" width="7.44140625" style="46" customWidth="1"/><col min="4" max="4" width="39.88671875" style="47" customWidth="1"/><col min="5" max="5" width="9" style="46" customWidth="1"/><col min="6" max="6" width="15.44140625" style="48" customWidth="1"/><col min="7" max="7" width="14.88671875" style="48" customWidth="1"/><col min="8" max="8" width="14.33203125" style="49" customWidth="1"/></cols><sheetData>${sx.join("")}</sheetData><pageMargins left="0.7" right="0.7" top="0.75" bottom="0.75" header="0.5" footer="0.5"/></worksheet>`;
@@ -498,7 +500,7 @@ window.buildDocx=buildDocx;
 
 /* ---------- Dismantling estimate (editable, same look; 85% of SoR for dismantled material) ---------- */
 function disSig(c){const d=dism(c);return JSON.stringify(d?d.rows.map(r=>[r.sor,r.q]):[])}
-function disGen(c){const d=dism(c);return d?d.rows.map(r=>{const k=/^\d+$/.test(r.sor)&&SOR[r.sor]?r.sor:"";return{id:uid(),sor:k,q:r.q,rem:"",...(k?{}:{cust:true,d:r.desc,u:r.unit,r:r.rate})}}):[]}
+function disGen(c){const d=dism(c);return d?d.rows.map(r=>{const k=SOR[r.sor]?String(r.sor):"";return{id:uid(),sor:k,q:r.q,rem:"",...(k?{}:{cust:true,d:r.desc,u:r.unit,r:r.rate})}}):[]}
 function disOf(p,c){if(!p.dis){const rows=disGen(c);p.dis={on:rows.length>0,rows,sig:disSig(c),edited:false,ks:p.meta.pay==="dep"?0.15:0,kc:0}}
  const d=p.dis;if(!d.edited){const sg=disSig(c);if(sg!==d.sig){d.rows=disGen(c);d.sig=sg;if(d.rows.length&&d.auto!==false)d.on=true}}return d}
 function disCalc(p,d){const rows=d.rows.map(r=>{const it=itemOf(r),r85=it.rate*0.85,amt=r85*(+r.q||0);return{r,it,r85,amt}});
@@ -564,7 +566,7 @@ function disSheet(p,c){const d=disOf(p,c),k=disCalc(p,d),rows=[],merges=[];let R
  row(45.75,[S("A",144,disTitleOf(p,c)),blank(2,6,144),S("G",135,"Rates as per SoR 2021-22"),blank(8,9,135)]);merges.push("A6:F6","G6:I6");
  row(60,[S("A",104,"Sl. No."),S("B",105,"SOR Sl. No."),S("C",105,"Item Description"),S("D",105,"Unit"),S("E",106,"Quantity"),S("F",107,"Ex. Work Price in Rs."),S("G",108,"Dismantled material rate (85% of SoR)"),S("H",108,"Amount\nin Rs."),S("I",130,"Remarks")]);
  const VL=(r,col)=>`VLOOKUP(B${r},'SOR-21-22 (2)'!$A$2:$${colL(col)}$931,${col},0)`,htOf=t=>{const L=Math.max(1,Math.ceil(String(t).length/68));return L>1?+(L*14.4+1).toFixed(1):15};
- const first=R+1;k.rows.forEach((x,i)=>{const r=x.r,it=x.it,rr=R+1,lk=!!(r.sor&&SOR[r.sor]&&!r.cust),h=htOf(it.desc);
+ const first=R+1;k.rows.forEach((x,i)=>{const r=x.r,it=x.it,rr=R+1,lk=!!(r.sor&&SOR0[r.sor]&&!r.cust),h=htOf(it.desc);
   row(h,[N("A",110,i+1),lk?N("B",111,+r.sor):(r.sor?S("B",111,r.sor):E("B",111)),lk?F("C",112,VL(rr,4),it.desc,true):S("C",112,it.desc),lk?F("D",110,VL(rr,5),it.unit,true):S("D",110,it.unit),
    N("E",isKm(it.unit)||!Number.isInteger(+r.q)?158:157,+r.q||0),lk?F("F",113,VL(rr,6),it.rate):N("F",113,it.rate),F("G",114,`F${rr}*85%`,x.r85),F("H",114,`G${rr}*E${rr}`,x.amt),r.rem?S("I",129,r.rem):E("I",129)],h===15)});
  const last=Math.max(R,first);

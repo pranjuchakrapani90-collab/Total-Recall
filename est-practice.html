@@ -67,7 +67,7 @@ textarea{width:100%;min-height:70px;font:inherit;font-size:.9rem;padding:8px 10p
   <main id="main"></main>
 </div>
 <script src="drive.js?v=20261102t"></script>
-<script src="est-assets.js?v=20261029c"></script>
+<script src="est-assets.js?v=20261105g"></script>
 <script>
 "use strict";
 /* Tasks come from a Google Sheet this page creates in Drive: Pranju OS / "Estimate Practice feed" (appProperties pos=est-practice-feed).
@@ -78,7 +78,7 @@ const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const jget=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k)||"null");return v==null?d:v}catch(e){return d}};
 const jset=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
-const SOR=window.SOR2122||{},r2=v=>Math.round((v+Number.EPSILON)*100)/100;
+const SOR=Object.assign({},window.SOR2122||{},window.SOR_EXTRA||{}),r2=v=>Math.round((v+Number.EPSILON)*100)/100;
 const inr=v=>"₹ "+(+v||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
 const inr0=v=>"₹ "+Math.round(+v||0).toLocaleString("en-IN");
 const LV=["","Simple","Basic","Moderate","Involved","Complex"];
