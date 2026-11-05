@@ -59,6 +59,11 @@ a.app span{font:550 12.5px/1.25 system-ui,-apple-system,"Segoe UI",sans-serif;te
 .tvpanel #travelCameraFollow,.tvpanel #travelCameraOverview{font-size:12.5px;padding:8px 10px}
 .tvnotes:has(#travelNoteSave:disabled) textarea,.tvnotes:has(#travelNoteSave:disabled) .row,.tvnotes:has(#travelNoteSave:disabled) .tvphotoedit{display:none}
 .tvphotoedit{display:flex;flex-direction:column;gap:6px}
+.tvpop{display:flex;flex-direction:column;gap:8px}
+.gm-style .tvpop{width:min(280px,70vw);padding:2px 2px 4px;font-size:14px}
+.gm-style .tvpop #travelNoteLocation{font-size:11.5px}
+.gm-style .tvpop textarea{width:100%;box-sizing:border-box;min-height:84px;font-size:15px;resize:vertical}
+.gm-style .tvpop .row{display:flex;gap:6px}.gm-style .tvpop .row button{flex:1}
 .tvphotos{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
 .tvph{position:relative;width:64px;height:64px;padding:0!important;margin:0!important;border-radius:10px!important;overflow:hidden;background:var(--tr-soft)!important;border:1px solid var(--tr-line)!important;cursor:pointer}
 .tvph img{width:100%;height:100%;object-fit:cover;display:block}.tvph img[hidden]{display:none}
@@ -193,10 +198,11 @@ a.app.folder i{background:linear-gradient(150deg,#6d6af0 0%,#4f46e5 48%,#3c32c4 
 <span id="travelPlaybackTime" class="travelPlaybackTime">Playback ready</span>
 </div>
 <div class="travelNoteEditor tvnotes"><b>📍 Memories</b>
-<div id="travelNoteLocation" class="muted">Tap the map to pin one.</div>
-<textarea id="travelNoteText" rows="2" placeholder="What do you remember about this place?"></textarea>
+<div id="travelNoteHint" class="muted">Tap the map where you want to write — a box opens right there.</div>
+<div id="travelNotePop" class="tvpop"><div id="travelNoteLocation" class="muted">Tap the map to pin one.</div>
+<textarea id="travelNoteText" rows="3" placeholder="What do you remember about this place?"></textarea>
 <div class="tvphotoedit"><div id="travelNotePhotoBox"></div><label class="tvadd tvaddph">📷 Add photos<input id="travelPhotoFile" type="file" accept="image/*" multiple></label></div>
-<div class="row"><button id="travelNoteSave" type="button" disabled>Save</button><button id="travelNoteCancel" type="button" class="secondary">Cancel</button></div>
+<div class="row"><button id="travelNoteSave" type="button" disabled>Save</button><button id="travelNoteCancel" type="button" class="secondary">Cancel</button></div></div>
 <div id="travelNoteList"></div></div>
 <div hidden><div id="travelJourney"><div id="travelJourneyList"></div></div><div id="travelFilesForDate"></div><div id="travelKeyHint"></div><div id="travelGapNote" class="hidden"></div><span id="travelCameraStatus"></span><div id="travelPlaybackHint"></div><button id="travelLoadMap"></button><button id="travelFit"></button><button id="travelIdentify"></button><button id="travelClear"></button></div>
 </div></section><section id="done" class="hidden"><div class="panel" style="text-align:center"><h2>🎉 Session complete</h2><p id="doneText" class="muted"></p><button id="doneHome">Dashboard</button></div></section>
@@ -1052,7 +1058,7 @@ async function travelEnsureMap(){
     travelMap.addListener('dragstart',function(){if(travelPlaybackFollow){travelPlaybackFollow=false;travelPlaybackCameraReady=false;if($('travelCameraFollow'))$('travelCameraFollow').textContent='🎥 Follow camera: Off';if($('travelCameraStatus'))$('travelCameraStatus').textContent='Manual map view — playback will not recenter the camera.'}})
   }
 }
-var travelNotePoint=null,travelNoteEditing=null,travelNoteMarkers=[],travelNoteDraftMarker=null;
+var travelNotePoint=null,travelNoteDate=null,travelNoteEditing=null,travelNoteMarkers=[],travelNoteDraftMarker=null;
 function travelClearNoteDraftMarker(){if(travelNoteDraftMarker){travelNoteDraftMarker.setMap(null);travelNoteDraftMarker=null}}
 function travelShowNoteDraftMarker(p){travelClearNoteDraftMarker();if(travelMap&&window.google&&google.maps)travelNoteDraftMarker=new google.maps.Marker({map:travelMap,position:{lat:Number(p.lat),lng:Number(p.lng)},title:'Selected memory location'});}
 function travelNotesForDate(){
@@ -1064,15 +1070,28 @@ function travelChooseNotePoint(p,id){
   if(id)travelNotePhotos=(db.travelNotes[id]&&db.travelNotes[id].photos||[]).map(function(x){return Object.assign({},x)});
   else if(wasEditing)travelNotePhotos=[];
   tpRenderEditor();
-  travelNotePoint={lat:Number(p.lat),lng:Number(p.lng)};
+  travelNotePoint={lat:Number(p.lat),lng:Number(p.lng)};travelNoteDate=$('travelDate').value;
   travelShowNoteDraftMarker(travelNotePoint);
   travelNoteEditing=id||null;
   $('travelNoteLocation').textContent='📍 '+travelNotePoint.lat.toFixed(6)+', '+travelNotePoint.lng.toFixed(6)+' · '+$('travelDate').value;
   $('travelNoteText').value=id&&db.travelNotes[id]?db.travelNotes[id].text:'';
   $('travelNoteSave').disabled=false;$('travelNoteSave').textContent=id?'Update memory':'Save memory';
+  travelOpenNotePop();
 }
+/* the memory editor opens as a pop-up on the map, at the tapped spot (5 Nov 2026); without the map it stays in the panel */
+var travelNoteIW=null,travelNotePopEl=null;
+function travelNotePopNode(){if(!travelNotePopEl)travelNotePopEl=$('travelNotePop');return travelNotePopEl}
+function travelNotePopHome(){var pop=travelNotePopNode(),list=$('travelNoteList');if(pop&&list&&pop.parentNode!==list.parentNode)list.parentNode.insertBefore(pop,list)}
+function travelOpenNotePop(){
+  if(!travelMap||!window.google||!google.maps||!travelNoteDraftMarker)return;
+  if(!travelNoteIW){travelNoteIW=new google.maps.InfoWindow({maxWidth:320,disableAutoPan:false});
+    travelNoteIW.addListener('closeclick',function(){$('travelNoteCancel').click()})}
+  var pop=travelNotePopNode();travelNoteIW.setContent(pop);travelNoteIW.open({map:travelMap,anchor:travelNoteDraftMarker});
+  google.maps.event.addListenerOnce(travelNoteIW,'domready',function(){var t=$('travelNoteText');try{t.focus({preventScroll:true});t.setSelectionRange(t.value.length,t.value.length)}catch(_){}})
+}
+function travelCloseNotePop(){if(travelNoteIW)travelNoteIW.close();travelNotePopHome()}
 function travelClearNoteEditor(){
-  travelClearNoteDraftMarker();
+  travelCloseNotePop();travelClearNoteDraftMarker();
   travelNotePoint=null;travelNoteEditing=null;travelNotePhotos=[];tpRenderEditor();
   $('travelNoteText').value='';$('travelNoteLocation').textContent='Tap the map to choose a location.';
   $('travelNoteSave').disabled=true;$('travelNoteSave').textContent='Save memory'
@@ -1086,7 +1105,7 @@ function travelRenderNotes(){
   travelNoteMarkers.forEach(function(m){m.setMap(null)});travelNoteMarkers=[];
   if(travelMap&&window.google&&google.maps)notes.forEach(function(n){
     var marker=new google.maps.Marker({map:travelMap,position:{lat:n.lat,lng:n.lng},title:n.text.slice(0,100),label:{text:n.photos&&n.photos.length?'📷':'✎',color:'#fff',fontWeight:'700'},icon:{path:google.maps.SymbolPath.CIRCLE,scale:12,fillColor:'#7c3aed',fillOpacity:1,strokeColor:'#fff',strokeWeight:2}});
-    marker.addListener('click',function(){travelChooseNotePoint(n,n.id);$('travelNoteText').focus()});
+    marker.addListener('click',function(){travelChooseNotePoint(n,n.id)});
     travelNoteMarkers.push(marker)
   })
 }
@@ -1117,7 +1136,7 @@ async function travelRender(){
   if(!travelData)return;
   await travelEnsureMap();
   var segments=travelSelectedSegments();
-  travelDraw(segments);travelDrawEvidence(segments);travelRenderJourney();travelPlaybackBuild();travelClearNoteEditor();travelRenderNotes();travelLiveDot();
+  travelDraw(segments);travelDrawEvidence(segments);travelRenderJourney();travelPlaybackBuild();if(travelNotePoint&&travelNoteDate===$('travelDate').value){travelShowNoteDraftMarker(travelNotePoint);travelOpenNotePop()}else travelClearNoteEditor();travelRenderNotes();travelLiveDot();
   var nFiles=travelFilesForDate($('travelDate').value).length;
   $('travelStatus').textContent=travelIsLiveDate($('travelDate').value)?travelLiveStatusText(nFiles):'Showing '+nFiles+' saved GPX file'+(nFiles===1?'':'s')+' for '+$('travelDate').value+'.'
 }
@@ -1354,7 +1373,7 @@ $('travelNoteList').addEventListener('click',function(e){
   var id=t.noteShow||t.noteEdit||t.noteDelete,n=db.travelNotes&&db.travelNotes[id];if(!n)return;
   if(t.noteDelete){if(confirm('Delete this travel memory'+(n.photos&&n.photos.length?' and its photos (they go to Drive\'s bin)':'')+'?')){(n.photos||[]).forEach(tpForget);n.photos=[];n.deleted=true;n.updatedAt=new Date().toISOString();save();travelClearNoteEditor();travelRenderNotes()}return}
   if(travelMap){travelMap.panTo({lat:n.lat,lng:n.lng});travelMap.setZoom(Math.max(travelMap.getZoom()||14,16))}
-  if(t.noteEdit){travelChooseNotePoint(n,n.id);$('travelNoteText').focus()}
+  if(t.noteEdit){try{$('travelMap').scrollIntoView({behavior:'smooth',block:'center'})}catch(_){}travelChooseNotePoint(n,n.id)}
 });
 $('travelClear').addEventListener('click',travelClearData);
 $('travelPlay').addEventListener('click',function(){travelPlaybackRunning?travelPlaybackStop():travelPlaybackStart()});
