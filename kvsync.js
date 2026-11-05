@@ -67,11 +67,15 @@ async function dec(blob,c){var x=JSON.parse(blob),k=await key(c),p=new Uint8Arra
 var busy=false,again=false,timer=0,lastPull=0,touched=false,loadedAt=Date.now();
 async function sync(){var c=code();if(!c)return [];
   if(busy){again=true;return [];}busy=true;var changed=[];
-  try{var m=meta();stamp(m);
+  try{var m=meta();stamp(m);saveMeta(m);
     var h={"Content-Type":"application/json","X-Total-Recall-Sync":c+SLOT};
     var r=await fetch(url(),{method:"POST",headers:h,body:JSON.stringify({state:{app:"kv"}}),cache:"no-store"});
     if(!r.ok)throw new Error("HTTP "+r.status);var d=await r.json();if(d.error)throw new Error(d.error);
     var R=d.blob?await dec(d.blob,c):null;
+    /* 5 Nov 2026 fix: anything saved on this phone WHILE the download was in flight (e.g. a task approved in WA Review)
+       must be stamped before merging, or the merge writes back the older copy and silently deletes it.
+       stamp + merge + write run in one synchronous block, so nothing can slip in between. */
+    m=meta();stamp(m);
     if(R)changed=merge(m,R);
     saveMeta(m);lastPull=Date.now();
     var mine=payload(m);
