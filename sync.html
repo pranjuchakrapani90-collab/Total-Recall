@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="vault.js?v=20261102a"></script><script src="drive.js?v=20261102t"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
+<title>Drive Sync · Pranju OS</title>
+<link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="tr-theme.css?v=20261020">
+<style>
+/* Drive Sync (5 Nov 2026): bulk upload of phone files (WhatsApp media) into Google Drive › File manager, skipping
+   anything already in Drive (same name + same size, anywhere in My Drive), plus a dashboard of what has arrived in
+   File manager (from DriveSync or from here) and how much of it Gemini has reviewed.
+   Files go into the same type folders DriveSync uses (WhatsApp Documents / Images / Video / Audio…) when they exist
+   under File manager, otherwise those folders are made there. Uploads carry no appProperties, so the Vault's
+   coverage count and Gemini treat them exactly like DriveSync's. */
+*{box-sizing:border-box}html,body{margin:0}
+body{font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100vh;background:var(--tr-bg);color:var(--tr-ink)}
+body>header{padding:calc(10px + env(safe-area-inset-top,0px)) 16px 10px;background:var(--tr-head);color:var(--tr-head-ink)}
+.hin,main{max-width:760px;margin:0 auto}
+.backlink{font-size:13px;text-decoration:none;color:var(--tr-head-mute)}
+h1{margin:4px 0 4px;font-size:22px}
+main{padding:16px 16px 120px}
+h2{font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--tr-muted);margin:24px 0 8px}
+.muted{color:var(--tr-muted)}
+.card{border:1px solid var(--tr-line);border-radius:14px;background:var(--tr-paper);padding:14px}
+.big{font-size:17px;font-weight:700}
+.btn{border:1px solid var(--tr-line);background:var(--tr-paper);color:var(--tr-ink);border-radius:10px;padding:10px 14px;font:600 14px system-ui,sans-serif;cursor:pointer}
+.btn.pri{background:var(--tr-acc);border-color:var(--tr-acc);color:#fff}
+.btn.sm{padding:6px 11px;font-size:13px}
+.btn:disabled{opacity:.45}
+.row{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.msg{padding:12px 14px;border-radius:12px;font-size:14px;margin:10px 0;background:#ecfdf5;color:#065f46}
+.msg.err{background:#fff7ed;color:#9a3412}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tile{border:1px solid var(--tr-line);border-radius:12px;background:var(--tr-paper);padding:10px 11px}
+.tile b{display:block;font-size:20px;line-height:1.2}
+.tile span{font-size:12px;color:var(--tr-muted)}
+.bars{display:flex;align-items:flex-end;gap:3px;height:90px;margin:10px 0 2px}
+.bars div{flex:1;background:var(--tr-acc);border-radius:3px 3px 0 0;min-height:2px;position:relative}
+.bars div.z{background:var(--tr-line)}
+.bars div.t{background:var(--tr-acc-ink)}
+.bx{display:flex;justify-content:space-between;font-size:11px;color:var(--tr-muted)}
+table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:6px 4px;border-bottom:1px solid var(--tr-line);text-align:right}td:first-child,th:first-child{text-align:left}th{font-weight:600;color:var(--tr-muted)}
+.f{display:flex;gap:8px;align-items:center;justify-content:space-between;font-size:13px;padding:6px 0;border-bottom:1px solid var(--tr-line)}
+.f:last-child{border-bottom:0}
+.f a{color:var(--tr-ink);text-decoration:none;word-break:break-all}
+.f .s{flex:0 0 auto;font-size:12px;font-weight:600}
+.s.up{color:#047857}.s.skip{color:var(--tr-muted)}.s.bad{color:#b91c1c}.s.wait{color:var(--tr-muted)}.s.go{color:var(--tr-acc)}
+.prog{height:8px;border-radius:99px;background:var(--tr-soft);overflow:hidden;margin:10px 0 6px}
+.prog i{display:block;height:100%;width:0;background:var(--tr-acc);transition:width .3s}
+.list{max-height:340px;overflow:auto;margin-top:8px}
+input[type=file]{display:none}
+details summary{cursor:pointer;font-weight:700}
+</style></head><body>
+<header><div class="hin"><a class="backlink" href="./#f-db">← Database</a><h1>Drive Sync</h1></div></header>
+<main>
+<div id="note"></div>
+
+<div class="card">
+  <div class="big">Sync files to Drive</div>
+  <p class="muted" style="font-size:13px;margin:4px 0 12px">Pick WhatsApp files (or any files) on this phone. Anything already in your Drive — same name and size — is skipped; the rest go to Drive › File manager, into the matching WhatsApp folder, keeping their names.</p>
+  <div class="row" style="justify-content:flex-start"><button class="btn pri" id="pick" type="button">Pick files</button><button class="btn" id="pickDir" type="button" hidden>Pick a folder</button></div>
+  <input type="file" id="fi" multiple><input type="file" id="fd" multiple webkitdirectory>
+  <div id="run" hidden>
+    <div class="prog"><i id="bar"></i></div>
+    <div class="row"><span id="runSt" class="muted" style="font-size:13px"></span><button class="btn sm" id="stop" type="button">Stop</button></div>
+    <div class="list" id="runList"></div>
+  </div>
+</div>
+<p class="muted" style="font-size:12px">Keep this screen open while it uploads. On Android, WhatsApp's files are under Internal storage › Android › media › com.whatsapp › WhatsApp › Media. DriveSync keeps running in the background as before.</p>
+
+<h2>File manager in Drive</h2>
+<div class="row" style="margin-bottom:8px"><span id="dashSt" class="muted" style="font-size:13px">…</span><button class="btn sm" id="refresh" type="button">Refresh</button></div>
+<div id="dash"><div class="card muted">Loading…</div></div>
+
+<h2>Uploaded from this phone</h2>
+<div class="card" id="hist"><span class="muted">Nothing yet.</span></div>
+</main>
+<script>
+(function(){
+"use strict";
+var $=function(id){return document.getElementById(id)},DEF="https://total-recall-ticktick.pranjuchakrapani90.workers.dev",API="https://www.googleapis.com/drive/v3",UP="https://www.googleapis.com/upload/drive/v3";
+var FOLDER="application/vnd.google-apps.folder",IDX="pos-dsync-index",HIST="pos-dsync-history",PAR=3;
+var tok=null,idx=null,stop=false,running=false;
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function base(){var u=null;try{u=localStorage.getItem("totalRecallTickTickUrl")}catch(e){}return u||window.TOTAL_RECALL_TICKTICK_URL||DEF}
+function when(t){var d=new Date(t);return isNaN(d)?"":d.toLocaleString("en-IN",{day:"numeric",month:"short",hour:"numeric",minute:"2-digit"})}
+function ago(t){var m=(Date.now()-new Date(t))/60000;return m<2?"just now":m<60?Math.round(m)+" min ago":m<48*60?Math.round(m/60)+" h ago":Math.round(m/1440)+" days ago"}
+function mb(n){n=Number(n||0);return n<1048576?Math.max(1,Math.round(n/1024))+" KB":(n/1048576).toFixed(n<10485760?1:0)+" MB"}
+function note(m,bad){$("note").innerHTML=m?'<div class="msg'+(bad?" err":"")+'">'+m+'</div>':""}
+function failNote(e){var m=esc(e&&e.message||e);if(e&&(e.code==="not_connected"||e.code==="need_full")||/insufficient|scope|not connected/i.test(m))m+=' <a href="index.html#travel">Open Travel Trace → Google Drive</a> and reconnect.';note(m,true)}
+
+/* ---------- Drive access (full Drive token from the Worker, same as Vault) ---------- */
+async function token(fresh){
+  if(!fresh&&tok&&tok.exp>Date.now()+90000)return tok.t;
+  var u=base(),r=await fetch(u+(u.indexOf("?")>=0?"&":"?")+"mode=drive&op=token"+(fresh?"&fresh=1":""),{cache:"no-store"}),d={};
+  try{d=await r.json()}catch(e){}
+  if(!r.ok||d.error){var e=new Error(d.error||"Could not get Google Drive access (HTTP "+r.status+")");e.code=d.code||"";throw e}
+  tok={t:d.token,exp:Date.now()+(d.expiresIn||1800)*1000};return tok.t}
+async function g(url,init,again){init=Object.assign({},init||{});var h=new Headers(init.headers||{});h.set("Authorization","Bearer "+await token(again));init.headers=h;
+  var r=await fetch(url,init);if(r.status===401&&!again){tok=null;return g(url,init,true)}return r}
+async function gerr(r,what){var m="";try{var d=await r.json();m=d.error&&d.error.message||""}catch(e){}return new Error(what+" failed (Drive HTTP "+r.status+(m?": "+m:"")+")")}
+
+/* ---------- the Drive index: every file/folder you own, kept on the phone ---------- */
+function idb(){return new Promise(function(ok,no){var r=indexedDB.open("pos-dsync",1);r.onupgradeneeded=function(){r.result.createObjectStore("kv")};r.onsuccess=function(){ok(r.result)};r.onerror=function(){no(r.error)}})}
+async function kget(k){var d=await idb();return new Promise(function(ok){var r=d.transaction("kv").objectStore("kv").get(k);r.onsuccess=function(){ok(r.result)};r.onerror=function(){ok(null)}})}
+async function kset(k,v){var d=await idb();return new Promise(function(ok){var t=d.transaction("kv","readwrite");t.objectStore("kv").put(v,k);t.oncomplete=function(){ok()};t.onerror=function(){ok()}})}
+/* rows: [id,name,mime,size,parent,createdTime] */
+async function fetchIndex(progress){
+  var rows=[],page="",q="trashed=false and 'me' in owners";
+  for(var i=0;i<400;i++){
+    var r=await g(API+"/files?spaces=drive&pageSize=1000&fields=nextPageToken,files(id,name,mimeType,size,parents,createdTime)&q="+encodeURIComponent(q)+(page?"&pageToken="+encodeURIComponent(page):""));
+    if(!r.ok)throw await gerr(r,"Drive listing");var d=await r.json();
+    (d.files||[]).forEach(function(f){rows.push([f.id,f.name,f.mimeType,Number(f.size||0),(f.parents||[])[0]||"",f.createdTime])});
+    if(progress)progress(rows.length);if(!d.nextPageToken)break;page=d.nextPageToken}
+  var r2=await g(API+"/files/root?fields=id");if(!r2.ok)throw await gerr(r2,"Drive");var root=(await r2.json()).id;
+  idx={rows:rows,root:root,at:Date.now()};await kset(IDX,idx);return idx}
+function build(ix){
+  var byId={},kids={},fm=null;
+  ix.rows.forEach(function(r){byId[r[0]]=r;(kids[r[4]]=kids[r[4]]||[]).push(r);if(r[2]===FOLDER&&r[1]==="File manager"&&r[4]===ix.root&&!fm)fm=r[0]});
+  var under={},folders=[];
+  if(fm){(function walk(id,path){(kids[id]||[]).forEach(function(r){if(r[2]===FOLDER){folders.push({id:r[0],name:r[1],path:path+" › "+r[1],n:(kids[r[0]]||[]).filter(function(x){return x[2]!==FOLDER}).length});walk(r[0],path+" › "+r[1])}else under[r[0]]=r})})(fm,"File manager")}
+  var names={};ix.rows.forEach(function(r){if(r[2]!==FOLDER){var k=r[1].toLowerCase();(names[k]=names[k]||[]).push(r[3])}});
+  return {fm:fm,under:under,folders:folders,names:names}}
+
+/* ---------- where each file goes ---------- */
+function bucket(f){var n=f.name,t=f.type||"",l=n.toLowerCase();
+  if(/^stk-.*\.webp$/i.test(n))return "WhatsApp Stickers";
+  if(/^ptt-/i.test(n)||/\.opus$/.test(l))return "WhatsApp Voice Notes";
+  if(t.indexOf("image/")===0||/\.(jpe?g|png|gif|webp|heic)$/.test(l))return "WhatsApp Images";
+  if(t.indexOf("video/")===0||/\.(mp4|3gp|mkv|mov)$/.test(l))return "WhatsApp Video";
+  if(t.indexOf("audio/")===0||/\.(mp3|m4a|aac|amr|wav|ogg)$/.test(l))return "WhatsApp Audio";
+  return "WhatsApp Documents"}
+var made={};
+async function folderFor(name,b){
+  if(made[name])return made[name];
+  /* DriveSync's own folder of that name under File manager (the one holding most files), else make it */
+  var c=b.folders.filter(function(f){return f.name===name}).sort(function(x,y){return y.n-x.n})[0];
+  if(c)return made[name]=c.id;
+  var fm=b.fm;
+  if(!fm){var r=await g(API+"/files?fields=id",{method:"POST",headers:{"Content-Type":"application/json; charset=UTF-8"},body:JSON.stringify({name:"File manager",mimeType:FOLDER,parents:["root"]})});
+    if(!r.ok)throw await gerr(r,"Making File manager");fm=b.fm=(await r.json()).id}
+  var r3=await g(API+"/files?fields=id",{method:"POST",headers:{"Content-Type":"application/json; charset=UTF-8"},body:JSON.stringify({name:name,mimeType:FOLDER,parents:[fm]})});
+  if(!r3.ok)throw await gerr(r3,"Making "+name);var id=(await r3.json()).id;b.folders.push({id:id,name:name,path:"File manager › "+name,n:0});return made[name]=id}
+async function upload(f,parent){
+  var type=f.type||"application/octet-stream",meta={name:f.name,parents:[parent]};
+  if(f.lastModified)meta.modifiedTime=new Date(f.lastModified).toISOString();
+  var s=await g(UP+"/files?uploadType=resumable&fields=id,name,size,createdTime",{method:"POST",headers:{"Content-Type":"application/json; charset=UTF-8","X-Upload-Content-Type":type,"X-Upload-Content-Length":String(f.size)},body:JSON.stringify(meta)});
+  if(!s.ok)throw await gerr(s,"Upload");var loc=s.headers.get("Location");if(!loc)throw new Error("Drive gave no upload address");
+  var p=await fetch(loc,{method:"PUT",headers:{"Content-Type":type},body:f});if(!p.ok)throw await gerr(p,"Upload");return p.json()}
+
+/* ---------- bulk sync ---------- */
+function junk(f){return !f.size||/\.(tmp|thumb|nomedia)$/i.test(f.name)||/^\./.test(f.name)}
+async function sync(list){
+  if(running)return;running=true;stop=false;note("");
+  var files=Array.prototype.slice.call(list),items=files.map(function(f){return {f:f,st:"wait",msg:""}});
+  $("run").hidden=false;$("pick").disabled=$("pickDir").disabled=true;$("stop").disabled=false;
+  var lock=null;try{lock=await navigator.wakeLock.request("screen")}catch(e){}
+  var up=0,skip=0,bad=0,bytes=0,tot=items.length;
+  function paint(){var done=up+skip+bad;$("bar").style.width=(tot?Math.round(done*100/tot):0)+"%";
+    $("runSt").textContent=(running?(stop?"Stopping… ":"Uploading… "):"Done · ")+up+" uploaded ("+mb(bytes)+"), "+skip+" already in Drive"+(bad?", "+bad+" failed":"")+" · "+done+"/"+tot;
+    var order={go:0,bad:1,up:2,wait:3,skip:4},show=items.slice().sort(function(a,b){return order[a.st]-order[b.st]}).slice(0,150);
+    $("runList").innerHTML=show.map(function(it){var lab={wait:"waiting",go:"uploading…",up:"uploaded",skip:"in Drive",bad:"failed"}[it.st];
+      return '<div class="f">'+(it.id?'<a href="https://drive.google.com/file/d/'+esc(it.id)+'/view" target="_blank" rel="noopener">'+esc(it.f.name)+'</a>':'<span>'+esc(it.f.name)+'</span>')+
+        '<span class="s '+it.st+'" title="'+esc(it.msg)+'">'+lab+'</span></div>'}).join("")+(items.length>150?'<div class="muted" style="font-size:12px;padding-top:6px">…and '+(items.length-150)+' more</div>':'')}
+  paint();$("runSt").textContent="Checking what is already in your Drive…";
+  var hist=[];
+  try{
+    await fetchIndex(function(n){$("runSt").textContent="Checking what is already in your Drive… "+n.toLocaleString("en-IN")+" files"});
+    var b=build(idx);
+    items.forEach(function(it){var s=b.names[it.f.name.toLowerCase()];if(junk(it.f)||(s&&s.indexOf(it.f.size)>=0)){it.st="skip";it.msg=junk(it.f)?"temp/empty file":"same name and size already in Drive";skip++}});
+    paint();
+    var q=items.filter(function(it){return it.st==="wait"});
+    async function worker(){while(q.length&&!stop){var it=q.shift();it.st="go";paint();
+      try{var to=await folderFor(bucket(it.f),b),d=await upload(it.f,to);it.st="up";it.id=d.id;up++;bytes+=it.f.size;
+        var k=it.f.name.toLowerCase();(b.names[k]=b.names[k]||[]).push(it.f.size);
+        hist.push({n:it.f.name,id:d.id,s:it.f.size,to:bucket(it.f),at:new Date().toISOString()})}
+      catch(e){it.st="bad";it.msg=String(e.message||e);bad++;if(/HTTP 40[13]/.test(it.msg)&&!/rate/i.test(it.msg))stop=true}
+      paint()}}
+    var ws=[];for(var i=0;i<PAR;i++)ws.push(worker());await Promise.all(ws);
+    if(stop&&q.length)note(q.length+" files were not uploaded — pick them again to continue (finished ones will be skipped).",bad>0);
+    var badOne=items.filter(function(it){return it.st==="bad"})[0];if(badOne)note("Some uploads failed: "+esc(badOne.msg),true);
+  }catch(e){failNote(e)}
+  running=false;if(lock)try{lock.release()}catch(e){}
+  if(hist.length){var h=(await kget(HIST))||[];h=hist.reverse().concat(h).slice(0,500);await kset(HIST,h);
+    try{localStorage.setItem("pos-dsync-last",JSON.stringify({at:new Date().toISOString(),up:up,skip:skip,bad:bad}))}catch(e){}}
+  paint();$("pick").disabled=$("pickDir").disabled=false;$("stop").disabled=true;
+  $("fi").value="";$("fd").value="";
+  if(up){await fetchIndex().catch(function(){});}
+  dash();history_()}
+
+/* ---------- dashboard ---------- */
+function kind(m,n){m=String(m||"");n=String(n||"").toLowerCase();
+  if(m.indexOf("image/")===0)return "Images";if(m.indexOf("video/")===0)return "Videos";if(m.indexOf("audio/")===0||/\.opus$/.test(n))return "Audio";
+  if(m==="application/pdf")return "PDFs";if(/spreadsheet|excel|csv/.test(m)||/\.(xlsx?|csv)$/.test(n))return "Sheets";
+  if(/document|word|text\/plain|presentation|powerpoint/.test(m)||/\.(docx?|txt|pptx?)$/.test(n))return "Docs";return "Other"}
+var DOCS={PDFs:1,Sheets:1,Docs:1};
+async function dash(){
+  if(!idx){$("dash").innerHTML='<div class="card muted">Tap Refresh to read your Drive.</div>';return}
+  var b=build(idx),v=null;try{v=await PosVault.load()}catch(e){}
+  $("dashSt").textContent="Drive read "+ago(idx.at);
+  if(!b.fm){$("dash").innerHTML='<div class="card">No “File manager” folder in My Drive yet. It is made on your first sync.</div>';return}
+  var inV={},inL={};if(v){v.entries.forEach(function(e){inV[e.id]=1});((v.log&&v.log.ids)||[]).forEach(function(i){inL[i]=1})}
+  var fs=Object.keys(b.under).map(function(k){return b.under[k]}).filter(function(r){return !/\.(tmp|thumb|nomedia)$/i.test(r[1])});
+  fs.sort(function(a,c){return a[5]<c[5]?1:-1});
+  var now=new Date(),d0=new Date(now.getFullYear(),now.getMonth(),now.getDate()).getTime(),days=[];for(var i=13;i>=0;i--)days.push({t:d0-i*864e5,n:0});
+  var today=0,week=0,types={},pend=[];
+  fs.forEach(function(r){var t=new Date(r[5]).getTime();if(t>=d0)today++;if(t>=d0-6*864e5)week++;
+    for(var j=0;j<days.length;j++){if(t>=days[j].t&&t<days[j].t+864e5){days[j].n++;break}}
+    var k=kind(r[2],r[1]),x=types[k]=types[k]||{n:0,rev:0,pend:0};x.n++;
+    if(inV[r[0]]||inL[r[0]])x.rev++;else{x.pend++;if(DOCS[k])pend.push(r)}});
+  var last=fs[0],mx=Math.max.apply(null,days.map(function(x){return x.n}).concat([1]));
+  var docT=0,docR=0;Object.keys(DOCS).forEach(function(k){if(types[k]){docT+=types[k].n;docR+=types[k].rev}});
+  var stale=last&&Date.now()-new Date(last[5])>36*36e5;
+  var h='<div class="card" style="margin-bottom:8px"><div class="muted" style="font-size:12px">Last file to arrive</div>'+
+    (last?'<div class="big" style="'+(stale?"color:#b45309":"")+'">'+ago(last[5])+'</div><div style="font-size:13px;word-break:break-all"><a href="https://drive.google.com/file/d/'+esc(last[0])+'/view" target="_blank" rel="noopener" style="color:var(--tr-ink)">'+esc(last[1])+'</a> <span class="muted">· '+esc(when(last[5]))+'</span></div>'+
+      (stale?'<div class="muted" style="font-size:12px;margin-top:4px">Nothing new for over a day and a half — check that DriveSync is still running on the phone.</div>':''):'<div class="big">No files yet</div>')+'</div>';
+  h+='<div class="tiles"><div class="tile"><b>'+today+'</b><span>arrived today</span></div><div class="tile"><b>'+week+'</b><span>last 7 days</span></div><div class="tile"><b>'+fs.length.toLocaleString("en-IN")+'</b><span>in File manager</span></div></div>';
+  h+='<div class="card" style="margin-top:8px"><div class="muted" style="font-size:12px">Files arriving per day · last 14 days</div><div class="bars">'+
+    days.map(function(x,i){return '<div class="'+(x.n?"":"z")+(i===13?" t":"")+'" style="height:'+Math.max(2,Math.round(x.n*100/mx))+'%" title="'+new Date(x.t).toLocaleDateString("en-IN",{day:"numeric",month:"short"})+": "+x.n+'"></div>'}).join("")+
+    '</div><div class="bx"><span>'+new Date(days[0].t).toLocaleDateString("en-IN",{day:"numeric",month:"short"})+'</span><span>today</span></div></div>';
+  h+='<div class="card" style="margin-top:8px"><div class="row"><div><div class="muted" style="font-size:12px">Gemini review of File manager</div><div class="big">'+(docT?Math.round(docR*100/docT):0)+'% of documents reviewed</div></div></div>'+
+    (v?'':'<div class="muted" style="font-size:12px">Open the Vault once so this can compare with Gemini’s log.</div>')+
+    '<table style="margin-top:8px"><tr><th>Type</th><th>Files</th><th>Reviewed</th><th>Waiting</th></tr>'+
+    ["PDFs","Docs","Sheets","Images","Videos","Audio","Other"].filter(function(k){return types[k]}).map(function(k){var x=types[k];return '<tr><td>'+k+'</td><td>'+x.n+'</td><td>'+x.rev+'</td><td>'+x.pend+'</td></tr>'}).join("")+'</table>'+
+    (pend.length?'<details style="margin-top:10px"><summary>Newest documents Gemini hasn’t reviewed ('+pend.length+')</summary><div style="margin-top:6px">'+pend.slice(0,40).map(function(r){return '<div class="f"><a href="https://drive.google.com/file/d/'+esc(r[0])+'/view" target="_blank" rel="noopener">'+esc(r[1])+'</a><span class="muted" style="font-size:12px;flex:0 0 auto">'+esc(when(r[5]))+'</span></div>'}).join("")+'</div></details>':'')+'</div>';
+  var fl=b.folders.filter(function(f){return f.n}).sort(function(a,c){return c.n-a.n}).slice(0,12);
+  if(fl.length)h+='<details class="card" style="margin-top:8px"><summary>Folders</summary><table style="margin-top:6px">'+fl.map(function(f){return '<tr><td><a href="https://drive.google.com/drive/folders/'+esc(f.id)+'" target="_blank" rel="noopener" style="color:var(--tr-ink);text-decoration:none">'+esc(f.path)+'</a></td><td>'+f.n+'</td></tr>'}).join("")+'</table></details>';
+  $("dash").innerHTML=h}
+async function history_(){var h=(await kget(HIST))||[];
+  if(!h.length){$("hist").innerHTML='<span class="muted">Nothing yet.</span>';return}
+  var by={};h.forEach(function(x){var d=x.at.slice(0,10);(by[d]=by[d]||[]).push(x)});
+  $("hist").innerHTML=Object.keys(by).slice(0,7).map(function(d){var a=by[d],s=a.reduce(function(t,x){return t+x.s},0);
+    return '<details style="padding:4px 0"><summary>'+new Date(d).toLocaleDateString("en-IN",{weekday:"short",day:"numeric",month:"short"})+' · '+a.length+' files · '+mb(s)+'</summary>'+
+      a.slice(0,100).map(function(x){return '<div class="f"><a href="https://drive.google.com/file/d/'+esc(x.id)+'/view" target="_blank" rel="noopener">'+esc(x.n)+'</a><span class="muted" style="font-size:12px;flex:0 0 auto">'+esc(x.to.replace("WhatsApp ",""))+'</span></div>'}).join("")+'</details>'}).join("")}
+async function refresh(){$("refresh").disabled=true;$("dashSt").textContent="Reading your Drive…";
+  try{await fetchIndex(function(n){$("dashSt").textContent="Reading your Drive… "+n.toLocaleString("en-IN")});await dash()}catch(e){failNote(e);$("dashSt").textContent=idx?"Drive read "+ago(idx.at):""}
+  $("refresh").disabled=false}
+
+$("pick").addEventListener("click",function(){$("fi").click()});
+$("pickDir").addEventListener("click",function(){$("fd").click()});
+if("webkitdirectory" in document.createElement("input"))$("pickDir").hidden=false;
+$("fi").addEventListener("change",function(){if(this.files.length)sync(this.files)});
+$("fd").addEventListener("change",function(){if(this.files.length)sync(this.files)});
+$("stop").addEventListener("click",function(){stop=true;this.disabled=true});
+$("refresh").addEventListener("click",refresh);
+window.addEventListener("beforeunload",function(e){if(running){e.preventDefault();e.returnValue=""}});
+(async function(){idx=await kget(IDX).catch(function(){return null});history_();await dash();
+  if(!idx||Date.now()-idx.at>10*60000)refresh()})();
+})();
+</script>
+</body></html>
