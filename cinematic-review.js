@@ -6,9 +6,9 @@
    tickContentHtml, save, tickUrl, getDb, suppressed).
 */
 (function(){'use strict';
-var ORDER=['SDE-TECH','SDE-REV','SDE-ESTT','HOME-MANAGER','BROTHER','SON'];
-var LABEL={'SDE-TECH':'SDE Technical','SDE-REV':'SDE Revenue','SDE-ESTT':'SDE Establishment','HOME-MANAGER':'Home Manager','BROTHER':'Brother','SON':'Son','UNTAGGED':'Untagged'};
-var HUE={'SDE-TECH':200,'SDE-REV':150,'SDE-ESTT':32,'HOME-MANAGER':330,'BROTHER':265,'SON':50,'UNTAGGED':220};
+var ORDER=['SDE-TECH','SDE-REV','SDE-ESTT','PERSONAL','HOME-MANAGER','BROTHER','SON'];
+var LABEL={'SDE-TECH':'SDE Technical','SDE-REV':'SDE Revenue','SDE-ESTT':'SDE Establishment','PERSONAL':'Personal','HOME-MANAGER':'Home Manager','BROTHER':'Brother','SON':'Son','UNTAGGED':'Untagged'};
+var HUE={'SDE-TECH':200,'SDE-REV':150,'SDE-ESTT':32,'PERSONAL':330,'HOME-MANAGER':330,'BROTHER':265,'SON':50,'UNTAGGED':220};
 var SPEEDS=[0.75,1,1.5,2];
 var S={slides:[],i:0,playing:true,speed:1,timer:null,raf:null,start:0,dur:0,elapsed:0,kind:'',details:{},wake:null};
 
@@ -167,7 +167,7 @@ function render(){
   }else if(s.type==='item'){
     var t=s.task,link=taskLink(t),meta='';
     if(S.kind==='completed'){
-      meta='<div class="pills"><span class="pill">✓ '+(t.completionCount>1?'Done '+t.completionCount+' times':'Done once')+'</span>'+(t.tags||[]).filter(function(x){return x!==s.tag}).map(function(x){return '<span class="pill">#'+h(x)+'</span>'}).join('')+'</div>'+
+      meta='<div class="pills"><span class="pill">✓ Done and dusted</span>'+(t.tags||[]).filter(function(x){return x!==s.tag}).map(function(x){return '<span class="pill">#'+h(x)+'</span>'}).join('')+'</div>'+
         ((t.completionDates||[]).length?'<div class="dates">'+t.completionDates.map(function(d){return '<span class="date">'+h(fmtDay(d))+'</span>'}).join('')+'</div>':'');
     }else{
       meta='<div class="pills">'+(t.tags||[]).map(function(x){return '<span class="pill">#'+h(x)+'</span>'}).join('')+(t.due?'<span class="pill">'+h(String(t.due).slice(0,10))+'</span>':'')+'</div>';

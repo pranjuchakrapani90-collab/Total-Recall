@@ -319,7 +319,7 @@ function drawCompletedCard(){
   $('completedCounter').textContent='Completed Task Review';
   $('completedCard').textContent=t.title||'Untitled task';
   var dates=(t.completionDates||[]).map(function(d){return new Date(d+'T12:00:00').toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'})}).join(' • ');
-  $('completedHint').textContent=(t.completionCount>1?'Completed '+t.completionCount+' times':'Completed once')+(dates?' • '+dates:'')+(t.tags&&t.tags.length?' • '+t.tags.join(', '):'');
+  $('completedHint').textContent='Done and dusted'+(dates?' • '+dates:'')+(t.tags&&t.tags.length?' • '+t.tags.join(', '):'');
   $('completedBack').disabled=completedIdx===0;
 }
 function finishCompletedReview(){completedCards=[];completedIdx=0;hide('completedSession');show('home');render()}

@@ -170,8 +170,10 @@ function referenceRes(s,e,list){list=list==="archive"||list==="abandoned"?list:"
     var cd=list==="reference"?String(t.cr||"").slice(0,10):(t.ad||String(t.md||t.cr||"").slice(0,10));if((s||e)&&!inRange(cd,s,e))return;n++;var tg=upTags(t);if(!tg.length&&list!=="reference")tg=["UNTAGGED"];
     tg.forEach(function(g){(tags[g]=tags[g]||[]).push({id:t.id,title:t.ti,due:t.du,projectId:list,tags:tg,moved:list==="reference"?"":cd})});});
   return {section:LISTNAME[list],projectId:list,projectName:LISTNAME[list],start:s||null,end:e||null,taskCount:n,tags:tags};}
-function completedRes(s,e){var T=all(),out=[];Object.keys(T).forEach(function(id){var t=T[id],ds=Object.keys(t.h||{}).filter(function(d){var k=t.h[d];return inRange(d,s,e)&&k!=="push"&&k!=="later"&&k!=="tick"&&k!=="archive"&&k!=="abandon"}).sort();
-    if(ds.length)out.push({id:t.id,title:t.ti,projectId:t.pj,tags:upTags(t),completionDates:ds,completionCount:ds.length});});
+/* Completed = done and dusted (5 Nov 2026): only tasks that are closed for good, on the day they were closed.
+   A "done today, continues", a finished step, or a tick on a repeating task is not completion — that task is still open. */
+function completedRes(s,e){var T=all(),out=[];Object.keys(T).forEach(function(id){var t=T[id];if(t.st!==2||!t.cd||!inRange(t.cd,s,e))return;
+    out.push({id:t.id,title:t.ti,projectId:t.pj,tags:upTags(t),completionDates:[t.cd],completionCount:1});});
   out.sort(function(a,b){return a.title.localeCompare(b.title)});return {start:s,end:e,timeZone:TZ,uniqueCount:out.length,tasks:out};}
 function listRes(){var T=all(),out=[];Object.keys(T).forEach(function(id){var t=T[id];if(t.st===2||t.pj==="archive"||t.pj==="abandoned")return;
     out.push({id:t.id,projectId:t.pj,project:LISTNAME[t.pj],title:t.ti,tags:t.tg,m:t.md||t.cr||""})});
