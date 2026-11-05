@@ -178,6 +178,7 @@ table.boq{border-collapse:collapse;width:100%;min-width:720px;font-size:12.5px}
  <div class="card noprint">
   <div class="f">
    <label>SLD title<input id="sldTitle" placeholder="Auto from the survey"></label>
+   <label>Span lengths come from<select id="lenSrc"><option value="typed">What I type (GPS only shows where things are)</option><option value="gps">GPS distance when I don't type one</option></select></label>
   </div>
   <div class="chk">
    <label><input type="checkbox" id="oNorth"> North arrow</label>
@@ -520,7 +521,7 @@ function badge(){const b=document.getElementById("saveBadge");if(!b)return;if(sa
 function touch(p){p.upd=Date.now();save()}
 function newProject(name){const p={id:uid(),name:name||"Survey "+new Date().toLocaleDateString("en-IN"),upd:Date.now(),
  meta:{work:"",loc:"",pay:"dept",doc:"SESD/"+new Date().getFullYear()+"/",date:new Date().toISOString().slice(0,10),ss:"",fdr:"",fee:0,title:""},
- opt:{north:false,gps:false,span:true,sign:false},set:{...DEF_SET},pts:[]};DB.projects[p.id]=p;DB.cur=p.id;save();return p}
+ opt:{north:false,gps:false,span:true,sign:false},set:{...DEF_SET,lenSrc:"typed"},pts:[]};DB.projects[p.id]=p;DB.cur=p.id;save();return p}
 function P(){let p=DB.projects[DB.cur];if(!p||p.del){p=live()[0]||newProject("Survey 1");DB.cur=p.id}return p}
 
 const SYNC_KEY="totalRecallSyncCode_v1";let SYNC_URL="https://total-recall-ticktick.pranjuchakrapani90.workers.dev";
@@ -567,8 +568,12 @@ function midCount(b,len,maxS){if(hasNum(b.nMid)&&+b.nMid>=0)return Math.round(+b
 function midTs(b,len,maxS){if(Array.isArray(b.mids))return b.mids.filter(t=>t>0&&t<1).sort((x,y)=>x-y);const n=midCount(b,len,maxS),r=[];for(let i=1;i<=n;i++)r.push(i/(n+1));return r}
 function midRule(b,maxS){return Array.isArray(b.mids)?"placed by hand":hasNum(b.nMid)&&+b.nMid>=0?"number set by you":hasNum(b.gap)&&+b.gap>0?"your spacing "+(+b.gap)+" m":"rule: max "+maxS+" m"}
 function maxSpanFor(lineKey){const S={...DEF_SET,...(P().set||{})},L=LINES[lineKey]||{};return L.abc?S.sABC:L.kv===33?S.sEHV:L.mv?S.sMV:L.cls==="HV"?S.sHV:S.sLT}
+/* Span length: typed by the SDE, or (older surveys) the GPS distance when none is typed.
+   lenSrc "typed" = GPS / map / SLD positions only place the points on the drawing; a span counts only once its length is typed. */
+const lenMode=p=>(p&&p.set&&p.set.lenSrc)||"gps";
+function spanLen(p,a,b){return +b.len>0?+b.len:lenMode(p)==="typed"?0:hav(a,b)}
 function midInfo(o,pa,lineKey){const L=LINES[lineKey]||{};if(!pa||L.ex)return L.ex&&pa?"Existing line — no new intermediate poles.":"";
- const len=+o.len>0?+o.len:hav(pa,o),mx=maxSpanFor(lineKey),ts=midTs(o,len,mx),n=ts.length,sp=[...ts,1].map((t,i)=>(t-(i?ts[i-1]:0))*len),lg=Math.max(...sp),hand=Array.isArray(o.mids);
+ const len=spanLen(P(),pa,o),mx=maxSpanFor(lineKey);if(!(len>0))return`<span style="color:#b45309"><b>Type the span length (m)</b> — intermediate poles, conductor and the length on the SLD come from it.</span>`;const ts=midTs(o,len,mx),n=ts.length,sp=[...ts,1].map((t,i)=>(t-(i?ts[i-1]:0))*len),lg=Math.max(...sp),hand=Array.isArray(o.mids);
  return`<b>${Math.round(len)} m → ${n} intermediate pole${n===1?"":"s"}</b>, ${n+1} span${n?"s":""} ${hand?"(longest "+Math.round(lg)+" m)":"of ~"+Math.round(len/(n+1))+" m"} · ${midRule(o,mx)}`+(lg>mx+0.5?` <span style="color:#b45309">· a span is longer than the ${mx} m rule</span>`:"")+(hand?` <button type="button" class="btn alt sm" data-midreset>Back to automatic</button>`:"")}
 function setMids(b,ts){b.mids=ts.filter(t=>t>0.002&&t<0.998).sort((x,y)=>x-y).map(t=>+t.toFixed(5))}
 
@@ -584,7 +589,7 @@ function compute(p){
  const addEx=(sor,q,w)=>add(sor,q,w+" (existing / O&M stock)",true);
  const dis=(sor,q,w)=>{if(!q)return;if(!RATES[sor]){warn.push("No rate for SoR "+sor);return}DM[sor]=(DM[sor]||0)+q;(dwhy[sor]=dwhy[sor]||[]);if(w&&!dwhy[sor].includes(w))dwhy[sor].push(w)};
  const segs=[];pts.forEach(b=>{if(!b.par)return;const a=byId[b.par];if(!a||isStand(b)){b.par=null;return}
-  let L=LINES[b.line]||LINES["11R"];if((a.kind==="cont"||b.kind==="cont")&&!L.ex)L=LINES[L.kv===33?"EX33":L.cls==="HV"?"EX11":"EXLT"];segs.push({a,b,line:b.line,L,cls:L.cls,kv:L.kv||(L.cls==="HV"?11:0.4),len:+b.len>0?+b.len:hav(a,b),pole:b.pole||"",cross:b.cross||"",reuse:!!b.reuse,disOld:!!b.disOld,rmPoles:b.rmPoles!==false})});
+  let L=LINES[b.line]||LINES["11R"];if((a.kind==="cont"||b.kind==="cont")&&!L.ex)L=LINES[L.kv===33?"EX33":L.cls==="HV"?"EX11":"EXLT"];segs.push({a,b,line:b.line,L,cls:L.cls,kv:L.kv||(L.cls==="HV"?11:0.4),len:spanLen(p,a,b),pole:b.pole||"",cross:b.cross||"",reuse:!!b.reuse,disOld:!!b.disOld,rmPoles:b.rmPoles!==false})});
  const work=L=>!L.ex&&!L.dis;
  const maxSpan=L=>L.abc?S.sABC:L.kv===33?S.sEHV:L.mv?S.sMV:L.cls==="HV"?S.sHV:S.sLT;
  const poleOf=sg=>sg.pole||(sg.kv===33?"SP-76":sg.cls==="HV"?"9.75":"8.5");
@@ -745,6 +750,7 @@ function compute(p){
   if(sg.cls==="HV"&&(a.kind==="srcLT"||a.kind==="srcDTR"))warn.push("HT line P"+sg.a.no+"–P"+sg.b.no+" starts from an LT source.");
   if(sg.kv===33&&a.kind==="src11")warn.push("33 kV line P"+sg.a.no+"–P"+sg.b.no+" starts from an 11 kV tapping point.");
   if(sg.len>3000)warn.push("Span P"+sg.a.no+"–P"+sg.b.no+" is "+(sg.len/1000).toFixed(2)+" km — check the coordinates.")});
+ if(lenMode(p)==="typed"){const nl=segs.filter(sg=>work(sg.L)&&!(sg.len>0));if(nl.length)warn.push("Span length not typed yet: "+nl.map(sg=>"P"+sg.a.no+"–P"+sg.b.no).join(", ")+". Open the end point of each and type the span length (m) — no conductor or intermediate poles are counted for it until then.")}
  // switchgear doubled on one spur: a DP that feeds only one DTR / S/S, with the same GOAB / DO / LA as the DTR itself
  pts.forEach(x=>{if(!["dtr","htc","dtrShift"].includes(x.kind))return;const sg=segs.find(g=>g.b===x&&g.cls==="HV"&&work(g.L));if(!sg)return;const a=sg.a,K=KINDS[a.kind]||{};
   if(isSrc(a)||segs.filter(g=>g.a===a&&g.cls==="HV"&&work(g.L)).length!==1)return;
@@ -897,7 +903,7 @@ function sldSVG(c,so){
   if(so.arrow!==false&&!L.ex&&!L.dis&&len>24){U.arrow=1;const ux=(b1-a1)/len,uy=(b2-a2)/len,ptsOn=[sg.a,...sg.mid,sg.b].map(T);let bi=0,bl=0;for(let i=0;i<ptsOn.length-1;i++){const d=Math.hypot(ptsOn[i+1][0]-ptsOn[i][0],ptsOn[i+1][1]-ptsOn[i][1]);if(d>bl){bl=d;bi=i}}
    const k=Math.floor(ptsOn.length/2)-1>=0?Math.floor((ptsOn.length-1)/2):0,P1=ptsOn[k],P2=ptsOn[k+1]||ptsOn[k],cx=(P1[0]+P2[0])/2,cy=(P1[1]+P2[1])/2,r=4.5;
    out.push(`<path d="M${(cx+ux*r).toFixed(1)},${(cy+uy*r).toFixed(1)} L${(cx-ux*r-uy*r*.8).toFixed(1)},${(cy-uy*r+ux*r*.8).toFixed(1)} L${(cx-ux*r+uy*r*.8).toFixed(1)},${(cy-uy*r-ux*r*.8).toFixed(1)} Z" fill="${SC}"/>`)}
-  if(so.span&&!L.ex&&!L.dis){const ptsOn=[sg.a,...sg.mid,sg.b];for(let i=0;i<ptsOn.length-1;i++){const[p1,p2]=T(ptsOn[i]),[q1,q2]=T(ptsOn[i+1]);if(Math.hypot(q1-p1,q2-p2)<24)continue;t((p1+q1)/2-nx*9,(p2+q2)/2-ny*9+2.3,Math.round(hav(ptsOn[i],ptsOn[i+1])*(+sg.b.len>0?sg.len/Math.max(hav(sg.a,sg.b),0.01):1))+" m",{fs:6,c:"#374151",rot})}}
+  if(so.span&&!L.ex&&!L.dis&&sg.len>0){const ptsOn=[sg.a,...sg.mid,sg.b];for(let i=0;i<ptsOn.length-1;i++){const[p1,p2]=T(ptsOn[i]),[q1,q2]=T(ptsOn[i+1]);if(Math.hypot(q1-p1,q2-p2)<24)continue;t((p1+q1)/2-nx*9,(p2+q2)/2-ny*9+2.3,Math.round(hav(ptsOn[i],ptsOn[i+1])*(+sg.b.len>0?sg.len/Math.max(hav(sg.a,sg.b),0.01):1))+" m",{fs:6,c:"#374151",rot})}}
   sg.mid.forEach(m=>{const[x,y]=T(m);U[m.exist?"exP":"newP"]=1;out.push(`<circle cx="${x}" cy="${y}" r="2.8" fill="${m.exist?"#111":"#fff"}" stroke="#111" stroke-width="1"/>`);if(m.earth)earthSym(x,y);if(m.stay){const A=xy(sg.a,c.o),B=xy(sg.b,c.o);stay(x,y,{x:-(B.y-A.y),y:B.x-A.x})}const sp=len/(sg.mid.length+1),step=Math.max(1,Math.ceil(20/Math.max(sp,1)));if(m.i%step===0)t(x+nx*9,y+ny*9+2.2,m.lab,{fs:6})});
  });
  function earthSym(x,y){U.earth=1;out.push(`<path d="M${x},${y+3} v4 M${x-3.5},${y+7} h7 M${x-2.3},${y+8.8} h4.6 M${x-1.1},${y+10.5} h2.2" stroke="#111" stroke-width="0.7" fill="none"/>`)}
@@ -1144,7 +1150,7 @@ function renderDlgLine(){const p=P(),K=KINDS[draft.kind];$("#dLineSec").hidden=!
  const desc=new Set();(function mark(id){desc.add(id);p.pts.filter(q=>q.par===id).forEach(q=>mark(q.id))})(draft.id);
  $("#dPar").innerHTML=(K.src?'<option value="">— none (this is a source) —</option>':'<option value="">— not connected —</option>')+p.pts.filter(q=>!desc.has(q.id)&&!isStand(q)).map(q=>`<option value="${q.id}" ${q.id===draft.par?"selected":""}>P${q.no} · ${KINDS[q.kind].t}${q.note?" · "+q.note:""}</option>`).join("");
  $("#dLine").innerHTML=Object.entries(LG).map(([g,gl])=>`<optgroup label="${gl}">`+Object.entries(LINES).filter(([,v])=>v.g===g).map(([k,v])=>`<option value="${k}" ${k===draft.line?"selected":""}>${v.t}</option>`).join("")+"</optgroup>").join("");
- $("#dPole").value=draft.pole||"";$("#dCross").value=draft.cross||"";{const pa=p.pts.find(q=>q.id===draft.par);$("#dLen").value=draft.len||"";$("#dLen").placeholder=pa?"auto: "+Math.round(hav(pa,draft))+" m":"auto"}$("#dGap").value=hasNum(draft.gap)?draft.gap:"";$("#dNMid").value=hasNum(draft.nMid)?draft.nMid:"";$("#dDbMid").value=hasNum(draft.dbMid)?draft.dbMid:"";$("#dDbTy").value=draft.dbTyMid||"";renderSegOpts();dMidUpd()}
+ $("#dPole").value=draft.pole||"";$("#dCross").value=draft.cross||"";{const pa=p.pts.find(q=>q.id===draft.par);$("#dLen").value=draft.len||"";$("#dLen").placeholder=lenMode(p)==="typed"?"type it (m)":pa?"auto: "+Math.round(hav(pa,draft))+" m":"auto"}$("#dGap").value=hasNum(draft.gap)?draft.gap:"";$("#dNMid").value=hasNum(draft.nMid)?draft.nMid:"";$("#dDbMid").value=hasNum(draft.dbMid)?draft.dbMid:"";$("#dDbTy").value=draft.dbTyMid||"";renderSegOpts();dMidUpd()}
 function dMidUpd(){const p=P(),g=$("#dGap");g.placeholder="auto: max "+maxSpanFor($("#dLine").value)+" m";{const LL=LINES[$("#dLine").value]||{},ab=!!LL.abc;$("#dDbMidL").hidden=!ab;$("#dDbTyL").hidden=!ab||LL.ph!==3;$("#dDbMid").placeholder="auto: "+({...DEF_SET,...(p.set||{})}).sDB}
  const o={lat:draft.lat,lng:draft.lng,len:$("#dLen").value,gap:$("#dGap").value,nMid:$("#dNMid").value,mids:draft.mids},pa=p.pts.find(q=>q.id===$("#dPar").value);$("#dMidInfo").innerHTML=midInfo(o,pa,$("#dLine").value)}
 $("#dGap").addEventListener("input",()=>{delete draft.mids;delete draft.dbAt;$("#dNMid").value="";dMidUpd()});
@@ -1359,7 +1365,7 @@ function selBox(it){let x1=1e9,y1=1e9,x2=-1e9,y2=-1e9;const add=b=>{x1=Math.min(
  it.notes.forEach(n=>{const t=document.querySelector(`#sldBox .tx[data-k="a:${n.id}"]`);if(t)try{add(t.getBBox())}catch(_){}});return x2>x1?{x1,y1,x2,y2}:null}
 function moveItems(p,it,f){const L=lay(p),P0=it.pts.map(x=>[x,posOf(x.id)]);P0.forEach(([x,q])=>{if(q){const[X,Y]=f(q[0],q[1]);setPos(p,x,X,Y)}});it.notes.forEach(n=>{const[X,Y]=f(n.x,n.y);n.x=+X.toFixed(1);n.y=+Y.toFixed(1)})}
 // lengths taken from the drawing must not change when the drawing is enlarged or shrunk
-function lockLens(p,it){const c=compute(p),ids=new Set(it.pts.map(x=>x.id));c.segs.forEach(sg=>{if(+sg.b.len>0)return;if(!(ids.has(sg.a.id)||ids.has(sg.b.id)))return;if(sg.a.src==="sld"||sg.b.src==="sld")sg.b.len=Math.round(sg.len)})}
+function lockLens(p,it){if(lenMode(p)==='typed')return;const c=compute(p),ids=new Set(it.pts.map(x=>x.id));c.segs.forEach(sg=>{if(+sg.b.len>0)return;if(!(ids.has(sg.a.id)||ids.has(sg.b.id)))return;if(sg.a.src==="sld"||sg.b.src==="sld")sg.b.len=Math.round(sg.len)})}
 $("#edAll").onclick=()=>{const p=P();SEL=new Set(p.pts.map(x=>x.id));SELN=new Set(lay(p).notes.map(n=>"a:"+n.id));EDMODE="select";renderAll()};
 $("#edCtr").onclick=()=>{const p=P(),it=selItems(),b=selBox(it),A=LASTA;if(!b||!A)return;snap();freeze(p);const dx=(A.x1+A.x2)/2-(b.x1+b.x2)/2,dy=(A.y1+A.y2)/2-(b.y1+b.y2)/2;moveItems(p,it,(X,Y)=>[X+dx,Y+dy]);touch(p);renderAll()};
 function scaleSel(k){const p=P(),it=selItems(),b=selBox(it),A=LASTA;if(!b)return;
@@ -1394,7 +1400,7 @@ function openLine(b){const p=P();LNB=b;const a=p.pts.find(q=>q.id===b.par);
  $("#lTo").value="P"+b.no+" · "+KINDS[b.kind].t;
  $("#lLine").innerHTML=Object.entries(LG).map(([g,gl])=>`<optgroup label="${gl}">`+Object.entries(LINES).filter(([,v])=>v.g===g).map(([k,v])=>`<option value="${k}" ${k===b.line?"selected":""}>${v.t}</option>`).join("")+"</optgroup>").join("");
  $("#lPole").innerHTML=$("#dPole").innerHTML;$("#lPole").value=b.pole||"";$("#lCross").value=b.cross||"";{const L=LINES[b.line]||{},C={...DEFCOL,...(p.opt.col||{})};$("#lCol").value=b.lcol||(L.dis?C.dis:L.ex?C.ex:L.cls==="HV"?C.hv:C.lt);$("#lColDef").checked=!b.lcol}
- $("#lLen").value=b.len||"";$("#lLen").placeholder=a?"auto: "+Math.round(hav(a,b))+" m":"auto";
+ $("#lLen").value=b.len||"";$("#lLen").placeholder=lenMode(p)==="typed"?"type it (m)":a?"auto: "+Math.round(hav(a,b))+" m":"auto";
  $("#lGap").value=hasNum(b.gap)?b.gap:"";$("#lNMid").value=hasNum(b.nMid)?b.nMid:"";LNM=Array.isArray(b.mids)?b.mids.slice():null;lMidUpd();
  const A=a&&posOf(a.id),B=posOf(b.id);if(A&&B){const ang=Math.round(Math.atan2(A[1]-B[1],B[0]-A[0])*R2D);$("#lAng").value=(ang+360)%360;$("#lMm").value=Math.round(Math.hypot(B[0]-A[0],B[1]-A[1])*MM)}else{$("#lAng").value="";$("#lMm").value=""}
  LN0={a:$("#lAng").value,m:$("#lMm").value,par:b.par};
@@ -1478,7 +1484,7 @@ function renderProj(){storeInfo();const L=live();$("#projList").innerHTML=L.map(
 const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
 function renderSel(){{const el=$("#survName");if(el&&document.activeElement!==el)el.value=P().name||""}$("#projSel").innerHTML=live().map(p=>`<option value="${p.id}" ${p.id===DB.cur?"selected":""}>${esc(p.name)} (${p.pts.length} pts)</option>`).join("")}
 let VIEW="survey";
-function renderAll(fit){P();renderSel();const c=compute(P());if(VIEW==="survey")renderSurvey(c,fit);else drawMapLater=c;if(VIEW==="sld")renderSLD(c);if(VIEW==="est")renderEst(c);if(VIEW==="fw"&&window.renderFw)renderFw(c);if(VIEW==="proj")renderProj()}
+function renderAll(fit){P();renderSel();{const ls=document.getElementById("lenSrc");if(ls)ls.value=lenMode(P())}const c=compute(P());if(VIEW==="survey")renderSurvey(c,fit);else drawMapLater=c;if(VIEW==="sld")renderSLD(c);if(VIEW==="est")renderEst(c);if(VIEW==="fw"&&window.renderFw)renderFw(c);if(VIEW==="proj")renderProj()}
 let drawMapLater=null;
 function show(v){VIEW=v;document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.v===v));["survey","sld","est","fw","proj"].forEach(k=>{const el=$("#v-"+k);if(el)el.hidden=k!==v});
  if(v==="survey"&&map)setTimeout(()=>map.invalidateSize(),50);renderAll(false)}
@@ -1495,6 +1501,10 @@ $("#renProj").onclick=()=>{const p=P(),n=prompt("Survey name",p.name);if(n===nul
 [["cHv","hv"],["cLt","lt"],["cEx","ex"],["cDis","dis"]].forEach(([id,k])=>$("#"+id).addEventListener("change",e=>{const p=P();p.opt.col={...(p.opt.col||{}),[k]:e.target.value};touch(p);renderAll()}));
 $("#cBw").onclick=()=>{const p=P();p.opt.col={...BWCOL};touch(p);renderAll()};$("#cDef").onclick=()=>{const p=P();delete p.opt.col;p.pts.forEach(x=>delete x.lcol);touch(p);renderAll()};
 ["North","Gps","Span","Sign"].forEach(k=>$("#o"+k).addEventListener("change",e=>{const p=P();p.opt[k.toLowerCase()]=e.target.checked;touch(p);renderAll()}));
+$("#lenSrc").addEventListener("change",e=>{const p=P();p.set=p.set||{...DEF_SET};
+ if(e.target.value==="typed"&&lenMode(p)==="gps"){const c=compute(p),n=c.segs.filter(sg=>!sg.L.ex&&!sg.L.dis&&!(+sg.b.len>0)).length;
+  if(n&&confirm(n+" span"+(n>1?"s have":" has")+" no typed length. Keep their present GPS lengths as typed lengths? (Cancel = leave them blank for you to type.)"))c.segs.forEach(sg=>{if(!sg.L.ex&&!sg.L.dis&&!(+sg.b.len>0))sg.b.len=Math.round(sg.len)})}
+ p.set.lenSrc=e.target.value;touch(p);renderAll()});
 Object.keys(DEF_SET).forEach(k=>$("#"+k).addEventListener("change",e=>{const p=P();p.set=p.set||{...DEF_SET};p.set[k]=Math.max(0,+e.target.value||0);touch(p)}));
 
 /* ================= Outputs ================= */
