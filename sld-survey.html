@@ -474,7 +474,7 @@ const KINDS={
  svc:{g:6,t:"Service connections",d:"Households served from this pole",o:["n","onEx"],def:{onEx:true,n:5}},
  rmPole:{g:7,t:"Existing pole / DP to be removed",d:"Goes to the dismantling estimate",standalone:true,kitOnly:true,o:["oldPole","oldStruct"]},
  mark:{g:8,t:"Marked point (details later)",d:"A spot marked on site or sent from WhatsApp. No cost. Open it later and choose what it is (pole, DTR, tapping point…) and the point it joins from",standalone:true,kitOnly:true,o:[]},
- lm:{g:8,t:"Landmark / road / railway / river",d:"Drawn on the SLD as an identifier, no cost. For a road, track, river or drain, mark 2 or more points along it",standalone:true,kitOnly:true,o:["lmType"]}
+ lm:{g:8,t:"Landmark / road / railway / river",d:"Drawn on the SLD as an identifier, no cost. For a road, track, river or drain, mark 2 or more points along it",standalone:true,kitOnly:true,o:["lmType","lmLen"]}
 };
 const LMT=["School","College","Temple","Namghar","Mosque","Church","Bank","Hospital","Office","Market","Household cluster","Tea garden","Pond","Culvert","Bridge","Road junction","Road","Railway track","River / canal","Drain / nallah"];
 const LIN={"Road":"road","Railway track":"rail","River / canal":"river","Drain / nallah":"drain"};
@@ -488,7 +488,7 @@ const OPTF={
  oldPole:{l:"Old pole",ty:"sel",o:[["PSC 8.5","PSC 8.5 m"],["PSC 7.5","PSC 7.5 m"],["PSC 9.75","PSC 9.75 m"],["SP-56","SP-56"],["SP-60","SP-60"],["SP-66","SP-66"],["SP-76","SP-76"],["Rail","Rail pole"],["RSJ","RS joist"]],def:"PSC 8.5"},
  dmg:{l:"Conductor damaged (m)",ty:"num",def:0},cable:{l:"Cable per crossing (m)",ty:"num",def:600},bore:{l:"Boring under track (m)",ty:"num",def:20},blen:{l:"Bridge length (m)",ty:"num",def:100},
  railPole:{l:"Crossing poles",ty:"sel",o:[["9.75","PSC 9.75 m"],["SP-76","SP-76"]],def:"9.75"},
- dtrNo:{l:"DTR No.",ty:"txt",def:""},prem:{l:"Inside premises / campus (name; blank = not shown)",ty:"txt",def:""},premSz:{l:"Premises size on drawing",ty:"sel",o:[["S","Small"],["M","Medium"],["L","Large"]],def:"M"},lmType:{l:"Landmark",ty:"sel",o:LMT,def:"School"},
+ dtrNo:{l:"DTR No.",ty:"txt",def:""},prem:{l:"Inside premises / campus (name; blank = not shown)",ty:"txt",def:""},premSz:{l:"Premises size on drawing",ty:"sel",o:[["S","Small"],["M","Medium"],["L","Large"]],def:"M"},lmType:{l:"Landmark",ty:"sel",o:LMT,def:"School"},lmLen:{l:"Length on drawing (road / track / river / drain marked with one point)",ty:"sel",o:[["S","Short"],["M","Medium"],["L","Long"],["F","Full: straight right across the sheet"]],def:"S"},
  fit:{l:"New line fittings on it (cross-arm / channel, insulators, jumpers)",ty:"chk",def:true},
  exEq:{l:"Equipment already on it",ty:"sel",o:[["","None"],["GOAB","GOAB"],["DO","DO fuse"],["LA","LA"],["GOAB + DO","GOAB + DO"],["GOAB + DO + LA","GOAB + DO + LA"],["DTR","DTR"]],def:""},
  exType:{l:"Existing pole(s) type",ty:"sel",o:[["PSC","PSC"],["RCC","RCC"],["SP-56","SP-56 steel tubular"],["SP-60","SP-60 steel tubular"],["SP-66","SP-66 steel tubular"],["SP-76","SP-76 steel tubular"],["Steel","Steel tubular (other)"],["Rail","Rail pole"],["RSJ","RS joist"]],def:"PSC"},
@@ -852,7 +852,10 @@ function sldSVG(c,so){
   const a=P[bi],b=P[bi+1]||P[bi],L=Math.hypot(b[0]-a[0],b[1]-a[1])||1,nx=-(b[1]-a[1])/L,ny=(b[0]-a[0])/L,off=ty==="road"||ty==="river"?13:8;labAlong([a[0]+nx*off,a[1]+ny*off],[b[0]+nx*off,b[1]+ny*off],r.txt,{fs:6.6,fw:700,c:r.c})};
  {const grp={};(c.fedges||[]).forEach(e=>{(grp[e.grp]=grp[e.grp]||[]).push(e)});
   Object.values(grp).forEach(es=>{const ty=es[0].ty,nm=es[0].name;const chains=[];es.forEach(e=>{const A=T(e.a),B=T(e.b);const ch=chains.find(ch=>ch.last===e.a.id);if(ch){ch.P.push(B);ch.last=e.b.id}else chains.push({P:[A,B],last:e.b.id})});chains.forEach((ch,k)=>drawFeat(ty,ch.P,nm,k===0?null:-1))});
-  (c.fsingle||[]).forEach(x=>{const[X,Y]=T(x),r=(+x.rot||0)*D2R,ux=Math.cos(r)*30,uy=Math.sin(r)*30;drawFeat(LIN[opt(x,"lmType")],[[X-ux,Y-uy],[X+ux,Y+uy]],x.note,0)})}
+  (c.fsingle||[]).forEach(x=>{const[X,Y]=T(x),r=(+x.rot||0)*D2R,cx=Math.cos(r),cy=Math.sin(r),A=LASTA,
+   reach=sg=>{let k=1e9;if(Math.abs(cx)>1e-6)k=Math.min(k,((sg*cx>0?A.x2-6:A.x1+6)-X)/(sg*cx));if(Math.abs(cy)>1e-6)k=Math.min(k,((sg*cy>0?A.y2-6:A.y1+6)-Y)/(sg*cy));return Math.max(10,k)},
+   L=opt(x,"lmLen"),a=L==="F"?reach(-1):({S:30,M:60,L:110}[L]||30),b=L==="F"?reach(1):({S:30,M:60,L:110}[L]||30);
+   drawFeat(LIN[opt(x,"lmType")],[[X-cx*a,Y-cy*a],[X+cx*b,Y+cy*b]],x.note,0)})}
  const nearFeat=(ty,X,Y,R=20)=>fpolys.some(f=>f.ty===ty&&f.P.some((q,i)=>{const r=f.P[i+1];if(!r)return false;const dx=r[0]-q[0],dy=r[1]-q[1],L2=dx*dx+dy*dy||1,tt=Math.max(0,Math.min(1,((X-q[0])*dx+(Y-q[1])*dy)/L2));return Math.hypot(q[0]+tt*dx-X,q[1]+tt*dy-Y)<R}));
  const acrossAt=(X,Y,ux,uy,ty,nm,half=30,R=20)=>{if(nearFeat(ty,X,Y,R))return;const px=-uy,py=ux;FSTY[ty]([[X-px*half,Y-py*half],[X+px*half,Y+py*half]],nm);fpolys.push({ty,P:[[X-px*half,Y-py*half],[X+px*half,Y+py*half]]});const r={road:"ROAD",rail:"RAILWAY TRACK",river:"RIVER",drain:"DRAIN",ehv:"EHV LINE",line:"EXISTING LINE"}[ty];
   t(X+px*(half+4)+ux*0,Y+py*(half+4)+(py>=0?8:-3),(nm||r).toUpperCase(),{fs:6.4,fw:700,c:ty==="river"||ty==="drain"?"#1e40af":ty==="ehv"?"#5b21b6":"#374151"})};
