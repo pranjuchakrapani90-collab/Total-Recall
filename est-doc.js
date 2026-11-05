@@ -48,7 +48,7 @@ function defaults(p){const m=p.meta,dep=m.pay==="dep";return{kc:dep?0.03:0,ks:de
 function ensure(p,c){if(!p.est){p.est={v:1,rows:genRows(c),sig:sigOf(c),edited:false,...defaults(p),meter:0,sarma:true};return p.est}
  const e=p.est;if(!e.edited){const sg=sigOf(c);if(sg!==e.sig){e.rows=genRows(c);e.sig=sg}}return e}
 function calc(p,e){const mat=[],job=[];e.rows.forEach(r=>{const it=itemOf(r),G=it.rate*(+r.q||0);(r.job?job:mat).push({r,it,G,H:hasCol(e)&&skOf(r)?G:0})});
- const A=mat.reduce((s,x)=>s+x.G,0),HA=mat.reduce((s,x)=>s+x.H,0),B=A*0.05,C=A+B,D=C*0.15,E=job.reduce((s,x)=>s+x.G,0),DE=D+E,F=C*(+e.kc||0),G=DE*(+e.ks||0),
+ const A=mat.reduce((s,x)=>s+x.G,0),HA=mat.reduce((s,x)=>s+x.H,0),B=A*0.05,C=A+B,D=C*0.15,E=job.reduce((s,x)=>s+x.G,0),DE=D+E,F=C*(+e.kc||0),G=(D+E*0.15)*(+e.ks||0),
   Hh=C+DE+F+G,I=+(p.meta.fee||0),J=Hh*0.09,K=Hh*0.09,L=Hh+I+J+K,H28=HA,H30=H28*0.09,H32=H28+H30*2,M=H32,N=+(e.meter||0),O=L-M-N,Pp=Math.ceil(O-1e-9);
  return{mat,job,A,HA,B,C,D,E,DE,F,G,Hh,I,J,K,L,H30,H32,M,N,O,P:Pp}}
 /* line length in the heading: "(Line length: 0.197 km)" put just before " at <place>", kept up to date with the survey */
@@ -98,7 +98,7 @@ function sheetHTML(p,c,ed){const e=ensure(p,c),k=calc(p,e),HC=hasCol(e),N9=HC?9:
  ${k.job.map((x,i)=>itemRow(x,i,true)).join("")}${addRow(true)}
  ${ab("","Total: D + E",k.DE,0)}
  ${ab("F","Add: Contingency charge (% in K of C )",k.F,0,{ctl:pct("kc",e.kc,"K =")})}
- ${ab("G","Add: Supervision charge (% in K of (D+E))",k.G,0,{ctl:pct("ks",e.ks,"K =")})}
+ ${ab("G","Add: Supervision charge (% in K of D + 15% of E)",k.G,0,{ctl:pct("ks",e.ks,"K =")})}
  ${ab("H","Gross Estimate Cost ( C+D+E+F+G )",k.Hh,k.HA)}
  ${ab("I","Add: Processing  Fees: (As Applicable) ",k.I,0,{gh:ed?`<input class="ci n c" data-m="fee" value="${+(p.meta.fee||0)}" inputmode="decimal">`:null})}
  ${ab("J","CGST @ (9% on H)",k.J,k.H30)}
@@ -314,7 +314,7 @@ function buildEstXlsx(p,c){const e=ensure(p,c),k=calc(p,e),rows=[],merges=[];let
  k.job.forEach((x,i)=>item(x,ROM[i]||String(i+1),true));
  const rDE=ab("","Total: D + E",`G${rD}+G${rE}`,k.DE,undefined,0,{st:[116,142,117]});
  const rF=ab("F","Add: Contingency charge (% in K of C )",`G${rC}*K${R+1}`,k.F,undefined,0,{jk:[`<c r="J${R+1}" t="inlineStr"><is><t>Contingency % (0 = departmental; 3% for deposit work)</t></is></c>`,N("K",123,+e.kc||0)]});
- const rG=ab("G","Add: Supervision charge (% in K of (D+E))",`G${rDE}*K${R+1}`,k.G,undefined,0,{jk:[`<c r="J${R+1}" t="inlineStr"><is><t>Supervision % (0 = departmental; 15% for deposit work)</t></is></c>`,N("K",123,+e.ks||0)]});
+ const rG=ab("G","Add: Supervision charge (% in K of D + 15% of E)",`(G${rD}+G${rE}*15%)*K${R+1}`,k.G,undefined,0,{jk:[`<c r="J${R+1}" t="inlineStr"><is><t>Supervision % on D + 15% of E (0 = departmental; 15% for deposit work)</t></is></c>`,N("K",123,+e.ks||0)]});
  const rH=ab("H","Gross Estimate Cost ( C+D+E+F+G )",`G${rC}+G${rDE}+G${rF}+G${rG}`,k.Hh,`H${rC}`,k.HA);
  const rI=ab("I","Add: Processing  Fees: (As Applicable) ",null,k.I,undefined,0);
  const rJ=ab("J","CGST @ (9% on H)",`G${rH}*9%`,k.J,`H${rH}*9%`,k.H30);
