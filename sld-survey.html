@@ -445,7 +445,7 @@ const KINDS={
  exTP:{g:9,t:"Existing 3-pole structure",d:"Three-pole structure already standing",o:["exType","exEq","fit","stays"]},
  ex4P:{g:9,t:"Existing 4-pole structure",d:"Four-pole structure already standing",o:["exType","exEq","fit","stays"]},
  cont:{g:9,t:"Line continues beyond (end of drawing)",d:"Where an existing line carries on outside this work. Drawn solid from the structure, then dashed to here. No cost. Put the destination in Name / remark, e.g. TO 33/11 KV SAMAGURI S/S. Tick the control-room box to draw the 33/11 kV substation control room there (Name / remark = substation name, e.g. SAMAGURI)",kitOnly:true,o:["ctrl"]},
- exDTR:{g:9,t:"Existing DTR S/S on the route",d:"New HT line taps or passes at an existing DTR substation; LT can start from it",o:["dtrNo","kva","fit","stays"]},
+ exDTR:{g:9,t:"Existing DTR S/S on the route",d:"New HT line taps or passes at an existing DTR substation; LT can start from it",o:["dtrNo","kva","fit","stays","prem","premSz"]},
  sp2dp:{g:10,t:"Existing pole → DP (add 1 pole)",d:"One new pole beside the existing pole, tied with channels",o:["exType","poleLen","goab","dof","la","stays"]},
  dp2tp:{g:10,t:"Existing DP → 3-pole (add 1 pole)",d:"One new pole added to an existing DP; 3.2 m channels tie all three",o:["exType","poleLen","newCh","goab","dof","la","stays"]},
  sp2tp:{g:10,t:"Existing pole → 3-pole (add 2 poles)",d:"Two new poles added to an existing single pole",o:["exType","poleLen","goab","dof","la","stays"]},
@@ -456,10 +456,10 @@ const KINDS={
  iso33:{g:2,t:"33 kV sectionalising isolator DP",d:"TPGO-DBCR 800 A with earth switch on a DP",kitOnly:true,o:["poleLen","stays"]},
  ctpt:{g:2,t:"CT-PT metering structure",d:"11 kV CTPT, metering cabinet, AAAC CC jumpers",o:["poleLen","onEx","stays"]},
  vcb11:{g:2,t:"11 kV outdoor VCB point",d:"Outdoor VCB 800 A with structure, LAs",o:["poleLen","onEx","stays"]},
- dtr:{g:3,t:"New DTR substation",d:"New DTR on a new double pole, or on an existing DP (tick the box)",o:["poleLen","kva","goab","fence","chem","onEx","db","stays"]},
- dtrAug:{g:3,t:"DTR augmentation",d:"Existing DTR replaced by a bigger one; old DTR to dismantling",kitOnly:true,o:["kvaFrom","kva","db"]},
- dtrTemp:{g:3,t:"Temporary DTR on existing DP",d:"DTR from O&M stock; labour only payable",kitOnly:true,o:["kva"]},
- dtrShift:{g:3,t:"DTR shifting (new DP here)",d:"Existing DTR re-installed on a new DP",o:["poleLen","kva","goab","fence","oldDP","stays"]},
+ dtr:{g:3,t:"New DTR substation",d:"New DTR on a new double pole, or on an existing DP (tick the box)",o:["poleLen","kva","goab","fence","chem","onEx","db","stays","prem","premSz"]},
+ dtrAug:{g:3,t:"DTR augmentation",d:"Existing DTR replaced by a bigger one; old DTR to dismantling",kitOnly:true,o:["kvaFrom","kva","db","prem","premSz"]},
+ dtrTemp:{g:3,t:"Temporary DTR on existing DP",d:"DTR from O&M stock; labour only payable",kitOnly:true,o:["kva","prem","premSz"]},
+ dtrShift:{g:3,t:"DTR shifting (new DP here)",d:"Existing DTR re-installed on a new DP",o:["poleLen","kva","goab","fence","oldDP","stays","prem","premSz"]},
  xRoad:{g:4,t:"Road crossing",d:"Pole with guarding across the road",o:["onEx","stays"]},
  xRail:{g:4,t:"Railway crossing (UG)",d:"Full UG crossing: DPs, cable, CI spun pipe, boring",kitOnly:true,o:["railPole","cable","bore"]},
  xRiver:{g:4,t:"River / nallah bank",d:"Steel pole on one bank for a long span (mark both banks)",o:["steelType","stays"],def:{stays:2}},
@@ -469,7 +469,7 @@ const KINDS={
  tMV:{g:5,t:"Bare → MVCC transition",d:"Termination kits and LA where MVCC starts or ends",o:["onEx","stays"]},
  tABC:{g:5,t:"Bare LT → ABC transition",d:"Anchor, IPCs and end caps where ABC starts",o:["onEx","stays"]},
  t13:{g:5,t:"1-ph → 3-ph conversion start",d:"Dead-end for the two added wires",o:["onEx","stays"],def:{onEx:true}},
- htc:{g:6,t:"HT consumer S/S",d:"PWSS / BSNL type 25 kVA S/S with metering",o:["poleLen","kva","fence","stays"],def:{kva:25}},
+ htc:{g:6,t:"HT consumer S/S",d:"PWSS / BSNL type 25 kVA S/S with metering",o:["poleLen","kva","fence","stays","prem","premSz"],def:{kva:25}},
  slight:{g:6,t:"Street-light point",d:"Street-light connections from this pole",o:["n","onEx"],def:{onEx:true}},
  svc:{g:6,t:"Service connections",d:"Households served from this pole",o:["n","onEx"],def:{onEx:true,n:5}},
  rmPole:{g:7,t:"Existing pole / DP to be removed",d:"Goes to the dismantling estimate",standalone:true,kitOnly:true,o:["oldPole","oldStruct"]},
@@ -488,7 +488,7 @@ const OPTF={
  oldPole:{l:"Old pole",ty:"sel",o:[["PSC 8.5","PSC 8.5 m"],["PSC 7.5","PSC 7.5 m"],["PSC 9.75","PSC 9.75 m"],["SP-56","SP-56"],["SP-60","SP-60"],["SP-66","SP-66"],["SP-76","SP-76"],["Rail","Rail pole"],["RSJ","RS joist"]],def:"PSC 8.5"},
  dmg:{l:"Conductor damaged (m)",ty:"num",def:0},cable:{l:"Cable per crossing (m)",ty:"num",def:600},bore:{l:"Boring under track (m)",ty:"num",def:20},blen:{l:"Bridge length (m)",ty:"num",def:100},
  railPole:{l:"Crossing poles",ty:"sel",o:[["9.75","PSC 9.75 m"],["SP-76","SP-76"]],def:"9.75"},
- dtrNo:{l:"DTR No.",ty:"txt",def:""},lmType:{l:"Landmark",ty:"sel",o:LMT,def:"School"},
+ dtrNo:{l:"DTR No.",ty:"txt",def:""},prem:{l:"Inside premises / campus (name; blank = not shown)",ty:"txt",def:""},premSz:{l:"Premises size on drawing",ty:"sel",o:[["S","Small"],["M","Medium"],["L","Large"]],def:"M"},lmType:{l:"Landmark",ty:"sel",o:LMT,def:"School"},
  fit:{l:"New line fittings on it (cross-arm / channel, insulators, jumpers)",ty:"chk",def:true},
  exEq:{l:"Equipment already on it",ty:"sel",o:[["","None"],["GOAB","GOAB"],["DO","DO fuse"],["LA","LA"],["GOAB + DO","GOAB + DO"],["GOAB + DO + LA","GOAB + DO + LA"],["DTR","DTR"]],def:""},
  exType:{l:"Existing pole(s) type",ty:"sel",o:[["PSC","PSC"],["RCC","RCC"],["SP-56","SP-56 steel tubular"],["SP-60","SP-60 steel tubular"],["SP-66","SP-66 steel tubular"],["SP-76","SP-76 steel tubular"],["Steel","Steel tubular (other)"],["Rail","Rail pole"],["RSJ","RS joist"]],def:"PSC"},
@@ -893,6 +893,22 @@ function sldSVG(c,so){
  const poleGrp=(X,Y,st,sqE,sqN)=>{if(st.length>1)U["g"+st.length]=1;const n=st.length,P=GEOr(n,ROT),r=2.8,f=v=>v.toFixed(1);
   if(n>1)out.push(`<path d="M${P.map(q=>f(X+q[0])+","+f(Y+q[1])).join(" L")}${n>2?" Z":""}" stroke="#111" stroke-width="0.8" fill="none"/>`);
   P.forEach((q,i)=>{const cx=X+q[0],cy=Y+q[1],e=st[i]==="e",sq=e?sqE:sqN;out.push(sq?`<rect x="${f(cx-r)}" y="${f(cy-r)}" width="${2*r}" height="${2*r}" fill="${e?"#111":"#fff"}" stroke="#111" stroke-width="1"/>`:`<circle cx="${f(cx)}" cy="${f(cy)}" r="${r}" fill="${e?"#111":"#fff"}" stroke="#111" stroke-width="1"/>`)})};
+ // premises / campus wall around a DTR: brown boundary, a gate gap wherever a line crosses it, name on top
+ function premSym(X,Y,x){U.prem=1;const[w,h]={S:[46,32],M:[66,44],L:[92,60]}[opt(x,"premSz")]||[66,44],f=v=>v.toFixed(1),G=7;
+  const C=[[X-w,Y-h],[X+w,Y-h],[X+w,Y+h],[X-w,Y+h]],gaps=[[],[],[],[]];
+  // follow each line outward (through its intermediate poles) to where it first leaves the premises
+  const inR=(q)=>Math.abs(q[0]-X)<w&&Math.abs(q[1]-Y)<h;
+  (c.adj[x.id]||[]).forEach(a=>{const sg=a.sg,pts=(sg.a===x?[sg.a,...sg.mid,sg.b]:[sg.b,...sg.mid.slice().reverse(),sg.a]).map(T);
+   for(let i=0;i<pts.length-1;i++){const P0=pts[i],P1=pts[i+1];if(!inR(P0)||inR(P1))continue;const dx=P1[0]-P0[0],dy=P1[1]-P0[1];let best=null;
+    [[1,w],[3,-w]].forEach(([e,ox])=>{if(!dx)return;const k=(X+ox-P0[0])/dx,y=P0[1]+dy*k;if(k>=0&&k<=1&&Math.abs(y-Y)<=h&&(!best||k<best.k))best={k,e,v:y}});
+    [[2,h],[0,-h]].forEach(([e,oy])=>{if(!dy)return;const k=(Y+oy-P0[1])/dy,xx=P0[0]+dx*k;if(k>=0&&k<=1&&Math.abs(xx-X)<=w&&(!best||k<best.k))best={k,e,v:xx}});
+    if(best)gaps[best.e].push(best.v);break}});
+  let d="";for(let i=0;i<4;i++){const A=C[i],B=C[(i+1)%4],hz=A[1]===B[1],a0=hz?A[0]:A[1],a1=hz?B[0]:B[1],sgn=a1>a0?1:-1;
+   const cuts=gaps[i].map(v=>[v-G*sgn,v+G*sgn]).sort((p,q)=>(p[0]-q[0])*sgn);let cur=a0;
+   const seg=(u,v)=>{if((v-u)*sgn<=0.5)return;const P1=hz?[u,A[1]]:[A[0],u],P2=hz?[v,A[1]]:[A[0],v];d+=`M${f(P1[0])},${f(P1[1])} L${f(P2[0])},${f(P2[1])} `;LS.push([P1[0],P1[1],P2[0],P2[1]])};
+   cuts.forEach(([u,v])=>{seg(cur,u);cur=v});seg(cur,a1)}
+  out.push(`<rect x="${f(X-w)}" y="${f(Y-h)}" width="${2*w}" height="${2*h}" fill="#8a6a4b" fill-opacity="0.05" stroke="none"/><path d="${d}" stroke="#8a6a4b" stroke-width="1.6" fill="none"/><path d="${d}" stroke="#fff" stroke-width="0.5" fill="none" stroke-dasharray="3 3"/>`);
+  t(X,Y-h-4,String(opt(x,"prem")).toUpperCase()+" (PREMISES)",{fs:6.6,fw:700,c:"#6b4f33"})}
  let subEnd=0;
  let CUR=null,FREE=null,noteDone=false,ROT=0;
  // stack label / description / note on the side of the structure that no line runs into
@@ -921,6 +937,7 @@ function sldSVG(c,so){
   exSq=/^(SP|Steel|Rail|RSJ)/.test(opt(x,"exType")||"");nwSq=/^SP/.test(opt(x,"poleLen")||"")||(exSq&&/^SP/.test(opt(x,"exType"))&&!opt(x,"poleLen"));
   const kva=opt(x,"kva"),onEx=!!opt(x,"onEx"),filled=()=>(U.exP=1,out.push(`<circle cx="${X}" cy="${Y}" r="3.2" fill="#111"/>`));
   if(x.kind.startsWith("src"))U.src=1;if(x.kind==="exPole"||x.kind==="exFit")U.exP=1;if(x.kind==="steel"||(x.kind==="pole"&&/^SP/.test(opt(x,"poleLen")||"")))U.steel=1;if(x.kind==="rmPole")U.rm=1;if(x.kind==="mark")U.mark=1;
+  if(["dtr","htc","dtrAug","dtrTemp","dtrShift","exDTR"].includes(x.kind)&&opt(x,"prem"))premSym(X,Y,x);
   switch(x.kind){
    case "src11":case "src33":case "srcLT":case "srcDTR":{const mp=x.kind!=="srcDTR"&&["DP","TP","4P"].includes(opt(x,"srcStr"));out.push((mp?"":`<circle cx="${X}" cy="${Y}" r="3.2" fill="#111"/>`)+`<circle cx="${X}" cy="${Y}" r="${mp?14:9}" fill="none" stroke="#C92A2A" stroke-width="1.2" stroke-dasharray="3 2"/>`);
     const ss=opt(x,"srcStr"),sw=exNm(x)+({SP:"POLE",DP:"DP",TP:"3-POLE STRUCTURE","4P":"4-POLE STRUCTURE",ST:"STEEL / RAIL POLE"}[ss]||"POLE");
@@ -1006,6 +1023,7 @@ function sldSVG(c,so){
    ["g3",(x,y)=>`<path d="M${f(x+9)},${f(y-3.5)} L${f(x+13)},${f(y+3)} L${f(x+5)},${f(y+3)} Z" stroke="#111" stroke-width="0.8" fill="none"/>`,"3-pole structure"],
    ["g4",(x,y)=>`<rect x="${f(x+5.5)}" y="${f(y-3.5)}" width="7" height="7" stroke="#111" stroke-width="0.8" fill="none"/>`,"4-pole structure"],
    ["dtr",(x,y)=>`<rect x="${f(x+2)}" y="${f(y-4.5)}" width="14" height="9" fill="#fff" stroke="#111" stroke-width="0.8"/><circle cx="${f(x+7.3)}" cy="${f(y)}" r="2.8" fill="none" stroke="#111" stroke-width="0.7"/><circle cx="${f(x+10.7)}" cy="${f(y)}" r="2.8" fill="none" stroke="#111" stroke-width="0.7"/>`,"Transformer (DTR)"],
+   ["prem",(x,y)=>`<rect x="${f(x+2)}" y="${f(y-4.5)}" width="14" height="9" fill="#8a6a4b" fill-opacity="0.05" stroke="#8a6a4b" stroke-width="1.3"/>`,"Premises / campus boundary"],
    ["ctrl",(x,y)=>`<rect x="${f(x+2)}" y="${f(y-4.5)}" width="14" height="9" fill="#f3f4f6" stroke="#111" stroke-width="0.9"/><path d="M${f(x+4.5)},${f(y+2)} h9" stroke="#111" stroke-width="1"/>`,"33/11 kV control room (sub-station)"],
    ["l33",ln(PAL.hv,2.2),"New 33 kV line"],["l11",ln(PAL.hv,2.2),"New 11 kV line"],["lLT",ln(PAL.lt,1.6,"6 3"),"New LT line"],["lEx",ln(PAL.ex,1.6),"Existing line"],["lDis",ln(PAL.dis,1.6,"2 3"),"Line to be removed"],
    ["arrow",(x,y)=>`<path d="M${f(x+14)},${f(y)} L${f(x+6)},${f(y-3.5)} L${f(x+6)},${f(y+3.5)} Z" fill="#111"/>`,"Direction of power"],
