@@ -86,8 +86,6 @@ a.sec p{margin:0;color:var(--muted);font-size:14px}
 .kpi span{font-size:12px;color:var(--muted)}
 .kpi em{font-style:normal;font:600 12px var(--mono)}
 .up{color:var(--good)}.down{color:#b45309}
-.heat{margin-top:16px;overflow-x:auto}
-.heat svg{display:block;min-width:100%}
 .hleg{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:6px}
 .hleg span{display:inline-flex;align-items:center;gap:4px}
 .hleg i{width:10px;height:10px;border-radius:3px;display:inline-block}
@@ -119,19 +117,32 @@ a.sec p{margin:0;color:var(--muted);font-size:14px}
 .tg{font:600 11px var(--body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-right:6px}
 
 /* month calendars */
-.months{display:flex;flex-direction:column;gap:18px;margin-top:16px}
+.months{display:flex;gap:16px;margin-top:16px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+.months::-webkit-scrollbar{display:none}
+.mon{flex:0 0 100%;min-width:0;scroll-snap-align:start}
+.mnav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px}
+.mdots{display:flex;gap:5px;align-items:center}
+.mdots button{width:7px;height:7px;padding:0;border:0;border-radius:50%;background:#dcd8ce}
+.mdots button.on{width:18px;border-radius:4px;background:var(--ink)}
+/* dashboard */
+.dash .kpis{margin-bottom:6px}
+.chart{margin-top:16px}
+.chart h4{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin:0 0 6px;font:600 13px var(--body);color:var(--muted)}
+.chart h4 span{font:500 12px var(--body);color:var(--muted);text-align:right;min-height:1.3em}
+.chart svg{display:block;width:100%;height:auto;touch-action:pan-y}
+.chart .col{cursor:pointer}
+.chart .col:focus{outline:none}
 .mh{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:6px}
 .mh b{font:700 15px var(--body)}.mh span{font-size:12px;color:var(--muted)}
 .dow,.dg{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
 .dow i{font:600 10.5px var(--body);font-style:normal;color:var(--faint);text-align:center}
-.dc{position:relative;aspect-ratio:1/1;border-radius:8px;background:#f0eee8;display:flex;align-items:center;justify-content:center;font:600 13px var(--body);color:var(--muted)}
+.dc{position:relative;aspect-ratio:4/3;border-radius:8px;background:#f0eee8;display:flex;align-items:center;justify-content:center;font:600 13px var(--body);color:var(--muted)}
 .dc.pad{background:none}.dc.fut{background:none;border:1px dashed #e6e3db;color:#c9c5ba}
 .dc.l1{background:#e3f2e7;color:#3f6b4c}.dc.l2{background:#bfe3c9;color:#245c35}.dc.l3{background:#7fc796;color:#123d20}
 .dc.l4{background:#3fa463;color:#fff}.dc.l5{background:#15803d;color:#fff;font-weight:750}
-.mleg{display:flex;align-items:center;justify-content:flex-end;gap:4px;font-size:11.5px;color:var(--muted);margin-top:10px}
+.mleg{display:flex;align-items:center;justify-content:flex-end;gap:4px;font-size:11.5px;color:var(--muted)}
 .mleg i{width:12px;height:12px;border-radius:3px;display:inline-block}
 .dc.td{box-shadow:0 0 0 2px var(--ink)}
-#moreMonths{margin-top:8px}
 /* section icons, same as the home screen */
 .apps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;padding:4px 0}
 a.app{display:flex;flex-direction:column;align-items:center;gap:7px;text-decoration:none;color:var(--ink);min-width:0}
@@ -168,15 +179,12 @@ details.more>section+section{margin-top:18px}
       </div>
     </div>
     <div class="focus" id="focus" hidden><i>🎯</i><div><b id="focusTxt"></b><small id="focusWhen"></small></div></div>
-    <div class="months" id="months"></div>
-    <div class="mleg"><span>none</span><i style="background:#f0eee8"></i><i style="background:#e3f2e7"></i><i style="background:#bfe3c9"></i><i style="background:#7fc796"></i><i style="background:#3fa463"></i><i style="background:#15803d"></i><span>goal met</span></div>
-    <button type="button" class="linkb" id="moreMonths" hidden>Show earlier months</button>
+    <div class="months" id="months" aria-label="Practice by month — swipe for earlier months"></div>
+    <div class="mnav"><div class="mdots" id="mdots"></div>
+      <div class="mleg"><span>none</span><i style="background:#f0eee8"></i><i style="background:#e3f2e7"></i><i style="background:#bfe3c9"></i><i style="background:#7fc796"></i><i style="background:#3fa463"></i><i style="background:#15803d"></i><span>goal met</span></div></div>
   </section>
 
-  <nav class="apps" aria-label="Sections"><a class="app" href="guitar.html"><i><svg viewBox="0 0 24 24"><path d="M9 18V5l11-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/></svg></i><span>Melodic Lead</span></a><a class="app" href="fingerstyle.html"><i><svg viewBox="0 0 24 24"><path d="M5 3v18M9.7 3v18M14.3 3v18M19 3v18"/><path d="M3.5 13.5c3 2 14 2 17 0"/></svg></i><span>Fingerstyle</span></a><a class="app" href="solo.html"><i><svg viewBox="0 0 24 24"><path d="M3 16c2.5 0 2.5-6 5-6s2.5 8 5 8 2.5-12 5-12c1.5 0 1.8 2 3 3"/></svg></i><span>Soloing</span></a><a class="app" href="drills.html"><i><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r=".8"/></svg></i><span>Drills</span></a></nav>
-
-  <details class="more" id="more"><summary>Stats and practice notes</summary>
-  <section class="panel" aria-label="Your practice">
+  <section class="panel dash" aria-label="Your practice">
     <div class="ph"><h2>Your practice</h2><span id="since"></span></div>
     <div class="kpis">
       <div class="kpi"><b id="kStreak">0</b><span>day streak · best <em id="kBest">0</em></span></div>
@@ -184,12 +192,15 @@ details.more>section+section{margin-top:18px}
       <div class="kpi"><b id="kGoal">0</b><span>goal days, last 30</span></div>
       <div class="kpi"><b id="kTotal">0h</b><span>practised in all</span></div>
     </div>
-    <div class="heat" id="heat"></div>
-    <div class="hleg"><span id="heatTxt"></span><span><span>less</span><i style="background:#f0eee8"></i><i style="background:#cfe8d6"></i><i style="background:#86c99a"></i><i style="background:#15803d"></i><span>goal met</span></span></div>
+    <div class="chart"><h4>Last 14 days <span id="dayTip"></span></h4><div id="days14"></div></div>
+    <div class="chart"><h4>Weekly minutes <span id="wkTip"></span></h4><div id="weeks8"></div></div>
     <div class="split"><h4>Where the last 30 days went</h4><div class="sbar" id="sbar"></div><div class="sleg" id="sleg"></div></div>
     <p class="advice" id="advice" hidden></p>
   </section>
 
+  <nav class="apps" aria-label="Sections"><a class="app" href="guitar.html"><i><svg viewBox="0 0 24 24"><path d="M9 18V5l11-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/></svg></i><span>Melodic Lead</span></a><a class="app" href="fingerstyle.html"><i><svg viewBox="0 0 24 24"><path d="M5 3v18M9.7 3v18M14.3 3v18M19 3v18"/><path d="M3.5 13.5c3 2 14 2 17 0"/></svg></i><span>Fingerstyle</span></a><a class="app" href="solo.html"><i><svg viewBox="0 0 24 24"><path d="M3 16c2.5 0 2.5-6 5-6s2.5 8 5 8 2.5-12 5-12c1.5 0 1.8 2 3 3"/></svg></i><span>Soloing</span></a><a class="app" href="drills.html"><i><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r=".8"/></svg></i><span>Drills</span></a></nav>
+
+  <details class="more" id="more"><summary>Practice notes</summary>
   <section class="panel" aria-label="Practice notes">
     <div class="ph"><h2>Practice notes</h2><span>One line after each sitting. The last “fix” becomes today's focus.</span></div>
     <div class="nform">
@@ -211,7 +222,8 @@ const NUL=document.createElement("div"),$=id=>document.getElementById(id)||NUL;
 const get=k=>{try{return JSON.parse(localStorage.getItem(k)||"null");}catch(e){return null;}};
 const pad=n=>String(n).padStart(2,"0"),dkey=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const COL={ml:"#4f46e5",fs:"#7c3aed",sc:"#c2410c",lc:"#0e7490",dr:"#0f766e"},NAME={ml:"Melodic Lead",fs:"Fingerstyle Solo",sc:"Soloing Course",lc:"Lead Course",dr:"Daily Drills"};
+/* chart colours: checked so each section stays distinguishable, colour-blind readers included */
+const COL={ml:"#4f46e5",fs:"#db2777",sc:"#d97706",lc:"#a8a29e",dr:"#0d9488"},NAME={ml:"Melodic Lead",fs:"Fingerstyle Solo",sc:"Soloing Course",lc:"Lead Course",dr:"Daily Drills"};
 
 /* every section's seconds, day by day: {day:{ml,fs,sc,lc,dr}} */
 function dayMap(){
@@ -267,24 +279,54 @@ function render(){
   insights(M,goal);notesList();}
 
 
-/* month calendars: this month and the two before it, never earlier than October 2026 unless asked */
-const FIRST=new Date(2026,9,1);let extra=0;
+/* month calendars: one month per swipe, oldest on the left, this month shown first */
+let monBack=0; /* how many months back from the current one is on screen */
 function months(M,goal){
   const now=new Date(),cur=new Date(now.getFullYear(),now.getMonth(),1),list=[];
-  let i=0;for(;i<3;i++){const m=new Date(cur.getFullYear(),cur.getMonth()-i,1);if(i>0&&m<FIRST)break;list.push(m);}
-  const firstData=Object.keys(M).filter(k=>secTot(M[k])>0).sort()[0]||dkey(cur),fd=new Date(firstData.slice(0,7)+"-01T12:00");fd.setDate(1);
-  for(let j=0;j<extra;j++,i++){const m=new Date(cur.getFullYear(),cur.getMonth()-i,1);if(m<new Date(fd.getFullYear(),fd.getMonth(),1))break;list.push(m);}
-  const last=list[list.length-1],lastKey=dkey(last);
-  const older=Object.keys(M).some(k=>k<lastKey&&secTot(M[k])>0);
-  const tk=dkey(now);
-  $("months").innerHTML=list.map(m=>{const y=m.getFullYear(),mo=m.getMonth(),days=new Date(y,mo+1,0).getDate(),lead=(m.getDay()+6)%7;
+  const firstData=Object.keys(M).filter(k=>secTot(M[k],true)>0).sort()[0]||dkey(cur);
+  const fd=new Date(+firstData.slice(0,4),+firstData.slice(5,7)-1,1);
+  for(let m=new Date(Math.min(fd,new Date(cur.getFullYear(),cur.getMonth()-1,1)));m<=cur;m=new Date(m.getFullYear(),m.getMonth()+1,1))list.push(m);
+  const tk=dkey(now),box=$("months");
+  box.innerHTML=list.map(m=>{const y=m.getFullYear(),mo=m.getMonth(),days=new Date(y,mo+1,0).getDate(),lead=(m.getDay()+6)%7;
     let tot=0,met=0,cells="";for(let i=0;i<lead;i++)cells+=`<span class="dc pad"></span>`;
     for(let d=1;d<=days;d++){const k=dkey(new Date(y,mo,d)),mn=Math.floor(secTot(M[k])/60);tot+=mn;if(mn>=goal)met++;
       const f=mn/goal,lv=k>tk?"fut":f>=1?"l5":f>=.75?"l4":f>=.5?"l3":f>=.25?"l2":mn>0?"l1":"l0";
       cells+=`<span class="dc ${lv}${k===tk?" td":""}" title="${d} ${m.toLocaleDateString(undefined,{month:"short"})}: ${mn} of ${goal} min">${d}</span>`;}
     return `<div class="mon"><div class="mh"><b>${m.toLocaleDateString(undefined,{month:"long",year:"numeric"})}</b><span>${Math.round(tot/60*10)/10} h · goal met ${met} day${met===1?"":"s"}</span></div><div class="dow">${["M","T","W","T","F","S","S"].map(x=>`<i>${x}</i>`).join("")}</div><div class="dg">${cells}</div></div>`;}).join("");
-  $("moreMonths").hidden=!older;}
-$("moreMonths").onclick=()=>{extra+=3;render();};
+  const n=list.length;
+  $("mdots").innerHTML=list.map((m,i)=>`<button type="button" data-i="${i}" aria-label="${m.toLocaleDateString(undefined,{month:"long",year:"numeric"})}"></button>`).join("");
+  const go=(i,smooth)=>box.scrollTo({left:i*box.clientWidth,behavior:smooth?"smooth":"auto"});
+  const mark=()=>{const i=Math.round(box.scrollLeft/(box.clientWidth||1));monBack=n-1-i;
+    [...$("mdots").children].forEach((b,j)=>b.classList.toggle("on",j===i));};
+  go(Math.max(0,n-1-Math.min(monBack,n-1)));mark();
+  box.onscroll=()=>{clearTimeout(box._t);box._t=setTimeout(mark,60);};
+  $("mdots").onclick=e=>{const b=e.target.closest("[data-i]");if(b)go(+b.dataset.i,true);};}
+addEventListener("resize",()=>{const b=$("months");b.scrollLeft=(b.children.length-1-monBack)*b.clientWidth;});
+
+/* stacked columns, one per bucket; a top data-end rounded at 4px, 2px gaps between segments */
+const ORD=["ml","fs","sc","lc","dr"];
+function topRound(x,y,w,h,r){r=Math.min(r,h,w/2);return `M${x},${y+h}V${y+r}Q${x},${y} ${x+r},${y}H${x+w-r}Q${x+w},${y} ${x+w},${y+r}V${y+h}Z`;}
+function stackChart(el,tipEl,B,goalLine,dflt){
+  /* B: [{lab,full,today,parts:{ml:sec..}}] */
+  const W=340,H=118,top=8,bot=18,ph=H-top-bot,slot=W/B.length,bw=Math.min(16,slot*.6);
+  const tots=B.map(b=>Object.values(b.parts).reduce((a,v)=>a+v,0)/60);
+  const max=Math.max(goalLine?goalLine*1.15:0,...tots,1),y=v=>top+ph-(v/max)*ph;
+  let s=`<line x1="0" x2="${W}" y1="${top+ph}" y2="${top+ph}" stroke="#e6e3db"/>`;
+  if(goalLine){const gy=y(goalLine).toFixed(1);s+=`<line x1="0" x2="${W}" y1="${gy}" y2="${gy}" stroke="#15803d" stroke-width="1" stroke-dasharray="3 3" opacity=".7"/><text x="${W}" y="${gy-3}" text-anchor="end" font-size="9.5" fill="#15803d">${Math.round(goalLine)} min goal</text>`;}
+  B.forEach((b,i)=>{const x=i*slot+(slot-bw)/2;let acc=0;
+    const ks=ORD.filter(k=>(b.parts[k]||0)>=30);
+    ks.forEach((k,j)=>{const v=b.parts[k]/60,y1=y(acc+v),y0=y(acc);acc+=v;let h=y0-y1-(j?2:0);if(h<=0.5)return;
+      s+=j===ks.length-1?`<path d="${topRound(x,y1,bw,h,4)}" fill="${COL[k]}"/>`:`<rect x="${x}" y="${y1.toFixed(1)}" width="${bw}" height="${h.toFixed(1)}" fill="${COL[k]}"/>`;});
+    s+=`<text x="${x+bw/2}" y="${H-5}" text-anchor="middle" font-size="9.5" fill="${b.today?"#1c1b19":"#9a978e"}"${b.today?' font-weight="700"':""}>${b.lab}</text>`;
+    s+=`<rect class="col" data-i="${i}" x="${i*slot}" y="0" width="${slot}" height="${H}" fill="transparent" tabindex="0"><title>${esc(b.full)}</title></rect>`;});
+  el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(dflt)}">${s}</svg>`;
+  const tip=i=>{const b=B[i],p=ORD.filter(k=>(b.parts[k]||0)>=60).map(k=>`${NAME[k].split(" ")[0]} ${Math.round(b.parts[k]/60)}`).join(" · ");
+    tipEl.textContent=`${b.full}: ${Math.round(tots[i])} min${p?" — "+p:""}`;
+    el.querySelectorAll(".col").forEach(c=>c.setAttribute("fill",+c.dataset.i===i?"#1c1b1908":"transparent"));};
+  tipEl.textContent=dflt;
+  el.onpointerover=el.onclick=e=>{const c=e.target.closest(".col");if(c)tip(+c.dataset.i);};
+  el.onfocusin=e=>{const c=e.target.closest(".col");if(c)tip(+c.dataset.i);};
+  el.onpointerleave=e=>{if(e.pointerType!=="mouse")return;tipEl.textContent=dflt;el.querySelectorAll(".col").forEach(c=>c.setAttribute("fill","transparent"));};}
 function insights(M,goal){
   const days=Object.keys(M).filter(k=>secTot(M[k],true)>0).sort();
   const today=new Date(),tk=dkey(today);
@@ -300,19 +342,19 @@ function insights(M,goal){
   const tot=days.reduce((a,k)=>a+secTot(M[k],true),0);$("kTotal").textContent=tot>=3600?`${(tot/3600).toFixed(1)}h`:`${Math.floor(tot/60)}m`;
   $("since").textContent=days.length?`since ${new Date(days[0]+"T12:00").toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"})}`:"";
 
-  /* heatmap: last 20 weeks, Monday-first columns */
-  const W=20,cell=13,gap=3,top=14,left=22;
-  const end=new Date();end.setHours(12);const start=new Date(end);start.setDate(start.getDate()-((end.getDay()+6)%7)-(W-1)*7);
-  let svg="",mon=-1,practised=0;
-  for(let c=0;c<W;c++)for(let r=0;r<7;r++){const x=new Date(start);x.setDate(start.getDate()+c*7+r);if(x>end)continue;
-    const k=dkey(x),m=secTot(M[k])/60,all=secTot(M[k],true)/60;if(all>=1)practised++;
-    const col=m>=goal?"#15803d":all>=goal/2?"#86c99a":all>=1?"#cfe8d6":"#f0eee8";
-    if(r===0&&x.getMonth()!==mon&&x.getDate()<=7){mon=x.getMonth();svg+=`<text x="${left+c*(cell+gap)}" y="10" font-size="10" fill="#9a978e">${x.toLocaleDateString(undefined,{month:"short"})}</text>`;}
-    svg+=`<rect x="${left+c*(cell+gap)}" y="${top+r*(cell+gap)}" width="${cell}" height="${cell}" rx="3" fill="${col}"${k===tk?' stroke="#1c1b19" stroke-width="1.5"':""}><title>${x.toLocaleDateString(undefined,{day:"numeric",month:"short"})}: ${Math.floor(all)} min</title></rect>`;}
-  ["M","","W","","F","",""].forEach((t,r)=>{if(t)svg+=`<text x="4" y="${top+r*(cell+gap)+10}" font-size="10" fill="#9a978e">${t}</text>`;});
-  const vw=left+W*(cell+gap),vh=top+7*(cell+gap);
-  $("heat").innerHTML=`<svg viewBox="0 0 ${vw} ${vh}" width="${vw*1.25}" role="img" aria-label="Practice minutes over the last ${W} weeks">${svg}</svg>`;
-  $("heatTxt").textContent=`${practised} practice days in the last ${W} weeks`;
+  /* last 14 days, stacked by section */
+  {const B=[];let sum=0,met14=0;for(let i=13;i>=0;i--){const x=new Date();x.setDate(x.getDate()-i);const k=dkey(x),p=Object.assign({},M[k]||{});
+     sum+=secTot(p,true);if(secTot(p)/60>=goal)met14++;
+     B.push({lab:x.getDate(),today:i===0,full:x.toLocaleDateString(undefined,{weekday:"short",day:"numeric",month:"short"}),parts:p});}
+   stackChart($("days14"),$("dayTip"),B,goal,`avg ${Math.round(sum/60/14)} min/day · goal met ${met14} of 14`);}
+  /* last 8 weeks, Monday to Sunday */
+  {const B=[],mon0=new Date();mon0.setHours(12,0,0,0);mon0.setDate(mon0.getDate()-((mon0.getDay()+6)%7));
+   for(let w=7;w>=0;w--){const st=new Date(mon0);st.setDate(st.getDate()-w*7);const p={};
+     for(let d=0;d<7;d++){const x=new Date(st);x.setDate(st.getDate()+d);Object.entries(M[dkey(x)]||{}).forEach(([k,v])=>{p[k]=(p[k]||0)+v;});}
+     const en=new Date(st);en.setDate(st.getDate()+6);
+     B.push({lab:st.toLocaleDateString(undefined,{day:"numeric",month:"short"}),today:w===0,full:`Week of ${st.toLocaleDateString(undefined,{day:"numeric",month:"short"})}${w===0?" (this week)":""}`,parts:p});}
+   const best=Math.max(...B.map(b=>secTot(b.parts,true)));
+   stackChart($("weeks8"),$("wkTip"),B,best>=goal*7*60*.4?goal*7:0,`best week ${Math.round(best/60)} min · goal ${goal*7}`);}
 
   /* split of the last 30 days */
   const S={ml:0,fs:0,sc:0,lc:0,dr:0};for(let i=0;i<30;i++){const x=new Date();x.setDate(x.getDate()-i);Object.entries(M[dkey(x)]||{}).forEach(([k,v])=>{S[k]=(S[k]||0)+v;});}
