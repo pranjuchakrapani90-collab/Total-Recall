@@ -105,12 +105,12 @@ function sellForm(pre){pre=pre||{};const M=model();
     onDelete:pre.id?()=>{I.remove(KEY,"tx",pre.id);draw();}:null});}
 const GK={sell:"gtt",buy:"gttBuy"};
 function gttForm(side){const M=model(),x=side==="buy"?M.gttB:M.gtt;if(!x)return;const g=x.g,s=x.sug||g,buy=side==="buy";
-  const fields=[{k:"trig",label:"Trigger price",type:"number",value:g?g.trig:s.trig},{k:"lim",label:"Limit price",type:"number",value:g?g.lim:s.lim,
+  const fields=[{k:"trig",label:"Trigger price",type:"number",value:x.sug?s.trig:g.trig},{k:"lim",label:"Limit price",type:"number",value:x.sug?s.lim:g.lim,
       hint:buy?"A little above the trigger so it fills; you still get the lower price if it's there.":"A little below the trigger so it fills; you still get the higher price if it's there."},
-    {k:"units",label:"Units",type:"number",step:"1",value:g?g.units:s.units}];
-  if(buy)fields.push({k:"bid",label:"BID level it buys",type:"select",value:g?g.bid:s.bid,options:M.bids.map(b=>[b.n,"BID "+b.n+" ("+pct(b.pct*100)+")"])});
-  fields.push({k:"date",label:"Placed on",type:"date",value:g?g.date:today()});
-  I.form({title:(buy?"Buy GTT · BID ":"Sell GTT · ")+(buy?(g?g.bid:s.bid):M.S.symbol),
+    {k:"units",label:"Units",type:"number",step:"1",value:x.sug?s.units:g.units}];
+  if(buy)fields.push({k:"bid",label:"BID level it buys",type:"select",value:x.sug?s.bid:g.bid,options:M.bids.map(b=>[b.n,"BID "+b.n+" ("+pct(b.pct*100)+")"])});
+  fields.push({k:"date",label:"Placed on",type:"date",value:x.sug||!g?today():g.date});
+  I.form({title:(buy?"Buy GTT · BID ":"Sell GTT · ")+(buy?s.bid:M.S.symbol),
     note:x.sug?(buy?`Next dip level now: BID ${x.sug.bid} · trigger ${price(x.sug.trig)} · limit ${price(x.sug.lim)} · ${x.sug.units} units. It moves when your average changes, so update the GTT after every buy.`
       :`Profit-booking target now: trigger ${price(x.sug.trig)} · limit ${price(x.sug.lim)} · ${x.sug.units} units. It moves after every buy, so update the GTT then.`):"",
     fields,

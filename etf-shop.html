@@ -211,8 +211,8 @@ function soldForm(l){
 function gttForm(id){const M=model(),l=M.open.find(x=>x.id===id);if(!l)return;const g=l.gtt,sug=l.armed?{trig:l.stop,lim:r2(l.stop*(1-M.S.buffer)),qty:l.qty}:null;
   I.form({title:"GTT · "+l.code,note:sug?`App's stop now: trigger ${price(sug.trig)} · limit ${price(sug.lim)} · ${sug.qty} units. Raise it whenever the app shows a higher stop; never lower it.`
       :`This lot hasn't reached its ${price(l.tgt)} trail start yet, so the app has no stop for it. A GTT here is your own stop.`,
-    fields:[{k:"trig",label:"Trigger price",type:"number",value:g?g.trig:sug?sug.trig:""},{k:"lim",label:"Limit price",type:"number",value:g?g.lim:sug?sug.lim:""},
-      {k:"qty",label:"Units",type:"number",step:"1",value:g?g.qty:l.qty},{k:"date",label:"Set on",type:"date",value:today()}],
+    fields:[{k:"trig",label:"Trigger price",type:"number",value:sug?sug.trig:g?g.trig:""},{k:"lim",label:"Limit price",type:"number",value:sug?sug.lim:g?g.lim:""},
+      {k:"qty",label:"Units",type:"number",step:"1",value:sug?sug.qty:g?g.qty:l.qty},{k:"date",label:"Set on",type:"date",value:today()}],
     onSubmit:v=>{if(!(v.trig>0)||!(v.lim>0)||!(v.qty>0))return "Fill in trigger, limit and units.";if(v.lim>v.trig)return "For a stop-loss sell, keep the limit at or below the trigger.";if(v.qty>l.qty)return `The lot has ${l.qty} units.`;
       I.upsert(KEY,"lots",id,{...lotRec(id),gtt:{trig:v.trig,lim:v.lim,qty:Math.round(v.qty),date:v.date}});draw();},
     onDelete:g?()=>{const r=lotRec(id);delete r.gtt;I.upsert(KEY,"lots",id,r);draw();}:null,delLabel:"Remove",delConfirm:"Remove this GTT from the app? Cancel it in your broker app too.",
