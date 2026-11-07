@@ -64,7 +64,7 @@ details summary{cursor:pointer;font-weight:700}
     <div class="list" id="runList"></div>
   </div>
 </div>
-<p class="muted" style="font-size:12px">Keep this screen open while it uploads. On Android, WhatsApp's files are under Internal storage › Android › media › com.whatsapp › WhatsApp › Media. DriveSync keeps running in the background as before.</p>
+<p class="muted" style="font-size:12px">The screen is kept on while files are read and uploaded — keep Pranju OS in front (don't switch apps). If it stops anyway, just pick the same files again: finished ones are skipped. On Android, WhatsApp's files are under Internal storage › Android › media › com.whatsapp › WhatsApp › Media. DriveSync keeps running in the background as before.</p>
 
 <h2>File manager in Drive</h2>
 <div class="row" style="margin-bottom:8px"><span id="dashSt" class="muted" style="font-size:13px">…</span><button class="btn sm" id="refresh" type="button">Refresh</button></div>
@@ -103,6 +103,25 @@ function idb(){return new Promise(function(ok,no){var r=indexedDB.open("pos-dsyn
 async function kget(k){var d=await idb();return new Promise(function(ok){var r=d.transaction("kv").objectStore("kv").get(k);r.onsuccess=function(){ok(r.result)};r.onerror=function(){ok(null)}})}
 async function kset(k,v){var d=await idb();return new Promise(function(ok){var t=d.transaction("kv","readwrite");t.objectStore("kv").put(v,k);t.oncomplete=function(){ok()};t.onerror=function(){ok()}})}
 /* rows: [id,name,mime,size,parent,createdTime] */
+/* Full listing of My Drive is slow (thousands of files = many pages), so after the first full read only files
+   added/changed since the last read are fetched and merged in. Full re-read: Refresh button, or index > 24 h old. */
+var idxP=null;
+function ensureIndex(progress,full){
+  if(idxP)return idxP;
+  var inc=!full&&idx&&idx.rows&&idx.root&&Date.now()-idx.at<24*36e5;
+  idxP=(inc?fetchChanges(progress):fetchIndex(progress)).finally(function(){idxP=null});return idxP}
+async function fetchChanges(progress){
+  var since=new Date(idx.at-10*60000).toISOString(),start=Date.now(),got=[],page="",q="'me' in owners and modifiedTime > '"+since+"'";
+  for(var i=0;i<100;i++){
+    var r=await g(API+"/files?spaces=drive&pageSize=1000&fields=nextPageToken,files(id,name,mimeType,size,parents,createdTime,trashed)&q="+encodeURIComponent(q)+(page?"&pageToken="+encodeURIComponent(page):""));
+    if(!r.ok)throw await gerr(r,"Drive listing");var d=await r.json();got=got.concat(d.files||[]);
+    if(progress)progress(idx.rows.length+got.length);if(!d.nextPageToken)break;page=d.nextPageToken}
+  if(got.length){var at={};idx.rows.forEach(function(r,j){at[r[0]]=j});var rows=idx.rows.slice(),drop={};
+    got.forEach(function(f){if(f.trashed){drop[f.id]=1;return}var row=[f.id,f.name,f.mimeType,Number(f.size||0),(f.parents||[])[0]||"",f.createdTime];
+      if(at[f.id]!=null)rows[at[f.id]]=row;else{at[f.id]=rows.length;rows.push(row)}});
+    idx={rows:rows.filter(function(r){return !drop[r[0]]}),root:idx.root,at:start}}
+  else idx={rows:idx.rows,root:idx.root,at:start};
+  await kset(IDX,idx);return idx}
 async function fetchIndex(progress){
   var rows=[],page="",q="trashed=false and 'me' in owners";
   for(var i=0;i<400;i++){
@@ -146,13 +165,22 @@ async function upload(f,parent){
   if(!s.ok)throw await gerr(s,"Upload");var loc=s.headers.get("Location");if(!loc)throw new Error("Drive gave no upload address");
   var p=await fetch(loc,{method:"PUT",headers:{"Content-Type":type},body:f});if(!p.ok)throw await gerr(p,"Upload");return p.json()}
 
+/* ---------- keep the screen on ----------
+   Android releases a screen wake lock every time the page is hidden (file picker open, screen dimmed, app switch),
+   so it is re-taken whenever the page is visible again while picking, reading or uploading. */
+var lock=null,picking=false;
+async function wake(){if(lock||!("wakeLock" in navigator)||document.visibilityState!=="visible")return;
+  try{lock=await navigator.wakeLock.request("screen");lock.addEventListener("release",function(){lock=null})}catch(e){lock=null}}
+function sleep_(){picking=false;if(lock){try{lock.release()}catch(e){}lock=null}}
+document.addEventListener("visibilitychange",function(){if(document.visibilityState==="visible"&&(running||picking))wake()});
+
 /* ---------- bulk sync ---------- */
 function junk(f){return !f.size||/\.(tmp|thumb|nomedia)$/i.test(f.name)||/^\./.test(f.name)}
 async function sync(list){
   if(running)return;running=true;stop=false;note("");
   var files=Array.prototype.slice.call(list),items=files.map(function(f){return {f:f,st:"wait",msg:""}});
   $("run").hidden=false;$("pick").disabled=$("pickDir").disabled=true;$("stop").disabled=false;
-  var lock=null;try{lock=await navigator.wakeLock.request("screen")}catch(e){}
+  picking=false;wake();
   var up=0,skip=0,bad=0,bytes=0,tot=items.length;
   function paint(){var done=up+skip+bad;$("bar").style.width=(tot?Math.round(done*100/tot):0)+"%";
     $("runSt").textContent=(running?(stop?"Stopping… ":"Uploading… "):"Done · ")+up+" uploaded ("+mb(bytes)+"), "+skip+" already in Drive"+(bad?", "+bad+" failed":"")+" · "+done+"/"+tot;
@@ -163,7 +191,7 @@ async function sync(list){
   paint();$("runSt").textContent="Checking what is already in your Drive…";
   var hist=[];
   try{
-    await fetchIndex(function(n){$("runSt").textContent="Checking what is already in your Drive… "+n.toLocaleString("en-IN")+" files"});
+    await ensureIndex(function(n){$("runSt").textContent="Checking what is already in your Drive… "+n.toLocaleString("en-IN")+" files"});
     var b=build(idx);
     items.forEach(function(it){var s=b.names[it.f.name.toLowerCase()];if(junk(it.f)||(s&&s.indexOf(it.f.size)>=0)){it.st="skip";it.msg=junk(it.f)?"temp/empty file":"same name and size already in Drive";skip++}});
     paint();
@@ -178,12 +206,12 @@ async function sync(list){
     if(stop&&q.length)note(q.length+" files were not uploaded — pick them again to continue (finished ones will be skipped).",bad>0);
     var badOne=items.filter(function(it){return it.st==="bad"})[0];if(badOne)note("Some uploads failed: "+esc(badOne.msg),true);
   }catch(e){failNote(e)}
-  running=false;if(lock)try{lock.release()}catch(e){}
+  running=false;sleep_();
   if(hist.length){var h=(await kget(HIST))||[];h=hist.reverse().concat(h).slice(0,500);await kset(HIST,h);
     try{localStorage.setItem("pos-dsync-last",JSON.stringify({at:new Date().toISOString(),up:up,skip:skip,bad:bad}))}catch(e){}}
   paint();$("pick").disabled=$("pickDir").disabled=false;$("stop").disabled=true;
   $("fi").value="";$("fd").value="";
-  if(up){await fetchIndex().catch(function(){});}
+  if(up){await ensureIndex().catch(function(){});}
   dash();history_()}
 
 /* ---------- dashboard ---------- */
@@ -230,20 +258,26 @@ async function history_(){var h=(await kget(HIST))||[];
   $("hist").innerHTML=Object.keys(by).slice(0,7).map(function(d){var a=by[d],s=a.reduce(function(t,x){return t+x.s},0);
     return '<details style="padding:4px 0"><summary>'+new Date(d).toLocaleDateString("en-IN",{weekday:"short",day:"numeric",month:"short"})+' · '+a.length+' files · '+mb(s)+'</summary>'+
       a.slice(0,100).map(function(x){return '<div class="f"><a href="https://drive.google.com/file/d/'+esc(x.id)+'/view" target="_blank" rel="noopener">'+esc(x.n)+'</a><span class="muted" style="font-size:12px;flex:0 0 auto">'+esc(x.to.replace("WhatsApp ",""))+'</span></div>'}).join("")+'</details>'}).join("")}
-async function refresh(){$("refresh").disabled=true;$("dashSt").textContent="Reading your Drive…";
-  try{await fetchIndex(function(n){$("dashSt").textContent="Reading your Drive… "+n.toLocaleString("en-IN")});await dash()}catch(e){failNote(e);$("dashSt").textContent=idx?"Drive read "+ago(idx.at):""}
+async function refresh(full){$("refresh").disabled=true;$("dashSt").textContent="Reading your Drive…";
+  try{await ensureIndex(function(n){$("dashSt").textContent="Reading your Drive… "+n.toLocaleString("en-IN")},full);await dash()}catch(e){failNote(e);$("dashSt").textContent=idx?"Drive read "+ago(idx.at):""}
   $("refresh").disabled=false}
 
-$("pick").addEventListener("click",function(){$("fi").click()});
-$("pickDir").addEventListener("click",function(){$("fd").click()});
+function startPick(inp){if(running)return;picking=true;wake();
+  /* read Drive while the picker is open, so the check is ready (or nearly) when files come back */
+  ensureIndex().then(dash).catch(function(){});
+  $("run").hidden=false;$("bar").style.width="0%";$("runList").innerHTML="";$("stop").disabled=true;
+  $("runSt").textContent="Reading the picked files… keep this screen open";inp.click()}
+$("pick").addEventListener("click",function(){startPick($("fi"))});
+$("pickDir").addEventListener("click",function(){startPick($("fd"))});
+["fi","fd"].forEach(function(id){$(id).addEventListener("cancel",function(){if(!running){sleep_();$("run").hidden=true}})});
 if("webkitdirectory" in document.createElement("input"))$("pickDir").hidden=false;
 $("fi").addEventListener("change",function(){if(this.files.length)sync(this.files)});
 $("fd").addEventListener("change",function(){if(this.files.length)sync(this.files)});
 $("stop").addEventListener("click",function(){stop=true;this.disabled=true});
-$("refresh").addEventListener("click",refresh);
+$("refresh").addEventListener("click",function(){refresh(true)});
 window.addEventListener("beforeunload",function(e){if(running){e.preventDefault();e.returnValue=""}});
 (async function(){idx=await kget(IDX).catch(function(){return null});history_();await dash();
-  if(!idx||Date.now()-idx.at>10*60000)refresh()})();
+  if(!idx||Date.now()-idx.at>10*60000)refresh(false)})();
 })();
 </script>
 </body></html>
