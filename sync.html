@@ -204,7 +204,10 @@ async function sync(list){
       paint()}}
     var ws=[];for(var i=0;i<PAR;i++)ws.push(worker());await Promise.all(ws);
     if(stop&&q.length)note(q.length+" files were not uploaded — pick them again to continue (finished ones will be skipped).",bad>0);
-    var badOne=items.filter(function(it){return it.st==="bad"})[0];if(badOne)note("Some uploads failed: "+esc(badOne.msg),true);
+    var badOne=items.filter(function(it){return it.st==="bad"})[0];
+    if(badOne)note("Some uploads failed: "+esc(badOne.msg),true);
+    else if(!stop)note(up?"Uploaded <b>"+up+"</b> new file"+(up>1?"s":"")+" to Drive › File manager"+(skip?" · "+skip+" were already in Drive and skipped":"")+".":
+      "Nothing to upload — all <b>"+skip+"</b> picked files are already in your Drive (same name and size), most likely sent there already by DriveSync.",false);
   }catch(e){failNote(e)}
   running=false;sleep_();
   if(hist.length){var h=(await kget(HIST))||[];h=hist.reverse().concat(h).slice(0,500);await kset(HIST,h);
@@ -262,21 +265,28 @@ async function refresh(full){$("refresh").disabled=true;$("dashSt").textContent=
   try{await ensureIndex(function(n){$("dashSt").textContent="Reading your Drive… "+n.toLocaleString("en-IN")},full);await dash()}catch(e){failNote(e);$("dashSt").textContent=idx?"Drive read "+ago(idx.at):""}
   $("refresh").disabled=false}
 
-function startPick(inp){if(running)return;picking=true;wake();
+function startPick(inp){if(running)return;picking=true;wake();note("");try{sessionStorage.setItem("pos-dsync-picking",String(Date.now()))}catch(e){}
   /* read Drive while the picker is open, so the check is ready (or nearly) when files come back */
   ensureIndex().then(dash).catch(function(){});
   $("run").hidden=false;$("bar").style.width="0%";$("runList").innerHTML="";$("stop").disabled=true;
   $("runSt").textContent="Reading the picked files… keep this screen open";inp.click()}
 $("pick").addEventListener("click",function(){startPick($("fi"))});
 $("pickDir").addEventListener("click",function(){startPick($("fd"))});
-["fi","fd"].forEach(function(id){$(id).addEventListener("cancel",function(){if(!running){sleep_();$("run").hidden=true}})});
+["fi","fd"].forEach(function(id){$(id).addEventListener("cancel",function(){try{sessionStorage.removeItem("pos-dsync-picking")}catch(e){}if(!running){sleep_();$("run").hidden=true}})});
 if("webkitdirectory" in document.createElement("input"))$("pickDir").hidden=false;
-$("fi").addEventListener("change",function(){if(this.files.length)sync(this.files)});
-$("fd").addEventListener("change",function(){if(this.files.length)sync(this.files)});
+function picked(inp,folder){try{sessionStorage.removeItem("pos-dsync-picking")}catch(e){}
+  if(inp.files.length){sync(inp.files);return}
+  sleep_();$("run").hidden=true;
+  note(folder?"The phone gave Pranju OS <b>no files</b> from that folder — Android blocks web apps from reading some folders (WhatsApp's media folder is one). Use <b>Pick files</b> instead: open the WhatsApp folder (e.g. WhatsApp Documents), tap ⋮ › Select all, then Select.":"No files came back from the picker. Try again with Pick files.",true)}
+$("fi").addEventListener("change",function(){picked(this,false)});
+$("fd").addEventListener("change",function(){picked(this,true)});
 $("stop").addEventListener("click",function(){stop=true;this.disabled=true});
 $("refresh").addEventListener("click",function(){refresh(true)});
 window.addEventListener("beforeunload",function(e){if(running){e.preventDefault();e.returnValue=""}});
-(async function(){idx=await kget(IDX).catch(function(){return null});history_();await dash();
+(async function(){
+  try{if(sessionStorage.getItem("pos-dsync-picking")){sessionStorage.removeItem("pos-dsync-picking");
+    note("The phone reloaded this page while it was reading the picked files, so nothing was uploaded — usually too many files at once. Pick fewer at a time (e.g. a few hundred) and try again.",true)}}catch(e){}
+  idx=await kget(IDX).catch(function(){return null});history_();await dash();
   if(!idx||Date.now()-idx.at>10*60000)refresh(false)})();
 })();
 </script>
