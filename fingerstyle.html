@@ -483,8 +483,8 @@ function taskView(L){const Lv=LEVELS[L.lv],all=ALL.indexOf(lessonOf(L)),prev=ALL
 function howTo(L){const lo=L.tempo[0],hi=L.tempo[1];
   if(L.how)return `<details class="how" open><summary>How to practise this lesson</summary><ol>${L.how.map(x=>`<li>${x}</li>`).join("")}</ol></details>`;
   if(L.chain)return `<details class="how" open><summary>How to use the warm-up</summary><ol>
-    <li>Pick a part for a short warm-up (about a minute at 70 bpm), or the full chain when you have more time.</li>
-    <li>Press Play. Each chord gets ${L.rep} bars: thumb on the root on beat 1, then i, m, a on the G, B and high e strings. The next chord follows by itself; the bar under Play tells you which chord is coming.</li>
+    <li>Pick a part for a short warm-up (one to two minutes at 60 bpm), or the full chain when you have more time.</li>
+    <li>Press Play. Each chord gets ${L.rep} bars of eighth notes, every string of the shape: thumb (p) on the bass strings from the lowest one the chord uses, i-m-a on the G, B and high e, up and back. Six-string, five-string and four-string shapes are in separate parts, so the pattern stays the same within a part. The next chord follows by itself; the bar under Play tells you which chord is coming.</li>
     <li>Choose your tempo with the slider or − / +. Slow enough that every change lands on beat 1 is the right speed; it never climbs on its own.</li>
     <li>When a part runs through with no gaps at the changes and every string ringing, mark it done. Keep using it as a warm-up afterwards.</li></ol></details>`;
   if(L.scan)return `<details class="how" open><summary>How to practise this lesson</summary><ol>

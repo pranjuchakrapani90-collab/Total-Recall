@@ -81,16 +81,19 @@ CHG.push(
   w:"Seventh chords chained the way jazz and old ghazal accompaniments use them. The shapes from lessons s3 to s5, now in motion.",tip:"Dm7 to G7 to Cmaj7: notice how few fingers really move. Find the shortest path for each one."},
  {id:"p6",t:"Circle of dominants",progs:[["to G","E7|A7|D7|G"],["to C","A7|D7|G7|C"]],scan:1,free:1,meter:4,tempo:[40,40],
   w:"Each seven-chord pulls into the next, round the circle home: the ragtime and old-song sound the blues lessons use later.",tip:"All seventh shapes, all changing every bar: the hardest drill of Level 0. Take it as slowly as you like."});
-/* Warm-up chord chain: every open shape from lessons s1–s5 in one logical order (falling fifths, ii–V–I,
-   relative minors, the circle of dominants), each chord held for REP bars of p-i-m-a, then on to the next on its own.
-   Part 1 ends on D, which leads back to Em, so the parts join into one unbroken full chain. */
+/* Warm-up chord chain: every open shape from lessons s1–s5, grouped by how many strings the shape uses, so the right
+   hand keeps one plucking pattern through a whole part: six-string shapes, then five (low E not played), then four
+   (only D, G, B, e). Inside a part each chord leads to the next with the fewest fingers moving, and each part ends on a
+   chord that pulls into the next part's first (G7 → C, A7 → D, Fmaj7 → Em), so the full chain runs unbroken.
+   Every string of the shape is plucked in eighth notes (PATS below, one bar each), held for REP bars, then on. */
 const REP=2,CHAIN=[
-  ["Part 1 · open minors and majors",["Em","Am","Dm","G","C","Am","E","A","D"]],
-  ["Part 2 · Em to B7, round the sevenths",["Em","B7","E7","A7","D7","G7","C7","Fmaj7"]],
-  ["Part 3 · m7 and maj7 colours",["Cmaj7","Am7","Dm7","G7","Gmaj7","Em7","Bm7","E7","Amaj7","Dmaj7","Emaj7"]]];
-const WARMUP={id:"wu",t:`Warm-up: the chord chain (each chord ${REP} bars)`,chain:CHAIN,rep:REP,free:1,meter:4,tempo:[60,60],pat:"1:B 2:3 3:2 4:1",
-  w:`Every open shape you have learned, in a logical order where each chord leads naturally to the next: Em, Am, Dm, G, C… through B7 and the seventh chords to the m7 and maj7 colours. Each chord is played ${REP} times, one bar each: thumb on the root, then i, m, a up the G, B and high e strings. After the second bar the next chord comes on its own, so the left hand learns to find shapes in time and the right hand keeps going without a break. Use a part as a short warm-up, or the full chain on longer days.`,
-  tip:"The on-screen line under the Play button shows the chord you are on, which of its two bars, and the chord coming next. Start moving the left hand while the a finger plays beat 4 of the second bar, and land all fingers together on beat 1."};
+  ["Part 1 · six-string chords",["Em","Em7","E","E7","Emaj7","G","Gmaj7","G7"]],
+  ["Part 2 · five-string chords",["C","Cmaj7","C7","Am","Am7","Bm7","B7","A","Amaj7","A7"]],
+  ["Part 3 · four-string chords",["D","Dmaj7","D7","Dm","Dm7","Fmaj7"]]],
+  PATS={6:"1:6 1.5:5 2:4 2.5:3 3:2 3.5:1 4:2 4.5:3",5:"1:5 1.5:4 2:3 2.5:2 3:1 3.5:2 4:3 4.5:4",4:"1:4 1.5:3 2:2 2.5:1 3:4 3.5:3 4:2 4.5:1"};
+const WARMUP={id:"wu",t:`Warm-up: the chord chain (each chord ${REP} bars)`,chain:CHAIN,rep:REP,pats:PATS,free:1,meter:4,tempo:[60,60],pat:PATS[6],
+  w:`Every open shape you have learned, grouped by how many strings it uses, and every one of those strings plucked. Part 1 is the six-string shapes (Em, E, G and their sevenths): thumb from the low E, up to the high e and back. Part 2 is the five-string shapes (C, Am, Bm7, B7, A…): the thumb starts on the A string. Part 3 is the four-string shapes (D, Dm, Fmaj7…): the thumb starts on the D string. Each chord gets ${REP} bars of eighth notes, then the next chord comes on its own. One pattern per part, so the right hand settles while the left hand learns to find shapes in time.`,
+  tip:"The line under the Play button shows the chord you are on, which of its two bars, and the chord coming next. The notes are eighths, twice as many per beat as before, so drop the tempo if the changes feel rushed. Start moving the left hand on the last two notes of the second bar and land all fingers together on beat 1."};
 /* ===================== Generated exercises for the newer lessons =====================
    Exact notes are written as s@f tokens (string@fret), "!" = melody voice, ".i/.m/.a/.p" = which finger plucks. */
 CH.Bm7=CH.Bm7||{f:[X,2,0,2,0,2],r:[5,2],a:[4,0]};
@@ -506,9 +509,10 @@ function expand(L){const one=[{...L,pid:L.id,home:1}];
   if(L.shapes)return L.shapes.map((c,i)=>{ // whole up-and-down cycles only, so the loop goes back to bar 1 on the lowest string
     const n=CH[c].f.filter(x=>x!=null).length,cyc=2*n-2,M=L.meter||4;let k=1;while((k*cyc)%M||k*cyc<4*M)k++;
     return {...L,id:`${L.id}.${c}`,pid:L.id,vt:c,prog:Array(k*cyc/M).fill(c).join("|"),home:i?0:1};});
-  if(L.chain){const run=cs=>cs.map(c=>Array(L.rep).fill(c).join("|")).join("|");
-    return [...L.chain.map(([t,cs],i)=>({...L,id:`${L.id}.p${i+1}`,pid:L.id,vt:t,prog:run(cs),seq:cs,home:i?0:1})),
-      {...L,id:`${L.id}.all`,pid:L.id,vt:"Full chain · all parts",prog:run(L.chain.flatMap(x=>x[1])),seq:L.chain.flatMap(x=>x[1]),home:0}];}
+  if(L.chain){const run=cs=>cs.map(c=>Array(L.rep).fill(c).join("|")).join("|"),
+      pb=cs=>L.pats?cs.flatMap(c=>Array(L.rep).fill(L.pats[CH[c].f.filter(x=>x!=null).length]||L.pat)).join("|"):L.pat; // one pattern per bar, by the shape's string count
+    return [...L.chain.map(([t,cs],i)=>({...L,id:`${L.id}.p${i+1}`,pid:L.id,vt:t,prog:run(cs),pat:pb(cs),seq:cs,home:i?0:1})),
+      {...L,id:`${L.id}.all`,pid:L.id,vt:"Full chain · all parts",prog:run(L.chain.flatMap(x=>x[1])),pat:pb(L.chain.flatMap(x=>x[1])),seq:L.chain.flatMap(x=>x[1]),home:0}];}
   if(L.progs)return L.progs.map(([k,pr],i)=>({...L,id:`${L.id}.${k.replace(/[^A-Za-z#]/g,"")}`,pid:L.id,vt:`in ${k}`,prog:pr+"|"+pr,home:i?0:1}));
   if(L.pairs)return L.pairs.map(([a,b],i)=>({...L,id:`${L.id}.${a}-${b}`,pid:L.id,vt:`${a} ↔ ${b}`,prog:`${a}|${a}|${b}|${b}|${a}|${a}|${b}|${b}`,home:i?0:1}));
   if(L.task||L.tune)return one;
