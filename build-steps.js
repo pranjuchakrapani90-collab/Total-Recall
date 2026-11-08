@@ -78,7 +78,9 @@ function ensureDlg(){if(q$("#bldDlg"))return;
 #bldDlg{width:min(720px,100vw);max-width:100vw;max-height:100dvh;padding:0;border:0;border-radius:16px}
 #bldDlg::backdrop{background:#0006}
 .bd{display:flex;flex-direction:column;max-height:94dvh}
-.bd .bh{padding:12px 16px 8px;border-bottom:1px solid var(--line)}
+.bd .bh{padding:12px 16px 8px;border-bottom:1px solid var(--line);position:relative}
+.bd .bh h3{padding-right:112px}
+.bd .bx{position:absolute;top:10px;right:12px;border:1px solid var(--line);background:#fff;border-radius:10px;padding:6px 10px;font:650 13px system-ui;cursor:pointer;color:var(--ink)}
 .bd .bh h3{margin:0;font-size:17px}.bd .bh .sub{font-size:12.5px;color:var(--muted);margin-top:2px}
 .bd .prog{display:flex;gap:4px;overflow-x:auto;padding:8px 0 2px;scrollbar-width:none}
 .bd .prog button{flex:none;border:1px solid var(--line);background:#fff;border-radius:999px;padding:4px 9px;font:600 12px system-ui;color:var(--muted);cursor:pointer;white-space:nowrap}
@@ -110,11 +112,13 @@ function ensureDlg(){if(q$("#bldDlg"))return;
 .bstrip button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 10px;font:600 12.5px system-ui;cursor:pointer}
 .bstrip button.on{background:var(--steel-soft);border-color:var(--steel);color:#115e59}.bstrip button.half{background:var(--brass-soft);border-color:#f2c48a;color:var(--brass)}
 `;document.head.appendChild(st);
- const d=document.createElement("dialog");d.id="bldDlg";d.innerHTML=`<div class="bd"><div class="bh"><h3 id="bT"></h3><div class="sub" id="bSub"></div><div class="prog" id="bProg"></div></div><div class="bb" id="bBody"></div>
+ const d=document.createElement("dialog");d.id="bldDlg";d.innerHTML=`<div class="bd"><div class="bh"><button class="bx" id="bClose" type="button" title="Everything so far is kept. Open this point again to carry on from this step.">✕ Save &amp; close</button><h3 id="bT"></h3><div class="sub" id="bSub"></div><div class="prog" id="bProg"></div></div><div class="bb" id="bBody"></div>
  <div class="bf"><span class="tot" id="bTot"></span><button class="btn alt" id="bBack" type="button">‹ Back</button><button class="btn" id="bNext" type="button">Next ›</button></div></div>`;
  document.body.appendChild(d);
  d.addEventListener("click",onClick);d.addEventListener("change",onChange);
  d.addEventListener("cancel",e=>{e.preventDefault();d.close()});
+ /* every pick is saved as it is made; closing keeps the step he is on, so reopening carries on from there */
+ q$("#bClose").onclick=()=>{if(ptOf())save();d.close()};
  q$("#bBack").onclick=()=>{const x=ptOf();if(!x)return;const b=bOf(x);if(b.cur>0){b.cur--;save();draw()}else d.close()};
  q$("#bNext").onclick=()=>{const x=ptOf();if(!x)return;const b=bOf(x),S=steps(ctxOf(x,compute(P())));
   if(b.cur>=S.length-1){b.done=true;b.on=true;save();d.close();return}b.cur++;save();draw()}}
