@@ -38,7 +38,12 @@ main{max-width:1100px;margin:0 auto;padding:14px 16px 60px}
 .mapwrap{position:relative;margin-bottom:12px}
 .mtools{position:absolute;left:10px;right:10px;bottom:10px;display:flex;gap:8px;flex-wrap:wrap;z-index:500;pointer-events:none}
 .mtools .btn{pointer-events:auto;box-shadow:0 4px 14px #0003}
-.mlayer{position:absolute;top:10px;right:10px;z-index:500}
+.mlayer{position:absolute;top:10px;right:10px;z-index:500;display:flex;gap:6px;align-items:center}
+.mrot{display:flex;background:var(--paper);border:1px solid var(--line);border-radius:10px;box-shadow:0 4px 14px #0003;overflow:hidden}
+.mrot button{border:0;background:none;padding:6px 9px;font:650 15px var(--body);cursor:pointer;color:var(--ink);min-width:34px}
+.mrot button+button{border-left:1px solid var(--line)}
+.mrot #rotN{display:flex;align-items:center;gap:3px;font-size:12px}
+.mrot #rotN svg{display:block;transition:transform .2s}
 .status{font-size:13px;color:var(--muted);margin:-4px 0 10px}
 .tapping .leaflet-container{cursor:crosshair}
 .plist{display:flex;flex-direction:column;gap:8px}
@@ -141,7 +146,7 @@ table.boq{border-collapse:collapse;width:100%;min-width:720px;font-size:12.5px}
 <section id="v-survey">
  <div class="mapwrap" id="mapwrap">
   <div id="map"></div>
-  <div class="mlayer"><button class="btn alt sm" id="layerBtn" type="button">Satellite</button></div>
+  <div class="mlayer"><div class="mrot" id="mrot" hidden><button type="button" id="rotL" title="Turn map left 15°">⟲</button><button type="button" id="rotN" title="Map bearing — tap to put North up again"><svg viewBox="0 0 12 16" width="11" height="15"><path d="M6 0 11 15 6 11 1 15Z" fill="#b91c1c"/></svg><span>N</span></button><button type="button" id="rotR" title="Turn map right 15°">⟳</button></div><button class="btn alt sm" id="layerBtn" type="button">Satellite</button></div>
   <div class="mtools">
    <button class="btn" id="gpsBtn" type="button">📍 GPS point</button>
    <button class="btn alt" id="tapBtn" type="button">✚ Tap on map</button>
@@ -386,6 +391,7 @@ table.boq{border-collapse:collapse;width:100%;min-width:720px;font-size:12.5px}
 </div></dialog>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://unpkg.com/leaflet-rotate@0.5.3/dist/leaflet-rotate.js"></script>
 <script>
 "use strict";
 /* ================= Rates (SoR 2021-22, same table as APDCL BoM Kits) ================= */
@@ -1073,12 +1079,21 @@ function wrap(s,n,mx=3){const w=s.split(" "),l=[];let cur="";w.forEach(x=>{if((c
 const $=s=>document.querySelector(s);
 let map,layerOSM,layerSat,sat=false,grp,tapMode=false,selId=null;
 function initMap(){if(typeof L==="undefined"){$("#map").innerHTML='<p style="padding:16px">Map could not load (offline?). You can still enter coordinates; the SLD and estimate work without the map.</p>';return}
- map=L.map("map",{zoomControl:true}).setView([26.40,92.95],11);
+ const canRot=typeof L.Map.prototype.setBearing==="function";
+ map=L.map("map",Object.assign({zoomControl:true},canRot?{rotate:true,rotateControl:false,touchRotate:true,shiftKeyRotate:true,pitchDrag:false,touchPitch:false}:{})).setView([26.40,92.95],11);
+ if(canRot)initRotate();
  layerOSM=L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:20,maxNativeZoom:19,attribution:"© OpenStreetMap"}).addTo(map);
  layerSat=L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{maxZoom:20,maxNativeZoom:19,attribution:"© Esri"});
  grp=L.layerGroup().addTo(map);
  map.on("click",e=>{if(QR.mapKind){const k=QR.mapKind;QR.mapKind=null;$("#mapwrap").classList.remove("tapping");qPlace(k,{lat:e.latlng.lat,lng:e.latlng.lng,src:"map"});return}if(!tapMode)return;setTap(false);openPoint(null,{lat:e.latlng.lat,lng:e.latlng.lng,src:"map"})});
 }
+/* map rotation: two-finger twist on phone, Shift + mouse wheel / right-drag on laptop, or the ⟲ N ⟳ buttons; each survey keeps its own bearing */
+let rotSave=null;
+function initRotate(){$("#mrot").hidden=false;
+ const norm=d=>((Math.round(d)%360)+360)%360,show=()=>{const b=norm(map.getBearing());$("#rotN svg").style.transform=`rotate(${b}deg)`;$("#rotN span").textContent=b?b+"°":"N";$("#rotN").title=b?"Map turned "+b+"° — tap to put North up again":"North is up"};
+ const turn=d=>map.setBearing(norm(map.getBearing()+d));
+ $("#rotL").onclick=()=>turn(-15);$("#rotR").onclick=()=>turn(15);$("#rotN").onclick=()=>map.setBearing(0);
+ map.on("rotate",()=>{show();clearTimeout(rotSave);const p=P();rotSave=setTimeout(()=>{const b=norm(map.getBearing());if((+(p.meta.bearing||0))!==b){p.meta.bearing=b;touch(p)}},800)});show()}
 function setTap(on){tapMode=on;$("#mapwrap").classList.toggle("tapping",on);$("#tapBtn").textContent=on?"✕ Cancel tap":"✚ Tap on map";$("#status").textContent=on?"Tap the map where the point goes.":statusText()}
 function drawMap(c,fit){if(!map)return;grp.clearLayers();const col=L2=>L2.dis?"#C92A2A":L2.ex?"#1F4E9C":L2.cls==="HV"?"#2B8A3E":"#C2410C";
  c.segs.forEach(sg=>{const pl=L.polyline([[sg.a.lat,sg.a.lng],[sg.b.lat,sg.b.lng]],{color:col(sg.L),weight:sg.L.cls==="HV"?4:3,dashArray:sg.L.dis?"2 6":sg.L.cls==="LT"&&!sg.L.ex?"8 6":null}).addTo(grp)
@@ -1094,6 +1109,7 @@ function drawMap(c,fit){if(!map)return;grp.clearLayers();const col=L2=>L2.dis?"#
   const html=`<div style="background:${KINDS[k].src?"#C92A2A":k==="lm"?"#8a6a4b":k==="mark"?"#b45309":k==="rmPole"?"#7f1d1d":x.id===selId?"#0f766e":"#1e3a5f"};color:#fff;border-radius:12px;padding:2px 6px;font:700 11px system-ui;white-space:nowrap;box-shadow:0 2px 6px #0004;transform:translate(-50%,-50%);display:inline-block">${ic} P${x.no}</div>`;
   const mk=L.marker([x.lat,x.lng],{draggable:true,icon:L.divIcon({className:"",html,iconSize:[0,0]})}).addTo(grp);
   mk.on("click",()=>openPoint(x));mk.on("dragend",e=>{const ll=e.target.getLatLng();x.lat=ll.lat;x.lng=ll.lng;x.acc=null;x.src="moved";touch(P());renderAll()})});
+ if(fit&&map.setBearing){const b0=+(P().meta.bearing||0);if(Math.round(map.getBearing())!==Math.round(b0))map.setBearing(b0)}
  if(fit&&c.pts.length){const b=L.latLngBounds(c.pts.map(x=>[x.lat,x.lng]));map.fitBounds(b.pad(0.25),{maxZoom:18})}}
 
 /* intermediate poles on the map: move / delete / add / reset */
