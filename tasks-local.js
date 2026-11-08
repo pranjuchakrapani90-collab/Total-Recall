@@ -252,7 +252,7 @@ function applyReq(x){var j={};try{j=x.json?JSON.parse(x.json):{}}catch(e){throw 
   if(op==="delete"){del(t.id);return "deleted";}
   throw new Error("unknown op "+op);}
 /* op "sld-new" (4 Nov 2026): Claude's WhatsApp review found locations he sent "To claude" for an SLD. A new Line Survey
-   (localStorage "sld-survey-v1", synced by sld-survey.html) is created with each location as a "Marked point (details later)".
+   (localStorage "sld-survey-v1", synced by sld-survey.html) is created with each location as a survey point ("sv", survey map only; the SLD starts blank).
    JSON: {name, title?, loc?, fdr?, ss?, note?, points:[{lat,lng,label?,time?}]}. Same request id -> same survey (never twice). */
 function sldNew(x,j){var pts=(Array.isArray(j.points)?j.points:[]).filter(function(p){return isFinite(+p.lat)&&isFinite(+p.lng)&&Math.abs(+p.lat)<=90&&Math.abs(+p.lng)<=180});
   if(!pts.length)throw new Error("no valid points (lat/lng)");
@@ -262,7 +262,7 @@ function sldNew(x,j){var pts=(Array.isArray(j.points)?j.points:[]).filter(functi
   var p={id:pid,name:String(j.name||("WhatsApp points "+d)).slice(0,120),upd:Date.now(),
     meta:{work:"",loc:String(j.loc||""),pay:"dept",doc:"SESD/"+yr+"/",date:d,ss:String(j.ss||""),fdr:String(j.fdr||""),fee:0,title:String(j.title||"")},
     opt:{north:false,gps:false,span:true,sign:false},set:{sHV:45,sMV:32,sEHV:33,sLT:40,sABC:33,sEarth:5,sStay:0,sSvc:30,sDB:1,sDBph:1},
-    pts:pts.map(function(q){n++;return {id:mk(),no:n,kind:"mark",lat:+q.lat,lng:+q.lng,acc:null,src:"whatsapp",par:null,line:"",pole:"",cross:"",note:String(q.label||"").slice(0,80),qk:true,qt:"From WhatsApp"+(q.time?" "+q.time:"")}}),
+    pts:[],sv:pts.map(function(q){n++;return {id:mk(),no:n,kind:"mark",lat:+q.lat,lng:+q.lng,acc:null,src:"whatsapp",par:null,line:"",cross:"",note:String(q.label||"").slice(0,80),qt:"From WhatsApp"+(q.time?" "+q.time:""),t:Date.now()}}),
     from:{wa:String(j.note||"").slice(0,500),req:String(x.id)}};
   db.projects[pid]=p;db.cur=pid;localStorage.setItem(K,JSON.stringify(db));
   return "survey \""+p.name+"\" created with "+n+" point"+(n>1?"s":"")+" (open Line Survey to sync it to your other devices)";}

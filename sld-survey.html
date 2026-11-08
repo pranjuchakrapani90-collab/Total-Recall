@@ -45,6 +45,15 @@ main{max-width:1100px;margin:0 auto;padding:14px 16px 60px}
 .mrot #rotN{display:flex;align-items:center;gap:3px;font-size:12px}
 .mrot #rotN svg{display:block;transition:transform .2s}
 .status{font-size:13px;color:var(--muted);margin:-4px 0 10px}
+.rbar{position:absolute;top:10px;left:56px;right:auto;z-index:600;background:var(--paper);border:1px solid var(--line);border-radius:12px;box-shadow:0 4px 14px #0003;padding:7px 10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px;max-width:calc(100% - 66px)}
+.rbar b{font:700 15px var(--mono);color:#115e59}
+.measuring .leaflet-container{cursor:crosshair}
+.rlab{background:#0f766e;color:#fff;border:0;border-radius:8px;padding:1px 6px;font:700 11px var(--mono);box-shadow:0 1px 4px #0004}
+.rlab:before{display:none}
+#rulerBtn.on{background:var(--steel);color:#fff}
+.bilist{display:flex;flex-direction:column;gap:6px;margin:10px 0;max-height:46vh;overflow:auto}
+.bilist label{display:flex;gap:8px;align-items:center;background:var(--bg);border-radius:10px;padding:7px 10px;font-size:14px}
+.bilist label span{color:var(--muted);font-size:12px}
 .tapping .leaflet-container{cursor:crosshair}
 .plist{display:flex;flex-direction:column;gap:8px}
 .pt{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
@@ -131,7 +140,7 @@ table.boq{border-collapse:collapse;width:100%;min-width:720px;font-size:12.5px}
 <header class="top"><div class="tin">
  <div class="trow"><a class="backlink" href="apdcl-studio.html">← Estimate Studio</a><span id="syncBadge" class="sbadge">☁ Sync off</span></div>
  <h1>Line Survey</h1>
- <p class="sub">Mark the key points on site. The poles in between, the SLD and the estimate follow.</p>
+ <p class="sub">Survey: mark the key points on site and measure. SLD: draw it your way; the estimate comes from the SLD.</p>
  <div class="projbar"><select id="projSel" aria-label="Survey"></select><button class="btn alt sm" id="renProj" type="button" title="Rename this survey">✎ Rename</button><button class="btn alt sm" id="newProj" type="button">＋ New survey</button><button class="savebadge" id="saveBadge" type="button" title="Where surveys are saved">✓ Saved</button></div>
  <nav class="tabs" role="tablist">
   <button data-v="survey" aria-selected="true">📍 Survey</button>
@@ -151,8 +160,10 @@ table.boq{border-collapse:collapse;width:100%;min-width:720px;font-size:12.5px}
    <button class="btn" id="gpsBtn" type="button">📍 GPS point</button>
    <button class="btn alt" id="tapBtn" type="button">✚ Tap on map</button>
    <button class="btn alt" id="typeBtn" type="button">⌨ Coordinates</button>
+   <button class="btn alt" id="rulerBtn" type="button">📏 Measure</button>
    <button class="btn alt" id="fitBtn" type="button">⤢</button>
   </div>
+  <div class="rbar" id="rbar" hidden><span>📏</span><b id="rTot">0 m</b><span class="small muted" id="rInfo">Tap points or spots on the map</span><button class="btn alt sm" id="rUndo" type="button">↶</button><button class="btn alt sm" id="rClr" type="button">Clear</button><button class="btn sm" id="rDone" type="button">Done</button></div>
  </div>
  <div class="qr" id="qr">
   <div class="qh"><b>⚡ Quick route</b><span class="small muted">one tap per key point, no form</span><span style="flex:1"></span>
@@ -172,7 +183,7 @@ table.boq{border-collapse:collapse;width:100%;min-width:720px;font-size:12.5px}
   <div class="qgps" id="qGps" hidden></div>
  </div>
  <div class="f" style="margin:8px 0 4px"><label>Survey name<input id="survName" placeholder="e.g. Amoni DP to 3-pole conversion"></label></div>
- <p class="status" id="status">Start at the tapping point (existing 11 kV pole or LT source), then walk the route and mark each turning point, DP, DTR and line end.</p>
+ <p class="status" id="status">Mark the key points on site. Only the points are kept here; draw the SLD on its own tab.</p>
  <div id="surveyWarn"></div>
  <div class="sum" id="surveySum"></div>
  <div class="plist" id="plist"></div>
@@ -182,8 +193,8 @@ table.boq{border-collapse:collapse;width:100%;min-width:720px;font-size:12.5px}
 <section id="v-sld" hidden>
  <div class="card noprint">
   <div class="f">
-   <label>SLD title<input id="sldTitle" placeholder="Auto from the survey"></label>
-   <label>Span lengths come from<select id="lenSrc"><option value="typed">What I type (GPS only shows where things are)</option><option value="gps">GPS distance when I don't type one</option></select></label>
+   <label>SLD title<input id="sldTitle" placeholder="Auto from the drawing"></label>
+   <label>Span lengths come from<select id="lenSrc"><option value="typed">What I type (GPS only shows where things are)</option><option value="gps">Distance on the drawing (GPS distance for points brought in) when I don't type one</option></select></label>
   </div>
   <div class="chk">
    <label><input type="checkbox" id="oNorth"> North arrow</label>
@@ -210,6 +221,7 @@ table.boq{border-collapse:collapse;width:100%;min-width:720px;font-size:12.5px}
   </div>
   <div class="drow edrow" style="justify-content:flex-start;margin-top:8px">
    <button class="btn" id="edBtn" type="button">✎ Edit drawing</button>
+   <button class="btn alt" id="biBtn" type="button">⇩ Bring in from survey</button>
   </div>
   <div id="edTools" hidden>
    <div class="tools">
@@ -382,6 +394,26 @@ table.boq{border-collapse:collapse;width:100%;min-width:720px;font-size:12.5px}
 </div></dialog>
 
 <!-- coordinates dialog -->
+<dialog id="svDlg"><div class="dlg">
+ <h3 id="svTitle">Survey point</h3>
+ <p class="small muted">A point on the survey only. It does not touch the SLD or the estimate.</p>
+ <div class="f">
+  <label>What is here<select id="svType"></select></label>
+  <label id="svLineL">Line<select id="svLine"></select></label>
+  <label id="svParL">Comes after<select id="svPar"></select></label>
+  <label>Coordinates<input id="svCo" autocomplete="off"></label>
+ </div>
+ <div class="f"><label>Note<input id="svNote" placeholder="e.g. near Namghar, existing pole no. 12" autocomplete="off"></label></div>
+ <p class="small muted" id="svMeta"></p>
+ <div class="drow"><button class="btn bad" id="svDel" type="button">Delete</button><span style="flex:1"></span><button class="btn alt" id="svCancel" type="button">Cancel</button><button class="btn" id="svSave" type="button">Save</button></div>
+</div></dialog>
+<dialog id="biDlg"><div class="dlg">
+ <h3>Bring in from survey</h3>
+ <p class="small muted">Ticked points are copied into the SLD once. After that the SLD copy and the survey point are separate: moving or changing one never changes the other.</p>
+ <div class="bilist" id="biList"></div>
+ <label class="ck small"><input type="checkbox" id="biLen" checked> Use the measured GPS distance as each span's typed length</label>
+ <div class="drow"><button class="btn alt" id="biCancel" type="button">Cancel</button><button class="btn" id="biOk" type="button">Bring in</button></div>
+</div></dialog>
 <dialog id="coDlg"><div class="dlg">
  <h3>Enter coordinates</h3>
  <p class="small muted">Decimal (26.453308, 93.047084) or GPS-camera style (N26 30.828 E92 44.540).</p>
@@ -531,8 +563,15 @@ function badge(){const b=document.getElementById("saveBadge");if(!b)return;if(sa
 function touch(p){p.upd=Date.now();save()}
 function newProject(name){const p={id:uid(),name:name||"Survey "+new Date().toLocaleDateString("en-IN"),upd:Date.now(),
  meta:{work:"",loc:"",pay:"dept",doc:"SESD/"+new Date().getFullYear()+"/",date:new Date().toISOString().slice(0,10),ss:"",fdr:"",fee:0,title:""},
- opt:{north:false,gps:false,span:true,sign:false},set:{...DEF_SET,lenSrc:"typed"},pts:[]};DB.projects[p.id]=p;DB.cur=p.id;save();return p}
-function P(){let p=DB.projects[DB.cur];if(!p||p.del){p=live()[0]||newProject("Survey 1");DB.cur=p.id}return p}
+ opt:{north:false,gps:false,span:true,sign:false},set:{...DEF_SET,lenSrc:"typed"},pts:[],sv:[]};DB.projects[p.id]=p;DB.cur=p.id;save();return p}
+function P(){let p=DB.projects[DB.cur];if(!p||p.del){p=live()[0]||newProject("Survey 1");DB.cur=p.id}if(!Array.isArray(p.sv)&&svMigrate(p))save(false);return p}
+/* Survey and SLD are separate (8 Nov 2026): p.sv = the points marked on site (survey map only); p.pts = the SLD drawing, which the estimate is built from.
+   An older survey gets its marked points copied into p.sv once (same ids, so the SLD copies show as "already brought in"); its SLD stays as it was.
+   Done without changing p.upd, so every device migrates the same way and nothing fights in sync. */
+const SVF=["id","no","lat","lng","acc","src","kind","qt","par","line","cross","note","t"];
+function svCopy(x){const o={};SVF.forEach(k=>{if(x[k]!==undefined)o[k]=x[k]});return JSON.parse(JSON.stringify(o))}
+function svMigrate(p){p.pts=p.pts||[];p.sv=p.pts.filter(x=>x.src&&x.src!=="sld"&&isFinite(x.lat)&&isFinite(x.lng)).map(svCopy);
+ const ids=new Set(p.sv.map(x=>x.id));p.sv.forEach(x=>{if(x.par&&!ids.has(x.par))x.par=null});p.pts.forEach(x=>{if(ids.has(x.id))x.from=x.id});return true}
 
 const SYNC_KEY="totalRecallSyncCode_v1";let SYNC_URL="https://total-recall-ticktick.pranjuchakrapani90.workers.dev";
 try{SYNC_URL=localStorage.getItem("totalRecallTickTickUrl")||SYNC_URL}catch(e){}
@@ -1085,7 +1124,7 @@ function initMap(){if(typeof L==="undefined"){$("#map").innerHTML='<p style="pad
  layerOSM=L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:20,maxNativeZoom:19,attribution:"© OpenStreetMap"}).addTo(map);
  layerSat=L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{maxZoom:20,maxNativeZoom:19,attribution:"© Esri"});
  grp=L.layerGroup().addTo(map);
- map.on("click",e=>{if(QR.mapKind){const k=QR.mapKind;QR.mapKind=null;$("#mapwrap").classList.remove("tapping");qPlace(k,{lat:e.latlng.lat,lng:e.latlng.lng,src:"map"});return}if(!tapMode)return;setTap(false);openPoint(null,{lat:e.latlng.lat,lng:e.latlng.lng,src:"map"})});
+ map.on("click",e=>{if(RU.on){ruAdd(e.latlng,null);return}if(QR.mapKind){const k=QR.mapKind;QR.mapKind=null;$("#mapwrap").classList.remove("tapping");qPlace(k,{lat:e.latlng.lat,lng:e.latlng.lng,src:"map"});return}if(!tapMode)return;setTap(false);svOpen(null,{lat:e.latlng.lat,lng:e.latlng.lng,src:"map"})});
 }
 /* map rotation: two-finger twist on phone, Shift + mouse wheel / right-drag on laptop, or the ⟲ N ⟳ buttons; each survey keeps its own bearing */
 let rotSave=null;
@@ -1094,45 +1133,32 @@ function initRotate(){$("#mrot").hidden=false;
  const turn=d=>map.setBearing(norm(map.getBearing()+d));
  $("#rotL").onclick=()=>turn(-15);$("#rotR").onclick=()=>turn(15);$("#rotN").onclick=()=>map.setBearing(0);
  map.on("rotate",()=>{show();clearTimeout(rotSave);const p=P();rotSave=setTimeout(()=>{const b=norm(map.getBearing());if((+(p.meta.bearing||0))!==b){p.meta.bearing=b;touch(p)}},800)});show()}
-function setTap(on){tapMode=on;$("#mapwrap").classList.toggle("tapping",on);$("#tapBtn").textContent=on?"✕ Cancel tap":"✚ Tap on map";$("#status").textContent=on?"Tap the map where the point goes.":statusText()}
-function drawMap(c,fit){if(!map)return;grp.clearLayers();const col=L2=>L2.dis?"#C92A2A":L2.ex?"#1F4E9C":L2.cls==="HV"?"#2B8A3E":"#C2410C";
- c.segs.forEach(sg=>{const pl=L.polyline([[sg.a.lat,sg.a.lng],[sg.b.lat,sg.b.lng]],{color:col(sg.L),weight:sg.L.cls==="HV"?4:3,dashArray:sg.L.dis?"2 6":sg.L.cls==="LT"&&!sg.L.ex?"8 6":null}).addTo(grp)
-   .bindTooltip(LINES[sg.line].t+" · "+Math.round(sg.len)+" m · "+sg.mid.length+" intermediate pole"+(sg.mid.length===1?"":"s")+(sg.L.ex?"":" · tap the line to add a pole"));
-  if(sg.L.ex)return;
-  pl.on("click",e=>{if(tapMode||QR.mapKind)return;L.DomEvent.stopPropagation(e);midPop(sg,null,e.latlng)});
-  sg.mid.forEach((m,k)=>{const html=`<div style="width:12px;height:12px;border-radius:50%;background:${m.exist?"#111":"#fff"};border:2px solid ${m.hand?"#0f766e":"#111"};transform:translate(-50%,-50%);box-shadow:0 1px 3px #0005"></div>`;
-   const mk=L.marker([m.lat,m.lng],{draggable:true,icon:L.divIcon({className:"",html,iconSize:[0,0]})}).addTo(grp).bindTooltip(m.lab+(m.exist?" (existing, assumed)":m.hand?" (placed by hand)":" (computed)")+(m.db?" · "+m.db+" DB":"")+" · drag to move, tap for options");
-   mk.on("click",e=>{L.DomEvent.stopPropagation(e);midPop(sg,k,e.latlng)});
-   mk.on("dragend",e=>{const ts=sg.mid.map(q=>q.t);ts[k]=Math.min(0.995,Math.max(0.005,projT(sg,e.target.getLatLng())));midSave(sg,ts)})})});
- (c.fedges||[]).forEach(e=>{const st={road:{color:"#6b7280",weight:7,opacity:.6},rail:{color:"#111",weight:3,dashArray:"2 4"},river:{color:"#3b82f6",weight:8,opacity:.5},drain:{color:"#2563eb",weight:2,dashArray:"5 4"}}[e.ty];L.polyline([[e.a.lat,e.a.lng],[e.b.lat,e.b.lng]],st).addTo(grp).bindTooltip((e.name||opt(e.b,"lmType")))});
- c.pts.forEach(x=>{const k=x.kind,g=KINDS[k].g,ic=k==="lm"?"⌂":k==="mark"?"◇":k==="rmPole"?"✕":g===3||k==="htc"?"⚡":g===2?"Ⅱ":g===0?"◎":g===4?"≋":g===9||k==="exPole"||k==="exFit"?"●":g===10?"◐":"○";
-  const html=`<div style="background:${KINDS[k].src?"#C92A2A":k==="lm"?"#8a6a4b":k==="mark"?"#b45309":k==="rmPole"?"#7f1d1d":x.id===selId?"#0f766e":"#1e3a5f"};color:#fff;border-radius:12px;padding:2px 6px;font:700 11px system-ui;white-space:nowrap;box-shadow:0 2px 6px #0004;transform:translate(-50%,-50%);display:inline-block">${ic} P${x.no}</div>`;
-  const mk=L.marker([x.lat,x.lng],{draggable:true,icon:L.divIcon({className:"",html,iconSize:[0,0]})}).addTo(grp);
-  mk.on("click",()=>openPoint(x));mk.on("dragend",e=>{const ll=e.target.getLatLng();x.lat=ll.lat;x.lng=ll.lng;x.acc=null;x.src="moved";touch(P());renderAll()})});
- if(fit&&map.setBearing){const b0=+(P().meta.bearing||0);if(Math.round(map.getBearing())!==Math.round(b0))map.setBearing(b0)}
- if(fit&&c.pts.length){const b=L.latLngBounds(c.pts.map(x=>[x.lat,x.lng]));map.fitBounds(b.pad(0.25),{maxZoom:18})}}
+function setTap(on){if(on&&RU.on)ruSet(false);tapMode=on;$("#mapwrap").classList.toggle("tapping",on);$("#tapBtn").textContent=on?"✕ Cancel tap":"✚ Tap on map";$("#status").textContent=on?"Tap the map where the point goes.":statusText()}
+function drawSurvey(fit){if(!map)return;grp.clearLayers();const p=P();
+ p.sv.forEach(x=>{const k=x.kind,K=KINDS[k]||{},g=K.g,ic=k==="lm"?"⌂":k==="mark"?"◇":g===3||k==="htc"?"⚡":g===0?"◎":K.src?"◎":"○";
+  const html=`<div style="background:${K.src?"#C92A2A":k==="lm"?"#8a6a4b":k==="mark"?"#b45309":x.id===svSel?"#0f766e":"#1e3a5f"};color:#fff;border-radius:12px;padding:2px 6px;font:700 11px system-ui;white-space:nowrap;box-shadow:0 2px 6px #0004;transform:translate(-50%,-50%);display:inline-block">${ic} P${x.no}</div>`;
+  const mk=L.marker([x.lat,x.lng],{draggable:!RU.on,icon:L.divIcon({className:"",html,iconSize:[0,0]})}).addTo(grp).bindTooltip("P"+x.no+" · "+svName(x)+(x.note?" · "+x.note:""));
+  mk.on("click",e=>{if(RU.on){L.DomEvent.stopPropagation(e);ruAdd(L.latLng(x.lat,x.lng),x);return}if(QR.mapKind||tapMode)return;svSel=x.id;svOpen(x)});
+  mk.on("dragend",e=>{const ll=e.target.getLatLng();x.lat=ll.lat;x.lng=ll.lng;x.acc=null;x.src="moved";touch(P());renderAll()})});
+ if(fit&&map.setBearing){const b0=+(p.meta.bearing||0);if(Math.round(map.getBearing())!==Math.round(b0))map.setBearing(b0)}
+ if(fit&&p.sv.length){const b=L.latLngBounds(p.sv.map(x=>[x.lat,x.lng]));map.fitBounds(b.pad(0.25),{maxZoom:18})}
+ ruDraw()}
 
-/* intermediate poles on the map: move / delete / add / reset */
-function projT(sg,ll){const c=Math.cos(sg.a.lat*D2R),ax=sg.a.lng*c,ay=sg.a.lat,bx=sg.b.lng*c-ax,by=sg.b.lat-ay,px=ll.lng*c-ax,py=ll.lat-ay,d=bx*bx+by*by;return d?(px*bx+py*by)/d:0.5}
-function midSave(sg,ts,dbs){const p=P(),b=sg.b;if(typeof snap==="function")snap();const old=Array.isArray(b.dbAt)?b.dbAt:[];dbs=dbs||ts.map((_,i)=>old[i]);
- const pr=ts.map((t,i)=>[t,hasNum(dbs[i])?+dbs[i]:null]).filter(([t])=>t>0.002&&t<0.998).sort((x,y)=>x[0]-y[0]);setMids(b,pr.map(q=>q[0]));if(pr.some(q=>q[1]!==null))b.dbAt=pr.map(q=>q[1]);else delete b.dbAt;touch(p);if(map)map.closePopup();renderAll()}
-function midPop(sg,k,ll){const n=sg.mid.length,lab=k==null?"Span P"+sg.a.no+"–P"+sg.b.no:sg.mid[k].lab,t=k==null?Math.min(0.995,Math.max(0.005,projT(sg,ll))):null;
- const div=document.createElement("div");div.style.cssText="font:13px system-ui;display:grid;gap:6px;min-width:170px";
- div.innerHTML=`<b>${lab}</b><span class="small muted">${Math.round(sg.len)} m · ${n} intermediate pole${n===1?"":"s"} · ${sg.gapRule}</span>`+
-  (k!=null&&sg.L.abc?`<label class="small" style="display:flex;gap:6px;align-items:center">Distribution boxes on this pole <input type="number" min="0" max="4" step="1" data-db value="${sg.mid[k].db||0}" style="width:56px"></label>`:"")+
-  (k!=null?`<button class="btn bad sm" type="button" data-a="del">Delete this pole</button>`:`<button class="btn sm" type="button" data-a="add">Add a pole here</button>`)+
-  (n?`<button class="btn alt sm" type="button" data-a="none">Delete all poles on this span</button>`:"")+
-  (sg.hand?`<button class="btn alt sm" type="button" data-a="auto">Back to automatic</button>`:"")+
-  `<button class="btn alt sm" type="button" data-a="set">Set spacing / number…</button>`;
- div.addEventListener("change",e=>{const el=e.target.closest("[data-db]");if(!el||k==null)return;const b=sg.b,arr=Array.isArray(b.dbAt)?b.dbAt.slice():[];while(arr.length<sg.mid.length)arr.push(null);arr[k]=Math.max(0,Math.round(+el.value||0));if(typeof snap==="function")snap();b.dbAt=arr;touch(P());map.closePopup();renderAll()});
- div.addEventListener("click",e=>{const a=e.target.closest("[data-a]");if(!a)return;const ts=sg.mid.map(q=>q.t);
-  const old=Array.isArray(sg.b.dbAt)?sg.b.dbAt.slice():[],dbs=ts.map((_,i)=>old[i]);
-  if(a.dataset.a==="del"){ts.splice(k,1);dbs.splice(k,1);midSave(sg,ts,dbs)}
-  else if(a.dataset.a==="add"){ts.push(t);dbs.push(null);midSave(sg,ts,dbs)}
-  else if(a.dataset.a==="none"){if(confirm("Remove all intermediate poles on P"+sg.a.no+"–P"+sg.b.no+"?"))midSave(sg,[])}
-  else if(a.dataset.a==="auto"){if(typeof snap==="function")snap();delete sg.b.mids;delete sg.b.dbAt;touch(P());map.closePopup();renderAll()}
-  else if(a.dataset.a==="set"){map.closePopup();openPoint(sg.b);setTimeout(()=>{const g=$("#dGap");if(g){g.scrollIntoView({block:"center"});g.focus()}},50)}});
- L.popup().setLatLng(ll).setContent(div).openOn(map)}
+/* ruler: tap spots or survey points; each leg and the total, measured on the ground (great-circle) */
+const RU={on:false,v:[],grp:null};
+const fmtM=m=>m>=1000?(m/1000).toFixed(3)+" km":m>=100?Math.round(m)+" m":m.toFixed(1)+" m";
+function ruSet(on){RU.on=on;if(on){setTap(false);QR.mapKind=null}$("#rbar").hidden=!on;$("#rulerBtn").classList.toggle("on",on);$("#rulerBtn").textContent=on?"📏 Measuring":"📏 Measure";$("#mapwrap").classList.toggle("measuring",on);if(!on){RU.v=[]}drawSurvey(false)}
+function ruAdd(ll,pt){RU.v.push({ll,pt});ruDraw()}
+function ruDraw(){if(!map)return;if(!RU.grp)RU.grp=L.layerGroup().addTo(map);RU.grp.clearLayers();if(!RU.on)return;
+ let tot=0;const V=RU.v;
+ if(V.length>1)L.polyline(V.map(v=>v.ll),{color:"#0f766e",weight:3,dashArray:"6 5",interactive:false}).addTo(RU.grp);
+ V.forEach((v,i)=>{L.circleMarker(v.ll,{radius:5,color:"#0f766e",weight:2,fillColor:"#fff",fillOpacity:1,interactive:false}).addTo(RU.grp);
+  if(i){const a=V[i-1].ll,d=hav({lat:a.lat,lng:a.lng},{lat:v.ll.lat,lng:v.ll.lng});tot+=d;
+   L.tooltip({permanent:true,direction:"center",className:"rlab",interactive:false}).setLatLng([(a.lat+v.ll.lat)/2,(a.lng+v.ll.lng)/2]).setContent(fmtM(d)).addTo(RU.grp)}});
+ $("#rTot").textContent=fmtM(tot);const nm=v=>v.pt?"P"+v.pt.no:"spot";
+ $("#rInfo").textContent=V.length<2?(V.length?"Now tap the next point or spot":"Tap points or spots on the map"):V.length===2?nm(V[0])+" → "+nm(V[1]):V.map(nm).join(" → ")+" · "+(V.length-1)+" legs";
+ $("#rUndo").disabled=!V.length;$("#rClr").disabled=!V.length}
+$("#rulerBtn").onclick=()=>ruSet(!RU.on);$("#rDone").onclick=()=>ruSet(false);$("#rUndo").onclick=()=>{RU.v.pop();ruDraw()};$("#rClr").onclick=()=>{RU.v=[];ruDraw()};
 
 /* ================= Point dialog ================= */
 let edit=null,draft=null;
@@ -1198,6 +1224,58 @@ $("#dCancel").onclick=()=>$("#ptDlg").close();
 $("#dDel").onclick=()=>{const p=P();if(!confirm("Delete point P"+edit.no+"? Points connected after it will be joined to the point before it."))return;
  p.pts.forEach(q=>{if(q.par===edit.id){q.par=edit.par}if(q.fpar===edit.id){q.fpar=edit.fpar||""}});p.pts=p.pts.filter(q=>q!==edit);selId=null;touch(p);$("#ptDlg").close();renderAll()};
 
+/* ================= Survey point dialog (survey only, never the SLD) ================= */
+let svSel=null,svEd=null,svPos=null;
+const SVT=[["tap","Tapping point"],["bend","Bend / corner"],["tee","Tee-off"],["end","Line end"],["enddtr","Line end, new DTR"],["mark","Other spot"]];
+const SVQ={tap:"Tapping point",bend:"Bend",tee:"Tee-off",end:"Line end",enddtr:"End, new DTR",mark:"Marked spot"};
+function svType(x){if(!x)return"bend";const q=x.qt||"";for(const[k,v]of Object.entries(SVQ))if(q===v)return k;if(KINDS[x.kind]&&KINDS[x.kind].src)return"tap";if(x.kind==="mark")return"mark";return"keep"}
+function svName(x){const t=svType(x);return t==="keep"?(KINDS[x.kind]?KINDS[x.kind].t:"Point"):t==="mark"&&x.qt&&x.qt!==SVQ.mark?x.qt:SVT.find(q=>q[0]===t)[1]}
+function svApply(x,t,ln){const L=LINES[ln]||{};if(t==="keep")return;x.qt=SVQ[t];
+ if(t==="tap"){x.kind=L.cls==="LT"?"srcLT":L.kv===33?"src33":"src11";x.par=null}else if(t==="mark"){x.kind="mark";x.par=null}else x.kind=t==="enddtr"?"dtr":"pole"}
+function svDelete(p,x){p.sv.forEach(q=>{if(q.par===x.id)q.par=x.par||null});p.sv=p.sv.filter(q=>q!==x);const q=qState(p);if(q.cur===x.id)q.cur=x.par||undefined;q.tees=q.tees.filter(id=>id!==x.id);if(svSel===x.id)svSel=null}
+function svUI(){const t=$("#svType").value,stand=t==="mark"||(t==="keep"&&svEd&&isStand(svEd));$("#svParL").hidden=t==="tap"||stand;$("#svLineL").hidden=stand}
+function svOpen(x,pos){const p=P();svEd=x;svPos=pos||null;const t=x?svType(x):p.sv.some(q=>!isStand(q))?"bend":"tap";
+ $("#svTitle").textContent=x?"Survey point P"+x.no:"New survey point (P"+(Math.max(0,...p.sv.map(q=>q.no))+1)+")";
+ $("#svType").innerHTML=(t==="keep"?`<option value="keep" selected>${esc(KINDS[x.kind].t)} (as marked earlier)</option>`:"")+SVT.map(([k,v])=>`<option value="${k}" ${k===t?"selected":""}>${v}</option>`).join("");
+ const ln=x&&x.line&&LINES[x.line]?x.line:qLineOf(p);
+ $("#svLine").innerHTML=Object.entries(LINES).filter(([,v])=>!v.ex&&!v.dis).map(([k,v])=>`<option value="${k}" ${k===ln?"selected":""}>${v.t}</option>`).join("");
+ const par=x?x.par:(()=>{const c=qCur(p);return c?c.id:null})();
+ $("#svPar").innerHTML='<option value="">— nothing (start of a route) —</option>'+p.sv.filter(q=>q!==x&&!isStand(q)).map(q=>`<option value="${q.id}" ${q.id===par?"selected":""}>P${q.no} · ${esc(svName(q))}</option>`).join("");
+ const o=x||pos;$("#svCo").value=o.lat.toFixed(6)+", "+o.lng.toFixed(6);$("#svNote").value=x?x.note||"":"";
+ $("#svMeta").textContent=(o.acc?"GPS ±"+Math.round(o.acc)+" m · ":"")+"from "+(o.src||"—")+(x&&x.t?" · marked "+new Date(x.t).toLocaleString("en-IN",{dateStyle:"medium",timeStyle:"short"}):"");
+ $("#svDel").hidden=!x;svUI();$("#svDlg").showModal()}
+$("#svType").onchange=svUI;
+$("#svCancel").onclick=()=>$("#svDlg").close();
+$("#svDel").onclick=()=>{const p=P();if(!confirm("Delete survey point P"+svEd.no+"? (The SLD is not changed.)"))return;svDelete(p,svEd);touch(p);$("#svDlg").close();renderAll()};
+$("#svSave").onclick=()=>{const p=P(),co=parseCoord($("#svCo").value);if(!co){alert("Couldn't read the coordinates. Try 26.453308, 93.047084");return}
+ let x=svEd;if(!x){x={id:uid(),no:Math.max(0,...p.sv.map(q=>q.no))+1,acc:svPos.acc||null,src:svPos.src,cross:"",t:Date.now(),par:null};p.sv.push(x)}
+ if(Math.abs(co.lat-x.lat||0)>1e-7||Math.abs(co.lng-x.lng||0)>1e-7||x.lat===undefined){if(x.lat!==undefined){x.acc=null;x.src="typed"}x.lat=co.lat;x.lng=co.lng}
+ const t=$("#svType").value,ln=$("#svLine").value;x.line=ln;x.note=$("#svNote").value.trim();x.par=$("#svPar").value||null;svApply(x,t,ln);
+ if(x.par){let a=p.sv.find(q=>q.id===x.par),n=0;while(a&&n++<999){if(a===x){x.par=null;break}a=p.sv.find(q=>q.id===a.par)}}
+ if(!svEd&&!isStand(x))qState(p).cur=x.id;svSel=x.id;touch(p);$("#svDlg").close();renderAll(!svEd&&p.sv.length<=2)};
+
+/* ================= Bring survey points into the SLD (one-time copy) ================= */
+$("#biBtn").onclick=()=>{const p=P();if(!p.sv.length){alert("No survey points yet. Mark them on the Survey tab first.");return}
+ const inSld=new Set(p.pts.map(x=>x.from).filter(Boolean));
+ $("#biList").innerHTML=`<label><input type="checkbox" id="biAll"> <b>All not yet brought in</b></label>`+p.sv.map(x=>`<label><input type="checkbox" data-id="${x.id}" ${inSld.has(x.id)?"":"checked"}> <b>P${x.no}</b> ${esc(svName(x))}${x.note?" <span>· "+esc(x.note)+"</span>":""}${inSld.has(x.id)?" <span>· already in SLD</span>":""}</label>`).join("");
+ $("#biAll").checked=p.sv.some(x=>!inSld.has(x.id));$("#biAll").onchange=e=>$("#biList").querySelectorAll("[data-id]").forEach(c=>{if(!inSld.has(c.dataset.id))c.checked=e.target.checked});
+ $("#biDlg").showModal()};
+$("#biCancel").onclick=()=>$("#biDlg").close();
+$("#biOk").onclick=()=>{const ids=[...$("#biList").querySelectorAll("[data-id]:checked")].map(c=>c.dataset.id);if(!ids.length){$("#biDlg").close();return}
+ bringIn(P(),ids,$("#biLen").checked);$("#biDlg").close()};
+function bringIn(p,ids,useLen){const sel=p.sv.filter(x=>ids.includes(x.id));if(!sel.length)return;
+ snap();const had=p.pts.length;if(had)freeze(p);else if(p.lay){delete p.lay.f;p.lay.pos={}}
+ const used=new Set(p.pts.map(x=>x.no)),map2={},byId=Object.fromEntries(p.sv.map(x=>[x.id,x]));let nx=Math.max(0,...p.pts.map(x=>x.no));
+ const add=sel.map(s=>{const x={...svCopy(s),id:uid(),from:s.id,pole:"",cross:s.cross||""};delete x.t;x.no=used.has(s.no)?++nx:s.no;used.add(x.no);nx=Math.max(nx,x.no);map2[s.id]=x.id;return x});
+ add.forEach((x,i)=>{const s=sel[i];x.par=null;if(!s.par)return;const tgt=map2[s.par]||(p.pts.find(q=>q.from===s.par)||{}).id;if(!tgt)return;x.par=tgt;
+  const ps=byId[s.par];if(useLen&&ps)x.len=Math.round(hav(ps,s))});
+ if(had){/* keep the drawing as it is: place the new points, true to their GPS shape, in the middle of the sheet; move them with Select */
+  const F=p.lay.f,o={lat:sel[0].lat,lng:sel[0].lng},q=sel.map(x=>xy(x,o)),mnx=Math.min(...q.map(a=>a.x)),mxx=Math.max(...q.map(a=>a.x)),mny=Math.min(...q.map(a=>a.y)),mxy=Math.max(...q.map(a=>a.y));
+  const k=Math.min(F?F.s:1,560/Math.max(mxx-mnx,1),340/Math.max(mxy-mny,1)),cx=(mnx+mxx)/2,cy=(mny+mxy)/2,Lp=lay(p);
+  add.forEach((x,i)=>{Lp.pos[x.id]=[421+(q[i].x-cx)*k,320-(q[i].y-cy)*k]})}
+ p.pts.push(...add);touch(p);renderAll();
+ alert("Brought "+add.length+" point"+(add.length>1?"s":"")+" into the SLD."+(had?" They are placed in the middle of the sheet; use ✎ Edit drawing → Select to move them.":"")+" From now on the SLD copy is separate from the survey.")}
+
 /* GPS */
 let watch=null,best=null;
 $("#gpsBtn").onclick=()=>{if(!navigator.geolocation){alert("This browser has no GPS access. Use coordinates or tap on the map.");return}
@@ -1207,14 +1285,14 @@ $("#gpsBtn").onclick=()=>{if(!navigator.geolocation){alert("This browser has no 
   err=>{$("#gAcc").textContent=err.code===1?"permission denied — allow location for this site":"no fix yet ("+err.message+")";$("#gAcc").className="acc bad"},{enableHighAccuracy:true,maximumAge:0,timeout:30000})};
 function stopGps(){if(watch!=null)navigator.geolocation.clearWatch(watch);watch=null}
 $("#gCancel").onclick=()=>{stopGps();$("#gpsDlg").close()};
-$("#gUse").onclick=()=>{stopGps();$("#gpsDlg").close();if(map)map.setView([best.lat,best.lng],Math.max(map.getZoom(),17));openPoint(null,{...best,src:"gps"})};
+$("#gUse").onclick=()=>{stopGps();$("#gpsDlg").close();if(map)map.setView([best.lat,best.lng],Math.max(map.getZoom(),17));svOpen(null,{...best,src:"gps"})};
 /* typed */
 $("#typeBtn").onclick=()=>{$("#coIn").value="";$("#coMsg").textContent="";$("#coDlg").showModal();setTimeout(()=>$("#coIn").focus(),50)};
 $("#coCancel").onclick=()=>$("#coDlg").close();
-$("#coOk").onclick=()=>{const v=parseCoord($("#coIn").value);if(!v){$("#coMsg").textContent="Couldn't read that. Try 26.453308, 93.047084";return}$("#coDlg").close();openPoint(null,{...v,src:"typed"})};
+$("#coOk").onclick=()=>{const v=parseCoord($("#coIn").value);if(!v){$("#coMsg").textContent="Couldn't read that. Try 26.453308, 93.047084";return}$("#coDlg").close();svOpen(null,{...v,src:"typed"})};
 $("#coIn").addEventListener("keydown",e=>{if(e.key==="Enter")$("#coOk").click()});
 $("#tapBtn").onclick=()=>setTap(!tapMode);
-$("#fitBtn").onclick=()=>drawMap(compute(P()),true);
+$("#fitBtn").onclick=()=>drawSurvey(true);
 $("#layerBtn").onclick=()=>{if(!map)return;sat=!sat;if(sat){map.removeLayer(layerOSM);layerSat.addTo(map)}else{map.removeLayer(layerSat);layerOSM.addTo(map)}$("#layerBtn").textContent=sat?"Map":"Satellite"};
 
 
@@ -1222,15 +1300,15 @@ $("#layerBtn").onclick=()=>{if(!map)return;sat=!sat;if(sat){map.removeLayer(laye
 const QR={busy:false,watch:null,best:null,timer:0,mapKind:null,end:null};
 const qState=p=>{p.q=p.q||{};if(!p.q.tees)p.q.tees=[];return p.q};
 function qLineOf(p){const q=qState(p);return q.line&&LINES[q.line]?q.line:defaultLine()}
-function qCur(p){const q=qState(p);const c=q.cur&&p.pts.find(x=>x.id===q.cur&&!isStand(x));if(c)return c;if(q.cur===null)return null;return[...p.pts].reverse().find(x=>!isStand(x))||null}
+function qCur(p){const q=qState(p);const c=q.cur&&p.sv.find(x=>x.id===q.cur&&!isStand(x));if(c)return c;if(q.cur===null)return null;return[...p.sv].reverse().find(x=>!isStand(x))||null}
 function qRender(){const p=P(),q=qState(p),ln=qLineOf(p);
  $("#qLine").innerHTML=Object.entries(LINES).filter(([,v])=>!v.ex&&!v.dis).map(([k,v])=>`<option value="${k}" ${k===ln?"selected":""}>${v.t}</option>`).join("");
- const cur=qCur(p),cand=p.pts.filter(x=>!isStand(x));
+ const cur=qCur(p),cand=p.sv.filter(x=>!isStand(x));
  $("#qFromRow").hidden=!cand.length;
  $("#qFrom").innerHTML='<option value="">— nothing (start a new route) —</option>'+cand.map(x=>`<option value="${x.id}" ${cur&&cur.id===x.id?"selected":""}>P${x.no} · ${x.qt||KINDS[x.kind].t}${x.note?" · "+x.note:""}</option>`).join("");
- const tees=q.tees.map(id=>p.pts.find(x=>x.id===id)).filter(Boolean);
+ const tees=q.tees.map(id=>p.sv.find(x=>x.id===id)).filter(Boolean);
  $("#qChip").innerHTML=(q.cross?`<span class="qchip">${q.cross==="road"?"Road":"Line"} crossing on next span</span> `:"")+(tees.length?`<span class="qchip">Branch to do from ${tees.map(x=>"P"+x.no).join(", ")}</span>`:"");
- $("#qUndo").disabled=!p.pts.some(x=>x.qk)}
+ $("#qUndo").disabled=!p.sv.length}
 $("#qLine").onchange=e=>{const p=P();qState(p).line=e.target.value;touch(p);qRender()};
 $("#qFrom").onchange=e=>{const p=P(),q=qState(p);q.cur=e.target.value||null;const c=qCur(p);
  if(c&&["dtr","srcLT","srcDTR","exDTR"].includes(c.kind)&&LINES[qLineOf(p)].cls==="HV")q.line=lastLine("LT")||"AB3b";touch(p);qRender()};
@@ -1238,8 +1316,8 @@ $("#qr").querySelectorAll("[data-q]").forEach(b=>b.onclick=()=>{const k=b.datase
 $("#qEndDlg").querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>{$("#qEndDlg").close();QR.end=b.dataset.e;qGo("end")});
 $("#qCross").onclick=()=>$("#qXDlg").showModal();
 $("#qXDlg").querySelectorAll("[data-x]").forEach(b=>b.onclick=()=>{const p=P();qState(p).cross=b.dataset.x;$("#qXDlg").close();touch(p);qRender()});
-$("#qUndo").onclick=()=>{const p=P(),x=[...p.pts].reverse().find(y=>y.qk);if(!x||!confirm("Remove P"+x.no+" ("+(x.qt||KINDS[x.kind].t)+")?"))return;
- const q=qState(p);delPoint(p,x);q.tees=q.tees.filter(id=>id!==x.id);if(x.qpop&&p.pts.some(y=>y.id===x.qpop))q.tees.push(x.qpop);q.cur=x.par||undefined;if(!x.par&&KINDS[x.kind].src)q.cur=undefined;touch(p);renderAll()};
+$("#qUndo").onclick=()=>{const p=P(),x=p.sv[p.sv.length-1];if(!x||!confirm("Remove survey point P"+x.no+" ("+svName(x)+")?"))return;
+ const q=qState(p);svDelete(p,x);q.tees=q.tees.filter(id=>id!==x.id);if(x.qpop&&p.sv.some(y=>y.id===x.qpop))q.tees.push(x.qpop);q.cur=x.par||undefined;if(!x.par&&KINDS[x.kind].src)q.cur=undefined;touch(p);renderAll()};
 function qGo(k){const p=P();if(k!=="src"&&!qCur(p)){alert("Start with ① Tapping, or choose the point this joins from.");return}
  if($("#qMap").checked||!navigator.geolocation){if(!map){alert("Map not available. Use GPS or the Coordinates button.");return}
   if(VIEW!=="survey")return;QR.mapKind=k;$("#mapwrap").classList.add("tapping");$("#status").textContent="Tap the map where the "+qName(k)+" is.";return}
@@ -1253,31 +1331,30 @@ function qStop(){if(QR.watch!=null)navigator.geolocation.clearWatch(QR.watch);QR
 function qFix(k){const b=QR.best;qStop();$("#qGps").hidden=true;if(!b)return;if(b.acc>30&&!confirm("GPS is only ±"+Math.round(b.acc)+" m here. Save anyway? (You can drag the point on the map later.)"))return;qPlace(k,{...b,src:"gps"})}
 const qName=k=>({src:"tapping point",bend:"bend",tee:"tee-off",end:"end"})[k];
 function qPlace(k,pos){const p=P(),q=qState(p),ln=qLineOf(p),L=LINES[ln],cur=qCur(p);
- const x={id:uid(),no:Math.max(0,...p.pts.map(y=>y.no))+1,lat:pos.lat,lng:pos.lng,acc:pos.acc||null,src:pos.src,par:null,line:ln,pole:"",cross:"",note:"",qk:true};
+ const x={id:uid(),no:Math.max(0,...p.sv.map(y=>y.no))+1,lat:pos.lat,lng:pos.lng,acc:pos.acc||null,src:pos.src,par:null,line:ln,cross:"",note:"",t:Date.now()};
  if(k==="src"){x.kind=L.cls==="LT"?"srcLT":L.kv===33?"src33":"src11";x.qt="Tapping point";q.tees=[]}
  else{x.par=cur.id;x.cross=q.cross||"";q.cross="";
   if(k==="bend"){x.kind="pole";x.qt="Bend"}
   else if(k==="tee"){x.kind="pole";x.qt="Tee-off";q.tees.push(x.id)}
   else{x.kind=QR.end==="dtr"&&L.cls==="HV"?"dtr":"pole";x.qt=x.kind==="dtr"?"End, new DTR":"Line end"}}
- p.pts.push(x);selId=x.id;
+ p.sv.push(x);svSel=x.id;
  if(k==="end"){const t=q.tees.pop();if(t)x.qpop=t;q.cur=t||null}else q.cur=x.id;
- touch(p);renderAll(p.pts.length<=2);
+ touch(p);renderAll(p.sv.length<=2);
  const nx=qCur(p);$("#status").textContent="Saved P"+x.no+" ("+x.qt+")."+(k==="end"?(nx?" Next point continues the branch from P"+nx.no+".":" Route done. Tap ① for another route or choose a point to continue from."):"")}
 /* ================= Rendering ================= */
-function statusText(){const p=P();return p.pts.length?"Tap a point to edit it, drag it to adjust. Marked: "+p.pts.length+" point"+(p.pts.length>1?"s":"")+".":"Start at the tapping point (existing 11 kV pole or LT source), then walk the route and mark each turning point, DP, DTR and line end."}
+function statusText(){const p=P();return p.sv.length?"Tap a point to edit it, drag it to adjust. Marked: "+p.sv.length+" point"+(p.sv.length>1?"s":"")+". 📏 Measure gives the distance between any points.":"Mark the key points on site: tapping point, bends, tee-offs, line end. Only points are kept here; the SLD is drawn on its own tab."}
 function warnBox(c){const w=[...c.warn];return w.length?`<div class="warns"><b>Check before printing</b><ul>${w.map(x=>`<li>${x}</li>`).join("")}</ul></div>`:""}
-function renderSurvey(c,fit){const p=P();qRender();$("#status").textContent=statusText();$("#surveyWarn").innerHTML=warnBox(c);
- const b=c.pts.length?boq(c):null,newPoles=["746","747","748","751","752","753","754"].reduce((a,k)=>a+(c.Q[k]||0),0);
- $("#surveySum").innerHTML=c.pts.length?[["11 kV",((c.km.HV+c.km.MV)/1000).toFixed(3)+" km"],...(c.km.EHV?[["33 kV",(c.km.EHV/1000).toFixed(3)+" km"]]:[]),["LT",(c.km.LT/1000).toFixed(3)+" km"],["New poles",Math.round(newPoles)],["Computed",c.nGen+" interm."],["Stays",c.totStays],["Estimate","₹"+(b?b.P.toLocaleString("en-IN"):0)]].map(([k,v])=>`<div><b>${v}</b><span>${k}</span></div>`).join(""):"";
- $("#plist").innerHTML=p.pts.map(x=>{const nd=c.nodes[x.id]||{},sg=c.segs.find(s=>s.b===x),r=Object.entries(nd.roles||{}).map(([k,v])=>v).join(" / ");
-  return`<div class="pt ${x.id===selId?"sel":""}" data-id="${x.id}"><span class="no">P${x.no}</span><div><b>${KINDS[x.kind].t}${(KINDS[x.kind].o||[]).includes("kva")?" "+opt(x,"kva")+" kVA":""}${x.kind==="lm"?": "+(x.note||opt(x,"lmType")):""}</b>${x.qk?'<span class="pend">details pending</span>':""} <span class="small muted">${c.lab[x.id]||""}${r?" · "+r:""}${nd.dev?" · "+nd.dev+"°":""}${nd.stays?" · "+nd.stays+" stay"+(nd.stays>1?"s":""):""}${x.db?" · DB "+x.db+" cons.":""}</span>
-   <div class="meta">${sg?"from P"+sg.a.no+" · "+LINES[x.line].t+" · "+Math.round(sg.len)+" m"+(sg.mid.length?" · +"+sg.mid.length+" pole"+(sg.mid.length>1?"s":"")+" ("+sg.gapRule+")":!sg.L.ex&&(sg.hand||hasNum(x.nMid))?" · no intermediate pole ("+sg.gapRule+")":""):KINDS[x.kind].src?"source":isStand(x)?"no line":"not connected"}${x.note?" · "+x.note:""}${x.acc?" · ±"+Math.round(x.acc)+" m":x.src?" · "+x.src:""}</div></div>
+function renderSurvey(c,fit){const p=P();qRender();$("#status").textContent=statusText();$("#surveyWarn").innerHTML="";$("#surveySum").innerHTML="";
+ const inSld=new Set(p.pts.map(x=>x.from).filter(Boolean)),byId=Object.fromEntries(p.sv.map(x=>[x.id,x]));
+ $("#plist").innerHTML=p.sv.map(x=>{const pa=x.par&&byId[x.par];
+  return`<div class="pt ${x.id===svSel?"sel":""}" data-id="${x.id}"><span class="no">P${x.no}</span><div><b>${esc(svName(x))}</b>${inSld.has(x.id)?' <span class="small muted">· in SLD</span>':""}
+   <div class="meta">${pa?"after P"+pa.no+" · ":""}${x.line&&LINES[x.line]&&!isStand(x)?LINES[x.line].t+" · ":""}${x.note?esc(x.note)+" · ":""}${x.acc?"±"+Math.round(x.acc)+" m":x.src||""}</div></div>
    <button class="btn alt sm" type="button">Edit</button></div>`}).join("")||'<div class="card muted">No points yet.</div>';
- $("#plist").querySelectorAll(".pt").forEach(el=>{el.onclick=()=>{const x=p.pts.find(q=>q.id===el.dataset.id);selId=x.id;if(map)map.panTo([x.lat,x.lng]);openPoint(x)}});
- drawMap(c,fit)}
+ $("#plist").querySelectorAll(".pt").forEach(el=>{el.onclick=()=>{const x=p.sv.find(q=>q.id===el.dataset.id);svSel=x.id;if(map)map.panTo([x.lat,x.lng]);svOpen(x)}});
+ drawSurvey(fit)}
 function renderSLD(c){const p=P(),o=p.opt;$("#oArrow").checked=o.arrow!==false;$("#oStay").checked=o.stay!==false;$("#oLegend").checked=o.legend!==false;{const C={...DEFCOL,...(o.col||{})};$("#cHv").value=C.hv;$("#cLt").value=C.lt;$("#cEx").value=C.ex;$("#cDis").value=C.dis}["North","Gps","Span","Sign"].forEach(k=>$("#o"+k).checked=!!o[k.toLowerCase()]);$("#sldTitle").value=p.meta.title||"";$("#sldTitle").placeholder="Auto: SINGLE LINE DIAGRAM FOR "+workOf(c).toUpperCase()+"…";
  if(EDIT&&!c.pts.length&&!(p.lay&&p.lay.f)){p.lay=p.lay||{};p.lay.f={ox:150,oy:300,s:0.6,mnx:0,mxy:0,olat:26.4,olng:92.9}}
- $("#sldBox").innerHTML=c.pts.length||EDIT?sldSVG(c,{...o,edit:EDIT}):'<p class="muted" style="padding:16px">Mark points on the Survey tab, or tap ✎ Edit drawing to draw the SLD directly.</p>';
+ $("#sldBox").innerHTML=c.pts.length||EDIT?sldSVG(c,{...o,edit:EDIT}):'<p class="muted" style="padding:16px">The SLD starts blank. Tap ✎ Edit drawing to draw it, or ⇩ Bring in from survey to copy marked points in once.</p>';
  $("#sldBox").classList.toggle("editing",EDIT);$("#sldBox").classList.toggle("adding",EDIT&&EDMODE==="add");edUI()}
 /* ================= Drawing editor (SLD tab) ================= */
 let EDIT=false,EDMODE="move",ED=null,PICK=null,SNAP=true,ZOOM=1;const HIST=[],FUT=[];
@@ -1494,7 +1571,7 @@ async function storeInfo(){const el=$("#storeInfo");let pers=null;try{pers=navig
  const L=live();el.innerHTML=`<b>Where your surveys are saved:</b> automatically, after every change, in this browser on this device (${L.length} survey${L.length===1?"":"s"}, ${L.reduce((a,p)=>a+p.pts.length,0)} points). Even a half-filled point is kept if the app closes, and reopens where you left it.<br>
  ${syncCode()?"<b>Synced</b> to your other devices with your Pranju OS sync code.":"<b>Not synced yet:</b> set a sync code on the Pranju OS home page to see these surveys on your other devices."}<br>
  ${pers===true?"This device keeps them protected from automatic clean-up.":pers===false?"The browser may clear them if the phone runs short of space — keep sync on or export a backup now and then.":""} Clearing this site's browser data deletes them; <b>Export all</b> gives you a backup file.`}
-function renderProj(){storeInfo();const L=live();$("#projList").innerHTML=L.map(p=>`<div class="pt" data-id="${p.id}"><span class="no">${p.pts.length}</span><div><b>${esc(p.name)}</b><div class="meta">${p.meta.loc?esc(p.meta.loc)+" · ":""}updated ${new Date(p.upd).toLocaleString("en-IN",{dateStyle:"medium",timeStyle:"short"})}</div></div>
+function renderProj(){storeInfo();const L=live();$("#projList").innerHTML=L.map(p=>`<div class="pt" data-id="${p.id}"><span class="no">${(p.sv||p.pts).length}</span><div><b>${esc(p.name)}</b><div class="meta">${(p.sv||p.pts).length} survey pts · ${p.pts.length} in SLD · ${p.meta.loc?esc(p.meta.loc)+" · ":""}updated ${new Date(p.upd).toLocaleString("en-IN",{dateStyle:"medium",timeStyle:"short"})}</div></div>
   <div style="display:flex;gap:6px"><button class="btn alt sm" data-a="open">Open</button><button class="btn alt sm" data-a="ren">Rename</button><button class="btn alt sm" data-a="dup">Copy</button><button class="btn bad sm" data-a="del">✕</button></div></div>`).join("");
  $("#projList").querySelectorAll(".pt").forEach(el=>el.querySelectorAll("button").forEach(b=>b.onclick=e=>{e.stopPropagation();const p=DB.projects[el.dataset.id],a=b.dataset.a;
   if(a==="open"){DB.cur=p.id;save(false);show("survey");renderAll(true)}
@@ -1503,10 +1580,9 @@ function renderProj(){storeInfo();const L=live();$("#projList").innerHTML=L.map(
   if(a==="del"){if(confirm("Delete survey '"+p.name+"'?")){p.del=true;p.pts=[];touch(p);renderAll(true)}}}));
  const S={...DEF_SET,...P().set};Object.keys(DEF_SET).forEach(k=>{$("#"+k).value=S[k]})}
 const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
-function renderSel(){{const el=$("#survName");if(el&&document.activeElement!==el)el.value=P().name||""}$("#projSel").innerHTML=live().map(p=>`<option value="${p.id}" ${p.id===DB.cur?"selected":""}>${esc(p.name)} (${p.pts.length} pts)</option>`).join("")}
+function renderSel(){{const el=$("#survName");if(el&&document.activeElement!==el)el.value=P().name||""}$("#projSel").innerHTML=live().map(p=>`<option value="${p.id}" ${p.id===DB.cur?"selected":""}>${esc(p.name)} (${(p.sv||p.pts).length} survey · ${p.pts.length} SLD)</option>`).join("")}
 let VIEW="survey";
-function renderAll(fit){P();renderSel();{const ls=document.getElementById("lenSrc");if(ls)ls.value=lenMode(P())}const c=compute(P());if(VIEW==="survey")renderSurvey(c,fit);else drawMapLater=c;if(VIEW==="sld")renderSLD(c);if(VIEW==="est")renderEst(c);if(VIEW==="fw"&&window.renderFw)renderFw(c);if(VIEW==="proj")renderProj()}
-let drawMapLater=null;
+function renderAll(fit){P();renderSel();{const ls=document.getElementById("lenSrc");if(ls)ls.value=lenMode(P())}const c=compute(P());if(VIEW==="survey")renderSurvey(c,fit);if(VIEW==="sld")renderSLD(c);if(VIEW==="est")renderEst(c);if(VIEW==="fw"&&window.renderFw)renderFw(c);if(VIEW==="proj")renderProj()}
 function show(v){VIEW=v;document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.v===v));["survey","sld","est","fw","proj"].forEach(k=>{const el=$("#v-"+k);if(el)el.hidden=k!==v});
  if(v==="survey"&&map)setTimeout(()=>map.invalidateSize(),50);renderAll(false)}
 document.querySelectorAll("nav.tabs button").forEach(b=>b.onclick=()=>show(b.dataset.v));
