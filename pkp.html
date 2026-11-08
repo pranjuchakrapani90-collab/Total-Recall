@@ -15,7 +15,7 @@
   <div id="out"></div>
 </main>
 <script src="gsync.js?v=20261020"></script>
-<script src="invest.js?v=20261108k"></script>
+<script src="invest.js?v=20261108m"></script>
 <script>
 "use strict";
 const I=Invest,{esc,inr,price,pct,signInr,tone,ok,r2,dshort}=I;
@@ -139,7 +139,8 @@ function settingsForm(S){
 const ord=n=>n+(n%10===1&&n!==11?"st":n%10===2&&n!==12?"nd":n%10===3&&n!==13?"rd":"th");
 const TABS=[["ladder","Ladder"],["hist","History"],["booked","Booked"]];
 let tab=I.rememberTab(KEY,"ladder");
-function month(M){
+let SYM="JUNIORBEES";
+function month(M){SYM=M.S.symbol;
   const t=I.ist(),ym=t.iso.slice(0,7),buys=M.T.filter(x=>x.type==="buy"&&x.date.slice(0,7)===ym),N=M.sipNext,sells=M.T.filter(x=>x.type==="sell"&&x.date.slice(0,7)===ym);
   const mName=new Date(t.iso+"T00:00:00").toLocaleDateString("en-IN",{month:"long"});
   const gap=M.nb?M.nb.price/M.cmp*100-100:NaN,hit=ok(gap)&&gap>=0,up=M.tgtPrice/M.cmp*100-100,canSell=M.eligible>0;
@@ -159,8 +160,9 @@ function month(M){
    when the price touched the trigger the row asks Yes / No instead */
 function plan(x,label,what,q,sub,amt,btn){const kind=label==="Dip"?"dip":"book";
   if(!x)return I.todo(kind,label,what,q,esc(sub),amt,btn);const k=x.side==="buy"?"b":"s";
-  if(x.ask)return I.todo(kind+" ask",label,what,q,`<span class="dn">${esc(x.msg)}</span>`,amt,null)+
-    `<div class="gask"><button type="button" id="gY${k}">${x.side==="buy"?"Yes, bought":"Yes, sold"}</button><button type="button" class="ghost" id="gN${k}">No</button></div>`;
+  if(x.ask){const kg=I.kiteGtt(SYM,x.side),kt=!kg?"":kg.status==="triggered"?` · <span class="up">Kite: GTT triggered</span>`:kg.status==="active"?` · <span class="warn">Kite: GTT still active, not triggered</span>`:` · Kite: GTT ${esc(kg.status)}`;
+    return I.todo(kind+" ask",label,what,q,`<span class="dn">${esc(x.msg)}</span>${kt}`,amt,null)+
+    `<div class="gask"><button type="button" id="gY${k}">${x.side==="buy"?"Yes, bought":"Yes, sold"}</button><button type="button" class="ghost" id="gN${k}">No</button></div>`;}
   const placeable=x.g||(x.sug&&x.sug.units>0&&x.todo);
   const chip=!placeable?"":x.st==="ok"?`<button type="button" class="gchip ok" id="gS${k}" title="${esc(x.msg)}">GTT ✓</button>`
     :`<button type="button" class="gchip" id="gS${k}" title="${esc(x.msg)}">${x.g?"GTT · update":"GTT · set"}</button>`;
@@ -170,6 +172,9 @@ function sipRow(M,N,amoTxt){const sa=M.S.sipAmo;
   if(sa&&M.T.some(x=>x.type==="buy"&&x.sip&&x.date>=sa.placed)){setTimeout(()=>{I.setSettings(KEY,{sipAmo:null});draw();},0);return "";}/* recorded some other way */
   if(sa){const q=`${sa.units} × ${price(sa.lim)}`;
     if(!I.sessionStarted(sa.session))return I.todo("sip done","SIP",esc(wd(sa.session)),q,"AMO placed · goes in at 9:15",inr(sa.units*sa.lim),["Undo",`id="sUndo"`]);
+    const km=I.kiteMatch({code:M.S.symbol,kind:"buy",qty:sa.units,session:sa.session});
+    if(km)return I.todo("sip ask","SIP",esc(wd(sa.session)),q,km.done?`<span class="up">Kite: bought ${km.filled} × ${price(km.avg)}</span>`:km.dead?`<span class="dn">Kite: ${esc(km.status.toLowerCase())}${km.msg?" · "+esc(km.msg):""}</span>`:`<span class="warn">Kite: still ${esc(km.status.toLowerCase())}</span>`,inr(sa.units*sa.lim),null)+
+      `<div class="gask">${km.dead?`<button type="button" id="sNo">Clear it</button>`:`<button type="button" id="sYes">${km.done?"Record it":"Yes, bought"}</button><button type="button" class="ghost" id="sNo">No</button>`}</div>`;
     const lo=I.touched(M.q,sa.session,"low"),hint=ok(lo)?(lo<=sa.lim?` · low ${price(lo)} reached your limit`:` · low ${price(lo)} didn't reach your limit`):"";
     return I.todo("sip ask","SIP",esc(wd(sa.session)),q,`<span class="dn">Did it buy?</span>${esc(hint)}`,inr(sa.units*sa.lim),null)+
       `<div class="gask"><button type="button" id="sYes">Yes, bought</button><button type="button" class="ghost" id="sNo">No</button></div>`;}
@@ -224,17 +229,18 @@ function draw(){
   /* Kite cash needed: the SIP when its AMO is due and not placed yet, plus the next BID once it's close */
   const N=M.sipNext,sipDue=!M.S.sipAmo&&(N.amoToday||N.late||N.days===0)&&ok(M.sipQty)&&ok(M.cmp)?M.sipQty*M.cmp:0,
     bidNeed=M.units&&M.gttB&&M.gttB.sug&&(M.gttB.g||M.nb&&M.nb.price/M.cmp>0.97)?M.gttB.sug.units*M.gttB.sug.lim:0;
-  $("out").innerHTML=M.T.length?month(M)+I.fundBar(sipDue+bidNeed||NaN)+stats(M)+details(M)+setup(M):empty();
+  $("out").innerHTML=M.T.length?month(M)+I.fundBar(sipDue+bidNeed||NaN)+I.kiteCard(I.kiteState())+stats(M)+details(M)+setup(M):empty();
   const on=(id,f)=>{const e=$(id);if(e)e.onclick=f;};
   on("fSip",()=>{I.setSettings(KEY,{sipAmo:{units:M.sipQty,lim:r2(M.cmp),placed:today(),session:I.ist().open?today():I.orderSession()}});draw();});
   on("sUndo",()=>{I.setSettings(KEY,{sipAmo:null});draw();});
   on("sNo",()=>{if(!confirm("Nothing recorded. Clear this AMO so you can place it again?"))return;I.setSettings(KEY,{sipAmo:null});draw();});
-  on("sYes",()=>{const sa=M.S.sipAmo;if(sa)buyForm({title:"SIP buy",date:sa.session,price:sa.lim,units:sa.units,bid:M.level,fromSip:true});});
+  on("sYes",()=>{const sa=M.S.sipAmo;if(!sa)return;const km=I.kiteMatch({code:M.S.symbol,kind:"buy",qty:sa.units,session:sa.session}),kd=km&&km.done;
+    buyForm({title:"SIP buy",date:sa.session,price:kd&&km.avg>0?r2(km.avg):sa.lim,units:kd&&km.filled>0?km.filled:sa.units,bid:M.level,fromSip:true});});
   on("fBid",()=>buyForm({title:"BID "+M.next+" buy",price:M.nb?Math.round(M.nb.price*100)/100:"",units:M.nextQty||"",bid:M.next}));
   on("fSell",()=>sellForm({price:ok(M.cmp)?M.cmp:"",units:M.eligible||M.tgtUnits||"",reason:"system"}));
   on("qBuy",()=>buyForm({price:ok(M.cmp)?M.cmp:"",units:M.sipQty||"",title:"Discretionary buy"}));on("qSell",()=>sellForm({price:ok(M.cmp)?M.cmp:""}));
   ["b","s"].forEach(k=>{const side=k==="b"?"buy":"sell";on("gS"+k,()=>gttForm(side));on("gY"+k,()=>gttFilled(side));on("gN"+k,()=>gttMissed(side));});
-  on("kFund",()=>I.fundForm(draw));
+  on("kFund",()=>I.fundForm(draw));I.kiteWire(draw);
   on("aBuy",()=>buyForm({price:ok(M.cmp)?M.cmp:"",units:M.sipQty||""}));
   document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{tab=b.dataset.tab;I.saveTab(KEY,tab);draw();});
   on("lAll",()=>{all=!all;draw();});on("bAll",()=>{bAll=!bAll;draw();});on("ladAll",()=>{ladAll=!ladAll;draw();});on("eSet",()=>settingsForm(M.S));
@@ -254,6 +260,7 @@ async function refresh(){const S={...DEF,...(I.load(KEY).settings||{})};
   finally{$("refresh").disabled=false;}}
 $("refresh").onclick=refresh;
 draw();
+I.kiteBoot(draw);
 (async()=>{await syncNow(false);refresh();})();
 setInterval(()=>{if(document.visibilityState==="visible"&&I.ist().open)refresh();},60000);
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&Date.now()-qAt>60000)refresh();});

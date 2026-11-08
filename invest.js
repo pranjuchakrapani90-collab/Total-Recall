@@ -252,6 +252,10 @@ function kiteMatch(a,d){d=d||kiteCache();if(!d||!d.orders||istIso(d.at)!==a.sess
   const rank=o=>o.status==="COMPLETE"?0:/OPEN|TRIGGER|AMO|PENDING|VALIDATION|PUT ORDER/.test(o.status)?1:2;
   const o=L.slice().sort((x,y)=>rank(x)-rank(y)||Math.abs(x.qty-a.qty)-Math.abs(y.qty-a.qty))[0];
   return {...o,done:o.status==="COMPLETE"||o.filled>0,dead:rank(o)===2&&!(o.filled>0),open:rank(o)===1};}
+/* Kite's GTT for a symbol and side ("buy"/"sell") from today's figures: {status:"active"|"triggered"|…,trig} or null */
+function kiteGtt(sym,side){const d=kiteCache();if(!d||!d.gtts||istIso(d.at)!==ist().iso)return null;const S=side==="sell"?"SELL":"BUY";
+  const L=d.gtts.filter(g=>g.sym===String(sym).toUpperCase()&&(g.orders||[]).some(o=>o.side===S));if(!L.length)return null;
+  return L.find(g=>g.status==="triggered")||L.find(g=>g.status==="active")||L[0];}
 /* the Kite card: figures, holdings check, and a one-tap "use Kite's cash" for the Kite fund */
 function kiteCard(st){st=st||{};const d=kiteCache(),e=st.err,F=kiteFund();
   if(e&&e.code==="not_configured")return `<section class="card kite"><div class="kh"><b>Kite</b><span class="muted small">not set up yet</span></div><p class="small muted">Add the Kite secrets on the worker (KITE_SETUP.md), then log in here once a day.</p></section>`;
@@ -294,5 +298,5 @@ function tabs(list,cur){return `<nav class="tabs" role="tablist">${list.map(([k,
 function sum(items){return `<section class="sum">${items.map(([l,v,cls,sub])=>`<div><span>${l}</span><b class="${cls||""}">${v}</b>${sub?`<small>${sub}</small>`:""}</div>`).join("")}</section>`;}
 function rememberTab(key,def){let t=def;try{t=sessionStorage.getItem("inv-tab-"+key)||def;}catch(e){}return t;}
 function saveTab(key,t){try{sessionStorage.setItem("inv-tab-"+key,t);}catch(e){}}
-window.Invest={todo,tabs,sum,rememberTab,saveTab,load,save,merge,upsert,remove,setSettings,uid,sync,push,hasSync,importData,exportData,pickImport,quotes,quotesCache,highSince,high52,touched,ist,ok,r2,inr,price,pct,signInr,tone,esc,dshort,days,ago,xirr,form,navs,navCache,mfSearch,NSE_HOLIDAYS,NSE_SPECIAL,nseClosed,nextTrading,orderSession,sessionStarted,LIQ,kiteFund,charges,liqToSell,liqForm,fundForm,fundBar,kiteCache,kiteData,kiteMatch,kiteCard,kiteWire,kiteRefresh,kiteBoot,kiteState,kiteUse,appUnits};
+window.Invest={todo,tabs,sum,rememberTab,saveTab,load,save,merge,upsert,remove,setSettings,uid,sync,push,hasSync,importData,exportData,pickImport,quotes,quotesCache,highSince,high52,touched,ist,ok,r2,inr,price,pct,signInr,tone,esc,dshort,days,ago,xirr,form,navs,navCache,mfSearch,NSE_HOLIDAYS,NSE_SPECIAL,nseClosed,nextTrading,orderSession,sessionStarted,LIQ,kiteFund,charges,liqToSell,liqForm,fundForm,fundBar,kiteCache,kiteData,kiteMatch,kiteCard,kiteWire,kiteRefresh,kiteBoot,kiteState,kiteUse,appUnits,kiteGtt};
 })();
