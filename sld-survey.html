@@ -232,6 +232,7 @@ table.boq{border-collapse:collapse;width:100%;min-width:720px;font-size:12.5px}
     <button class="tb" data-tool="line" type="button" title="Draw a line from one structure to another">╱<span>Line</span></button>
     <button class="tb" data-tool="turn" type="button" title="Turn any object">⟳<span>Turn</span></button>
     <button class="tb" data-tool="text" type="button" title="Add free text">T<span>Text</span></button>
+    <button class="tb" data-tool="earth" type="button" title="Add or remove earthing on any pole">⏚<span>Earth</span></button>
     <button class="tb" data-tool="del" type="button" title="Delete what you tap">🗑<span>Delete</span></button>
     <i class="sep"></i>
     <button class="tb" id="edUndo" type="button" title="Undo (Ctrl+Z)">↶<span>Undo</span></button>
@@ -844,6 +845,12 @@ function compute(p){
    go(b,c)})};
   roots.forEach(r=>go(r,0));
   earth(why.end,"LT line-end poles");earth(why.tee,"LT tee-off poles");earth(why.run,"every "+N+"th LT pole along the route (new and existing poles counted)")}
+ /* his own decision last: earthOv on a marked single pole, earthAt{i} on a span's intermediate poles (1 = earth here, 0 = no earth); only that pole changes */
+ {let addH=0,remH=0;const has=v=>v===0||v===1;
+  pts.forEach(x=>{if(NAMED.has(x.kind)||isStand(x))return;const nd=nodes[x.id];if(!nd)return;const au=!!nd.earth;nd.earthAuto=au;const ov=x.earthOv;if(!has(ov))return;nd.earthHand=1;
+   if(ov===1&&!au){nd.earth=1;nd.ltEarth=1;addH++}else if(ov===0&&au){remH+=Math.min(1,nd.earth);nd.earth=0}});
+  segs.forEach(sg=>{const A=sg.b.earthAt||{};sg.mid.forEach(m=>{const au=!!m.earth;m.earthAuto=au;const ov=A[m.i];if(!has(ov))return;m.earthHand=1;if(ov===1&&!au){m.earth=true;addH++}else if(ov===0&&au){m.earth=false;remH++}})});
+  earth(addH,"earthing you added by hand");earth(-remH,"earthing you took off by hand (rule would have placed it)")}
  pts.filter(isStand).forEach(x=>lab[x.id]=x.kind==="rmPole"?"OLD-"+nx("O"):x.kind==="mark"?"M-"+nx("M"):"");
  pts.forEach(x=>{if(!lab[x.id]&&!isStand(x))lab[x.id]=nameOf(x)});
  // linear features (roads, tracks, rivers, drains) and crossing checks
@@ -991,7 +998,7 @@ function sldSVG(c,so){
    const same=ns>1&&ptsOn.slice(0,-1).every((_,i)=>Math.abs(sl(i)-sl(0))<=1);
    if(ns===1){if(len>=24)at(0,sl(0)+" m","span")}else if(same){if(len>=30)at(pick(),ns+" × "+sl(0)+" m","span")}
    else{let last=-1e9;for(let i=0;i<ns;i++){const[p1,p2]=T(ptsOn[i]),[q1,q2]=T(ptsOn[i+1]),m=Math.hypot(((p1+q1)/2)-((T(ptsOn[0])[0])),((p2+q2)/2)-T(ptsOn[0])[1]);if(Math.hypot(q1-p1,q2-p2)<24||m-last<40)continue;last=m;at(i,sl(i)+" m","span"+i)}}}
-  sg.mid.forEach(m=>{const[x,y]=T(m);U[m.exist?"exP":"newP"]=1;out.push(`<circle cx="${x}" cy="${y}" r="2.8" fill="${m.exist?"#111":"#fff"}" stroke="#111" stroke-width="1"/>`);if(so.edit&&sg.L.onEx)out.push(`<circle class="mhit" data-ms="${sg.b.id}" data-mk="${m.i-1}" cx="${x}" cy="${y}" r="7" fill="#f59e0b" fill-opacity=".14" stroke="#b45309" stroke-opacity=".5" stroke-width=".6"><title>${m.lab}: ${m.exist?"existing pole":"new pole"} — tap to make it ${m.exist?"new":"existing"}</title></circle>`);if(m.stay){const A=xy(sg.a,c.o),B=xy(sg.b,c.o);stay(x,y,{x:-(B.y-A.y),y:B.x-A.x})}if(m.earth){/* off the line, on the side away from the pole number; beside the stay if one points that way */
+  sg.mid.forEach(m=>{const[x,y]=T(m);U[m.exist?"exP":"newP"]=1;out.push(`<circle cx="${x}" cy="${y}" r="2.8" fill="${m.exist?"#111":"#fff"}" stroke="#111" stroke-width="1"/>`);if(so.edit&&!so.earthMode&&sg.L.onEx)out.push(`<circle class="mhit" data-ms="${sg.b.id}" data-mk="${m.i-1}" cx="${x}" cy="${y}" r="7" fill="#f59e0b" fill-opacity=".14" stroke="#b45309" stroke-opacity=".5" stroke-width=".6"><title>${m.lab}: ${m.exist?"existing pole":"new pole"} — tap to make it ${m.exist?"new":"existing"}</title></circle>`);if(so.earthMode){out.push(`<circle class="ehit" data-ms="${sg.b.id}" data-mk="${m.i}" cx="${x}" cy="${y}" r="7" fill="${m.earth?"#0f766e":"#9ca3af"}" fill-opacity=".16" stroke="${m.earthHand?"#ea580c":"#0f766e"}" stroke-width="${m.earthHand?1.2:.6}"><title>${m.lab}: ${m.earth?"earthed":"no earthing"}${m.earthHand?" (your choice)":" (rule)"} — tap to ${m.earth?"remove":"add"}</title></circle>`)}if(m.stay){const A=xy(sg.a,c.o),B=xy(sg.b,c.o);stay(x,y,{x:-(B.y-A.y),y:B.x-A.x})}if(m.earth){/* off the line, on the side away from the pole number; beside the stay if one points that way */
    let d={x:-nx,y:-ny};const st=LS.find(q=>Math.abs(q[0]-x)<0.5&&Math.abs(q[1]-y)<0.5);if(st){const sx=st[2]-x,sy=st[3]-y;if(sx*d.x+sy*d.y>0){const[a1,a2]=T(sg.a),[b1,b2]=T(sg.b),tl=Math.hypot(b1-a1,b2-a2)||1;d={x:d.x+(b1-a1)/tl,y:d.y+(b2-a2)/tl}}}earthSym(x,y,d)}/* pole numbers of intermediate poles: only every few poles (≥ ~50 px apart, never crowding the next marked point); the rest are still counted */
    const n=sg.mid.length,sp=len/(n+1),step=Math.max(1,Math.ceil(42/Math.max(sp,1)));if(m.i%step===0&&(n+1-m.i)*sp>=26)t(x+nx*9,y+ny*9+2.2,m.lab,{fs:6.2,c:"#374151",k:"s:"+sg.b.id+":m"+m.i})});
  });
@@ -1119,6 +1126,7 @@ function sldSVG(c,so){
    default:open();plab();
   }
   if(nd.earth&&(nd.ltEarth||["pole","steel","replace","xRiver","tMV","shift"].includes(x.kind)))earthSym(X,Y,freeDir(X,Y,x,nn));
+  if(so.earthMode&&"earthAuto" in nd)out.push(`<circle cx="${X}" cy="${Y}" r="9" fill="${nd.earth?"#0f766e":"#9ca3af"}" fill-opacity=".16" stroke="${nd.earthHand?"#ea580c":"#0f766e"}" stroke-width="${nd.earthHand?1.3:.6}" pointer-events="none"/>`);
   if(x.note&&x.kind!=="lm"&&!noteDone)t(X,Y+(subEnd?subEnd+8:["dtr","htc","dtrAug","dtrTemp","dtrShift","exDTR"].includes(x.kind)?27:x.kind.startsWith("src")?(p.meta.fdr?35:27):17),x.note,{fs:6.3,c:"#4b5563"});
   if(so.gps&&x.kind!=="lm")t(X+10,Y-2,gpsTxt(x),{fs:5.6,c:"#4b5563",a:"start"});
   if(GR)out.push("</g>");
@@ -1246,9 +1254,9 @@ function renderDlgLine(){const p=P(),K=KINDS[draft.kind];$("#dLineSec").hidden=!
 function dMidUpd(){const p=P(),g=$("#dGap");g.placeholder="auto: max "+maxSpanFor($("#dLine").value)+" m";{const LL=LINES[$("#dLine").value]||{},ab=!!LL.abc;$("#dDbMidL").hidden=!ab;$("#dDbTyL").hidden=!ab||LL.ph!==3;$("#dDbMid").placeholder="auto: "+({...DEF_SET,...(p.set||{})}).sDB}
  const ox=!!(LINES[$("#dLine").value]||{}).onEx;$("#dNewL").hidden=!ox;$("#dNMidT").textContent=ox?"Existing poles in between (no.)":"Intermediate poles (no.)";
  const o={lat:draft.lat,lng:draft.lng,len:$("#dLen").value,gap:$("#dGap").value,nMid:$("#dNMid").value,nNew:ox?$("#dNew").value:"",midNew:draft.midNew,mids:draft.mids},pa=p.pts.find(q=>q.id===$("#dPar").value);$("#dMidInfo").innerHTML=midInfo(o,pa,$("#dLine").value)}
-$("#dNew").addEventListener("input",()=>{delete draft.midNew;dMidUpd()});
-$("#dGap").addEventListener("input",()=>{delete draft.mids;delete draft.midNew;delete draft.dbAt;$("#dNMid").value="";dMidUpd()});
-$("#dNMid").addEventListener("input",()=>{delete draft.mids;delete draft.midNew;delete draft.dbAt;$("#dGap").value="";dMidUpd()});
+$("#dNew").addEventListener("input",()=>{delete draft.midNew;delete draft.earthAt;dMidUpd()});
+$("#dGap").addEventListener("input",()=>{delete draft.mids;delete draft.midNew;delete draft.earthAt;delete draft.dbAt;$("#dNMid").value="";dMidUpd()});
+$("#dNMid").addEventListener("input",()=>{delete draft.mids;delete draft.midNew;delete draft.earthAt;delete draft.dbAt;$("#dGap").value="";dMidUpd()});
 ["#dLen","#dPar"].forEach(k=>$(k).addEventListener("input",dMidUpd));$("#dPar").addEventListener("change",dMidUpd);
 $("#dMidInfo").addEventListener("click",e=>{if(e.target.closest("[data-midreset]")){delete draft.mids;delete draft.dbAt;dMidUpd();keepPending()}});
 function renderSegOpts(){const L=LINES[$("#dLine").value]||{};let h="";
@@ -1401,7 +1409,7 @@ function renderSurvey(c,fit){const p=P();qRender();$("#status").textContent=stat
  drawSurvey(fit)}
 function renderSLD(c){const p=P(),o=p.opt;$("#oArrow").checked=o.arrow!==false;$("#oStay").checked=o.stay!==false;$("#oLegend").checked=o.legend!==false;{const C={...DEFCOL,...(o.col||{})};$("#cHv").value=C.hv;$("#cLt").value=C.lt;$("#cEx").value=C.ex;$("#cDis").value=C.dis}["North","Gps","Span","Sign"].forEach(k=>$("#o"+k).checked=!!o[k.toLowerCase()]);$("#sldTitle").value=p.meta.title||"";$("#sldTitle").placeholder="Auto: SINGLE LINE DIAGRAM FOR "+workOf(c).toUpperCase()+"…";
  if(EDIT&&!c.pts.length&&!(p.lay&&p.lay.f)){p.lay=p.lay||{};p.lay.f={ox:150,oy:300,s:0.6,mnx:0,mxy:0,olat:26.4,olng:92.9}}
- $("#sldBox").innerHTML=c.pts.length||EDIT?sldSVG(c,{...o,edit:EDIT}):'<p class="muted" style="padding:16px">The SLD starts blank. Tap ✎ Edit drawing to draw it, or ⇩ Bring in from survey to copy marked points in once.</p>';
+ $("#sldBox").innerHTML=c.pts.length||EDIT?sldSVG(c,{...o,edit:EDIT,earthMode:EDIT&&EDMODE==="earth"}):'<p class="muted" style="padding:16px">The SLD starts blank. Tap ✎ Edit drawing to draw it, or ⇩ Bring in from survey to copy marked points in once.</p>';
  $("#sldBox").classList.toggle("editing",EDIT);$("#sldBox").classList.toggle("adding",EDIT&&EDMODE==="add");$("#poleSum").innerHTML=poleTally(c);edUI()}
 /* single poles along the route: new vs existing, LT and 11/33 kV separately (structures, DTRs and sources not counted) */
 function poleTally(c){const T={LT:{n:0,e:0},HV:{n:0,e:0}};
@@ -1416,6 +1424,7 @@ const HINTS={move:"Drag a structure or any text to move it. Drag inside a premis
  line:"Tap the structure the line starts from, then tap where it goes: another structure, or an empty spot for a new pole. Then set the line type and length.",
  text:"Tap where the text goes and type it. Drag it later to adjust; tap it to change it.",
  del:"Tap a structure, a line or a text to delete it. Undo brings it back.",
+ earth:"Tap any pole to add earthing or take it off. Green ring = earthed, grey = not. The rule places earthing first; an orange ring marks a pole you decided yourself. Tap it again to go back to the rule. DTR, DP and other structures keep their own earthing.",
  turn:"Tap anything (structure, DTR, control room, landmark, road, crossing, pole) to turn it 45°. Or drag around it to turn it freely (15° steps with Snap on). Long-press it to type an exact angle or set it back to normal."};
 function edUI(){$("#edBtn").textContent=EDIT?"✓ Done editing":"✎ Edit drawing";$("#edBtn").classList.toggle("on",EDIT);$("#edTools").hidden=!EDIT;
  document.querySelectorAll(".tb[data-tool]").forEach(b=>b.classList.toggle("on",b.dataset.tool===EDMODE));$("#edSnap").classList.toggle("on",SNAP);$("#edUndo").disabled=!HIST.length;$("#edRedo").disabled=!FUT.length;
@@ -1456,7 +1465,12 @@ function connect(p,a,b){if(!a||a===b)return;if(subtree(p,b.id).includes(a)){aler
  touch(p);renderAll();openLine(b)}
 $("#sldBox").addEventListener("pointerdown",e=>{if(!EDIT)return;const xy0=svgXY(e);if(!xy0)return;const p=P();
  const tx=e.target.closest(".tx"),g=e.target.closest("g[data-p]"),ln=e.target.closest(".lhit"),mh=e.target.closest(".mhit");
- if(mh&&!["del","line","text","turn"].includes(EDMODE)){e.preventDefault();const b=p.pts.find(q=>q.id===mh.dataset.ms),sg=b&&compute(p).segs.find(q=>q.b.id===b.id);if(!sg)return;
+ if(EDMODE==="earth"){e.preventDefault();const eh=e.target.closest(".ehit"),c=compute(p);
+  if(eh){const b=p.pts.find(q=>q.id===eh.dataset.ms),sg=b&&c.segs.find(q=>q.b.id===b.id),i=+eh.dataset.mk,m=sg&&sg.mid.find(q=>q.i===i);if(!m)return;snap();b.earthAt={...(b.earthAt||{})};
+   if(m.earthHand)delete b.earthAt[i];else b.earthAt[i]=m.earth?0:1;if(!Object.keys(b.earthAt).length)delete b.earthAt;touch(p);renderAll();return}
+  if(g){const x=p.pts.find(q=>q.id===g.dataset.p),nd=x&&c.nodes[x.id];if(!x)return;if(!nd||!("earthAuto" in nd)){alert("Earthing of this "+(KINDS[x.kind]||{t:"item"}).t.toLowerCase()+" is fixed with the structure. Use Earth on single poles.");return}
+   snap();if(nd.earthHand)delete x.earthOv;else x.earthOv=nd.earth?0:1;touch(p);renderAll()}return}
+ if(mh&&!["del","line","text","turn","earth"].includes(EDMODE)){e.preventDefault();const b=p.pts.find(q=>q.id===mh.dataset.ms),sg=b&&compute(p).segs.find(q=>q.b.id===b.id);if(!sg)return;
   const f=sg.mid.map(m=>m.exist?0:1),k=+mh.dataset.mk;f[k]=f[k]?0:1;snap();b.midNew=f;b.nNew=f.filter(Boolean).length;if(!Array.isArray(b.mids)){b.nMid=f.length-b.nNew;b.gap=null}touch(p);renderAll();return}
  if(EDMODE==="del"){e.preventDefault();
   if(g){const x=p.pts.find(q=>q.id===g.dataset.p);if(x&&confirm("Delete P"+x.no+" ("+KINDS[x.kind].t+")? Points after it join to the point before it.")){snap();delPoint(p,x);touch(p);renderAll()}}
@@ -1564,12 +1578,12 @@ let LNM=null,LMN=null;
 function lMidUpd(){const p=P(),b=LNB;if(!b)return;$("#lGap").placeholder="auto: max "+maxSpanFor($("#lLine").value)+" m";const pa=p.pts.find(q=>q.id===$("#lFrom").value);
  const ox=!!(LINES[$("#lLine").value]||{}).onEx;$("#lNewL").hidden=!ox;$("#lNMidT").textContent=ox?"Existing poles in between (no.)":"Intermediate poles (no.)";
  const o={lat:b.lat,lng:b.lng,len:$("#lLen").value,gap:$("#lGap").value,nMid:$("#lNMid").value,nNew:ox?$("#lNew").value:"",midNew:LMN||undefined,mids:LNM||undefined};$("#lMidInfo").innerHTML=midInfo(o,pa,$("#lLine").value)}
-$("#lGap").addEventListener("input",()=>{LNM=null;LMN=null;$("#lNMid").value="";lMidUpd()});$("#lNMid").addEventListener("input",()=>{LNM=null;LMN=null;$("#lGap").value="";lMidUpd()});$("#lNew").addEventListener("input",()=>{LMN=null;lMidUpd()});
+$("#lGap").addEventListener("input",()=>{LNM=null;LMN=null;$("#lNMid").value="";lMidUpd()});$("#lNMid").addEventListener("input",()=>{LNM=null;LMN=null;$("#lGap").value="";lMidUpd()});$("#lNew").addEventListener("input",()=>{LMN=null;lMidUpd()});$("#lNew").addEventListener("change",()=>{if(LNB)delete LNB.earthAt});
 ["#lLen","#lFrom","#lLine"].forEach(k=>{$(k).addEventListener("input",lMidUpd);$(k).addEventListener("change",lMidUpd)});
 $("#lMidInfo").addEventListener("click",e=>{if(e.target.closest("[data-midreset]")){LNM=null;lMidUpd()}});
 $("#lCancel").onclick=()=>$("#lnDlg").close();$("#lCol").addEventListener("input",()=>$("#lColDef").checked=false);
 $("#lSave").onclick=()=>{const p=P(),b=LNB;if(!b)return;snap();
- const nf=$("#lFrom").value||null;b.par=nf;b.line=$("#lLine").value;b.pole=$("#lPole").value;b.cross=$("#lCross").value;if($("#lColDef").checked)delete b.lcol;else b.lcol=$("#lCol").value;const lv=$("#lLen").value;b.len=lv===""?null:+lv;{const gv=$("#lGap").value,nv=$("#lNMid").value,og=b.gap??null,on=b.nMid??null;b.gap=gv===""?null:+gv;b.nMid=nv===""?null:Math.max(0,Math.round(+nv));if(og!==b.gap||on!==b.nMid||(!LNM&&b.mids))delete b.dbAt;if(LNM)b.mids=LNM;else delete b.mids;
+ const nf=$("#lFrom").value||null;b.par=nf;b.line=$("#lLine").value;b.pole=$("#lPole").value;b.cross=$("#lCross").value;if($("#lColDef").checked)delete b.lcol;else b.lcol=$("#lCol").value;const lv=$("#lLen").value;b.len=lv===""?null:+lv;{const gv=$("#lGap").value,nv=$("#lNMid").value,og=b.gap??null,on=b.nMid??null;b.gap=gv===""?null:+gv;b.nMid=nv===""?null:Math.max(0,Math.round(+nv));if(og!==b.gap||on!==b.nMid||(!LNM&&b.mids)){delete b.dbAt;delete b.earthAt}if(LNM)b.mids=LNM;else delete b.mids;
   const ox=!!(LINES[b.line]||{}).onEx,wv=$("#lNew").value;if(ox){b.nNew=wv===""?0:Math.max(0,Math.round(+wv));if(LMN)b.midNew=LMN;else delete b.midNew}else{delete b.nNew;delete b.midNew}}
  const ang=$("#lAng").value,mm=$("#lMm").value;
  if(nf&&ang!==""&&mm!==""&&(ang!==LN0.a||mm!==LN0.m||nf!==LN0.par)){const A=posOf(nf),B=posOf(b.id);if(A&&B){freeze(p);const r=(+ang)*D2R,d=(+mm)/MM,X=A[0]+Math.cos(r)*d,Y=A[1]-Math.sin(r)*d,dx=X-B[0],dy=Y-B[1];
