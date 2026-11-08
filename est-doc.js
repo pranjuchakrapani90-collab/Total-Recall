@@ -66,7 +66,8 @@ const dtOf=p=>{const d=p.meta.date;if(!d)return"";const[y,m,dd]=d.split("-");ret
 
 /* ---------- the sheet, drawn like the workbook ---------- */
 const W=[6.11,7,61.11,4.89,8.66,12.66,15.89,12,16.55],TW=W.reduce((a,b)=>a+b,0);
-function sheetHTML(p,c,ed){const e=ensure(p,c),k=calc(p,e),HC=hasCol(e),N9=HC?9:8,N3=HC?3:2,WW=HC?W:W.filter((w,i)=>i!==7),TT=WW.reduce((a,b)=>a+b,0);let sl=0;
+const WP=[4.4,5.2,47,5.6,7,11,12.6,9.6,8.6];   // print/PDF column widths: unit, qty and money never wrap; description gets the room
+function sheetHTML(p,c,ed){const e=ensure(p,c),k=calc(p,e),HC=hasCol(e),N9=HC?9:8,N3=HC?3:2,W0=ed?W:WP,WW=HC?W0:W0.filter((w,i)=>i!==7),TT=WW.reduce((a,b)=>a+b,0);let sl=0;
  const inp=(cls,val,attrs="")=>ed?`<input class="ci ${cls}" value="${esc(val)}" ${attrs}>`:esc(val);
  const ctl=h=>ed?`<td class="ctl">${h||""}</td>`:"";
  const itemRow=(x,i,isJob)=>{const r=x.r,it=x.it,bad=r.sor&&!SOR[r.sor]&&!r.cust;
@@ -82,7 +83,9 @@ function sheetHTML(p,c,ed){const e=ensure(p,c),k=calc(p,e),HC=hasCol(e),N9=HC?9:
  const ab=(L,t,v,h,o={})=>`<tr class="ab${o.nb?" nb":""}"><td class="c">${L}</td><td class="l" colspan="5">${t}</td><td class="c">${o.gh!=null?o.gh:rup(v)}</td>${HC?`<td class="c h">${h==null?"":rup(h)}</td>`:""}<td></td>${ctl(o.ctl)}</tr>`;
  const pct=(f,v,lab)=>ed?`<label class="pc">${lab} <input class="ci n" data-g="${f}" value="${Math.round((+v||0)*10000)/100}" inputmode="decimal">%</label>`:"";
  const addRow=job=>ed?`<tr class="add"><td colspan="${N9}"><button type="button" data-act="add" data-job="${job?1:0}">＋ Add ${job?"item with labour included (E)":"material item"}</button><button type="button" data-act="addpick" data-job="${job?1:0}">🔍 Add from SoR</button>${job?"":`<button type="button" data-act="addcust" data-job="0">＋ Item without SoR No.</button>`}</td>${ctl()}</tr>`:"";
- return`<div class="xe${ed?" ed":""}"><table class="xs"><colgroup>${WW.map(w=>`<col style="width:${(w/TT*100).toFixed(3)}%">`).join("")}${ed?'<col class="ctlc">':""}</colgroup><tbody>
+ const CG=`<colgroup>${WW.map(w=>`<col style="width:${(w/TT*100).toFixed(3)}%">`).join("")}${ed?'<col class="ctlc">':""}</colgroup>`;
+ /* print/view: heading in its own table; the column-heading row is a <thead> so it repeats on every page; the A–P abstract is kept together */
+ return`<div class="xe${ed?" ed":""}"><table class="xs">${CG}<tbody>
  <tr style="height:29px"><td colspan="${N9}" class="h1 c">ASSAM POWER DISTRIBUTION COMPANY LTD.</td>${ctl()}</tr>
  <tr style="height:25px"><td colspan="${N9}" class="h1 c">Samaguri Electrical Sub-Division, Nagaon ED-II, CAR</td>${ctl()}</tr>
  <tr style="height:14px"><td colspan="6" rowspan="2" class="h2 c">PROVISIONAL ESTIMATE</td><td colspan="${N3}" class="ar b c">GSTIN :18AABCL1354J1ZJ</td>${ctl()}</tr>
@@ -90,7 +93,7 @@ function sheetHTML(p,c,ed){const e=ensure(p,c),k=calc(p,e),HC=hasCol(e),N9=HC?9:
  <tr style="height:14px"><td colspan="4" class="cal">Document No : ${ed?`<input class="ci" data-m="doc" value="${esc(docOf(p))}" style="width:70%">`:esc(docOf(p))}</td><td colspan="2" class="cal">Dt: ${ed?`<input class="ci" data-m="date" type="date" value="${esc(p.meta.date||"")}" style="width:72%">`:esc(dtOf(p))}</td><td colspan="${N3}" class="ar c">(not valid for Input Tax credit)</td>${ctl()}</tr>
  <tr style="height:46px"><td colspan="6" class="ti">${ed?`<textarea class="ci" data-m="estTitle" rows="3" placeholder="${esc(titleOf({meta:{...p.meta,estTitle:""}},c))}">${esc(titleOf(p,c))}</textarea>`:esc(titleOf(p,c))}</td><td colspan="${N3}" class="sr c">Rates as per SoR 2021-22</td>${ctl(ed?`<label class="pc"><input type="checkbox" data-lh="1" ${p.meta.lenHd?"checked":""}> Line length<br>in heading${lenTxt(c)?"":" (no new line yet)"}</label>`:"")}</tr>
  ${e.sarma!==false?`<tr style="height:14px"><td colspan="${N9}" class="sa c">"This estimate has been prepared incorporating the recommendations of Hon'ble Justice H.N. Sarma Commission."</td>${ctl(ed?'<label class="pc"><input type="checkbox" data-g="sarma" checked> Sarma line</label>':"")}</tr>`:ed?`<tr class="add"><td colspan="${N9}"><label class="pc"><input type="checkbox" data-g="sarma"> Show the H.N. Sarma Commission line</label></td>${ctl()}</tr>`:""}
- <tr class="hd" style="height:72px"><td class="c nb">Sl. No.</td><td class="c">SOR Sl. No.</td><td class="c">Item Description</td><td class="c">Unit</td><td class="c">Quantity</td><td class="c">Ex. Work Price in Rs.</td><td class="c">Amount<br>in Rs.</td>${HC?`<td class="c">${ed?`<textarea class="ci c" data-g="hHead" rows="3">${esc(hHeadOf(e))}</textarea>`:esc(hHeadOf(e))}</td>`:""}<td class="c">Remarks</td>${ctl(ed?`<label class="pc"><input type="checkbox" data-g="stockCol" ${HC?"checked":""}> RDSS / O&amp;M / reusable column</label>`:"")}</tr>
+ ${ed?"":`</tbody></table><table class="xs xb">${CG}<thead>`}<tr class="hd" style="height:72px"><td class="c nb">Sl. No.</td><td class="c">SOR Sl. No.</td><td class="c">Item Description</td><td class="c">Unit</td><td class="c">Quantity</td><td class="c">Ex. Work Price in Rs.</td><td class="c">Amount<br>in Rs.</td>${HC?`<td class="c">${ed?`<textarea class="ci c" data-g="hHead" rows="3">${esc(hHeadOf(e))}</textarea>`:esc(hHeadOf(e))}</td>`:""}<td class="c">Remarks</td>${ctl(ed?`<label class="pc"><input type="checkbox" data-g="stockCol" ${HC?"checked":""}> RDSS / O&amp;M / reusable column</label>`:"")}</tr>${ed?"":"</thead><tbody>"}
  ${k.mat.map((x,i)=>itemRow(x,i,false)).join("")}${addRow(false)}
  ${ab("A","Cost of Material excl GST",k.A,k.HA)}
  ${ab("B","Add: Transportation &amp; Storage (5% of A )",k.B,0)}
@@ -101,7 +104,7 @@ function sheetHTML(p,c,ed){const e=ensure(p,c),k=calc(p,e),HC=hasCol(e),N9=HC?9:
  ${ab("","Total: D + E",k.DE,0)}
  ${ab("F","Add: Contingency charge (% in K of C )",k.F,0,{ctl:pct("kc",e.kc,"K =")})}
  ${ab("G","Add: Supervision charge (% in K of D + 15% of E)",k.G,0,{ctl:pct("ks",e.ks,"K =")})}
- ${ab("H","Gross Estimate Cost ( C+D+E+F+G )",k.Hh,k.HA)}
+ ${ed?"":'</tbody><tbody class="abs">'}${ab("H","Gross Estimate Cost ( C+D+E+F+G )",k.Hh,k.HA)}
  ${ab("I","Add: Processing  Fees: (As Applicable) ",k.I,0,{gh:ed?`<input class="ci n c" data-m="fee" value="${+(p.meta.fee||0)}" inputmode="decimal">`:null})}
  ${ab("J","CGST @ (9% on H)",k.J,k.H30)}
  ${ab("K","SGST @ (9% on H)",k.K,k.H30)}
@@ -129,7 +132,11 @@ const CSS=`
 .xe .xs .sa{font:italic 10px Calibri,Carlito,Arial,sans-serif}
 .xe .xs tr.hd td{font:700 11px Calibri,Carlito,Arial,sans-serif;white-space:normal}.xe .xs tr.hd td.nb{font-weight:400}
 .xe .xs tr.ab td{font-weight:700}.xe .xs tr.ab td.h{font-weight:400}.xe .xs tr.ab.nb td{font-weight:400}
-.xe .xs tr.wd td{border:0;font-weight:700;padding-top:3px}.xe .xs td.nob{border:0}
+.xe .xs tr.wd td{border:0;font-weight:700;padding-top:3px}
+.xe table.xs.xb{margin-top:-1px}
+@media print{#printEst,#printEst .est,#printEst .xe{background:#fff!important;border:0!important;border-radius:0!important;box-shadow:none!important;padding:0!important}.xe .xs tr{break-inside:avoid}.xe .xs thead{display:table-header-group}.xe .xs tbody.abs{break-inside:avoid}.xe .xs td{padding:1.5px 3px}.xe table.xs{font-size:10px;line-height:1.22}
+ .xe .xs tr.it td:nth-child(4),.xe .xs tr.it td:nth-child(5),.xe .xs tr.it td:nth-child(6),.xe .xs tr.it td:nth-child(7),.xe .xs tr.it td:nth-child(8),.xe .xs tr.ab td.c,.xe .xs tr.jb td:nth-child(n+4){white-space:nowrap}
+ .xe .xs tr.hd{height:auto!important}.xe .xs tr.hd td{font-size:9.5px;padding:3px 2px}#printEst .xe+.xe,#printEst .xe~.xe{break-before:page}}.xe .xs td.nob{border:0}
 .xe .xs td.ctl,.xe .xs tr.add td{border:0;background:transparent}
 .xe .xs col.ctlc{width:132px}
 .xe .ci{border:0;background:transparent;font:inherit;color:inherit;width:100%;padding:0;margin:0;text-align:inherit;resize:vertical}
@@ -182,6 +189,7 @@ const CSS=`
  #printFw{page:fw}#printApp img{display:block;max-width:100%;max-height:270mm;margin:0 auto;page-break-after:always}#printApp{page:port}
  body.p-sld #printFw,body.p-est #printFw,body.p-sld #printApp,body.p-est #printApp,body.p-fw #printSld,body.p-fw #printEst,body.p-fw #printApp{display:none!important}}
 @page fw{size:A4 portrait;margin:12mm 16mm 12mm 16mm}
+@page port{size:A4 portrait;margin:10mm 10mm 13mm 10mm;@bottom-right{content:"Page " counter(page) " of " counter(pages);font:8.5pt Arial,Helvetica,sans-serif;color:#444}}
 `;
 document.head.insertAdjacentHTML("beforeend",`<style>${CSS}</style>`);
 
@@ -444,9 +452,10 @@ $("#fwRedraft").onclick=()=>{const p=P();if(p.fw&&!confirm("Write the letter aga
 async function appImages(p){const a=app(p),out=[];for(const f of a.files){const b=await blobOf(f);if(!b)continue;
   if(/^image\//.test(f.type))out.push(`<img src="${URL.createObjectURL(b)}" alt="">`);else if(/pdf/.test(f.type)){try{const r=await pdfPages(b,2,40);r.pages.forEach(cv=>out.push(`<img src="${cv.toDataURL("image/jpeg",0.9)}" alt="">`))}catch(_){out.push(`<p style="font:14px serif;padding:20mm">Application (${esc(f.name)}) is a PDF and could not be added to this print here — please print it separately.</p>`)}}}return out.join("")}
 const _doPrint=window.doPrint;window.fitEstHook=()=>fitEst();
-// each estimate (main and dismantling) on its own page, shrunk to fit like the workbook's fit-to-page
-function fitEst(){const pe=$("#printEst"),lim=277*96/25.4;pe.querySelectorAll(".xe").forEach(x=>{const m=document.createElement("div");m.style.cssText="position:absolute;left:-9999px;top:0;width:190mm;visibility:hidden";m.innerHTML=x.outerHTML;document.body.appendChild(m);
- const h=m.scrollHeight;m.remove();const z=h>lim?Math.max(0.55,lim/h-0.01):1;x.style.zoom=z===1?"":z})}
+// each estimate (main and dismantling) starts on its own page. If it nearly fits one page it is shrunk a little (not below 85%) to stay on one page;
+// otherwise it runs onto more pages at full size, with the column headings repeated and no row split across pages
+function fitEst(){const pe=$("#printEst"),lim=274*96/25.4;pe.querySelectorAll(".xe").forEach(x=>{const m=document.createElement("div");m.style.cssText="position:absolute;left:-9999px;top:0;width:190mm;visibility:hidden";m.innerHTML=x.outerHTML;document.body.appendChild(m);
+ const h=m.scrollHeight;m.remove();const f=lim/h-0.01,z=h>lim&&f>=0.85?f:1;x.style.zoom=z===1?"":z})}
 window.doPrint=async function(which){const p=P(),c=compute(p);$("#printFw").innerHTML="";$("#printApp").innerHTML="";$("#printEst").innerHTML='<div class="est">'+estHTML(c)+"</div>";fitEst();
  if(which==="fw"||which==="set"){$("#printFw").innerHTML=`<div class="fwwrap">${fwHTML(p,c,false)}</div>`}
  if(which==="set"){$("#printApp").innerHTML=await appImages(p)}
