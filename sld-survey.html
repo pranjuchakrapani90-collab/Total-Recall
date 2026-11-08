@@ -973,9 +973,16 @@ function sldSVG(c,so){
    const k=Math.floor(ptsOn.length/2)-1>=0?Math.floor((ptsOn.length-1)/2):0,P1=ptsOn[k],P2=ptsOn[k+1]||ptsOn[k],cx=(P1[0]+P2[0])/2,cy=(P1[1]+P2[1])/2,r=4.5;
    out.push(`<path d="M${(cx+ux*r).toFixed(1)},${(cy+uy*r).toFixed(1)} L${(cx-ux*r-uy*r*.8).toFixed(1)},${(cy-uy*r+ux*r*.8).toFixed(1)} L${(cx-ux*r+uy*r*.8).toFixed(1)},${(cy-uy*r-ux*r*.8).toFixed(1)} Z" fill="${SC}"/>`)}
   if(so.span&&!L.ex&&!L.dis&&sg.len>0){const ptsOn=[sg.a,...sg.mid,sg.b];for(let i=0;i<ptsOn.length-1;i++){const[p1,p2]=T(ptsOn[i]),[q1,q2]=T(ptsOn[i+1]);if(Math.hypot(q1-p1,q2-p2)<24)continue;t((p1+q1)/2-nx*9,(p2+q2)/2-ny*9+2.3,Math.round(hav(ptsOn[i],ptsOn[i+1])*(+sg.b.len>0?sg.len/Math.max(hav(sg.a,sg.b),0.01):1))+" m",{fs:6,c:"#374151",rot})}}
-  sg.mid.forEach(m=>{const[x,y]=T(m);U[m.exist?"exP":"newP"]=1;out.push(`<circle cx="${x}" cy="${y}" r="2.8" fill="${m.exist?"#111":"#fff"}" stroke="#111" stroke-width="1"/>`);if(so.edit&&sg.L.onEx)out.push(`<circle class="mhit" data-ms="${sg.b.id}" data-mk="${m.i-1}" cx="${x}" cy="${y}" r="7" fill="#f59e0b" fill-opacity=".14" stroke="#b45309" stroke-opacity=".5" stroke-width=".6"><title>${m.lab}: ${m.exist?"existing pole":"new pole"} — tap to make it ${m.exist?"new":"existing"}</title></circle>`);if(m.earth)earthSym(x,y);if(m.stay){const A=xy(sg.a,c.o),B=xy(sg.b,c.o);stay(x,y,{x:-(B.y-A.y),y:B.x-A.x})}const sp=len/(sg.mid.length+1),step=Math.max(1,Math.ceil(20/Math.max(sp,1)));if(m.i%step===0)t(x+nx*9,y+ny*9+2.2,m.lab,{fs:6})});
+  sg.mid.forEach(m=>{const[x,y]=T(m);U[m.exist?"exP":"newP"]=1;out.push(`<circle cx="${x}" cy="${y}" r="2.8" fill="${m.exist?"#111":"#fff"}" stroke="#111" stroke-width="1"/>`);if(so.edit&&sg.L.onEx)out.push(`<circle class="mhit" data-ms="${sg.b.id}" data-mk="${m.i-1}" cx="${x}" cy="${y}" r="7" fill="#f59e0b" fill-opacity=".14" stroke="#b45309" stroke-opacity=".5" stroke-width=".6"><title>${m.lab}: ${m.exist?"existing pole":"new pole"} — tap to make it ${m.exist?"new":"existing"}</title></circle>`);if(m.stay){const A=xy(sg.a,c.o),B=xy(sg.b,c.o);stay(x,y,{x:-(B.y-A.y),y:B.x-A.x})}if(m.earth){/* off the line, on the side away from the pole number; beside the stay if one points that way */
+   let d={x:-nx,y:-ny};const st=LS.find(q=>Math.abs(q[0]-x)<0.5&&Math.abs(q[1]-y)<0.5);if(st){const sx=st[2]-x,sy=st[3]-y;if(sx*d.x+sy*d.y>0){const[a1,a2]=T(sg.a),[b1,b2]=T(sg.b),tl=Math.hypot(b1-a1,b2-a2)||1;d={x:d.x+(b1-a1)/tl,y:d.y+(b2-a2)/tl}}}earthSym(x,y,d)}const sp=len/(sg.mid.length+1),step=Math.max(1,Math.ceil(20/Math.max(sp,1)));if(m.i%step===0)t(x+nx*9,y+ny*9+2.2,m.lab,{fs:6})});
  });
- function earthSym(x,y){U.earth=1;out.push(`<path d="M${x},${y+3} v4 M${x-3.5},${y+7} h7 M${x-2.3},${y+8.8} h4.6 M${x-1.1},${y+10.5} h2.2" stroke="#111" stroke-width="0.7" fill="none"/>`)}
+ /* earthing symbol drawn off the pole in direction d (SVG coords), so it never sits on the line */
+ function earthSym(x,y,d){U.earth=1;d=d||{x:0,y:1};const l=Math.hypot(d.x,d.y)||1,ux=d.x/l,uy=d.y/l,vx=-uy,vy=ux,P=(r,h)=>[x+ux*r+vx*h,y+uy*r+vy*h].map(v=>v.toFixed(1)).join(","),bar=(r,h)=>`M${P(r,-h)} L${P(r,h)}`;
+  out.push(`<path d="M${P(3,0)} L${P(7,0)} ${bar(7,3.5)} ${bar(8.8,2.3)} ${bar(10.5,1.1)}" stroke="#111" stroke-width="0.7" fill="none"/>`)}
+ /* the clearest direction round a point: furthest from its lines, stays and label */
+ function freeDir(X,Y,x,lab){const av=[];(c.adj[x.id]||[]).forEach(a=>{const sg=a.sg,nb=sg.a===x?(sg.mid[0]||sg.b):(sg.mid[sg.mid.length-1]||sg.a),[qx,qy]=T(nb);av.push(Math.atan2(qy-Y,qx-X))});
+  LS.forEach(q=>{if(Math.abs(q[0]-X)<0.5&&Math.abs(q[1]-Y)<0.5)av.push(Math.atan2(q[3]-Y,q[2]-X))});if(lab)av.push(Math.atan2(lab.ny,lab.nx));
+  if(!av.length)return{x:0,y:1};let best=null,bs=-1;for(let k=0;k<24;k++){const a=k*Math.PI/12,sc=Math.min(...av.map(b=>{const d=Math.abs(((a-b)%(2*Math.PI)+3*Math.PI)%(2*Math.PI)-Math.PI);return d}))+(Math.sin(a)>0.3?0.05:0);if(sc>bs+1e-6){bs=sc;best=a}}return{x:Math.cos(best),y:Math.sin(best)}}
  function stay(x,y,d){if(so.stay===false)return;U.stay=1;const l=Math.hypot(d.x,d.y)||1,ux=d.x/l,uy=-d.y/l,ex=x+ux*15,ey=y+uy*15;LS.push([x,y,ex,ey]);out.push(`<line x1="${x}" y1="${y}" x2="${ex}" y2="${ey}" stroke="#6b7280" stroke-width="0.9"/><path d="M${ex},${ey} l${(-ux*4-uy*2.4).toFixed(1)},${(-uy*4+ux*2.4).toFixed(1)} M${ex},${ey} l${(-ux*4+uy*2.4).toFixed(1)},${(-uy*4-ux*2.4).toFixed(1)}" stroke="#6b7280" stroke-width="0.9" fill="none"/>`)}
  // nodes
  const SH=(X,Y,s)=>out.push(s.replace(/\$X/g,X.toFixed(1)).replace(/\$Y/g,Y.toFixed(1)));
@@ -1092,7 +1099,7 @@ function sldSVG(c,so){
    case "pole":if(/^SP/.test(opt(x,"poleLen")||"")){out.push(`<rect x="${X-3.4}" y="${Y-3.4}" width="6.8" height="6.8" fill="#fff" stroke="#111" stroke-width="1.2"/>`);plab();t(X-nn.nx*12,Y-nn.ny*12+2.4,opt(x,"poleLen"),{fs:6})}else{open();plab()}break;
    default:open();plab();
   }
-  if(nd.earth&&["pole","steel","replace","xRiver","tMV","shift"].includes(x.kind))earthSym(X,Y);
+  if(nd.earth&&["pole","steel","replace","xRiver","tMV","shift"].includes(x.kind))earthSym(X,Y,freeDir(X,Y,x,nn));
   if(x.note&&x.kind!=="lm"&&!noteDone)t(X,Y+(subEnd?subEnd+8:["dtr","htc","dtrAug","dtrTemp","dtrShift","exDTR"].includes(x.kind)?27:x.kind.startsWith("src")?(p.meta.fdr?35:27):17),x.note,{fs:6.3,c:"#4b5563"});
   if(so.gps&&x.kind!=="lm")t(X+10,Y-2,gpsTxt(x),{fs:5.6,c:"#4b5563",a:"start"});
   if(GR)out.push("</g>");
