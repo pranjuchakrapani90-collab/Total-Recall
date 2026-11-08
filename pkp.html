@@ -242,7 +242,7 @@ function draw(){
   on("dExp",()=>I.exportData());on("dSync",()=>syncNow(true));
   document.querySelectorAll("[data-tx]").forEach(r=>r.onclick=()=>{const x=I.load(KEY).tx[r.dataset.tx];if(!x)return;(x.type==="sell"?sellForm:buyForm)({id:r.dataset.tx,...x});});
   status();}
-function status(){const t=I.ist();$("mkt").className="pill"+(t.open?" open":"");$("mkt").querySelector("span").textContent=t.open?"NSE open · live":"NSE closed";
+function status(){const t=I.ist();$("mkt").className="pill"+(t.open?" open":"");$("mkt").querySelector("span").textContent=t.open?(t.special?"NSE "+t.special+" · live":"NSE open · live"):"NSE closed";
   $("st").textContent=qAt?"Price "+I.ago(qAt):"";}
 function showErr(m){$("err").hidden=!m;$("err").textContent=m||"";}
 async function syncNow(loud){try{const r=await I.sync(KEY);let o=null;try{o=await I.sync("etf");}catch(e){}/* the other page's records feed the shared Kite fund */

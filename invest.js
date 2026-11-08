@@ -88,19 +88,24 @@ async function mfSearch(q){const j=await mfJson("/mf/search?q="+encodeURICompone
 
 /* ---------- market clock (IST) ---------- */
 function ist(){const p=new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Kolkata",weekday:"short",hour:"2-digit",minute:"2-digit",hour12:false,day:"2-digit",month:"2-digit",year:"numeric"}).formatToParts(new Date()),g=t=>(p.find(x=>x.type===t)||{}).value;
-  const wd=g("weekday"),mins=(+g("hour"))*60+(+g("minute")),weekend=wd==="Sat"||wd==="Sun";
-  return {wd,weekend,mins,open:!weekend&&mins>=555&&mins<930,afterClose:!weekend&&mins>=930,iso:`${g("year")}-${g("month")}-${g("day")}`};}
+  const wd=g("weekday"),mins=(+g("hour"))*60+(+g("minute")),iso=`${g("year")}-${g("month")}-${g("day")}`,sp=NSE_SPECIAL[iso]||null;
+  /* a special session (Muhurat trading) opens the market on a weekend/holiday for its own short window */
+  const weekend=!sp&&(wd==="Sat"||wd==="Sun"),from=sp?sp.from:555,to=sp?sp.to:930;
+  return {wd,weekend,mins,special:sp?sp.name:"",from,to,open:!weekend&&mins>=from&&mins<to,afterClose:!weekend&&mins>=to,iso};}
 
 /* ---------- NSE trading days ---------- */
 /* NSE equity trading holidays (weekdays). Add each new year's list when NSE publishes it. */
 const NSE_HOLIDAYS=new Set(["2026-01-15","2026-01-26","2026-03-03","2026-03-26","2026-03-31","2026-04-03","2026-04-14","2026-05-01","2026-05-28","2026-06-26","2026-09-14","2026-10-02","2026-10-20","2026-11-10","2026-11-24","2026-12-25"]);
+/* special live sessions on days NSE is otherwise shut (minutes after midnight IST). Add Muhurat trading
+   each year once NSE's circular gives the time. */
+const NSE_SPECIAL={"2026-11-08":{name:"Muhurat trading",from:860,to:930}};/* Sun 8 Nov 2026, 2:20–3:30 PM */
 const isoOf=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
-const nseClosed=iso=>{const d=new Date(iso+"T00:00:00");return d.getDay()===0||d.getDay()===6||NSE_HOLIDAYS.has(iso);};
+const nseClosed=iso=>{if(NSE_SPECIAL[iso])return false;const d=new Date(iso+"T00:00:00");return d.getDay()===0||d.getDay()===6||NSE_HOLIDAYS.has(iso);};
 function nextTrading(iso){const d=new Date(iso+"T00:00:00");do d.setDate(d.getDate()+1);while(nseClosed(isoOf(d)));return isoOf(d);}
 /* the session an order placed now goes into: today if the market is open or not yet open, else the next trading day */
-function orderSession(){const t=ist();return !nseClosed(t.iso)&&t.mins<930?t.iso:nextTrading(t.iso);}
+function orderSession(){const t=ist();return !nseClosed(t.iso)&&t.mins<t.to?t.iso:nextTrading(t.iso);}
 /* true once that session has opened (9:15 IST) */
-function sessionStarted(iso){const t=ist();return t.iso>iso||(t.iso===iso&&t.mins>=555);}
+function sessionStarted(iso){const t=ist();return t.iso>iso||(t.iso===iso&&t.mins>=t.from);}
 
 /* ---------- formatting ---------- */
 const ok=v=>typeof v==="number"&&isFinite(v);
@@ -224,5 +229,5 @@ function tabs(list,cur){return `<nav class="tabs" role="tablist">${list.map(([k,
 function sum(items){return `<section class="sum">${items.map(([l,v,cls,sub])=>`<div><span>${l}</span><b class="${cls||""}">${v}</b>${sub?`<small>${sub}</small>`:""}</div>`).join("")}</section>`;}
 function rememberTab(key,def){let t=def;try{t=sessionStorage.getItem("inv-tab-"+key)||def;}catch(e){}return t;}
 function saveTab(key,t){try{sessionStorage.setItem("inv-tab-"+key,t);}catch(e){}}
-window.Invest={todo,tabs,sum,rememberTab,saveTab,load,save,merge,upsert,remove,setSettings,uid,sync,push,hasSync,importData,exportData,pickImport,quotes,quotesCache,highSince,high52,touched,ist,ok,r2,inr,price,pct,signInr,tone,esc,dshort,days,ago,xirr,form,navs,navCache,mfSearch,NSE_HOLIDAYS,nseClosed,nextTrading,orderSession,sessionStarted,LIQ,kiteFund,charges,liqToSell,liqForm,fundForm,fundBar};
+window.Invest={todo,tabs,sum,rememberTab,saveTab,load,save,merge,upsert,remove,setSettings,uid,sync,push,hasSync,importData,exportData,pickImport,quotes,quotesCache,highSince,high52,touched,ist,ok,r2,inr,price,pct,signInr,tone,esc,dshort,days,ago,xirr,form,navs,navCache,mfSearch,NSE_HOLIDAYS,NSE_SPECIAL,nseClosed,nextTrading,orderSession,sessionStarted,LIQ,kiteFund,charges,liqToSell,liqForm,fundForm,fundBar};
 })();

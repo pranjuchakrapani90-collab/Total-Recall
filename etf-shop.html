@@ -246,7 +246,7 @@ const TABS=[["hold","Holdings"],["buys","Buy Log"],["watch","Watchlist"],["booke
 let tab=I.rememberTab(KEY,"hold");
 function tonight(M){
   const t=I.ist(),gt=M.gtts.filter(x=>x.todo),sells=M.sells.filter(o=>!M.amo.some(a=>!a.buy&&a.lot===o.l.id)),asks=M.amo.filter(a=>a.ask),tot=sells.length+(M.avg?1:0)+M.buys.length;
-  const when=t.weekend?"Weekend · AMO for Monday":t.open?"Market open · live":t.afterClose?`${t.wd} evening · AMO limit orders`:`${t.wd} morning · before the open`;
+  const when=t.weekend?"Weekend · AMO for Monday":t.open?(t.special?t.special+" · live":"Market open · live"):t.special&&!t.afterClose?`${t.special} today · opens ${Math.floor(t.from/60)-12}:${String(t.from%60).padStart(2,"0")} PM`:t.afterClose?`${t.wd} evening · AMO limit orders`:`${t.wd} morning · before the open`;
   const big=asks.length?`Did your ${asks.length>1?asks.length+" AMOs":"AMO"} fill?`:M.liqSell&&!t.open?`Sell ${M.liqSell} LiquidBees at the open, then ${tot} order${tot>1?"s":""}`:tot?`${tot} order${tot>1?"s":""}${t.open?" right now":t.weekend?" for Monday":" tonight"}`:M.amo.length?"AMO placed · nothing else to do":t.open?"No signals right now":"Nothing to place tonight";
   const fill=(k,c,q,p)=>[t.open?"Placed":"AMO placed",`data-place="${k}" data-c="${esc(c)}" data-q="${q}" data-p="${p}"`];
   const amoRows=M.amo.map(a=>{const lab=a.kind==="sell"?"Sell":a.kind==="avg"?"Average":"Buy",kind=a.kind==="sell"?"sell":a.kind==="avg"?"avg":"buy",q=`${a.qty} × ${price(a.lim)}`;
@@ -389,7 +389,7 @@ function draw(){
   document.querySelectorAll("[data-uni]").forEach(r=>r.onclick=()=>{const u=M.S.universe.find(x=>x.code===r.dataset.uni);if(u)uniForm(u);});
   status();}
 
-function status(){const t=I.ist();$("mkt").className="pill"+(t.open?" open":"");$("mkt").querySelector("span").textContent=t.open?"NSE open · live":"NSE closed";
+function status(){const t=I.ist();$("mkt").className="pill"+(t.open?" open":"");$("mkt").querySelector("span").textContent=t.open?(t.special?"NSE "+t.special+" · live":"NSE open · live"):"NSE closed";
   $("st").textContent=qAt?"Prices "+I.ago(qAt)+(missing.length?" · no price for "+missing.join(", "):""):"";}
 function showErr(m){$("err").hidden=!m;$("err").textContent=m||"";}
 async function syncNow(loud){try{const r=await I.sync(KEY);let o=null;try{o=await I.sync("pkp");}catch(e){}/* the other page's records feed the shared Kite fund */
