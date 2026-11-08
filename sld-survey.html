@@ -298,7 +298,7 @@ table.boq{border-collapse:collapse;width:100%;min-width:720px;font-size:12.5px}
    <label>33 kV, max span (m)<input type="number" id="sEHV" min="20" max="80"></label>
    <label>LT bare, max span (m)<input type="number" id="sLT" min="20" max="70"></label>
    <label>LT ABC, max span (m)<input type="number" id="sABC" min="20" max="60"></label>
-   <label>Earth every n-th intermediate pole<input type="number" id="sEarth" min="0" max="20"></label>
+   <label>Earth every n-th pole (LT: counted along the route, plus every end and tee-off)<input type="number" id="sEarth" min="0" max="20"></label>
    <label>Extra stay every n-th intermediate pole (0 = off)<input type="number" id="sStay" min="0" max="20"></label>
    <label>Service cable per consumer (m)<input type="number" id="sSvc" min="0" max="100"></label>
    <label>LT ABC: distribution boxes per pole (0 = none)<input type="number" id="sDB" min="0" max="4"></label>
@@ -723,14 +723,14 @@ function compute(p){
   const r=nd.roles[mainCls],strainy=r&&r!=="tangent"&&r!=="tap";
   const kva=+opt(x,"kva"),dtK=DTRK[kva]||"774",exT=opt(x,"exType"),spl=opt(x,"poleLen")||(["sp2dp","dp2tp","sp2tp","dp24p"].includes(x.kind)&&/^SP/.test(exT)?exT:kv===33&&segIn?poleOf(segIn.sg):"9.75"),isSP=v=>/^SP/.test(v);
   switch(x.kind){
-   case "pole":newPole(pl,1,kv,(isSP(pl)?pl+" ":"")+"marked pole P"+x.no);if(strainy||isSP(pl)){earth(1,isSP(pl)?"steel pole":"dead-ends, cut-points and tee-offs");nd.earth=1}break;
+   case "pole":newPole(pl,1,kv,(isSP(pl)?pl+" ":"")+"marked pole P"+x.no);if(isSP(pl)||strainy&&mainCls!=="LT"){earth(1,isSP(pl)?"steel pole":"dead-ends, cut-points and tee-offs");nd.earth=1}break;
    case "steel":{const st=opt(x,"steelType");newPole(st,1,kv,st+" at P"+x.no);earth(1,"steel pole");nd.earth=1;break}
    case "xRiver":{const st=opt(x,"steelType");newPole(st,1,kv,st+" on the bank at P"+x.no);earth(1,"river-bank pole");nd.earth=1;break}
    case "p4":newPole(spl,4,kv,"4-pole structure P"+x.no);add("638",8,"4P channel arms");add("830",16,"4P");add("646",20,"4P");earth(2,"4-pole structure");nd.earth=2;break;
    case "heighten":newPole("9.75",1,11,"heightening pole P"+x.no);add("638",2,"heightening kit");add("634",1,"heightening kit");add("626",6,"heightening kit");add("447",0.09,"heightening jumpers");add("827",6,"heightening kit");add("649",12,"cradling / guarding");add("650",18,"cradling / guarding");add("646",10,"heightening kit");break;
    case "replace":{newPole(pl,1,kv,"replacement pole P"+x.no);dis(OLDP[opt(x,"oldPole")]||"747",1,"old pole at P"+x.no);const d=+opt(x,"dmg");
     if(d>0&&inL){if(inL.mv)add(inL.cond,Math.round(d*3),"damaged conductor at P"+x.no);else if(inL.abc)add(inL.cond,Math.round(d),"damaged cable at P"+x.no);else if(inL.cls==="HV")add(inL.cond,d*3/1000,"damaged conductor at P"+x.no);else if(inL.w)add(inL.cond,d*inL.w/1000,"damaged conductor at P"+x.no)}
-    if(strainy){earth(1,"replacement at a structure");nd.earth=1}break}
+    if(strainy&&mainCls!=="LT"){earth(1,"replacement at a structure");nd.earth=1}break}
    case "tp":case "sp2dp":case "dp2tp":case "sp2tp":case "dp24p":{
     const k33=kv===33,sp=spl,ch=k33?"641":"640",tg=" at P"+x.no;
     if(x.kind==="tp"){newPole(sp,3,kv,"3-pole structure"+tg);add(ch,4,"3-pole structure channels");add("830",12,"3-pole structure");add("646",12,"3-pole structure");add("633",0,"");earth(3,"1 per pole of the 3-pole structure");nd.earth=3}
@@ -744,7 +744,7 @@ function compute(p){
    case "exDTR":if(opt(x,"fit")&&inL&&inL.bare)add(inL.pg,6,"jumpers at existing DTR P"+x.no);break;
    case "shift":{if(opt(x,"reuseOld")){const pp=POLE[pl]||POLE["8.5"];addEx(pp[0],1,"old pole re-erected at P"+x.no);add(pp[1],1,"grouting of the shifted pole");add(danger(kv),1,"shifted pole");if(kv>=11)add("633",2,"anti-climbing")}
     else{newPole(pl,1,kv,"pole at the shifted location P"+x.no);dis(OLDP[opt(x,"oldPole")]||"747",1,"old pole removed for shifting P"+x.no)}
-    if(strainy){earth(1,"shifted pole at a structure");nd.earth=1}break}
+    if(strainy&&mainCls!=="LT"){earth(1,"shifted pole at a structure");nd.earth=1}break}
    case "regrout":{const pp=POLE[pl]||POLE["8.5"];add(pp[1],1,"re-grouting of leaning pole P"+x.no);break}
    case "dp":if(!onEx){newPole(spl,2,kv>=11?kv:11,"DP at P"+x.no);add("638",4,"DP channel arms");add("830",8,"DP");add("646",8,"DP");add("633",0,"");earth(2,"2 per DP");nd.earth=2}
     if(opt(x,"goab")){add("518",1,"GOAB at P"+x.no);add("638",2,"GOAB mounting");add("830",4,"GOAB mounting");add("646",4,"GOAB")}if(opt(x,"dof"))add("513",1,"DO fuse set at P"+x.no);if(opt(x,"la"))add("676",1,"LA at P"+x.no);break;
@@ -800,12 +800,12 @@ function compute(p){
   if(L.flag)flags.add(L.flag);if(sg.reuse)flags.add("Conductor marked as RDSS dismantled / existing stock is shown in the side column and deducted (material + 18% GST)");
   if(n&&L.onEx){const nw=sg.mid.filter(m=>!m.exist),ne=n-nw.length;nExMid+=ne;if(ne)(L.cls==="HV"?hvTangent:ltTangent)(L,ne,"existing intermediate poles ("+sg.gapRule+")");
    if(nw.length){nGen+=nw.length;const pl=poleOf(sg);newPole(pl,nw.length,sg.kv,"new poles added between existing poles ("+lab+")");(L.cls==="HV"?hvTangent:ltTangent)(L,nw.length,"new intermediate poles");
-    const stl=/^SP/.test(pl),ner=stl?nw.length:S.sEarth>0?Math.floor(nw.length/S.sEarth):0;earth(ner,stl?"every steel intermediate pole":"every "+S.sEarth+"th new intermediate pole");nw.forEach((m,j)=>{m.earth=stl||S.sEarth>0&&(j+1)%S.sEarth===0});
+    const stl=/^SP/.test(pl),ner=stl?nw.length:sg.cls==="LT"?0:S.sEarth>0?Math.floor(nw.length/S.sEarth):0;earth(ner,stl?"every steel intermediate pole":"every "+S.sEarth+"th new intermediate pole");nw.forEach((m,j)=>{m.earth=stl||sg.cls!=="LT"&&S.sEarth>0&&(j+1)%S.sEarth===0});
     const ns=S.sStay>0?Math.floor(nw.length/S.sStay):0;if(ns){stayKit(sg.kv,ns,"storm stay every "+S.sStay+"th new pole");nw.forEach((m,j)=>{m.stay=(j+1)%S.sStay===0})}}
    abcMidDb(sg)}
   else if(n){{nGen+=n;const pl=poleOf(sg);newPole(pl,n,sg.kv,"intermediate poles ("+sg.gapRule+")");(L.cls==="HV"?hvTangent:ltTangent)(L,n,"intermediate poles");
     abcMidDb(sg);
-    const stl=/^SP/.test(pl),ne=stl?n:S.sEarth>0?Math.floor(n/S.sEarth):0;earth(ne,stl?"every steel intermediate pole":"every "+S.sEarth+"th intermediate pole");sg.mid.forEach(m=>{m.earth=stl||S.sEarth>0&&m.i%S.sEarth===0});
+    const stl=/^SP/.test(pl),ne=stl?n:sg.cls==="LT"?0:S.sEarth>0?Math.floor(n/S.sEarth):0;earth(ne,stl?"every steel intermediate pole":"every "+S.sEarth+"th intermediate pole");sg.mid.forEach(m=>{m.earth=stl||sg.cls!=="LT"&&S.sEarth>0&&m.i%S.sEarth===0});
     const ns=S.sStay>0?Math.floor(n/S.sStay):0;if(ns){stayKit(sg.kv,ns,"storm stay every "+S.sStay+"th pole");sg.mid.forEach(m=>{m.stay=m.i%S.sStay===0})}}}
   if(L.bare&&L.cls==="HV")add(L.sl,Math.ceil(sg.len/1000*3),"3 sleeves per route-km");
   if(L.mv){add(L.jt,Math.floor(sg.len/1000*3),"3 joints per route-km");[sg.a,sg.b].forEach(x=>{if(["dtr","htc","tMV","dtrShift"].includes(x.kind))return;SINK=isBuilt(x)?x.id:null;const e=adj[x.id].filter(a=>work(a.sg.L)&&a.sg.cls==="HV");if(e.length===1||isSrc(x)||e.some(a=>!a.sg.L.mv))add(L.term,3,"MVCC termination at P"+x.no);SINK=null})}
@@ -832,7 +832,19 @@ function compute(p){
  /* LT poles (after the DTR / LT source) run in one sequence L-1, L-2… along the route, new and existing alike (the symbol shows which) */
  const NAMED=new Set(["dtr","dtrShift","htc","dtrAug","dtrTemp","dp","iso33","ctpt","vcb11","exDP","sp2dp","ltdp","p4","ex4P","dp24p","tp","exTP","dp2tp","sp2tp","exDTR","cont","src11","src33","srcLT","srcDTR","xRail","xBridge"]);
  function walk(x,cls){lab[x.id]=cls==="LT"&&!NAMED.has(x.kind)?"L-"+nx("L"):nameOf(x);kids[x.id].forEach(sg=>{sg.mid.forEach(m=>{m.lab=sg.cls==="LT"?"L-"+nx("L"):m.exist?"E-"+nx("E"):"N-"+nx("N")});walk(sg.b,sg.cls)})}
- roots.forEach(r=>walk(r,null));pts.filter(isStand).forEach(x=>lab[x.id]=x.kind==="rmPole"?"OLD-"+nx("O"):x.kind==="mark"?"M-"+nx("M"):"");
+ roots.forEach(r=>walk(r,null));
+ /* LT earthing (8 Nov 2026): one rule along each LT route — counting every pole, new and existing, from the DTR / LT source:
+    earth every line-end pole, every tee-off pole and every n-th pole since the last earth (n = "Earth every n-th pole", default 5). */
+ {const N=S.sEarth>0?S.sEarth:5,why={end:0,tee:0,run:0},ltK=sg=>sg.cls==="LT"&&work(sg.L);
+  const go=(x,k)=>{kids[x.id].forEach(sg=>{if(!ltK(sg)){go(sg.b,0);return}let c=k;
+   sg.mid.forEach(m=>{c++;if(m.earth){c=0;return}if(c>=N){m.earth=true;why.run++;c=0}});
+   const b=sg.b,nd=nodes[b.id]||{};if(NAMED.has(b.kind)||isStand(b)){go(b,0);return}c++;
+   const out=kids[b.id].filter(ltK).length,end=out===0,tee=out>=2;
+   if(nd.earth)c=0;else if(end||tee||c>=N){nd.earth=1;nd.ltEarth=1;why[end?"end":tee?"tee":"run"]++;c=0}
+   go(b,c)})};
+  roots.forEach(r=>go(r,0));
+  earth(why.end,"LT line-end poles");earth(why.tee,"LT tee-off poles");earth(why.run,"every "+N+"th LT pole along the route (new and existing poles counted)")}
+ pts.filter(isStand).forEach(x=>lab[x.id]=x.kind==="rmPole"?"OLD-"+nx("O"):x.kind==="mark"?"M-"+nx("M"):"");
  pts.forEach(x=>{if(!lab[x.id]&&!isStand(x))lab[x.id]=nameOf(x)});
  // linear features (roads, tracks, rivers, drains) and crossing checks
  const fedges=[],fsingle=[],grpOf={};const root=x=>{let k=x,g=0;while(k.fpar&&byId[k.fpar]&&g++<500)k=byId[k.fpar];return k.id};
@@ -1106,7 +1118,7 @@ function sldSVG(c,so){
    case "pole":if(/^SP/.test(opt(x,"poleLen")||"")){out.push(`<rect x="${X-3.4}" y="${Y-3.4}" width="6.8" height="6.8" fill="#fff" stroke="#111" stroke-width="1.2"/>`);plab();t(X-nn.nx*12,Y-nn.ny*12+2.4,opt(x,"poleLen"),{fs:6})}else{open();plab()}break;
    default:open();plab();
   }
-  if(nd.earth&&["pole","steel","replace","xRiver","tMV","shift"].includes(x.kind))earthSym(X,Y,freeDir(X,Y,x,nn));
+  if(nd.earth&&(nd.ltEarth||["pole","steel","replace","xRiver","tMV","shift"].includes(x.kind)))earthSym(X,Y,freeDir(X,Y,x,nn));
   if(x.note&&x.kind!=="lm"&&!noteDone)t(X,Y+(subEnd?subEnd+8:["dtr","htc","dtrAug","dtrTemp","dtrShift","exDTR"].includes(x.kind)?27:x.kind.startsWith("src")?(p.meta.fdr?35:27):17),x.note,{fs:6.3,c:"#4b5563"});
   if(so.gps&&x.kind!=="lm")t(X+10,Y-2,gpsTxt(x),{fs:5.6,c:"#4b5563",a:"start"});
   if(GR)out.push("</g>");
