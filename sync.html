@@ -77,7 +77,7 @@ details summary{cursor:pointer;font-weight:700}
 (function(){
 "use strict";
 var $=function(id){return document.getElementById(id)},DEF="https://total-recall-ticktick.pranjuchakrapani90.workers.dev",API="https://www.googleapis.com/drive/v3",UP="https://www.googleapis.com/upload/drive/v3";
-var FOLDER="application/vnd.google-apps.folder",IDX="pos-dsync-index",HIST="pos-dsync-history",PAR=3;
+var FOLDER="application/vnd.google-apps.folder",IDX="pos-dsync-index",HIST="pos-dsync-history",DAYS="pos-dsync-days",PAR=3;
 var tok=null,idx=null,stop=false,running=false;
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
 function base(){var u=null;try{u=localStorage.getItem("totalRecallTickTickUrl")}catch(e){}return u||window.TOTAL_RECALL_TICKTICK_URL||DEF}
@@ -210,7 +210,8 @@ async function sync(list){
       "Nothing to upload — all <b>"+skip+"</b> picked files are already in your Drive (same name and size), most likely sent there already by DriveSync.",false);
   }catch(e){failNote(e)}
   running=false;sleep_();
-  if(hist.length){var h=(await kget(HIST))||[];h=hist.reverse().concat(h).slice(0,500);await kset(HIST,h);
+  if(hist.length){var dt=(await kget(DAYS))||{};hist.forEach(function(x){var d=istDay(x.at),t=dt[d]=dt[d]||{n:0,s:0};t.n++;t.s+=x.s});await kset(DAYS,dt);
+    var h=(await kget(HIST))||[];h=hist.reverse().concat(h).slice(0,500);await kset(HIST,h);
     try{localStorage.setItem("pos-dsync-last",JSON.stringify({at:new Date().toISOString(),up:up,skip:skip,bad:bad}))}catch(e){}}
   paint();$("pick").disabled=$("pickDir").disabled=false;$("stop").disabled=true;
   $("fi").value="";$("fd").value="";
@@ -255,11 +256,16 @@ async function dash(){
   var fl=b.folders.filter(function(f){return f.n}).sort(function(a,c){return c.n-a.n}).slice(0,12);
   if(fl.length)h+='<details class="card" style="margin-top:8px"><summary>Folders</summary><table style="margin-top:6px">'+fl.map(function(f){return '<tr><td><a href="https://drive.google.com/drive/folders/'+esc(f.id)+'" target="_blank" rel="noopener" style="color:var(--tr-ink);text-decoration:none">'+esc(f.path)+'</a></td><td>'+f.n+'</td></tr>'}).join("")+'</table></details>';
   $("dash").innerHTML=h}
-async function history_(){var h=(await kget(HIST))||[];
-  if(!h.length){$("hist").innerHTML='<span class="muted">Nothing yet.</span>';return}
-  var by={};h.forEach(function(x){var d=x.at.slice(0,10);(by[d]=by[d]||[]).push(x)});
-  $("hist").innerHTML=Object.keys(by).slice(0,7).map(function(d){var a=by[d],s=a.reduce(function(t,x){return t+x.s},0);
-    return '<details style="padding:4px 0"><summary>'+new Date(d).toLocaleDateString("en-IN",{weekday:"short",day:"numeric",month:"short"})+' · '+a.length+' files · '+mb(s)+'</summary>'+
+/* calendar day in India time (UTC+5:30), so a 4 AM run counts for today, not yesterday */
+function istDay(iso){return new Date(Date.parse(iso)+19800000).toISOString().slice(0,10)}
+async function history_(){var h=(await kget(HIST))||[],dt=(await kget(DAYS))||{};
+  if(!h.length&&!Object.keys(dt).length){$("hist").innerHTML='<span class="muted">Nothing yet.</span>';return}
+  /* the file list keeps only the newest 500 uploads; the per-day totals keep every upload */
+  var by={};h.forEach(function(x){var d=istDay(x.at);(by[d]=by[d]||[]).push(x)});
+  var days=Object.keys(by).concat(Object.keys(dt)).filter(function(d,i,z){return z.indexOf(d)===i}).sort().reverse();
+  $("hist").innerHTML=days.slice(0,7).map(function(d){var a=by[d]||[],t=dt[d]||{n:a.length,s:a.reduce(function(t,x){return t+x.s},0)};
+    return '<details style="padding:4px 0"><summary>'+new Date(d+"T12:00:00").toLocaleDateString("en-IN",{weekday:"short",day:"numeric",month:"short"})+' · '+t.n.toLocaleString("en-IN")+' files · '+mb(t.s)+'</summary>'+
+      (a.length<t.n?'<div class="muted" style="font-size:12px;padding:4px 0">Showing the latest '+Math.min(a.length,100)+' of '+t.n.toLocaleString("en-IN")+' (only the newest 500 uploads are listed).</div>':'')+
       a.slice(0,100).map(function(x){return '<div class="f"><a href="https://drive.google.com/file/d/'+esc(x.id)+'/view" target="_blank" rel="noopener">'+esc(x.n)+'</a><span class="muted" style="font-size:12px;flex:0 0 auto">'+esc(x.to.replace("WhatsApp ",""))+'</span></div>'}).join("")+'</details>'}).join("")}
 async function refresh(full){$("refresh").disabled=true;$("dashSt").textContent="Reading your Drive…";
   try{await ensureIndex(function(n){$("dashSt").textContent="Reading your Drive… "+n.toLocaleString("en-IN")},full);await dash()}catch(e){failNote(e);$("dashSt").textContent=idx?"Drive read "+ago(idx.at):""}
