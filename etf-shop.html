@@ -2,7 +2,7 @@
 <html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="kvsync.js?v=20261105a"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
 <title>ETF Shop · Pranju OS</title>
 <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="icon" href="icon-192.png" sizes="192x192"><link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="stylesheet" href="invest.css?v=20261024b">
+<link rel="stylesheet" href="invest.css?v=20261108k">
 <link rel="stylesheet" href="tr-theme.css?v=20261020">
 </head><body class="tr-inv">
 <header><div class="hin">
@@ -15,7 +15,7 @@
   <div id="out"></div>
 </main>
 <script src="gsync.js?v=20261020"></script>
-<script src="invest.js?v=20261026c"></script>
+<script src="invest.js?v=20261108k"></script>
 <script>
 "use strict";
 const I=Invest,{esc,inr,price,pct,signInr,tone,ok,r2,dshort}=I;
@@ -251,6 +251,9 @@ function tonight(M){
   const fill=(k,c,q,p)=>[t.open?"Placed":"AMO placed",`data-place="${k}" data-c="${esc(c)}" data-q="${q}" data-p="${p}"`];
   const amoRows=M.amo.map(a=>{const lab=a.kind==="sell"?"Sell":a.kind==="avg"?"Average":"Buy",kind=a.kind==="sell"?"sell":a.kind==="avg"?"avg":"buy",q=`${a.qty} × ${price(a.lim)}`;
     if(!a.ask)return I.todo(kind+" done",lab,esc(a.code),q,esc(`AMO placed · goes in ${wdS(a.session)} at 9:15`),inr(a.qty*a.lim),["Undo",`data-amo-undo="${esc(a.id)}"`]);
+    const km=I.kiteMatch(a);
+    if(km)return I.todo(kind+" ask",lab,esc(a.code),q,km.done?`<span class="up">Kite: ${a.buy?"bought":"sold"} ${km.filled} × ${price(km.avg)}</span>`:km.dead?`<span class="dn">Kite: ${esc(km.status.toLowerCase())}${km.msg?" · "+esc(km.msg):""}</span>`:`<span class="warn">Kite: still ${esc(km.status.toLowerCase())}</span>`,inr(a.qty*a.lim),null)+
+      `<div class="gask">${km.dead?`<button type="button" data-amo-no="${esc(a.id)}">Clear it</button>`:`<button type="button" data-amo-yes="${esc(a.id)}">${km.done?"Record it":a.buy?"Yes, bought":"Yes, sold"}</button><button type="button" class="ghost" data-amo-no="${esc(a.id)}">No</button>`}</div>`;
     const hint=a.likely===true?`${a.buy?"low":"high"} ${price(a.tp)} reached your limit`:a.likely===false?`${a.buy?"low":"high"} ${price(a.tp)} didn't reach your limit`:"";
     return I.todo(kind+" ask",lab,esc(a.code),q,`<span class="dn">Did it ${a.buy?"buy":"sell"}?</span>${hint?" · "+esc(hint):""}`,inr(a.qty*a.lim),null)+
       `<div class="gask"><button type="button" data-amo-yes="${esc(a.id)}">${a.buy?"Yes, bought":"Yes, sold"}</button><button type="button" class="ghost" data-amo-no="${esc(a.id)}">No</button></div>`;});
@@ -362,9 +365,9 @@ function empty(){return `<section class="card empty"><b>No records yet</b><p cla
 
 function draw(){
   const M=model(),has=M.open.length||M.sold.length||M.cap.length;
-  $("out").innerHTML=has?tonight(M)+I.fundBar(NaN)+summary(M)+details(M)+setup(M):empty();
+  $("out").innerHTML=has?tonight(M)+I.fundBar(NaN)+I.kiteCard(I.kiteState())+summary(M)+details(M)+setup(M):empty();
   const on=(id,f)=>{const e=$(id);if(e)e.onclick=f;};
-  on("kFund",()=>I.fundForm(draw));on("liqSold",()=>I.liqForm(draw,{units:M.liqSell}));
+  on("kFund",()=>I.fundForm(draw));I.kiteWire(draw);on("liqSold",()=>I.liqForm(draw,{units:M.liqSell}));
   on("aBuy",()=>buyForm());on("qBuy",()=>buyForm({disc:true}));on("qSell",pickSell);on("aMoney",()=>moneyForm());on("eRules",()=>settingsForm(M.S));on("aUni",()=>uniForm());
   on("wAll",()=>{showAll=!showAll;draw();});on("sAll",()=>{soldAll=!soldAll;draw();});on("bAll",()=>{buysAll=!buysAll;draw();});
   document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{tab=b.dataset.tab;I.saveTab(KEY,tab);draw();});
@@ -378,8 +381,9 @@ function draw(){
   document.querySelectorAll("[data-amo-undo]").forEach(b=>b.onclick=()=>{I.remove(KEY,"amo",b.dataset.amoUndo);draw();});
   document.querySelectorAll("[data-amo-no]").forEach(b=>b.onclick=()=>{if(!confirm("Nothing recorded. Clear this order? If the signal still holds, it shows again."))return;I.remove(KEY,"amo",b.dataset.amoNo);draw();});
   document.querySelectorAll("[data-amo-yes]").forEach(b=>b.onclick=()=>{const a=M.amo.find(x=>x.id===b.dataset.amoYes);if(!a)return;
-    if(a.kind==="sell"){const l=I.load(KEY).lots[a.lot];if(l)sellForm(l.code,a.lot,{price:a.lim,units:a.qty,date:a.session,reason:"system",amo:a.id});else{I.remove(KEY,"amo",a.id);draw();}}
-    else buyForm({code:a.code,price:a.lim,qty:a.qty,date:a.session,amo:a.id});});
+    const km=I.kiteMatch(a),kp=km&&km.done&&ok(km.avg)&&km.avg>0?r2(km.avg):a.lim,kq=km&&km.done&&km.filled>0?km.filled:a.qty;
+    if(a.kind==="sell"){const l=I.load(KEY).lots[a.lot];if(l)sellForm(l.code,a.lot,{price:kp,units:kq,date:a.session,reason:"system",amo:a.id});else{I.remove(KEY,"amo",a.id);draw();}}
+    else buyForm({code:a.code,price:kp,qty:kq,date:a.session,amo:a.id});});
   document.querySelectorAll("[data-gtt]").forEach(b=>b.onclick=()=>gttForm(b.dataset.gtt));
   document.querySelectorAll("[data-lot]").forEach(r=>r.onclick=()=>{const l=I.load(KEY).lots[r.dataset.lot];if(l)buyForm({id:r.dataset.lot,...l});});
   document.querySelectorAll("[data-sold]").forEach(r=>r.onclick=()=>{const l=I.load(KEY).lots[r.dataset.sold];if(l)soldForm({id:r.dataset.sold,...l});});
@@ -402,6 +406,7 @@ async function refresh(){
   finally{$("refresh").disabled=false;}}
 $("refresh").onclick=refresh;
 draw();
+I.kiteBoot(draw);
 (async()=>{await syncNow(false);const nu=addUnique();if(nu.length){draw();showErr("");}refresh().then(()=>{if(nu.length)$("st").textContent=`Added ${nu.length} ETF${nu.length>1?"s":""} for indexes your universe didn't cover: ${nu.join(", ")}`;});})();
 setInterval(()=>{if(document.visibilityState==="visible"&&I.ist().open)refresh();},60000);
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&Date.now()-qAt>60000)refresh();});

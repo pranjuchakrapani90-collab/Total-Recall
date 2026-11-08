@@ -222,6 +222,71 @@ function fundBar(need){const F=kiteFund();let note="";
   if(!F.A)return `<button type="button" class="fund" id="kFund"><span>Kite fund <small>tap to enter your cash and LiquidBees</small></span><b>—</b></button>`;
   return `<button type="button" class="fund${note?" short":""}" id="kFund"><span>Kite fund <small>cash ${inr(F.cash,2)} · LiquidBees ${F.liqUnits}</small></span><b>${inr(F.total)}</b>${note}</button>`;}
 
+
+/* ---------- Zerodha Kite (read-only, Kite Connect Personal through the worker) ----------
+   The worker holds the Kite login (it ends at 6 AM IST daily); phones only get the figures. Nothing is ever
+   placed in Kite from here. The last figures are kept on this phone so the card still shows them after the
+   day's login has expired. */
+const KK="inv-kite-v1";
+function kiteCache(){return get(KK)||null;}
+async function kiteCall(op,post){
+  const back=op==="start"?"&back="+encodeURIComponent(location.href.replace(/([?&])kite=[^&]*&?/,"$1").replace(/[?&]$/,"")):"";
+  let r;try{r=await fetch(workerBase()+"/?mode=kite&op="+op+back,{method:post?"POST":"GET",cache:"no-store"});}catch(e){throw new Error("Can't reach the worker: "+e.message);}
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok||j.error){const e=new Error(j.error||("Kite HTTP "+r.status));e.code=j.code||(j.error==="Unknown Drive operation"||r.status===404?"old_worker":"");throw e;}
+  return j;}
+async function kiteLogin(){const j=await kiteCall("start");location.href=j.url;}
+async function kiteLogout(){await kiteCall("logout",true);}
+/* {d} fresh figures, or {err} (err.code "login" = log in again, "not_configured" = secrets missing) */
+async function kiteData(){try{const d=await kiteCall("data");put(KK,d);return {d};}catch(e){return {err:e};}}
+const istIso=ms=>new Date(ms+19800000).toISOString().slice(0,10);
+/* units the app thinks you hold: open ETF Shop lots + JuniorBees PKP + LiquidBees */
+function appUnits(){const u={},add=(c,n)=>{if(n)u[c]=(u[c]||0)+n;};
+  Object.values(load("etf").lots).forEach(l=>{if(l&&!ok(l.sellPrice)&&ok(l.qty))add(String(l.code).toUpperCase(),l.qty);});
+  const k=load("pkp"),sym=((k.settings||{}).symbol||"JUNIORBEES").toUpperCase();let n=0;
+  Object.values(k.tx).filter(Boolean).sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.seq||0)-(b.seq||0)).forEach(x=>{if(x.type==="buy")n+=x.units||0;else{n-=x.units||0;if(n<0)n=0;}});
+  add(sym,n);add(LIQ,kiteFund().liqUnits);return u;}
+/* Kite's answer for a pending AMO/order record {code,kind,qty,session}: only from figures fetched on its session day */
+function kiteMatch(a,d){d=d||kiteCache();if(!d||!d.orders||istIso(d.at)!==a.session)return null;
+  const side=a.kind==="sell"?"SELL":"BUY",L=d.orders.filter(o=>o.sym===String(a.code).toUpperCase()&&o.side===side);if(!L.length)return null;
+  const rank=o=>o.status==="COMPLETE"?0:/OPEN|TRIGGER|AMO|PENDING|VALIDATION|PUT ORDER/.test(o.status)?1:2;
+  const o=L.slice().sort((x,y)=>rank(x)-rank(y)||Math.abs(x.qty-a.qty)-Math.abs(y.qty-a.qty))[0];
+  return {...o,done:o.status==="COMPLETE"||o.filled>0,dead:rank(o)===2&&!(o.filled>0),open:rank(o)===1};}
+/* the Kite card: figures, holdings check, and a one-tap "use Kite's cash" for the Kite fund */
+function kiteCard(st){st=st||{};const d=kiteCache(),e=st.err,F=kiteFund();
+  if(e&&e.code==="not_configured")return `<section class="card kite"><div class="kh"><b>Kite</b><span class="muted small">not set up yet</span></div><p class="small muted">Add the Kite secrets on the worker (KITE_SETUP.md), then log in here once a day.</p></section>`;
+  if(e&&e.code==="old_worker")return `<section class="card kite"><div class="kh"><b>Kite</b><span class="muted small">worker needs the new code</span></div><p class="small muted">Paste the latest ticktick-worker.js into Cloudflare and deploy (KITE_SETUP.md).</p></section>`;
+  const today=ist().iso,fresh=d&&istIso(d.at)===today&&!(e&&e.code==="login");
+  const head=`<div class="kh"><b>Kite</b><span class="muted small">${d?esc((d.user?d.user+" · ":"")+(fresh?"updated "+ago(d.at):"last seen "+ago(d.at))):"not connected"}</span></div>`;
+  const login=!fresh&&(!e||e.code==="login")?`<button type="button" id="kLogin">Log in to Kite for today</button>`:"";
+  if(!d)return `<section class="card kite">${head}${e&&e.code!=="login"?`<p class="small dn">${esc(e.message)}</p>`:`<p class="small muted">Read-only: your cash, holdings, today's orders and GTTs. Kite asks you to log in once a day.</p>`}<div class="acts">${login}</div></section>`;
+  const f=d.funds||{},kc=f.live,A=appUnits(),K={};if(F.A&&!(LIQ in A))A[LIQ]=0;(d.holdings||[]).forEach(h=>K[h.sym]=h.qty);
+  const diff=Object.keys(A).filter(c=>(A[c]||0)!==(K[c]||0)).map(c=>`${esc(c)} app ${A[c]||0} · Kite ${K[c]||0}`);
+  const other=Object.keys(K).filter(c=>!(c in A)&&K[c]>0).length,lq=K[LIQ]||0;
+  const gt=(d.gtts||[]).filter(g=>g.status==="active").length;
+  const cashGap=ok(kc)&&F.A?kc-F.cash:NaN,useBtn=ok(kc)&&fresh&&(!F.A||Math.abs(cashGap)>=1||lq!==F.liqUnits);
+  return `<section class="card kite">${head}
+    <div class="krow"><span>Cash in Kite</span><b class="mono">${inr(kc,2)}</b></div>
+    ${F.A?`<div class="krow sub"><span>App's Kite fund cash</span><span class="mono ${ok(cashGap)&&Math.abs(cashGap)>=1?"warn":""}">${inr(F.cash,2)}${ok(cashGap)&&Math.abs(cashGap)>=1?` · off by ${inr(Math.abs(cashGap),2)}`:""}</span></div>`:""}
+    <div class="krow"><span>Holdings</span><span class="${diff.length?"warn":"up"}">${diff.length?diff.length+" differ":"match the app ✓"}</span></div>
+    ${diff.length?`<p class="small warn">${diff.join("<br>")}</p>`:""}
+    <div class="krow sub"><span>${other?other+" other holding"+(other>1?"s":"")+" in Kite not tracked here":"Nothing else in Kite"}</span><span>${gt} active GTT${gt===1?"":"s"}</span></div>
+    ${useBtn?`<p class="small muted">Tap to set the app's Kite fund to Kite's cash and ${lq} LiquidBees. Do it when today's orders have filled.</p>`:""}
+    <div class="acts">${useBtn?`<button type="button" id="kUse">Use Kite's figures</button>`:""}${login||`<button type="button" class="ghost" id="kRef">Refresh</button>`}</div>
+    ${e&&e.code!=="login"?`<p class="small dn">${esc(e.message)}</p>`:""}</section>`;}
+function kiteUse(after){const d=kiteCache();if(!d||!d.funds||!ok(d.funds.live))return;const lq=((d.holdings||[]).find(h=>h.sym===LIQ)||{}).qty||0,on=ist().iso;
+  setSettings("pkp",{kiteBal:r2(d.funds.live),kiteOn:on,kiteT:Date.now(),liqUnits:lq,liqOn:on});if(after)after();}
+/* wire the card's buttons; on return from Kite's login (?kite=ok) fetch at once */
+function kiteWire(redraw){const on=(id,f)=>{const e=document.getElementById(id);if(e)e.onclick=f;};
+  on("kLogin",async()=>{try{await kiteLogin();}catch(e){alert(e.message);}});
+  on("kRef",()=>kiteRefresh(redraw));on("kUse",()=>kiteUse(()=>redraw()));}
+let kiteSt={};
+async function kiteRefresh(redraw){const r=await kiteData();kiteSt=r.err?{err:r.err}:{};redraw();return r;}
+function kiteState(){return kiteSt;}
+function kiteBoot(redraw){const u=new URL(location.href),k=u.searchParams.get("kite");
+  if(k){u.searchParams.delete("kite");history.replaceState(null,"",u.toString());if(k!=="ok")setTimeout(()=>alert(k==="denied"?"Kite login was cancelled.":"Kite login failed. Try again."),300);}
+  kiteRefresh(redraw);}
+
 /* ---------- minimal building blocks shared by both pages ---------- */
 /* one action row: kind colours the label; btn is [text, attrs] or null */
 function todo(kind,label,what,q,sub,amt,btn){return `<div class="todo ${kind}"><span class="tl"><em>${label}</em> <b>${what}</b></span><span class="tq">${q||""}</span>${btn?`<button type="button" class="tick" ${btn[1]}>${btn[0]}</button>`:`<span class="tick none"></span>`}<span class="ts">${sub||""}</span><span class="ta">${amt||""}</span></div>`;}
@@ -229,5 +294,5 @@ function tabs(list,cur){return `<nav class="tabs" role="tablist">${list.map(([k,
 function sum(items){return `<section class="sum">${items.map(([l,v,cls,sub])=>`<div><span>${l}</span><b class="${cls||""}">${v}</b>${sub?`<small>${sub}</small>`:""}</div>`).join("")}</section>`;}
 function rememberTab(key,def){let t=def;try{t=sessionStorage.getItem("inv-tab-"+key)||def;}catch(e){}return t;}
 function saveTab(key,t){try{sessionStorage.setItem("inv-tab-"+key,t);}catch(e){}}
-window.Invest={todo,tabs,sum,rememberTab,saveTab,load,save,merge,upsert,remove,setSettings,uid,sync,push,hasSync,importData,exportData,pickImport,quotes,quotesCache,highSince,high52,touched,ist,ok,r2,inr,price,pct,signInr,tone,esc,dshort,days,ago,xirr,form,navs,navCache,mfSearch,NSE_HOLIDAYS,NSE_SPECIAL,nseClosed,nextTrading,orderSession,sessionStarted,LIQ,kiteFund,charges,liqToSell,liqForm,fundForm,fundBar};
+window.Invest={todo,tabs,sum,rememberTab,saveTab,load,save,merge,upsert,remove,setSettings,uid,sync,push,hasSync,importData,exportData,pickImport,quotes,quotesCache,highSince,high52,touched,ist,ok,r2,inr,price,pct,signInr,tone,esc,dshort,days,ago,xirr,form,navs,navCache,mfSearch,NSE_HOLIDAYS,NSE_SPECIAL,nseClosed,nextTrading,orderSession,sessionStarted,LIQ,kiteFund,charges,liqToSell,liqForm,fundForm,fundBar,kiteCache,kiteData,kiteMatch,kiteCard,kiteWire,kiteRefresh,kiteBoot,kiteState,kiteUse,appUnits};
 })();

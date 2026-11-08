@@ -221,3 +221,10 @@ details.hold>summary{padding:11px 0}
 .gchip.ok{border-color:var(--line);color:var(--up)}
 .fund{padding:10px 14px}.fund b{font-size:18px}
 .todo.liq em{color:var(--warn)}
+/* Kite card (read-only Zerodha link) */
+.kite .kh{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:6px}
+.kite .krow{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px solid var(--line);font-size:14.5px}
+.kite .krow.sub{border-top:0;padding-top:0;font-size:12.5px;color:var(--muted)}
+.kite p.small{margin:4px 0}
+.kite .acts{margin-top:8px}
+.kite{margin:0 0 12px}

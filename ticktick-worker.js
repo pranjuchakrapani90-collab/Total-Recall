@@ -1,6 +1,7 @@
 // Cloudflare Worker bridge for Total Recall.
 // Secrets: TICKTICK_ACCESS_TOKEN for TickTick, OPENAI_API_KEY for Memory Lane AI,
-// GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET for Travel Trace's Google Drive storage.
+// GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET for Travel Trace's Google Drive storage,
+// KITE_API_KEY + KITE_API_SECRET for the read-only Zerodha Kite link (Investments).
 // Never put either token in index.html or this repository.
 
 const ALLOWED_ORIGIN = 'https://pranjuchakrapani90-collab.github.io';
@@ -810,7 +811,57 @@ async function handleBackup(request,env,origin){
     return json({error:'Unknown backup operation'},400);
   }catch(e){const code=e&&e.code||'';return json({error:String(e&&e.message||e),code},code?409:502);}}
 
+
+/* ---------- Zerodha Kite (Kite Connect Personal, free) — read-only ----------
+   Secrets: KITE_API_KEY, KITE_API_SECRET (developers.kite.trade → Personal app). Redirect URL in that app:
+   https://total-recall-ticktick.pranjuchakrapani90.workers.dev/kite-callback
+   Kite's session ends at 6 AM IST every day, so you log in once a day; the token stays in KV, never on a phone.
+   Only reads: funds, holdings, today's orders, GTTs. No order is ever placed from here. */
+const KITE='https://api.kite.trade';
+function kiteTtl(){/* seconds until the next 06:00 IST */const ist=Date.now()+19800000,d=new Date(ist);let six=Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate(),6,0,0);if(ist>=six)six+=86400000;return Math.max(120,Math.floor((six-ist)/1000));}
+async function kiteSession(env){try{return JSON.parse(await env.SYNC_KV.get('kite:session')||'null')}catch(_){return null}}
+async function kiteGet(env,path,tok){const r=await fetch(KITE+path,{headers:{'X-Kite-Version':'3',Authorization:'token '+env.KITE_API_KEY+':'+tok}});
+  const d=await r.json().catch(()=>({}));
+  if(r.status===403||d.error_type==='TokenException'){await env.SYNC_KV.delete('kite:session');const e=new Error('Kite login has expired. Log in to Kite again.');e.code='login';throw e;}
+  if(!r.ok||d.status!=='success')throw new Error((d&&d.message)||('Kite HTTP '+r.status));return d.data;}
+async function handleKite(request,env,origin){
+  const json=(o,st)=>new Response(JSON.stringify(o),{status:st||200,headers:{...corsHeaders(origin),'Content-Type':'application/json','Cache-Control':'no-store'}});
+  if(!env.SYNC_KV)return json({error:'SYNC_KV binding is missing on the Worker.'},503);
+  const q=new URL(request.url).searchParams,op=q.get('op')||'status',configured=!!(env.KITE_API_KEY&&env.KITE_API_SECRET);
+  if(op==='status'){const s=await kiteSession(env);return json({configured,connected:configured&&!!s,user:s&&s.name||'',id:s&&s.uid||'',at:s&&s.at||''});}
+  if(!configured)return json({error:'Kite is not set up on the Worker yet (KITE_API_KEY and KITE_API_SECRET secrets).',code:'not_configured'},503);
+  if(op==='start'){const back=String(q.get('back')||'');if(back.indexOf(ALLOWED_ORIGIN+'/')!==0)return json({error:'Invalid return address.'},400);
+    const b=new Uint8Array(18);crypto.getRandomValues(b);const state=hex(b);await env.SYNC_KV.put('kite:state:'+state,back,{expirationTtl:900});
+    return json({url:'https://kite.zerodha.com/connect/login?v=3&api_key='+encodeURIComponent(env.KITE_API_KEY)+'&redirect_params='+encodeURIComponent('state='+state)});}
+  if(op==='data'){const s=await kiteSession(env);if(!s)return json({error:'Log in to Kite for today.',code:'login'},409);
+    try{const [m,h,o,g]=await Promise.all([kiteGet(env,'/user/margins/equity',s.tok),kiteGet(env,'/portfolio/holdings',s.tok),kiteGet(env,'/orders',s.tok),kiteGet(env,'/gtt/triggers',s.tok).catch(()=>[])]);
+      const av=m&&m.available||{};
+      return json({at:Date.now(),user:s.name,
+        funds:{net:m&&m.net,cash:av.cash,live:av.live_balance,opening:av.opening_balance,used:m&&m.utilised&&m.utilised.debits},
+        holdings:(h||[]).map(x=>({sym:x.tradingsymbol,qty:(x.quantity||0)+(x.t1_quantity||0),t1:x.t1_quantity||0,avg:x.average_price,ltp:x.last_price})),
+        orders:(o||[]).map(x=>({id:x.order_id,sym:x.tradingsymbol,side:x.transaction_type,variety:x.variety,status:x.status,qty:x.quantity,filled:x.filled_quantity,avg:x.average_price,price:x.price,time:x.order_timestamp,msg:x.status_message||''})),
+        gtts:(g||[]).map(x=>({id:x.id,status:x.status,sym:x.condition&&x.condition.tradingsymbol,trig:x.condition&&x.condition.trigger_values,orders:(x.orders||[]).map(y=>({side:y.transaction_type,qty:y.quantity,price:y.price}))}))});}
+    catch(e){return json({error:String(e&&e.message||e),code:e&&e.code||''},e&&e.code==='login'?409:502);}}
+  if(op==='logout'&&request.method==='POST'){const s=await kiteSession(env);
+    if(s){try{await fetch(KITE+'/session/token?api_key='+encodeURIComponent(env.KITE_API_KEY)+'&access_token='+encodeURIComponent(s.tok),{method:'DELETE',headers:{'X-Kite-Version':'3'}})}catch(_){}}
+    await env.SYNC_KV.delete('kite:session');return json({ok:true});}
+  return json({error:'Unknown Kite operation'},400);}
+async function handleKiteCallback(request,env){
+  const q=new URL(request.url).searchParams,state=String(q.get('state')||'');
+  const page=msg=>new Response('<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><p style="font:16px system-ui;padding:24px">'+msg+'</p>',{status:400,headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'}});
+  if(!/^[a-f0-9]{36}$/.test(state)||!env.SYNC_KV)return page('This Kite login link is not valid. Go back to Pranju OS and tap Log in to Kite again.');
+  const back=await env.SYNC_KV.get('kite:state:'+state);if(!back)return page('This Kite login link has expired. Go back to Pranju OS and tap Log in to Kite again.');
+  await env.SYNC_KV.delete('kite:state:'+state);
+  const go=res=>{const u=new URL(back);u.searchParams.set('kite',res);return Response.redirect(u.toString(),302);};
+  const rt=q.get('request_token');if(q.get('status')!=='success'||!rt)return go('denied');
+  const r=await fetch(KITE+'/session/token',{method:'POST',headers:{'X-Kite-Version':'3','Content-Type':'application/x-www-form-urlencoded'},
+    body:new URLSearchParams({api_key:env.KITE_API_KEY,request_token:rt,checksum:await sha(env.KITE_API_KEY+rt+env.KITE_API_SECRET)})});
+  const d=await r.json().catch(()=>({}));if(!r.ok||!d.data||!d.data.access_token)return go('error');
+  await env.SYNC_KV.put('kite:session',JSON.stringify({tok:d.data.access_token,uid:d.data.user_id||'',name:d.data.user_shortname||d.data.user_name||'',at:new Date().toISOString()}),{expirationTtl:kiteTtl()});
+  return go('ok');}
+
 export default {async fetch(request,env){const origin=request.headers.get('Origin')||'';if(request.method==='OPTIONS'){const h=corsHeaders(origin);const requested=request.headers.get('Access-Control-Request-Headers');if(requested)h['Access-Control-Allow-Headers']=requested;return new Response(null,{status:204,headers:h});}const url=new URL(request.url);
+ if(url.pathname==='/kite-callback'){try{return await handleKiteCallback(request,env)}catch(e){return new Response('Kite login failed: '+String(e&&e.message||e),{status:502,headers:{'Content-Type':'text/plain'}})}}
  if(url.pathname==='/drive-callback'){try{return await handleDriveCallback(request,env)}catch(e){return new Response('Google Drive sign-in failed: '+String(e&&e.message||e),{status:502,headers:{'Content-Type':'text/plain'}})}}
  if(url.searchParams.get('mode')!=='live-log'){try{const denied=await requireOwner(request,env,origin);if(denied)return denied;}catch(e){return new Response(JSON.stringify({error:'Auth check failed'}),{status:503,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.pathname==='/memory-extract'){if(request.method!=='POST')return new Response('Method not allowed',{status:405,headers:corsHeaders(origin)});try{return await memoryExtract(request,env)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
@@ -824,6 +875,7 @@ export default {async fetch(request,env){const origin=request.headers.get('Origi
  if(url.searchParams.get('mode')==='wa-review'||url.pathname==='/wa-review'){try{return await handleDrafts('wa',request,env,origin,r=>handleWaReview(r,env,origin))}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.searchParams.get('mode')==='live'||url.searchParams.get('mode')==='live-log'){try{return await handleLive(request,env,origin)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.searchParams.get('mode')==='backup'){try{return await handleBackup(request,env,origin)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
+ if(url.searchParams.get('mode')==='kite'){try{return await handleKite(request,env,origin)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.searchParams.get('mode')==='drive'){try{return await handleDrive(request,env,origin)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(url.searchParams.get('mode')==='travel-file'){try{return await handleTravelFile(request,env)}catch(e){return new Response(JSON.stringify({error:String(e&&e.message||e)}),{status:502,headers:{...corsHeaders(origin),'Content-Type':'application/json'}})}}
  if(request.method!=='GET')return new Response('Method not allowed',{status:405,headers:corsHeaders(origin)});
