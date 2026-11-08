@@ -223,6 +223,7 @@ table.boq{border-collapse:collapse;width:100%;min-width:720px;font-size:12.5px}
    <button class="btn" id="edBtn" type="button">✎ Edit drawing</button>
    <button class="btn alt" id="biBtn" type="button">⇩ Bring in from survey</button>
   </div>
+  <div class="hint" id="poleSum" style="margin-top:8px"></div>
   <div id="edTools" hidden>
    <div class="tools">
     <button class="tb" data-tool="move" type="button" title="Select / move">✥<span>Move</span></button>
@@ -328,7 +329,8 @@ table.boq{border-collapse:collapse;width:100%;min-width:720px;font-size:12.5px}
    <label>Pole for new poles<select id="dPole"><option value="">Auto</option><option value="9.75">PSC 9.75 m</option><option value="8.5">PSC 8.5 m</option><option value="7.5">PSC 7.5 m</option><option value="SP-56">SP-56 (11 m)</option><option value="SP-60">SP-60 (12 m)</option><option value="SP-66">SP-66 (12 m)</option><option value="SP-76">SP-76 (14.5 m)</option></select></label>
    <label>Span length (m)<input type="number" id="dLen" min="0" step="1" placeholder="auto"></label>
    <label>Pole spacing (m)<input type="number" id="dGap" min="5" step="1" placeholder="auto"></label>
-   <label>Intermediate poles (no.)<input type="number" id="dNMid" min="0" step="1" placeholder="auto"></label>
+   <label><span id="dNMidT">Intermediate poles (no.)</span><input type="number" id="dNMid" min="0" step="1" placeholder="auto"></label>
+   <label id="dNewL" hidden>New poles to add in between (no.)<input type="number" id="dNew" min="0" step="1" placeholder="0"></label>
    <label id="dDbMidL">Distribution boxes per intermediate pole<input type="number" id="dDbMid" min="0" max="4" step="1" placeholder="auto"></label>
    <label id="dDbTyL">Box type on intermediate poles<select id="dDbTy"><option value="">As survey rule</option><option value="1">Single-phase (811)</option><option value="3">Three-phase (813)</option></select></label>
    <label>Crossing on this span<select id="dCross"><option value="">None</option><option value="road">Road (guarding)</option><option value="line">Other line (guarding)</option></select></label>
@@ -354,7 +356,8 @@ table.boq{border-collapse:collapse;width:100%;min-width:720px;font-size:12.5px}
   <label>Line<select id="lLine"></select></label>
   <label>Length (m)<input type="number" id="lLen" min="0" step="1" placeholder="auto"></label>
   <label>Pole spacing (m)<input type="number" id="lGap" min="5" step="1" placeholder="auto"></label>
-  <label>Intermediate poles (no.)<input type="number" id="lNMid" min="0" step="1" placeholder="auto"></label>
+  <label><span id="lNMidT">Intermediate poles (no.)</span><input type="number" id="lNMid" min="0" step="1" placeholder="auto"></label>
+  <label id="lNewL" hidden>New poles to add in between (no.)<input type="number" id="lNew" min="0" step="1" placeholder="0"></label>
   <label>Pole for new poles<select id="lPole"></select></label>
   <label>Colour of this line<span style="display:flex;gap:8px;align-items:center"><input type="color" id="lCol" style="width:44px;height:30px;padding:0"><label class="ck" style="margin:0"><input type="checkbox" id="lColDef"> default</label></span></label>
   <label>Crossing on this span<select id="lCross"><option value="">None</option><option value="road">Road (guarding)</option><option value="line">Other line (guarding)</option></select></label>
@@ -457,6 +460,7 @@ const LINES={
  "RC33":{g:"onex",t:"33 kV reconductoring to Wolf",sh:"33 KV RECONDUCTORING, ACSR WOLF",cls:"HV",kv:33,bare:true,onEx:true,cond:"449",tc:"836",pg:"828",sl:"824",old:"447",ow:3},
  "CV3W":{g:"onex",t:"LT 1-ph → 3-ph conversion (Weasel)",sh:"LT 1-PH TO 3-PH CONVERSION, WEASEL",cls:"LT",bare:true,onEx:true,w:4,add:2,cond:"445"},
  "CVA1":{g:"onex",t:"LT bare → ABC 1C×70+1C×70",sh:"LT CONVERSION TO ABC 1CX70+1CX70",cls:"LT",abc:true,ph:1,onEx:true,cond:"15",old:"445",ow:2},
+ "CV13":{g:"onex",t:"LT 1-ph bare → 3-ph ABC 3C×70+1C×50",sh:"LT 1-PH BARE TO 3-PH ABC 3CX70+1CX50",cls:"LT",abc:true,ph:3,onEx:true,cond:"18",old:"445",ow:2},
  "CVA3":{g:"onex",t:"LT bare → ABC 3C×95+1C×70",sh:"LT CONVERSION TO ABC 3CX95+1CX70",cls:"LT",abc:true,ph:3,onEx:true,cond:"19",old:"445",ow:4},
  "EX33":{g:"exist",t:"Existing 33 kV line (no new work)",sh:"EXISTING 33 KV LINE",cls:"HV",kv:33,ex:true},
  "EX11":{g:"exist",t:"Existing 11 kV line (no new work)",sh:"EXISTING 11 KV LINE",cls:"HV",ex:true},
@@ -615,6 +619,14 @@ const gpsTxt=p=>dm(p.lat,"N","S")+" / "+dm(p.lng,"E","W");
 const hasNum=v=>v!==null&&v!==undefined&&v!==""&&isFinite(+v);
 function midCount(b,len,maxS){if(hasNum(b.nMid)&&+b.nMid>=0)return Math.round(+b.nMid);const g=hasNum(b.gap)&&+b.gap>0?+b.gap:maxS;return Math.max(0,Math.ceil(len/g-1e-9)-1)}
 function midTs(b,len,maxS){if(Array.isArray(b.mids))return b.mids.filter(t=>t>0&&t<1).sort((x,y)=>x-y);const n=midCount(b,len,maxS),r=[];for(let i=1;i<=n;i++)r.push(i/(n+1));return r}
+/* Work on existing poles (onEx lines): nMid / gap = existing poles in the span, nNew = new poles added between them.
+   midNew = which positions are new (1) / existing (0), set by tapping poles on the SLD; ignored once the counts change. */
+function midNewAuto(nE,nN){const f=[];for(let g=0;g<=nE;g++){const k=Math.floor((g+1)*nN/(nE+1))-Math.floor(g*nN/(nE+1));for(let i=0;i<k;i++)f.push(1);if(g<nE)f.push(0)}return f}
+function midPlan(b,L,len,maxS){if(L.ex)return[];if(!L.onEx){const ts=midTs(b,len,maxS);return ts.map(t=>({t,exist:!!L.dis}))}
+ const nN=hasNum(b.nNew)?Math.max(0,Math.round(+b.nNew)):0;let ts;
+ if(Array.isArray(b.mids))ts=midTs(b,len,maxS);else{const nE=midCount(b,len,maxS),n=nE+nN;ts=[];for(let i=1;i<=n;i++)ts.push(i/(n+1))}
+ const f=Array.isArray(b.midNew)&&b.midNew.length===ts.length?b.midNew:midNewAuto(Math.max(0,ts.length-Math.min(nN,ts.length)),Math.min(nN,ts.length));
+ return ts.map((t,i)=>({t,exist:!f[i]}))}
 function midRule(b,maxS){return Array.isArray(b.mids)?"placed by hand":hasNum(b.nMid)&&+b.nMid>=0?"number set by you":hasNum(b.gap)&&+b.gap>0?"your spacing "+(+b.gap)+" m":"rule: max "+maxS+" m"}
 function maxSpanFor(lineKey){const S={...DEF_SET,...(P().set||{})},L=LINES[lineKey]||{};return L.abc?S.sABC:L.kv===33?S.sEHV:L.mv?S.sMV:L.cls==="HV"?S.sHV:S.sLT}
 /* Span length: typed by the SDE, or (older surveys) the GPS distance when none is typed.
@@ -622,7 +634,8 @@ function maxSpanFor(lineKey){const S={...DEF_SET,...(P().set||{})},L=LINES[lineK
 const lenMode=p=>(p&&p.set&&p.set.lenSrc)||"gps";
 function spanLen(p,a,b){return +b.len>0?+b.len:lenMode(p)==="typed"?0:hav(a,b)}
 function midInfo(o,pa,lineKey){const L=LINES[lineKey]||{};if(!pa||L.ex)return L.ex&&pa?"Existing line — no new intermediate poles.":"";
- const len=spanLen(P(),pa,o),mx=maxSpanFor(lineKey);if(!(len>0))return`<span style="color:#b45309"><b>Type the span length (m)</b> — intermediate poles, conductor and the length on the SLD come from it.</span>`;const ts=midTs(o,len,mx),n=ts.length,sp=[...ts,1].map((t,i)=>(t-(i?ts[i-1]:0))*len),lg=Math.max(...sp),hand=Array.isArray(o.mids);
+ const len=spanLen(P(),pa,o),mx=maxSpanFor(lineKey);if(L.onEx&&len>0){const pl=midPlan(o,L,len,mx),ne=pl.filter(m=>!m.exist).length,ex=pl.length-ne;return`<b>${Math.round(len)} m → ${ex} existing + ${ne} new pole${ne===1?"":"s"} in between</b>, ${pl.length+1} spans of ~${Math.round(len/(pl.length+1))} m`+(Array.isArray(o.midNew)&&o.midNew.length===pl.length?" · new/existing set by tapping poles on the SLD":"")}
+ if(!(len>0))return`<span style="color:#b45309"><b>Type the span length (m)</b> — intermediate poles, conductor and the length on the SLD come from it.</span>`;const ts=midTs(o,len,mx),n=ts.length,sp=[...ts,1].map((t,i)=>(t-(i?ts[i-1]:0))*len),lg=Math.max(...sp),hand=Array.isArray(o.mids);
  return`<b>${Math.round(len)} m → ${n} intermediate pole${n===1?"":"s"}</b>, ${n+1} span${n?"s":""} ${hand?"(longest "+Math.round(lg)+" m)":"of ~"+Math.round(len/(n+1))+" m"} · ${midRule(o,mx)}`+(lg>mx+0.5?` <span style="color:#b45309">· a span is longer than the ${mx} m rule</span>`:"")+(hand?` <button type="button" class="btn alt sm" data-midreset>Back to automatic</button>`:"")}
 function setMids(b,ts){b.mids=ts.filter(t=>t>0.002&&t<0.998).sort((x,y)=>x-y).map(t=>+t.toFixed(5))}
 
@@ -642,9 +655,9 @@ function compute(p){
  const work=L=>!L.ex&&!L.dis;
  const maxSpan=L=>L.abc?S.sABC:L.kv===33?S.sEHV:L.mv?S.sMV:L.cls==="HV"?S.sHV:S.sLT;
  const poleOf=sg=>sg.pole||(sg.kv===33?"SP-76":sg.cls==="HV"?"9.75":"8.5");
- segs.forEach(sg=>{const L=sg.L,ts=L.ex?[]:midTs(sg.b,sg.len,maxSpan(L));sg.mid=[];sg.hand=!L.ex&&Array.isArray(sg.b.mids);sg.gapRule=midRule(sg.b,maxSpan(L));
-  ts.forEach((t,k)=>sg.mid.push({lat:sg.a.lat+(sg.b.lat-sg.a.lat)*t,lng:sg.a.lng+(sg.b.lng-sg.a.lng)*t,gen:true,i:k+1,t,hand:sg.hand,exist:!!(L.onEx||L.dis)}));
-  sg.spans=ts.length+1});
+ segs.forEach(sg=>{const L=sg.L,pl=midPlan(sg.b,L,sg.len,maxSpan(L));sg.mid=[];sg.hand=!L.ex&&Array.isArray(sg.b.mids);sg.gapRule=midRule(sg.b,maxSpan(L));
+  pl.forEach(({t,exist},k)=>sg.mid.push({lat:sg.a.lat+(sg.b.lat-sg.a.lat)*t,lng:sg.a.lng+(sg.b.lng-sg.a.lng)*t,gen:true,i:k+1,t,hand:sg.hand,exist}));
+  sg.spans=pl.length+1});
  const adj={};pts.forEach(x=>adj[x.id]=[]);
  segs.forEach(sg=>{const A=xy(sg.a,o),B=xy(sg.b,o),dx=B.x-A.x,dy=B.y-A.y,l=Math.hypot(dx,dy)||1;
   adj[sg.a.id].push({sg,ux:dx/l,uy:dy/l,other:sg.b});adj[sg.b.id].push({sg,ux:-dx/l,uy:-dy/l,other:sg.a})});
@@ -785,8 +798,12 @@ function compute(p){
   else{A(c,Math.round(sg.len*1.05),"route length + 5% ("+lab+")");add("819",Math.round(sg.len*0.5),"0.5 tie per m (DDUGJY norm)")}
   if(L.kv===33)km.EHV+=sg.len;else if(L.mv)km.MV+=sg.len;else km[L.cls]+=sg.len;if(L.onEx)km.ONX+=sg.len;
   if(L.flag)flags.add(L.flag);if(sg.reuse)flags.add("Conductor marked as RDSS dismantled / existing stock is shown in the side column and deducted (material + 18% GST)");
-  if(n){if(L.onEx){nExMid+=n;(L.cls==="HV"?hvTangent:ltTangent)(L,n,"existing intermediate poles ("+sg.gapRule+")");abcMidDb(sg)}
-   else{nGen+=n;const pl=poleOf(sg);newPole(pl,n,sg.kv,"intermediate poles ("+sg.gapRule+")");(L.cls==="HV"?hvTangent:ltTangent)(L,n,"intermediate poles");
+  if(n&&L.onEx){const nw=sg.mid.filter(m=>!m.exist),ne=n-nw.length;nExMid+=ne;if(ne)(L.cls==="HV"?hvTangent:ltTangent)(L,ne,"existing intermediate poles ("+sg.gapRule+")");
+   if(nw.length){nGen+=nw.length;const pl=poleOf(sg);newPole(pl,nw.length,sg.kv,"new poles added between existing poles ("+lab+")");(L.cls==="HV"?hvTangent:ltTangent)(L,nw.length,"new intermediate poles");
+    const stl=/^SP/.test(pl),ner=stl?nw.length:S.sEarth>0?Math.floor(nw.length/S.sEarth):0;earth(ner,stl?"every steel intermediate pole":"every "+S.sEarth+"th new intermediate pole");nw.forEach((m,j)=>{m.earth=stl||S.sEarth>0&&(j+1)%S.sEarth===0});
+    const ns=S.sStay>0?Math.floor(nw.length/S.sStay):0;if(ns){stayKit(sg.kv,ns,"storm stay every "+S.sStay+"th new pole");nw.forEach((m,j)=>{m.stay=(j+1)%S.sStay===0})}}
+   abcMidDb(sg)}
+  else if(n){{nGen+=n;const pl=poleOf(sg);newPole(pl,n,sg.kv,"intermediate poles ("+sg.gapRule+")");(L.cls==="HV"?hvTangent:ltTangent)(L,n,"intermediate poles");
     abcMidDb(sg);
     const stl=/^SP/.test(pl),ne=stl?n:S.sEarth>0?Math.floor(n/S.sEarth):0;earth(ne,stl?"every steel intermediate pole":"every "+S.sEarth+"th intermediate pole");sg.mid.forEach(m=>{m.earth=stl||S.sEarth>0&&m.i%S.sEarth===0});
     const ns=S.sStay>0?Math.floor(n/S.sStay):0;if(ns){stayKit(sg.kv,ns,"storm stay every "+S.sStay+"th pole");sg.mid.forEach(m=>{m.stay=m.i%S.sStay===0})}}}
@@ -812,8 +829,10 @@ function compute(p){
  const cnt={};const nx=k=>(cnt[k]=(cnt[k]||0)+1);
  function nameOf(x){switch(x.kind){case "dtr":case "dtrShift":return"DTR-"+nx("T");case "htc":return"S/S-"+nx("H");case "dtrAug":case "dtrTemp":return"DTR-"+nx("T");case "dp":case "iso33":case "ctpt":case "vcb11":case "exDP":case "sp2dp":case "ltdp":return"DP-"+nx("D");case "p4":case "ex4P":case "dp24p":return"4P-"+nx("4");case "tp":case "exTP":case "dp2tp":case "sp2tp":return"3P-"+nx("3");case "exDTR":return x.dtrNo?"DTR "+x.dtrNo:"DTR-"+nx("T");case "regrout":return"E-"+nx("E");
   case "cont":return"";case "exPole":case "exFit":return"E-"+nx("E");case "src11":case "src33":return"TP-"+nx("S");case "srcLT":return"LS-"+nx("S");case "srcDTR":return x.dtrNo?"DTR "+x.dtrNo:"EX-DTR";case "xRail":return"RTC-"+nx("R");case "xBridge":return"BR-"+nx("B");default:return"N-"+nx("N")}}
- function walk(x){lab[x.id]=nameOf(x);kids[x.id].forEach(sg=>{sg.mid.forEach(m=>{m.lab=m.exist?"E-"+nx("E"):"N-"+nx("N")});walk(sg.b)})}
- roots.forEach(walk);pts.filter(isStand).forEach(x=>lab[x.id]=x.kind==="rmPole"?"OLD-"+nx("O"):x.kind==="mark"?"M-"+nx("M"):"");
+ /* LT poles (after the DTR / LT source) run in one sequence L-1, L-2… along the route, new and existing alike (the symbol shows which) */
+ const NAMED=new Set(["dtr","dtrShift","htc","dtrAug","dtrTemp","dp","iso33","ctpt","vcb11","exDP","sp2dp","ltdp","p4","ex4P","dp24p","tp","exTP","dp2tp","sp2tp","exDTR","cont","src11","src33","srcLT","srcDTR","xRail","xBridge"]);
+ function walk(x,cls){lab[x.id]=cls==="LT"&&!NAMED.has(x.kind)?"L-"+nx("L"):nameOf(x);kids[x.id].forEach(sg=>{sg.mid.forEach(m=>{m.lab=sg.cls==="LT"?"L-"+nx("L"):m.exist?"E-"+nx("E"):"N-"+nx("N")});walk(sg.b,sg.cls)})}
+ roots.forEach(r=>walk(r,null));pts.filter(isStand).forEach(x=>lab[x.id]=x.kind==="rmPole"?"OLD-"+nx("O"):x.kind==="mark"?"M-"+nx("M"):"");
  pts.forEach(x=>{if(!lab[x.id]&&!isStand(x))lab[x.id]=nameOf(x)});
  // linear features (roads, tracks, rivers, drains) and crossing checks
  const fedges=[],fsingle=[],grpOf={};const root=x=>{let k=x,g=0;while(k.fpar&&byId[k.fpar]&&g++<500)k=byId[k.fpar];return k.id};
@@ -954,7 +973,7 @@ function sldSVG(c,so){
    const k=Math.floor(ptsOn.length/2)-1>=0?Math.floor((ptsOn.length-1)/2):0,P1=ptsOn[k],P2=ptsOn[k+1]||ptsOn[k],cx=(P1[0]+P2[0])/2,cy=(P1[1]+P2[1])/2,r=4.5;
    out.push(`<path d="M${(cx+ux*r).toFixed(1)},${(cy+uy*r).toFixed(1)} L${(cx-ux*r-uy*r*.8).toFixed(1)},${(cy-uy*r+ux*r*.8).toFixed(1)} L${(cx-ux*r+uy*r*.8).toFixed(1)},${(cy-uy*r-ux*r*.8).toFixed(1)} Z" fill="${SC}"/>`)}
   if(so.span&&!L.ex&&!L.dis&&sg.len>0){const ptsOn=[sg.a,...sg.mid,sg.b];for(let i=0;i<ptsOn.length-1;i++){const[p1,p2]=T(ptsOn[i]),[q1,q2]=T(ptsOn[i+1]);if(Math.hypot(q1-p1,q2-p2)<24)continue;t((p1+q1)/2-nx*9,(p2+q2)/2-ny*9+2.3,Math.round(hav(ptsOn[i],ptsOn[i+1])*(+sg.b.len>0?sg.len/Math.max(hav(sg.a,sg.b),0.01):1))+" m",{fs:6,c:"#374151",rot})}}
-  sg.mid.forEach(m=>{const[x,y]=T(m);U[m.exist?"exP":"newP"]=1;out.push(`<circle cx="${x}" cy="${y}" r="2.8" fill="${m.exist?"#111":"#fff"}" stroke="#111" stroke-width="1"/>`);if(m.earth)earthSym(x,y);if(m.stay){const A=xy(sg.a,c.o),B=xy(sg.b,c.o);stay(x,y,{x:-(B.y-A.y),y:B.x-A.x})}const sp=len/(sg.mid.length+1),step=Math.max(1,Math.ceil(20/Math.max(sp,1)));if(m.i%step===0)t(x+nx*9,y+ny*9+2.2,m.lab,{fs:6})});
+  sg.mid.forEach(m=>{const[x,y]=T(m);U[m.exist?"exP":"newP"]=1;out.push(`<circle cx="${x}" cy="${y}" r="2.8" fill="${m.exist?"#111":"#fff"}" stroke="#111" stroke-width="1"/>`);if(so.edit&&sg.L.onEx)out.push(`<circle class="mhit" data-ms="${sg.b.id}" data-mk="${m.i-1}" cx="${x}" cy="${y}" r="7" fill="#f59e0b" fill-opacity=".14" stroke="#b45309" stroke-opacity=".5" stroke-width=".6"><title>${m.lab}: ${m.exist?"existing pole":"new pole"} — tap to make it ${m.exist?"new":"existing"}</title></circle>`);if(m.earth)earthSym(x,y);if(m.stay){const A=xy(sg.a,c.o),B=xy(sg.b,c.o);stay(x,y,{x:-(B.y-A.y),y:B.x-A.x})}const sp=len/(sg.mid.length+1),step=Math.max(1,Math.ceil(20/Math.max(sp,1)));if(m.i%step===0)t(x+nx*9,y+ny*9+2.2,m.lab,{fs:6})});
  });
  function earthSym(x,y){U.earth=1;out.push(`<path d="M${x},${y+3} v4 M${x-3.5},${y+7} h7 M${x-2.3},${y+8.8} h4.6 M${x-1.1},${y+10.5} h2.2" stroke="#111" stroke-width="0.7" fill="none"/>`)}
  function stay(x,y,d){if(so.stay===false)return;U.stay=1;const l=Math.hypot(d.x,d.y)||1,ux=d.x/l,uy=-d.y/l,ex=x+ux*15,ey=y+uy*15;LS.push([x,y,ex,ey]);out.push(`<line x1="${x}" y1="${y}" x2="${ex}" y2="${ey}" stroke="#6b7280" stroke-width="0.9"/><path d="M${ex},${ey} l${(-ux*4-uy*2.4).toFixed(1)},${(-uy*4+ux*2.4).toFixed(1)} M${ex},${ey} l${(-ux*4+uy*2.4).toFixed(1)},${(-uy*4-ux*2.4).toFixed(1)}" stroke="#6b7280" stroke-width="0.9" fill="none"/>`)}
@@ -1197,11 +1216,13 @@ function renderDlgLine(){const p=P(),K=KINDS[draft.kind];$("#dLineSec").hidden=!
  const desc=new Set();(function mark(id){desc.add(id);p.pts.filter(q=>q.par===id).forEach(q=>mark(q.id))})(draft.id);
  $("#dPar").innerHTML=(K.src?'<option value="">— none (this is a source) —</option>':'<option value="">— not connected —</option>')+p.pts.filter(q=>!desc.has(q.id)&&!isStand(q)).map(q=>`<option value="${q.id}" ${q.id===draft.par?"selected":""}>P${q.no} · ${KINDS[q.kind].t}${q.note?" · "+q.note:""}</option>`).join("");
  $("#dLine").innerHTML=Object.entries(LG).map(([g,gl])=>`<optgroup label="${gl}">`+Object.entries(LINES).filter(([,v])=>v.g===g).map(([k,v])=>`<option value="${k}" ${k===draft.line?"selected":""}>${v.t}</option>`).join("")+"</optgroup>").join("");
- $("#dPole").value=draft.pole||"";$("#dCross").value=draft.cross||"";{const pa=p.pts.find(q=>q.id===draft.par);$("#dLen").value=draft.len||"";$("#dLen").placeholder=lenMode(p)==="typed"?"type it (m)":pa?"auto: "+Math.round(hav(pa,draft))+" m":"auto"}$("#dGap").value=hasNum(draft.gap)?draft.gap:"";$("#dNMid").value=hasNum(draft.nMid)?draft.nMid:"";$("#dDbMid").value=hasNum(draft.dbMid)?draft.dbMid:"";$("#dDbTy").value=draft.dbTyMid||"";renderSegOpts();dMidUpd()}
+ $("#dPole").value=draft.pole||"";$("#dCross").value=draft.cross||"";{const pa=p.pts.find(q=>q.id===draft.par);$("#dLen").value=draft.len||"";$("#dLen").placeholder=lenMode(p)==="typed"?"type it (m)":pa?"auto: "+Math.round(hav(pa,draft))+" m":"auto"}$("#dGap").value=hasNum(draft.gap)?draft.gap:"";$("#dNMid").value=hasNum(draft.nMid)?draft.nMid:"";$("#dNew").value=hasNum(draft.nNew)&&+draft.nNew?draft.nNew:"";$("#dDbMid").value=hasNum(draft.dbMid)?draft.dbMid:"";$("#dDbTy").value=draft.dbTyMid||"";renderSegOpts();dMidUpd()}
 function dMidUpd(){const p=P(),g=$("#dGap");g.placeholder="auto: max "+maxSpanFor($("#dLine").value)+" m";{const LL=LINES[$("#dLine").value]||{},ab=!!LL.abc;$("#dDbMidL").hidden=!ab;$("#dDbTyL").hidden=!ab||LL.ph!==3;$("#dDbMid").placeholder="auto: "+({...DEF_SET,...(p.set||{})}).sDB}
- const o={lat:draft.lat,lng:draft.lng,len:$("#dLen").value,gap:$("#dGap").value,nMid:$("#dNMid").value,mids:draft.mids},pa=p.pts.find(q=>q.id===$("#dPar").value);$("#dMidInfo").innerHTML=midInfo(o,pa,$("#dLine").value)}
-$("#dGap").addEventListener("input",()=>{delete draft.mids;delete draft.dbAt;$("#dNMid").value="";dMidUpd()});
-$("#dNMid").addEventListener("input",()=>{delete draft.mids;delete draft.dbAt;$("#dGap").value="";dMidUpd()});
+ const ox=!!(LINES[$("#dLine").value]||{}).onEx;$("#dNewL").hidden=!ox;$("#dNMidT").textContent=ox?"Existing poles in between (no.)":"Intermediate poles (no.)";
+ const o={lat:draft.lat,lng:draft.lng,len:$("#dLen").value,gap:$("#dGap").value,nMid:$("#dNMid").value,nNew:ox?$("#dNew").value:"",midNew:draft.midNew,mids:draft.mids},pa=p.pts.find(q=>q.id===$("#dPar").value);$("#dMidInfo").innerHTML=midInfo(o,pa,$("#dLine").value)}
+$("#dNew").addEventListener("input",()=>{delete draft.midNew;dMidUpd()});
+$("#dGap").addEventListener("input",()=>{delete draft.mids;delete draft.midNew;delete draft.dbAt;$("#dNMid").value="";dMidUpd()});
+$("#dNMid").addEventListener("input",()=>{delete draft.mids;delete draft.midNew;delete draft.dbAt;$("#dGap").value="";dMidUpd()});
 ["#dLen","#dPar"].forEach(k=>$(k).addEventListener("input",dMidUpd));$("#dPar").addEventListener("change",dMidUpd);
 $("#dMidInfo").addEventListener("click",e=>{if(e.target.closest("[data-midreset]")){delete draft.mids;delete draft.dbAt;dMidUpd();keepPending()}});
 function renderSegOpts(){const L=LINES[$("#dLine").value]||{};let h="";
@@ -1215,7 +1236,7 @@ function readOpts(){const K=KINDS[draft.kind];(K.o||[]).forEach(k=>{const el=doc
  const fp=document.getElementById("o_fpar");if(fp)draft.fpar=fp.value||"";
  Object.keys(XF).forEach(k=>{const el=document.getElementById("x_"+k);if(!el)return;draft[k]=XF[k].ty==="chk"?el.checked:(+el.value||0)})}
 function readSeg(){const g=id=>document.getElementById(id);if(g("sReuse"))draft.reuse=g("sReuse").checked;if(g("sDisOld"))draft.disOld=g("sDisOld").checked;if(g("sRm"))draft.rmPoles=g("sRm").checked}
-function readDlg(){readOpts();readSeg();draft.kind=$("#dKind").value;draft.note=$("#dNote").value.trim();const K=KINDS[draft.kind];draft.par=K.standalone?null:($("#dPar").value||null);draft.line=$("#dLine").value;draft.pole=$("#dPole").value;draft.cross=$("#dCross").value;const lv=$("#dLen").value;draft.len=lv===""?null:+lv;const gv=$("#dGap").value,nv=$("#dNMid").value;draft.gap=gv===""?null:+gv;draft.nMid=nv===""?null:Math.max(0,Math.round(+nv));const dv=$("#dDbMid").value;draft.dbMid=dv===""?null:Math.max(0,Math.round(+dv));draft.dbTyMid=$("#dDbTy").value||""}
+function readDlg(){readOpts();readSeg();draft.kind=$("#dKind").value;draft.note=$("#dNote").value.trim();const K=KINDS[draft.kind];draft.par=K.standalone?null:($("#dPar").value||null);draft.line=$("#dLine").value;draft.pole=$("#dPole").value;draft.cross=$("#dCross").value;const lv=$("#dLen").value;draft.len=lv===""?null:+lv;const gv=$("#dGap").value,nv=$("#dNMid").value;draft.gap=gv===""?null:+gv;draft.nMid=nv===""?null:Math.max(0,Math.round(+nv));if((LINES[draft.line]||{}).onEx){const wv=$("#dNew").value;draft.nNew=wv===""?0:Math.max(0,Math.round(+wv))}else{delete draft.nNew;delete draft.midNew}const dv=$("#dDbMid").value;draft.dbMid=dv===""?null:Math.max(0,Math.round(+dv));draft.dbTyMid=$("#dDbTy").value||""}
 $("#ptDlg").addEventListener("input",keepPending);$("#ptDlg").addEventListener("change",keepPending);
 $("#ptDlg").addEventListener("close",()=>{if(DB.pending&&!keepOpen){delete DB.pending;save(false)}});let keepOpen=false;
 function keepPending(){try{readDlg()}catch(e){return}DB.pending={pid:P().id,editId:edit?edit.id:null,draft:JSON.parse(JSON.stringify(draft))};save(false)}
@@ -1355,7 +1376,13 @@ function renderSurvey(c,fit){const p=P();qRender();$("#status").textContent=stat
 function renderSLD(c){const p=P(),o=p.opt;$("#oArrow").checked=o.arrow!==false;$("#oStay").checked=o.stay!==false;$("#oLegend").checked=o.legend!==false;{const C={...DEFCOL,...(o.col||{})};$("#cHv").value=C.hv;$("#cLt").value=C.lt;$("#cEx").value=C.ex;$("#cDis").value=C.dis}["North","Gps","Span","Sign"].forEach(k=>$("#o"+k).checked=!!o[k.toLowerCase()]);$("#sldTitle").value=p.meta.title||"";$("#sldTitle").placeholder="Auto: SINGLE LINE DIAGRAM FOR "+workOf(c).toUpperCase()+"…";
  if(EDIT&&!c.pts.length&&!(p.lay&&p.lay.f)){p.lay=p.lay||{};p.lay.f={ox:150,oy:300,s:0.6,mnx:0,mxy:0,olat:26.4,olng:92.9}}
  $("#sldBox").innerHTML=c.pts.length||EDIT?sldSVG(c,{...o,edit:EDIT}):'<p class="muted" style="padding:16px">The SLD starts blank. Tap ✎ Edit drawing to draw it, or ⇩ Bring in from survey to copy marked points in once.</p>';
- $("#sldBox").classList.toggle("editing",EDIT);$("#sldBox").classList.toggle("adding",EDIT&&EDMODE==="add");edUI()}
+ $("#sldBox").classList.toggle("editing",EDIT);$("#sldBox").classList.toggle("adding",EDIT&&EDMODE==="add");$("#poleSum").innerHTML=poleTally(c);edUI()}
+/* single poles along the route: new vs existing, LT and 11/33 kV separately (structures, DTRs and sources not counted) */
+function poleTally(c){const T={LT:{n:0,e:0},HV:{n:0,e:0}};
+ c.segs.forEach(sg=>{if(sg.L.ex||sg.L.dis)return;const t=T[sg.cls]||T.HV;sg.mid.forEach(m=>m.exist?t.e++:t.n++)});
+ c.pts.forEach(x=>{const sg=c.segs.find(g=>g.b===x);if(!sg||sg.L.ex||sg.L.dis)return;const t=T[sg.cls]||T.HV;if(["pole","steel","replace","shift"].includes(x.kind))t.n++;else if(x.kind==="ltdp")t.n+=2;else if(["exPole","exFit","regrout"].includes(x.kind))t.e++});
+ const f=(k,nm)=>{const t=T[k];return t.n+t.e?`${nm}: <b>${t.n} new</b> + ${t.e} existing pole${t.e===1?"":"s"}`:""};
+ const parts=[f("HV","11/33 kV line"),f("LT","LT line")].filter(Boolean);return parts.length?"Single poles on the route — "+parts.join(" · ")+(T.LT.e?" · on the LT conversion, tap any intermediate pole in ✎ Edit drawing to switch it between new and existing":""):""}
 /* ================= Drawing editor (SLD tab) ================= */
 let EDIT=false,EDMODE="move",ED=null,PICK=null,SNAP=true,ZOOM=1;const HIST=[],FUT=[];
 const HINTS={move:"Drag a structure or any text to move it. Drag inside a premises wall to move the wall; drag its corner square to resize it. Tap a structure to change it, tap a line to set its type, length and direction, tap a text to rewrite it.",
@@ -1402,7 +1429,9 @@ function connect(p,a,b){if(!a||a===b)return;if(subtree(p,b.id).includes(a)){aler
  if(["dtr","srcLT","srcDTR","dtrShift","htc","dtrTemp","dtrAug","exDTR"].includes(a.kind)&&LINES[b.line].cls==="HV")b.line=lastLine("LT")||"AB3b";
  touch(p);renderAll();openLine(b)}
 $("#sldBox").addEventListener("pointerdown",e=>{if(!EDIT)return;const xy0=svgXY(e);if(!xy0)return;const p=P();
- const tx=e.target.closest(".tx"),g=e.target.closest("g[data-p]"),ln=e.target.closest(".lhit");
+ const tx=e.target.closest(".tx"),g=e.target.closest("g[data-p]"),ln=e.target.closest(".lhit"),mh=e.target.closest(".mhit");
+ if(mh&&!["del","line","text","turn"].includes(EDMODE)){e.preventDefault();const b=p.pts.find(q=>q.id===mh.dataset.ms),sg=b&&compute(p).segs.find(q=>q.b.id===b.id);if(!sg)return;
+  const f=sg.mid.map(m=>m.exist?0:1),k=+mh.dataset.mk;f[k]=f[k]?0:1;snap();b.midNew=f;b.nNew=f.filter(Boolean).length;if(!Array.isArray(b.mids)){b.nMid=f.length-b.nNew;b.gap=null}touch(p);renderAll();return}
  if(EDMODE==="del"){e.preventDefault();
   if(g){const x=p.pts.find(q=>q.id===g.dataset.p);if(x&&confirm("Delete P"+x.no+" ("+KINDS[x.kind].t+")? Points after it join to the point before it.")){snap();delPoint(p,x);touch(p);renderAll()}}
   else if(tx){const k=tx.dataset.k;snap();const L=lay(p);if(k.startsWith("a:"))L.notes=L.notes.filter(n=>"a:"+n.id!==k);else L.txt[k]={...(L.txt[k]||{}),hide:true};freeze(p);touch(p);renderAll()}
@@ -1499,21 +1528,23 @@ function openLine(b){const p=P();LNB=b;const a=p.pts.find(q=>q.id===b.par);
  $("#lLine").innerHTML=Object.entries(LG).map(([g,gl])=>`<optgroup label="${gl}">`+Object.entries(LINES).filter(([,v])=>v.g===g).map(([k,v])=>`<option value="${k}" ${k===b.line?"selected":""}>${v.t}</option>`).join("")+"</optgroup>").join("");
  $("#lPole").innerHTML=$("#dPole").innerHTML;$("#lPole").value=b.pole||"";$("#lCross").value=b.cross||"";{const L=LINES[b.line]||{},C={...DEFCOL,...(p.opt.col||{})};$("#lCol").value=b.lcol||(L.dis?C.dis:L.ex?C.ex:L.cls==="HV"?C.hv:C.lt);$("#lColDef").checked=!b.lcol}
  $("#lLen").value=b.len||"";$("#lLen").placeholder=lenMode(p)==="typed"?"type it (m)":a?"auto: "+Math.round(hav(a,b))+" m":"auto";
- $("#lGap").value=hasNum(b.gap)?b.gap:"";$("#lNMid").value=hasNum(b.nMid)?b.nMid:"";LNM=Array.isArray(b.mids)?b.mids.slice():null;lMidUpd();
+ $("#lGap").value=hasNum(b.gap)?b.gap:"";$("#lNMid").value=hasNum(b.nMid)?b.nMid:"";$("#lNew").value=hasNum(b.nNew)&&+b.nNew?b.nNew:"";LNM=Array.isArray(b.mids)?b.mids.slice():null;LMN=Array.isArray(b.midNew)?b.midNew.slice():null;lMidUpd();
  const A=a&&posOf(a.id),B=posOf(b.id);if(A&&B){const ang=Math.round(Math.atan2(A[1]-B[1],B[0]-A[0])*R2D);$("#lAng").value=(ang+360)%360;$("#lMm").value=Math.round(Math.hypot(B[0]-A[0],B[1]-A[1])*MM)}else{$("#lAng").value="";$("#lMm").value=""}
  LN0={a:$("#lAng").value,m:$("#lMm").value,par:b.par};
  $("#lAngs").innerHTML=[["→",0],["↗",45],["↑",90],["↖",135],["←",180],["↙",225],["↓",270],["↘",315]].map(([t,v])=>`<button type="button" data-a="${v}">${t} ${v}°</button>`).join("");
  $("#lAngs").querySelectorAll("button").forEach(x=>x.onclick=()=>$("#lAng").value=x.dataset.a);
  $("#lnDlg").showModal()}
-let LNM=null;
+let LNM=null,LMN=null;
 function lMidUpd(){const p=P(),b=LNB;if(!b)return;$("#lGap").placeholder="auto: max "+maxSpanFor($("#lLine").value)+" m";const pa=p.pts.find(q=>q.id===$("#lFrom").value);
- const o={lat:b.lat,lng:b.lng,len:$("#lLen").value,gap:$("#lGap").value,nMid:$("#lNMid").value,mids:LNM||undefined};$("#lMidInfo").innerHTML=midInfo(o,pa,$("#lLine").value)}
-$("#lGap").addEventListener("input",()=>{LNM=null;$("#lNMid").value="";lMidUpd()});$("#lNMid").addEventListener("input",()=>{LNM=null;$("#lGap").value="";lMidUpd()});
+ const ox=!!(LINES[$("#lLine").value]||{}).onEx;$("#lNewL").hidden=!ox;$("#lNMidT").textContent=ox?"Existing poles in between (no.)":"Intermediate poles (no.)";
+ const o={lat:b.lat,lng:b.lng,len:$("#lLen").value,gap:$("#lGap").value,nMid:$("#lNMid").value,nNew:ox?$("#lNew").value:"",midNew:LMN||undefined,mids:LNM||undefined};$("#lMidInfo").innerHTML=midInfo(o,pa,$("#lLine").value)}
+$("#lGap").addEventListener("input",()=>{LNM=null;LMN=null;$("#lNMid").value="";lMidUpd()});$("#lNMid").addEventListener("input",()=>{LNM=null;LMN=null;$("#lGap").value="";lMidUpd()});$("#lNew").addEventListener("input",()=>{LMN=null;lMidUpd()});
 ["#lLen","#lFrom","#lLine"].forEach(k=>{$(k).addEventListener("input",lMidUpd);$(k).addEventListener("change",lMidUpd)});
 $("#lMidInfo").addEventListener("click",e=>{if(e.target.closest("[data-midreset]")){LNM=null;lMidUpd()}});
 $("#lCancel").onclick=()=>$("#lnDlg").close();$("#lCol").addEventListener("input",()=>$("#lColDef").checked=false);
 $("#lSave").onclick=()=>{const p=P(),b=LNB;if(!b)return;snap();
- const nf=$("#lFrom").value||null;b.par=nf;b.line=$("#lLine").value;b.pole=$("#lPole").value;b.cross=$("#lCross").value;if($("#lColDef").checked)delete b.lcol;else b.lcol=$("#lCol").value;const lv=$("#lLen").value;b.len=lv===""?null:+lv;{const gv=$("#lGap").value,nv=$("#lNMid").value,og=b.gap??null,on=b.nMid??null;b.gap=gv===""?null:+gv;b.nMid=nv===""?null:Math.max(0,Math.round(+nv));if(og!==b.gap||on!==b.nMid||(!LNM&&b.mids))delete b.dbAt;if(LNM)b.mids=LNM;else delete b.mids}
+ const nf=$("#lFrom").value||null;b.par=nf;b.line=$("#lLine").value;b.pole=$("#lPole").value;b.cross=$("#lCross").value;if($("#lColDef").checked)delete b.lcol;else b.lcol=$("#lCol").value;const lv=$("#lLen").value;b.len=lv===""?null:+lv;{const gv=$("#lGap").value,nv=$("#lNMid").value,og=b.gap??null,on=b.nMid??null;b.gap=gv===""?null:+gv;b.nMid=nv===""?null:Math.max(0,Math.round(+nv));if(og!==b.gap||on!==b.nMid||(!LNM&&b.mids))delete b.dbAt;if(LNM)b.mids=LNM;else delete b.mids;
+  const ox=!!(LINES[b.line]||{}).onEx,wv=$("#lNew").value;if(ox){b.nNew=wv===""?0:Math.max(0,Math.round(+wv));if(LMN)b.midNew=LMN;else delete b.midNew}else{delete b.nNew;delete b.midNew}}
  const ang=$("#lAng").value,mm=$("#lMm").value;
  if(nf&&ang!==""&&mm!==""&&(ang!==LN0.a||mm!==LN0.m||nf!==LN0.par)){const A=posOf(nf),B=posOf(b.id);if(A&&B){freeze(p);const r=(+ang)*D2R,d=(+mm)/MM,X=A[0]+Math.cos(r)*d,Y=A[1]-Math.sin(r)*d,dx=X-B[0],dy=Y-B[1];
   const sub=$("#lSub").checked?subtree(p,b.id).map(q=>[q,posOf(q.id)]):[];setPos(p,b,X,Y);sub.forEach(([q,Q])=>{if(Q)setPos(p,q,Q[0]+dx,Q[1]+dy)})}}
@@ -1521,7 +1552,7 @@ $("#lSave").onclick=()=>{const p=P(),b=LNB;if(!b)return;snap();
 $("#lDel").onclick=()=>{const p=P(),b=LNB;if(!b||!confirm("Delete this line? P"+b.no+" stays, unconnected."))return;snap();b.par=null;touch(p);$("#lnDlg").close();renderAll()};
 $("#lRev").onclick=()=>{const p=P(),b=LNB,a=p.pts.find(q=>q.id===b.par);if(!a)return;
  if(a.par&&!confirm("P"+a.no+" is itself fed from another point. Reversing makes P"+b.no+" feed P"+a.no+" and detaches P"+a.no+" from its feeder. Continue?"))return;
- snap();const keep={line:b.line,len:b.len,pole:b.pole,cross:b.cross,gap:b.gap,nMid:b.nMid,dbMid:b.dbMid,dbTyMid:b.dbTyMid};delete b.dbTyMid;const kd=Array.isArray(b.dbAt)?b.dbAt.slice().reverse():null;delete b.dbAt;delete b.dbMid;if(kd)a.dbAt=kd;else delete a.dbAt;const km=Array.isArray(b.mids)?b.mids.map(t=>1-t):null;b.par=null;a.par=b.id;Object.assign(a,keep);if(km)setMids(a,km);else delete a.mids;delete b.len;delete b.gap;delete b.nMid;delete b.mids;touch(p);$("#lnDlg").close();renderAll()};
+ snap();const keep={line:b.line,len:b.len,pole:b.pole,cross:b.cross,gap:b.gap,nMid:b.nMid,nNew:b.nNew,dbMid:b.dbMid,dbTyMid:b.dbTyMid};if(Array.isArray(b.midNew))keep.midNew=b.midNew.slice().reverse();delete b.midNew;delete b.nNew;delete b.dbTyMid;const kd=Array.isArray(b.dbAt)?b.dbAt.slice().reverse():null;delete b.dbAt;delete b.dbMid;if(kd)a.dbAt=kd;else delete a.dbAt;const km=Array.isArray(b.mids)?b.mids.map(t=>1-t):null;b.par=null;a.par=b.id;Object.assign(a,keep);if(km)setMids(a,km);else delete a.mids;delete b.len;delete b.gap;delete b.nMid;delete b.mids;touch(p);$("#lnDlg").close();renderAll()};
 function renderEst(c){const p=P(),m=p.meta;$("#mWork").value=m.work;$("#mWork").placeholder=autoWork(c);$("#mLoc").value=m.loc;$("#mPay").value=m.pay;$("#mDoc").value=m.doc;$("#mDate").value=m.date;$("#mSS").value=m.ss;$("#mFdr").value=m.fdr;$("#mFee").value=m.fee||0;
  const fl=c.flags.length?`<div class="warns flags"><b>Rates to check</b><ul>${c.flags.map(x=>`<li>${x}</li>`).join("")}</ul></div>`:"";
  $("#estWarn").innerHTML=warnBox(c)+fl;$("#estBox").innerHTML=c.pts.length?estHTML(c):'<p class="muted" style="padding:16px">Mark points on the Survey tab first.</p>'}
