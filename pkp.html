@@ -2,7 +2,7 @@
 <html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="kvsync.js?v=20261105a"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
 <title>JuniorBees PKP · Pranju OS</title>
 <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="icon" href="icon-192.png" sizes="192x192"><link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="stylesheet" href="invest.css?v=20261108k">
+<link rel="stylesheet" href="invest.css?v=20261109a">
 <link rel="stylesheet" href="tr-theme.css?v=20261020">
 </head><body class="tr-inv">
 <header><div class="hin">
@@ -15,7 +15,7 @@
   <div id="out"></div>
 </main>
 <script src="gsync.js?v=20261020"></script>
-<script src="invest.js?v=20261108m"></script>
+<script src="invest.js?v=20261109a"></script>
 <script>
 "use strict";
 const I=Invest,{esc,inr,price,pct,signInr,tone,ok,r2,dshort}=I;
@@ -103,6 +103,9 @@ function sellForm(pre){pre=pre||{};const M=model();
       I.upsert(KEY,"tx",pre.id,{date:v.date,type:"sell",price:v.price,units:u,reason:v.reason,seq:pre.seq||Date.now()});
       if(pre.fromGtt)I.setSettings(KEY,{gtt:null});draw();},
     onDelete:pre.id?()=>{I.remove(KEY,"tx",pre.id);draw();}:null});}
+/* "Fix" on the Kite card for the PKP symbol (other ETFs go to ETF Shop) */
+function kiteFix(code,a,k){const M=model();if(code!==String(M.S.symbol||"JUNIORBEES").toUpperCase())return false;const n=Math.abs(k-a),p=ok(M.cmp)?M.cmp:"";
+  if(k<a)sellForm({title:`Kite has ${n} fewer ${code}`,units:n,price:p,reason:"system"});else buyForm({title:`Kite has ${n} more ${code}`,units:n,price:p});}
 const GK={sell:"gtt",buy:"gttBuy"};
 function gttForm(side){const M=model(),x=side==="buy"?M.gttB:M.gtt;if(!x)return;const g=x.g,s=x.sug||g,buy=side==="buy";
   const fields=[{k:"trig",label:"Trigger price",type:"number",value:x.sug?s.trig:g.trig},{k:"lim",label:"Limit price",type:"number",value:x.sug?s.lim:g.lim,
@@ -240,7 +243,7 @@ function draw(){
   on("fSell",()=>sellForm({price:ok(M.cmp)?M.cmp:"",units:M.eligible||M.tgtUnits||"",reason:"system"}));
   on("qBuy",()=>buyForm({price:ok(M.cmp)?M.cmp:"",units:M.sipQty||"",title:"Discretionary buy"}));on("qSell",()=>sellForm({price:ok(M.cmp)?M.cmp:""}));
   ["b","s"].forEach(k=>{const side=k==="b"?"buy":"sell";on("gS"+k,()=>gttForm(side));on("gY"+k,()=>gttFilled(side));on("gN"+k,()=>gttMissed(side));});
-  on("kFund",()=>I.fundForm(draw));I.kiteWire(draw);
+  on("kFund",()=>I.fundForm(draw));I.kiteWire(draw,kiteFix);
   on("aBuy",()=>buyForm({price:ok(M.cmp)?M.cmp:"",units:M.sipQty||""}));
   document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{tab=b.dataset.tab;I.saveTab(KEY,tab);draw();});
   on("lAll",()=>{all=!all;draw();});on("bAll",()=>{bAll=!bAll;draw();});on("ladAll",()=>{ladAll=!ladAll;draw();});on("eSet",()=>settingsForm(M.S));
@@ -260,7 +263,7 @@ async function refresh(){const S={...DEF,...(I.load(KEY).settings||{})};
   finally{$("refresh").disabled=false;}}
 $("refresh").onclick=refresh;
 draw();
-I.kiteBoot(draw);
+I.kiteBoot(draw,kiteFix);
 (async()=>{await syncNow(false);refresh();})();
 setInterval(()=>{if(document.visibilityState==="visible"&&I.ist().open)refresh();},60000);
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&Date.now()-qAt>60000)refresh();});

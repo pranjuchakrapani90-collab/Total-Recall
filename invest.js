@@ -265,7 +265,7 @@ function kiteCard(st){st=st||{};const d=kiteCache(),e=st.err,F=kiteFund();
   const login=!fresh&&(!e||e.code==="login")?`<button type="button" id="kLogin">Log in to Kite for today</button>`:"";
   if(!d)return `<section class="card kite">${head}${e&&e.code!=="login"?`<p class="small dn">${esc(e.message)}</p>`:`<p class="small muted">Read-only: your cash, holdings, today's orders and GTTs. Kite asks you to log in once a day.</p>`}<div class="acts">${login}</div></section>`;
   const f=d.funds||{},kc=f.live,A=appUnits(),K={};if(F.A&&!(LIQ in A))A[LIQ]=0;(d.holdings||[]).forEach(h=>K[h.sym]=h.qty);
-  const diff=Object.keys(A).filter(c=>(A[c]||0)!==(K[c]||0)).map(c=>`${esc(c)} app ${A[c]||0} · Kite ${K[c]||0}`);
+  const diff=Object.keys(A).filter(c=>(A[c]||0)!==(K[c]||0)).map(c=>`<div class="kfix"><span>${esc(c)} app ${A[c]||0} · Kite ${K[c]||0}</span>${fresh?`<button type="button" class="ghost" data-kfix="${esc(c)}">Fix</button>`:""}</div>`);
   const other=Object.keys(K).filter(c=>!(c in A)&&K[c]>0).length,lq=K[LIQ]||0;
   const gt=(d.gtts||[]).filter(g=>g.status==="active").length;
   const cashGap=ok(kc)&&F.A?kc-F.cash:NaN,useBtn=ok(kc)&&fresh&&(!F.A||Math.abs(cashGap)>=1||lq!==F.liqUnits);
@@ -273,23 +273,31 @@ function kiteCard(st){st=st||{};const d=kiteCache(),e=st.err,F=kiteFund();
     <div class="krow"><span>Cash in Kite</span><b class="mono">${inr(kc,2)}</b></div>
     ${F.A?`<div class="krow sub"><span>App's Kite fund cash</span><span class="mono ${ok(cashGap)&&Math.abs(cashGap)>=1?"warn":""}">${inr(F.cash,2)}${ok(cashGap)&&Math.abs(cashGap)>=1?` · off by ${inr(Math.abs(cashGap),2)}`:""}</span></div>`:""}
     <div class="krow"><span>Holdings</span><span class="${diff.length?"warn":"up"}">${diff.length?diff.length+" differ":"match the app ✓"}</span></div>
-    ${diff.length?`<p class="small warn">${diff.join("<br>")}</p>`:""}
+    ${diff.length?`<div class="small warn">${diff.join("")}</div>`:""}
     <div class="krow sub"><span>${other?other+" other holding"+(other>1?"s":"")+" in Kite not tracked here":"Nothing else in Kite"}</span><span>${gt} active GTT${gt===1?"":"s"}</span></div>
     ${useBtn?`<p class="small muted">Tap to set the app's Kite fund to Kite's cash and ${lq} LiquidBees. Do it when today's orders have filled.</p>`:""}
     <div class="acts">${useBtn?`<button type="button" id="kUse">Use Kite's figures</button>`:""}${login||`<button type="button" class="ghost" id="kRef">Refresh</button>`}</div>
     ${e&&e.code!=="login"?`<p class="small dn">${esc(e.message)}</p>`:""}</section>`;}
 function kiteUse(after){const d=kiteCache();if(!d||!d.funds||!ok(d.funds.live))return;const lq=((d.holdings||[]).find(h=>h.sym===LIQ)||{}).qty||0,on=ist().iso;
   setSettings("pkp",{kiteBal:r2(d.funds.live),kiteOn:on,kiteT:Date.now(),liqUnits:lq,liqOn:on});if(after)after();}
+/* "Fix" on a holdings mismatch: LiquidBees takes Kite's units; every other symbol goes to the page that owns it.
+   onFix(code,appUnits,kiteUnits) returns false when the symbol belongs to the other page, which then opens with ?kfix=CODE */
+function kiteFix(code,redraw,onFix){const d=kiteCache();if(!d)return;const A=appUnits(),k=((d.holdings||[]).find(h=>h.sym===code)||{}).qty||0,a=A[code]||0;
+  if(code===LIQ){kiteUse(()=>redraw());return;}
+  if(onFix&&onFix(code,a,k)!==false)return;
+  const pk=((load("pkp").settings||{}).symbol||"JUNIORBEES").toUpperCase(),page=code===pk?"pkp.html":"etf-shop.html";
+  if(location.pathname.endsWith("/"+page))return;location.href=page+"?kfix="+encodeURIComponent(code);}
 /* wire the card's buttons; on return from Kite's login (?kite=ok) fetch at once */
-function kiteWire(redraw){const on=(id,f)=>{const e=document.getElementById(id);if(e)e.onclick=f;};
+function kiteWire(redraw,onFix){const on=(id,f)=>{const e=document.getElementById(id);if(e)e.onclick=f;};
   on("kLogin",async()=>{try{await kiteLogin();}catch(e){alert(e.message);}});
-  on("kRef",()=>kiteRefresh(redraw));on("kUse",()=>kiteUse(()=>redraw()));}
+  on("kRef",()=>kiteRefresh(redraw));on("kUse",()=>kiteUse(()=>redraw()));
+  document.querySelectorAll("[data-kfix]").forEach(b=>b.onclick=()=>kiteFix(b.dataset.kfix,redraw,onFix));}
 let kiteSt={};
 async function kiteRefresh(redraw){const r=await kiteData();kiteSt=r.err?{err:r.err}:{};redraw();return r;}
 function kiteState(){return kiteSt;}
-function kiteBoot(redraw){const u=new URL(location.href),k=u.searchParams.get("kite");
-  if(k){u.searchParams.delete("kite");history.replaceState(null,"",u.toString());if(k!=="ok")setTimeout(()=>alert(k==="denied"?"Kite login was cancelled.":"Kite login failed. Try again."),300);}
-  kiteRefresh(redraw);}
+function kiteBoot(redraw,onFix){const u=new URL(location.href),k=u.searchParams.get("kite"),fx=u.searchParams.get("kfix");
+  if(k||fx){u.searchParams.delete("kite");u.searchParams.delete("kfix");history.replaceState(null,"",u.toString());if(k&&k!=="ok")setTimeout(()=>alert(k==="denied"?"Kite login was cancelled.":"Kite login failed. Try again."),300);}
+  kiteRefresh(redraw).then(()=>{if(fx&&onFix)setTimeout(()=>kiteFix(fx,redraw,onFix),200);});}
 
 /* ---------- minimal building blocks shared by both pages ---------- */
 /* one action row: kind colours the label; btn is [text, attrs] or null */

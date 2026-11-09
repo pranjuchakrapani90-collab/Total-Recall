@@ -2,7 +2,7 @@
 <html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="kvsync.js?v=20261105a"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
 <title>ETF Shop · Pranju OS</title>
 <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="icon" href="icon-192.png" sizes="192x192"><link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="stylesheet" href="invest.css?v=20261108k">
+<link rel="stylesheet" href="invest.css?v=20261109a">
 <link rel="stylesheet" href="tr-theme.css?v=20261020">
 </head><body class="tr-inv">
 <header><div class="hin">
@@ -15,7 +15,7 @@
   <div id="out"></div>
 </main>
 <script src="gsync.js?v=20261020"></script>
-<script src="invest.js?v=20261108m"></script>
+<script src="invest.js?v=20261109a"></script>
 <script>
 "use strict";
 const I=Invest,{esc,inr,price,pct,signInr,tone,ok,r2,dshort}=I;
@@ -217,6 +217,45 @@ function gttForm(id){const M=model(),l=M.open.find(x=>x.id===id);if(!l)return;co
       I.upsert(KEY,"lots",id,{...lotRec(id),gtt:{trig:v.trig,lim:v.lim,qty:Math.round(v.qty),date:v.date}});draw();},
     onDelete:g?()=>{const r=lotRec(id);delete r.gtt;I.upsert(KEY,"lots",id,r);draw();}:null,delLabel:"Remove",delConfirm:"Remove this GTT from the app? Cancel it in your broker app too.",
     extra:g?[{label:"It triggered",run:()=>{later(()=>sellForm(l.code,id,{price:g.lim,units:g.qty<l.qty?g.qty:"",reason:"system"}));}}]:null});}
+/* ---------- Kite cross-checks ----------
+   Sell GTTs Kite says have triggered, matched to the app's lots that carry a GTT. Only while Kite's holdings for that ETF are
+   below the app's units, so it stops asking once the sale is recorded. Each Kite GTT matches one lot (closest trigger). */
+function kiteSold(M){const d=I.kiteCache();if(!d||!d.gtts)return [];const A=I.appUnits(),K={};(d.holdings||[]).forEach(h=>K[h.sym]=h.qty);
+  const used=new Set(),out=[];
+  M.open.filter(l=>l.gtt&&(K[l.code]||0)<(A[l.code]||0)&&!M.amo.some(a=>a.kind==="sell"&&a.lot===l.id)).forEach(l=>{
+    const L=d.gtts.filter(g=>!used.has(g.id)&&g.sym===l.code&&g.status==="triggered"&&(g.orders||[]).some(o=>o.side==="SELL"));if(!L.length)return;
+    const t=g=>Array.isArray(g.trig)?g.trig[0]:g.trig,g=L.sort((x,y)=>Math.abs(t(x)-l.gtt.trig)-Math.abs(t(y)-l.gtt.trig))[0],o=g.orders.find(o=>o.side==="SELL");
+    used.add(g.id);out.push({l,g,trig:t(g),lim:ok(o.price)&&o.price>0?o.price:l.gtt.lim,qty:Math.min(o.qty||l.gtt.qty,l.qty)});});
+  return out;}
+/* "Fix" on the Kite card for an ETF Shop symbol (JuniorBees goes to its own page) */
+function kiteFix(code,a,k){const pk=((I.load("pkp").settings||{}).symbol||"JUNIORBEES").toUpperCase();if(code===pk)return false;
+  if(k<a)fixFewer(code,a-k);else fixMore(code,k-a,a);}
+/* Kite holds fewer units: record the sale across lots, newest first (LIFO), or correct a wrong unit count */
+function fixFewer(code,n){const M=model(),L=M.open.filter(l=>l.code===code).sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:(b.t||0)-(a.t||0));if(!L.length)return;
+  const ks=kiteSold(M).find(x=>x.l.code===code),gl=L.find(l=>l.gtt),p0=ks?ks.lim:gl?gl.gtt.lim:L[0].close;
+  I.form({title:`Kite has ${n} fewer ${code}`,note:`The app has ${L.reduce((x,l)=>x+l.qty,0)} units in ${L.length} lot${L.length>1?"s":""}. A sale is taken from the newest lot first (LIFO)${L.length>1?", spilling into older lots if needed":""}. Check the sell price and date against Kite's order or GTT history.`,ok:"Save",
+    fields:[{k:"what",label:"What happened",type:"select",value:"sold",options:[["sold","Sold in Kite (GTT or my own order)"],["typo","The app's unit count is wrong, nothing was sold"]]},
+      {k:"units",label:"Units",type:"number",step:"1",value:n},
+      {k:"price",label:"Sell price",type:"number",value:ok(p0)?r2(p0):"",req:false},
+      {k:"date",label:"Sell date",type:"date",value:today()},
+      {k:"reason",label:"Reason",type:"select",value:ks||gl?"system":"view",options:REASONS}],
+    onSubmit:v=>{let u=Math.round(v.units);const tot=L.reduce((x,l)=>x+l.qty,0);if(!(u>0)||u>tot)return `Between 1 and ${tot} units.`;
+      if(v.what==="sold"&&!(v.price>0))return "Enter the sell price.";
+      for(const l of L){if(u<=0)break;const take=Math.min(u,l.qty),base=lotRec(l.id);u-=take;
+        if(v.what==="typo"){if(take===l.qty)I.remove(KEY,"lots",l.id);else I.upsert(KEY,"lots",l.id,{...base,qty:l.qty-take});continue;}
+        const sold={...base,qty:take,sellPrice:v.price,sellDate:v.date,reason:v.reason};delete sold.gtt;
+        if(take===l.qty)I.upsert(KEY,"lots",l.id,sold);
+        else{I.upsert(KEY,"lots",l.id,{...base,qty:l.qty-take});sold.split=l.id;I.upsert(KEY,"lots",null,sold);}}
+      draw();}});}
+/* Kite holds more units: a buy the app missed, or the newest lot was recorded short */
+function fixMore(code,n,a){const M=model(),L=M.open.filter(l=>l.code===code).sort((x,y)=>x.date<y.date?1:x.date>y.date?-1:(y.t||0)-(x.t||0)),q=M.held.find(h=>h.code===code);
+  const close=q&&ok(q.close)?q.close:"";
+  if(!L.length){buyForm({code,qty:n,price:close,disc:true});return;}
+  const nl=L[0];
+  I.form({title:`Kite has ${n} more ${code}`,ok:"Next",fields:[{k:"what",label:"What happened",type:"select",value:"typo",
+      options:[["typo",`The newest lot (${dshort(nl.date)} · ${nl.qty} @ ${price(nl.price)}) was really ${nl.qty+n} units`],["new",`A separate buy of ${n} unit${n>1?"s":""}`]]}],
+    onSubmit:v=>{if(v.what==="typo"){I.upsert(KEY,"lots",nl.id,{...lotRec(nl.id),qty:nl.qty+n});draw();}
+      else later(()=>buyForm({code,qty:n,price:close,disc:true}));}});}
 function moneyForm(c){c=c||{};
   I.form({title:c.id?"Edit money entry":"Money in / out",fields:[{k:"kind",label:"Type",type:"select",value:c.amount<0?"out":"in",options:[["in","Added to the shop"],["out","Withdrawn"]]},
       {k:"date",label:"Date",type:"date",value:c.date||today()},{k:"amount",label:"Amount (₹)",type:"number",value:c.amount?Math.abs(c.amount):""}],
@@ -245,9 +284,10 @@ function uniForm(u){u=u||{};const S={...DEF,...(I.load(KEY).settings||{})};
 const TABS=[["hold","Holdings"],["buys","Buy Log"],["watch","Watchlist"],["booked","Booked"]];
 let tab=I.rememberTab(KEY,"hold");
 function tonight(M){
-  const t=I.ist(),gt=M.gtts.filter(x=>x.todo),sells=M.sells.filter(o=>!M.amo.some(a=>!a.buy&&a.lot===o.l.id)),asks=M.amo.filter(a=>a.ask),tot=sells.length+(M.avg?1:0)+M.buys.length;
+  const ksold=kiteSold(M),kIds=new Set(ksold.map(x=>x.l.id));
+  const t=I.ist(),gt=M.gtts.filter(x=>x.todo&&!kIds.has(x.l.id)),sells=M.sells.filter(o=>!M.amo.some(a=>!a.buy&&a.lot===o.l.id)),asks=M.amo.filter(a=>a.ask),tot=sells.length+(M.avg?1:0)+M.buys.length;
   const when=t.weekend?"Weekend · AMO for Monday":t.open?(t.special?t.special+" · live":"Market open · live"):t.special&&!t.afterClose?`${t.special} today · opens ${Math.floor(t.from/60)-12}:${String(t.from%60).padStart(2,"0")} PM`:t.afterClose?`${t.wd} evening · AMO limit orders`:`${t.wd} morning · before the open`;
-  const big=asks.length?`Did your ${asks.length>1?asks.length+" AMOs":"AMO"} fill?`:M.liqSell&&!t.open?`Sell ${M.liqSell} LiquidBees at the open, then ${tot} order${tot>1?"s":""}`:tot?`${tot} order${tot>1?"s":""}${t.open?" right now":t.weekend?" for Monday":" tonight"}`:M.amo.length?"AMO placed · nothing else to do":t.open?"No signals right now":"Nothing to place tonight";
+  const big=asks.length?`Did your ${asks.length>1?asks.length+" AMOs":"AMO"} fill?`:ksold.length?`Kite sold ${ksold.length>1?ksold.length+" lots":"a lot"} by GTT · record it`:M.liqSell&&!t.open?`Sell ${M.liqSell} LiquidBees at the open, then ${tot} order${tot>1?"s":""}`:tot?`${tot} order${tot>1?"s":""}${t.open?" right now":t.weekend?" for Monday":" tonight"}`:M.amo.length?"AMO placed · nothing else to do":t.open?"No signals right now":"Nothing to place tonight";
   const fill=(k,c,q,p)=>[t.open?"Placed":"AMO placed",`data-place="${k}" data-c="${esc(c)}" data-q="${q}" data-p="${p}"`];
   const amoRows=M.amo.map(a=>{const lab=a.kind==="sell"?"Sell":a.kind==="avg"?"Average":"Buy",kind=a.kind==="sell"?"sell":a.kind==="avg"?"avg":"buy",q=`${a.qty} × ${price(a.lim)}`;
     if(!a.ask)return I.todo(kind+" done",lab,esc(a.code),q,esc(`AMO placed · goes in ${wdS(a.session)} at 9:15`),inr(a.qty*a.lim),["Undo",`data-amo-undo="${esc(a.id)}"`]);
@@ -257,7 +297,9 @@ function tonight(M){
     const hint=a.likely===true?`${a.buy?"low":"high"} ${price(a.tp)} reached your limit`:a.likely===false?`${a.buy?"low":"high"} ${price(a.tp)} didn't reach your limit`:"";
     return I.todo(kind+" ask",lab,esc(a.code),q,`<span class="dn">Did it ${a.buy?"buy":"sell"}?</span>${hint?" · "+esc(hint):""}`,inr(a.qty*a.lim),null)+
       `<div class="gask"><button type="button" data-amo-yes="${esc(a.id)}">${a.buy?"Yes, bought":"Yes, sold"}</button><button type="button" class="ghost" data-amo-no="${esc(a.id)}">No</button></div>`;});
-  const rows=[...amoRows,
+  const kRows=ksold.map(x=>I.todo("sell ask","GTT sold",esc(x.l.code),`${x.qty} × ${price(x.lim)}`,`<span class="up">Kite: GTT triggered at ${price(x.trig)}</span> · lot ${esc(dshort(x.l.date))} @ ${price(x.l.price)}`,inr(x.qty*x.lim),null)+
+    `<div class="gask"><button type="button" data-ksold="${esc(x.l.id)}">Record it</button></div>`);
+  const rows=[...amoRows,...kRows,
     ...sells.map(o=>I.todo("sell","Sell",esc(o.l.code),`${o.qty} × ${price(o.lim)}`,`bought ${price(o.l.price)} · ${pct(o.l.gain*100,1)} · stop ${price(o.l.stop)}`,inr(o.qty*o.lim),fill("sell",o.l.id,o.qty,o.lim))),
     M.liqSell?I.todo("liq","First","sell LIQUIDBEES",`${M.liqSell} units`,
       esc(t.open?"now, before 3:30 PM · then place the buys below":"in market hours (can't sell after hours) · then place the buys below as normal limit orders"),
@@ -367,7 +409,7 @@ function draw(){
   const M=model(),has=M.open.length||M.sold.length||M.cap.length;
   $("out").innerHTML=has?tonight(M)+I.fundBar(NaN)+I.kiteCard(I.kiteState())+summary(M)+details(M)+setup(M):empty();
   const on=(id,f)=>{const e=$(id);if(e)e.onclick=f;};
-  on("kFund",()=>I.fundForm(draw));I.kiteWire(draw);on("liqSold",()=>I.liqForm(draw,{units:M.liqSell}));
+  on("kFund",()=>I.fundForm(draw));I.kiteWire(draw,kiteFix);on("liqSold",()=>I.liqForm(draw,{units:M.liqSell}));
   on("aBuy",()=>buyForm());on("qBuy",()=>buyForm({disc:true}));on("qSell",pickSell);on("aMoney",()=>moneyForm());on("eRules",()=>settingsForm(M.S));on("aUni",()=>uniForm());
   on("wAll",()=>{showAll=!showAll;draw();});on("sAll",()=>{soldAll=!soldAll;draw();});on("bAll",()=>{buysAll=!buysAll;draw();});
   document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{tab=b.dataset.tab;I.saveTab(KEY,tab);draw();});
@@ -385,6 +427,8 @@ function draw(){
     if(a.kind==="sell"){const l=I.load(KEY).lots[a.lot];if(l)sellForm(l.code,a.lot,{price:kp,units:kq,date:a.session,reason:"system",amo:a.id});else{I.remove(KEY,"amo",a.id);draw();}}
     else buyForm({code:a.code,price:kp,qty:kq,date:a.session,amo:a.id});});
   document.querySelectorAll("[data-gtt]").forEach(b=>b.onclick=()=>gttForm(b.dataset.gtt));
+  document.querySelectorAll("[data-ksold]").forEach(b=>b.onclick=()=>{const x=kiteSold(model()).find(y=>y.l.id===b.dataset.ksold);if(!x)return;
+    sellForm(x.l.code,x.l.id,{price:x.lim,units:x.qty<x.l.qty?x.qty:"",reason:"system"});});
   document.querySelectorAll("[data-lot]").forEach(r=>r.onclick=()=>{const l=I.load(KEY).lots[r.dataset.lot];if(l)buyForm({id:r.dataset.lot,...l});});
   document.querySelectorAll("[data-sold]").forEach(r=>r.onclick=()=>{const l=I.load(KEY).lots[r.dataset.sold];if(l)soldForm({id:r.dataset.sold,...l});});
   document.querySelectorAll("[data-blog]").forEach(r=>r.onclick=()=>{const id=r.dataset.blog,l=I.load(KEY).lots[id];if(!l)return;
@@ -406,7 +450,7 @@ async function refresh(){
   finally{$("refresh").disabled=false;}}
 $("refresh").onclick=refresh;
 draw();
-I.kiteBoot(draw);
+I.kiteBoot(draw,kiteFix);
 (async()=>{await syncNow(false);const nu=addUnique();if(nu.length){draw();showErr("");}refresh().then(()=>{if(nu.length)$("st").textContent=`Added ${nu.length} ETF${nu.length>1?"s":""} for indexes your universe didn't cover: ${nu.join(", ")}`;});})();
 setInterval(()=>{if(document.visibilityState==="visible"&&I.ist().open)refresh();},60000);
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&Date.now()-qAt>60000)refresh();});
