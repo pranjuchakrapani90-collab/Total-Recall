@@ -32,8 +32,8 @@ const HAVE_LT=["Nothing — new spot","Single pole","LT double pole","LT cross a
 function steps(ctx){const hv=ctx.kv>=11,k33=ctx.kv===33,S=[];
  S.push({id:"have",t:"What is already standing here?",ask:"Look at the spot first. Tick everything that is already there — nothing here is costed, it is just what you are building on.",have:true});
  if(hv){
-  S.push({id:"pole",t:"Erect new pole(s)",ask:"Do you need a new pole here? Which one, and how many?",it:k33?["754","753","752","751","748"]:["748","747","746","751","752","753","754"]});
-  S.push({id:"grout",t:"Dig and grout",ask:"The new pole has to stand: digging, grouting / muffling.",it:["427","426","425","422","423"]});
+  S.push({id:"pole",t:"Erect new pole(s)",ask:"Do you need a new pole here? Which one, and how many?",it:k33?["754","755","753","752","751","748"]:["748","747","746","751","752","753","754","755"]});
+  S.push({id:"grout",t:"Dig and grout",ask:"The new pole has to stand: digging, grouting / muffling.",it:["427","426","425","422","423","424"]});
   S.push({id:"top",t:"Top of the pole: cross arm / channels",ask:"What goes on top — a T cross arm for the straight run, channels to tie a DP, a top cleat?",it:k33?["635","647","640","641","639","638","642","637","636"]:["634","647","638","639","640","641","642","637","636"]});
   S.push({id:"fix",t:"Fix it: clamps, nuts & bolts",ask:"Every cross arm and channel is held by pole clamps and bolts.",it:["830","646"]});
   S.push({id:"pin",t:"Pin insulators",ask:"Pins on the cross arm — for the straight run or to support the jumpers.",it:k33?["613","840"]:["626","841"]});
@@ -41,9 +41,9 @@ function steps(ctx){const hv=ctx.kv>=11,k33=ctx.kv===33,S=[];
    it:(ctx.mv?(k33?["922","910"]:["926","914","928","916","925","913"]):[]).concat(k33?["607","844","611","836"]:["622","850","612","852","834","835","836"])});
   S.push({id:"jump",t:"Conductor work here: jumpers, terminations",ask:"Jumpers across the cut, PG clamps, MVCC termination kits and ties, connectors from bare to covered.",
    it:(ctx.mv?(k33?["869","898"]:["873","875","872","902","904","878","879"]):[]).concat(k33?["828","449"]:["826","827","828","446","447","448"])});
-  S.push({id:"sw",t:"Switchgear",ask:"Any GOAB, DO fuse set or LA on this structure?",it:k33?["660","674"]:["518","519","513","514","676"]});
+  S.push({id:"sw",t:"Switchgear",ask:"Any GOAB, DO fuse set or LA on this structure?",it:k33?["660","664","512","674"]:["518","519","513","514","676","677","273"]});
   if(ctx.dtr){
-   S.push({id:"dtr",t:"Mount the transformer",ask:"Which DTR goes on the DP? It sits on the platform channels and is belted down with GI angle.",it:["637","770","771","772","774","778","780","782"]});
+   S.push({id:"dtr",t:"Mount the transformer",ask:"Which DTR goes on the DP? It sits on the platform channels and is belted down with GI angle.",it:["637","770","771","772","774","778","780","782","784","785","440"]});
    S.push({id:"ltside",t:"LT side of the DTR",ask:"MCB / MCCB and the LT box (metering cabinet) it sits in, GI angle frame for the box, LT cable from the DTR to the box, lugs.",it:["352","354","355","356","357","358","124","71","683","686","507","637","811","813"]})}
   if(ctx.lt)S.push({id:"ltw",t:"LT line on this pole",ask:"Is the LT line also carried here? Cross arm, pins, shackles, ABC clamps, boxes.",it:["645","630","842","632","853","800","806","810","807","802","811","813","805","809","808"]});
   S.push({id:"stay",t:"Stays",ask:"Where does the pull come from? Put a stay against each unbalanced pull.",it:k33?["653","616","651","428"]:["653","629","651","428"]});

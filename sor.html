@@ -1,0 +1,165 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="kvsync.js?v=20261105a"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
+<title>SoR Finder · Pranju OS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one column register — filter bar, then a ruled list of kits that open into BoM tables and a cost abstract */
+:root{
+  --bg:#f4f6f8; --surface:#ffffff; --fg:#1b2530; --muted:#5b6b7a; --line:#d5dde5;
+  --accent:#c9501c; --accent-soft:#fbe9df; --steel:#2f5d7c; --steel-soft:#e3edf4; --warn:#9a6a00; --warn-soft:#fdf3d6;
+  --display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --body:"Barlow","Segoe UI",Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111820; --surface:#18222c; --fg:#e4eaf0; --muted:#93a4b4; --line:#2b3846;
+  --accent:#f0814e; --accent-soft:#3a2219; --steel:#8cbad8; --steel-soft:#1d3142; --warn:#e8c15a; --warn-soft:#352b10; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111820; --surface:#18222c; --fg:#e4eaf0; --muted:#93a4b4; --line:#2b3846;
+  --accent:#f0814e; --accent-soft:#3a2219; --steel:#8cbad8; --steel-soft:#1d3142; --warn:#e8c15a; --warn-soft:#352b10; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.5}
+.wrap{max-width:1040px;margin:0 auto;padding-inline:16px;padding-block:24px 48px}
+header{display:grid;gap:6px;margin-bottom:18px}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(30px,6vw,44px);line-height:1.05;margin:0;text-wrap:balance}
+.lede{color:var(--muted);max-width:68ch;margin:0}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:10px;display:grid;gap:10px;border-bottom:1px solid var(--line)}
+.search{width:100%;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--fg)}
+.search:focus-visible,.chip:focus-visible,summary:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:600 13px var(--body);padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--steel);border-color:var(--steel);color:var(--surface)}
+.list{display:grid;margin-top:8px}
+details{border-bottom:1px solid var(--line)}
+summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:44px 1fr auto;gap:12px;align-items:baseline;padding:14px 4px}
+summary::-webkit-details-marker{display:none}
+.kno{font-family:var(--mono);font-size:13px;color:var(--accent)}
+.kt{min-width:0}
+.kt b{font-family:var(--display);font-weight:600;font-size:20px;letter-spacing:.01em;display:block;line-height:1.2}
+.kt span{color:var(--muted);font-size:13px}
+.kc{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:14px;text-align:right;white-space:nowrap}
+.kc small{display:block;color:var(--muted);font-size:11px}
+details[open] summary{background:var(--steel-soft)}
+.body{padding:12px 4px 22px;display:grid;gap:14px}
+.ctrl{display:flex;flex-wrap:wrap;gap:14px;align-items:end}
+.ctrl label{display:grid;gap:4px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.ctrl input,.ctrl select{font:500 15px var(--mono);padding:7px 9px;border:1px solid var(--line);border-radius:5px;background:var(--surface);color:var(--fg)}
+.ctrl input{width:110px}
+.src{font-size:13px;color:var(--muted);max-width:75ch}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:13.5px}
+th,td{padding:7px 9px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font:600 11px var(--body);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);background:var(--bg)}
+td.n,th.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+td.sor{font-family:var(--mono);color:var(--steel)}
+td .note{display:block;color:var(--muted);font-size:12px}
+.tag{font:600 10px var(--mono);padding:1px 5px;border-radius:3px;margin-left:6px;vertical-align:1px}
+.tag.e{background:var(--steel-soft);color:var(--steel)}
+.tag.f{background:var(--warn-soft);color:var(--warn)}
+tr:last-child td{border-bottom:0}
+.abs{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.abs table{min-width:0}
+.abs td:first-child{font-family:var(--mono);color:var(--accent);width:28px}
+.abs tr.tot td{font-weight:600;border-top:2px solid var(--fg)}
+.words{font-size:13px;color:var(--muted)}
+.empty{padding:28px 4px;color:var(--muted)}
+.cbtn{font:600 13px var(--body);padding:8px 14px;border-radius:6px;border:1px solid var(--steel);background:var(--surface);color:var(--steel);cursor:pointer}
+.cbtn.ok{background:var(--steel);color:var(--surface)}
+.chip small{opacity:.7;font-weight:500;margin-left:3px}
+.gst{font-size:13px;color:var(--muted)}
+footer{margin-top:28px;font-size:13px;color:var(--muted);display:grid;gap:6px;max-width:80ch}
+@media (max-width:520px){summary{grid-template-columns:34px 1fr}.kc{grid-column:2;text-align:left}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+.tabs{display:flex;gap:6px}
+.row{display:grid;grid-template-columns:54px 1fr auto;gap:10px;align-items:start;padding:11px 4px;border-bottom:1px solid var(--line);cursor:pointer;background:none;border-left:0;border-right:0;border-top:0;width:100%;text-align:left;font:inherit;color:inherit}
+.row:active{background:var(--steel-soft)}
+.row .no{font:600 15px var(--mono);color:var(--accent)}
+.row .ds b{font-weight:500;display:block;line-height:1.35}
+.row .ds span{font-size:11px;color:var(--muted);letter-spacing:.02em}
+.row .rt{font:500 14px var(--mono);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.row .rt small{display:block;color:var(--muted);font-size:11px}
+.row.pick{background:var(--accent-soft)}
+.cnt{font-size:13px;color:var(--muted);padding:8px 4px}
+select.search{appearance:auto}
+.norm{display:grid;gap:18px;margin-top:14px}
+.norm section{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 16px}
+.norm h2{font:600 20px var(--display);margin:0 0 8px}
+.norm table{min-width:0}
+.norm td:last-child{text-align:right;font-family:var(--mono);font-size:12.5px;width:46%}
+.norm section{min-width:0}
+.norm p{margin:8px 0 0;font-size:13px;color:var(--muted)}
+.toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:9px 16px;border-radius:999px;font:600 13px var(--body);z-index:20}
+.calc{display:flex;flex-wrap:wrap;gap:12px;align-items:end}
+.calc label{display:grid;gap:4px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.calc input,.calc select{font:500 15px var(--mono);padding:7px 9px;border:1px solid var(--line);border-radius:5px;background:var(--surface);color:var(--fg);width:130px}
+.calc output{font:600 15px var(--mono)}
+</style>
+<style>body{margin:0}[hidden]{display:none!important}</style>
+<link rel="stylesheet" href="tr-theme.css?v=20261020"></head><body class="tr-est"><nav class="trbar" aria-label="Where you are"><div><a href="./">Pranju OS</a><i>›</i><a href="apdcl-studio.html">Estimate Studio</a><i>›</i><b>SoR Finder</b></div></nav>
+
+<div class="wrap">
+  <header>
+    <a href="apdcl-studio.html" style="color:var(--steel);font-size:13px;text-decoration:none">← Estimate Studio</a>
+    <div class="eyebrow">APDCL · SoR 2021-22 · all items</div>
+    <h1>SoR Finder</h1>
+    <p class="lede">Every item of the SoR sheet your estimates use, with its number, unit and rate. Tap an item to copy its SoR number.</p>
+  </header>
+  <div class="bar">
+    <div class="chips tabs" role="tablist"><button class="chip" id="tF" type="button" aria-pressed="true">Find an item</button><button class="chip" id="tN" type="button" aria-pressed="false">Norms &amp; rules</button></div>
+    <div id="fbar" style="display:grid;gap:10px">
+      <input id="q" class="search" type="search" placeholder="Item or number — e.g. 9.75, raccoon, 100 kva, mccb 200, 748" aria-label="Search SoR items">
+      <select id="sec" class="search" aria-label="Section"></select>
+    </div>
+  </div>
+  <div id="find"><div class="cnt" id="cnt"></div><div id="res"></div></div>
+  <div id="norms" class="norm" hidden></div>
+  <footer>
+    <div>Rates are ex-works, excl. GST, from the SoR 2021-22 sheet (MVCC conductors as per Corrigendum No-2). The DTR fencing rows 1150/1–1150/4 are from CGM(PP&amp;D) memo 1150 dt 06.03.2024 and are not part of the SoR sheet.</div>
+  </footer>
+</div>
+<div class="toast" id="toast" hidden></div>
+<script src="est-assets.js?v=20261105g"></script>
+<script>
+"use strict";
+const SOR=Object.assign({},window.SOR2122||{},window.SOR_EXTRA||{}),SECS=window.SOR_SECS||[];
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const inr=v=>(+v||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
+const keys=Object.keys(SOR).sort((a,b)=>(parseFloat(a)||9999)-(parseFloat(b)||9999)||a.localeCompare(b));
+// words people use that the sheet spells differently
+const SYN={raccoon:"raccon",racoon:"raccon",weasel:"weasel",dtr:"dtr",transformer:"transformer|dtr",goab:"goab",ab:"aerial|ab ",abc:"messenger|abc",mvcc:"covered conductor",la:"lightning|lighting arrest",stay:"stay",earthing:"earth",isolator:"tpgo",ctpt:"ct/pt",vcb:"vcb",meter:"meter",pole:"pole",ug:"xlpe|armoured"};
+const ITEMS=keys.map(k=>{const r=SOR[k];return{k,r,sec:SECS[r[7]]||"",hay:(k+" "+r[2]+" "+(r[8]||"")+" "+(r[9]?r[9]+" kv":"")+" "+(r[10]||"")+" "+(SECS[r[7]]||"")).toLowerCase()}});
+$("sec").innerHTML='<option value="">All sections ('+ITEMS.length+' items)</option>'+SECS.map((s,i)=>'<option value="'+i+'">'+esc(s)+'</option>').join("");
+function match(it,toks){return toks.every(t=>{if(/^\d+(\/\d)?$/.test(t)&&it.k===t)return true;const alt=SYN[t];return it.hay.includes(t)||(alt&&alt.split("|").some(a=>it.hay.includes(a)))})}
+function render(){const q=$("q").value.trim().toLowerCase(),sec=$("sec").value,toks=q?q.split(/\s+/):[];
+  let L=ITEMS.filter(it=>(sec===""||String(it.r[7])===sec)&&(!toks.length||match(it,toks)));
+  const exact=q&&SOR[q.toUpperCase()]?q.toUpperCase():null;if(exact)L=[...L.filter(it=>it.k===exact),...L.filter(it=>it.k!==exact)];
+  const show=L.slice(0,150);
+  $("cnt").textContent=!q&&sec===""?"Type a word or a number, or pick a section. "+ITEMS.length+" items in all.":L.length+" item"+(L.length===1?"":"s")+(L.length>show.length?" — showing the first "+show.length+", type more to narrow down":"");
+  $("res").innerHTML=(!q&&sec==="")?"":show.map(it=>{const r=it.r;return`<button type="button" class="row" data-k="${it.k}"><span class="no">${it.k}</span><span class="ds"><b>${esc(r[2])}</b><span>${esc([r[8],it.sec].filter(Boolean).join(" · "))}</span></span><span class="rt">₹${inr(r[4])}<small>per ${esc(r[3])}</small><small>with GST ₹${inr(r[6])}</small></span></button>`}).join("")||'<div class="empty">Nothing found. Try fewer or different words.</div>'}
+let tt=0;function toast(m){const t=$("toast");t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(()=>t.hidden=true,1500)}
+$("res").addEventListener("click",e=>{const b=e.target.closest(".row");if(!b)return;const k=b.dataset.k;
+  const ok=()=>toast("SoR "+k+" copied");const fb=()=>{const ta=document.createElement("textarea");ta.value=k;ta.style.position="fixed";ta.style.opacity="0";document.body.appendChild(ta);ta.select();try{document.execCommand("copy");ok()}catch(err){toast("SoR "+k)}ta.remove()};
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(k).then(ok,fb);else fb()});
+$("q").addEventListener("input",render);$("sec").addEventListener("change",render);
+function tab(n){$("tF").setAttribute("aria-pressed",!n);$("tN").setAttribute("aria-pressed",!!n);$("find").hidden=!!n;$("fbar").style.display=n?"none":"grid";$("norms").hidden=!n;try{history.replaceState(null,"",n?"#norms":"#")}catch(e){}}
+$("tF").onclick=()=>tab(0);$("tN").onclick=()=>tab(1);
+/* ---------- Norms & rules: the figures the estimates and Line Survey work with ---------- */
+const T=(rows)=>'<div class="tbl"><table><tbody>'+rows.map(r=>'<tr><td>'+r[0]+'</td><td>'+r[1]+'</td></tr>').join("")+'</tbody></table></div>';
+const rate=k=>SOR[k]?"₹"+inr(SOR[k][4]):"—";
+$("norms").innerHTML=[
+ ["Cost abstract (rows A–P)",T([["A  Material, ex-works, excl. GST","sum of items"],["B  Transport & storage","5% of A"],["C  Total material","A + B"],["D  Erection / labour","15% of C"],["E  Civil / job items (grouting, fencing, pads)","at SoR job rate"],["F  Contingency — deposit, utility shifting, vehicular damage","3% of C"],["F  Contingency — departmental, O&amp;M, calamity","nil"],["G  Supervision — deposit, utility shifting","15% of D + 2.25% of E"],["G  Supervision — departmental capital, O&amp;M","nil"],["H  Gross","C + D + E + F + G"],["J, K  CGST, SGST","9% + 9% of H"],["M  Less party supply / O&amp;M stock / reusable","value + 18% GST"],["P  Net payable","rounded up, in words"]]),"Dismantling: 85% credit on dismantled material; supervision 15% of dismantling labour. Utility shifting: the agency supplies new material; payable is supervision + 18% GST."],
+ ["Full-load current",'<div class="calc"><label>Rating (kVA)<input id="fk" type="number" inputmode="decimal" value="100"></label><label>Voltage<select id="fv"><option value="0.415">415 V (LT)</option><option value="11">11 kV</option><option value="33">33 kV</option></select></label><output id="fo"></output></div>',"I = kVA ÷ (√3 × kV). About 1.39 A per kVA at 415 V, 52.5 A per MVA at 11 kV, 17.5 A per MVA at 33 kV. PTR peak load is kept within 70% of its rating."],
+ ["DTR: breaker, cable and fencing",T([["16 kVA (22 A)","MCCB 32 A · SoR 354"],["25 kVA (35 A)","MCCB 63 A · SoR 355"],["63 kVA (88 A)","MCCB 100 A · SoR 356"],["100 kVA (139 A)","MCCB 200 A · SoR 357"],["160 – 250 kVA (222 – 348 A)","MCCB 400 A · SoR 358"],["400 kVA (556 A)","MCCB 630 A · SoR 359"],["LT lead up to 63 kVA","1C×50, SoR 124"],["LT lead 100 kVA and above","1C×120, SoR 71"],["Earthing","3 separate pits per DTR"],["Fencing ≥100 kVA, 2.95×1.50×1.30 m","Type-I "+rate("1150/1")+" · Type-II "+rate("1150/2")],["Fencing ≤63 kVA, 2.60×1.50×1.30 m","Type-I "+rate("1150/3")+" · Type-II "+rate("1150/4")]]),"Fencing as per CGM(PP&amp;D) memo 1150 dt 06.03.2024: Type-I urban / semi-urban, Type-II rural. 400 kVA and above sit on a plinth (SoR 440)."],
+ ["Line quantities used by Line Survey",T([["11 / 33 kV bare conductor","3.3 km per route-km"],["LT bare, 1-ph 2-wire / 3-ph 4-wire","2.1 / 4.2 km per route-km"],["MVCC","3.3 m per route-m"],["LT AB cable","route + 5%"],["Underground cable","route + 5% + 10 m rise each end"],["Stay wire","HT 10 kg · 33 kV 16 kg · LT 7 kg"],["Earthing lead (GI wire 6 SWG)","3 kg per earthing"],["Anti-climbing barbed wire","2 kg per HT pole"],["Danger plate","1 per new pole"],["Default spans (your own spacing overrides)","11 kV 45 m · MVCC 32 m · 33 kV 33 m · LT 40 m · ABC 33 m"],["LT earthing","every 5th pole, each line end and tee-off"],["Distribution box","8 (1-ph) or 10 (3-ph) connections"]]),"Polymeric pin insulators 626 / 613 come with the GI pin fitted — no 841 / 840. T&amp;C disc goes with T&amp;C hardware, B&amp;S disc with B&amp;S hardware."],
+ ["Pole and grouting pairs",T([["PSC 7.5 m · 746","grouting 425"],["PSC 8.5 m · 747","grouting 426"],["PSC 9.75 m · 748","grouting 427"],["SP-56 / SP-60 · 751 / 752","grouting 422"],["SP-66 / SP-76 · 753 / 754","grouting 423"],["SP-80 · 755","grouting 424"],["Stay","grouting 428"]]),""],
+ ["Minimum clearances (CEA safety regulations)",T([["Across a street — LT","5.8 m"],["Across a street — 11 kV, 33 kV","6.1 m"],["Along a street — LT","5.5 m"],["Along a street — 11 kV, 33 kV","5.8 m"],["Elsewhere — LT and 11 kV","4.6 m"],["Elsewhere — 33 kV","5.2 m"],["Above a building — LT","2.5 m"],["Above a building — 11 kV, 33 kV","3.7 m"],["Beside a building — LT, 11 kV","1.2 m"],["Beside a building — 33 kV","2.0 m"]]),"Ground clearance of the lowest conductor at maximum sag. Check the current CEA (Measures relating to Safety and Electric Supply) Regulations before quoting these in a letter."]
+].map(s=>'<section><h2>'+s[0]+'</h2>'+s[1]+(s[2]?'<p>'+s[2]+'</p>':'')+'</section>').join("");
+function fl(){const k=+$("fk").value||0,v=+$("fv").value;$("fo").textContent=k?(k/(Math.sqrt(3)*v)).toFixed(v<1?0:2)+" A":""}
+$("fk").addEventListener("input",fl);$("fv").addEventListener("change",fl);fl();
+const qs=new URLSearchParams(location.search).get("q");if(qs){$("q").value=qs}
+render();if(location.hash==="#norms")tab(1);
+</script>
+</body></html>
