@@ -264,7 +264,7 @@ details.sldopt{margin-bottom:12px}details.sldopt>summary{cursor:pointer;font-wei
   <div class="f">
    <label>Estimate title (name of work)<input id="mWork" placeholder="Auto from the survey"></label>
    <label>Location<input id="mLoc" placeholder="Village / road"></label>
-   <label>Charges<select id="mPay"><option value="dept">Departmental (F, G = 0)</option><option value="dep">Deposit, APDCL executes (F 3% of C, G 15% of D + 2.25% of E)</option></select></label>
+   <label>Charges<select id="mPay"><option value="dept">Departmental (F, G = 0)</option><option value="dep">Deposit, APDCL executes (F 3% of C, G 15% of (D+E))</option><option value="depU">Deposit, Assam Mala / NHIDCL pattern (F 3% of C, G 15% of D + 2.25% of E)</option></select></label>
    <label>Document No<input id="mDoc" placeholder="SESD/2026/____"></label>
    <label>Date<input id="mDate" type="date"></label>
    <label>Substation<input id="mSS" placeholder="e.g. 33/11 kV Amoni DSS"></label>
@@ -906,9 +906,9 @@ const ORDER=["746","747","748","751","752","753","754","755","756","757","445","
 function boq(c){const keys=Object.keys(c.Q).filter(k=>c.Q[k]>0).sort((a,b)=>{const ia=ORDER.indexOf(a),ib=ORDER.indexOf(b);return(ia<0?999:ia)-(ib<0?999:ib)});
  const rnd=(k,q)=>{const u=RATES[k][1];if(u==="Km.")return Math.round(q*1000)/1000;if(u==="Kg.")return Math.ceil(q);if(u==="Mtr.")return Math.ceil(q);return Math.ceil(q-1e-9)};
  const mat=[],job=[];keys.forEach(k=>{const q=rnd(k,c.Q[k]),r=RATES[k],eq=c.EX[k]?rnd(k,c.EX[k]):0,row={sor:k,desc:r[0],unit:r[1],q,rate:r[2],amt:Math.round(q*r[2]*100)/100,eq,exAmt:Math.round(eq*r[2]*100)/100,why:(c.why[k]||[]).join("; ")};(EJOB.has(k)?job:mat).push(row)});
- const r2=v=>Math.round((v+Number.EPSILON)*100)/100,p=P(),dep=p.meta.pay==="dep",A=r2(mat.reduce((s,r)=>s+r.amt,0)),B=r2(A*.05),C=r2(A+B),D=r2(C*.15),E=r2(job.reduce((s,r)=>s+r.amt,0)),F=dep?r2(C*.03):0,G=dep?r2(D*.15+E*.0225):0,H=r2(C+D+E+F+G),I=+p.meta.fee||0,J=r2(H*.09),K=r2(H*.09),L=r2(H+I+J+K),XA=r2(mat.reduce((s,r)=>s+r.exAmt,0)),M=r2(XA*1.18),O=r2(L-M),Pr=Math.ceil(O-1e-6);
+ const r2=v=>Math.round((v+Number.EPSILON)*100)/100,p=P(),dep=/^depU?$/.test(p.meta.pay),A=r2(mat.reduce((s,r)=>s+r.amt,0)),B=r2(A*.05),C=r2(A+B),D=r2(C*.15),E=r2(job.reduce((s,r)=>s+r.amt,0)),F=dep?r2(C*.03):0,G=dep?r2(p.meta.pay==="depU"?D*.15+E*.0225:(D+E)*.15):0,H=r2(C+D+E+F+G),I=+p.meta.fee||0,J=r2(H*.09),K=r2(H*.09),L=r2(H+I+J+K),XA=r2(mat.reduce((s,r)=>s+r.exAmt,0)),M=r2(XA*1.18),O=r2(L-M),Pr=Math.ceil(O-1e-6);
  return{mat,job,A,B,C,D,E,F,G,H,I,J,K,L,XA,M,O,P:Pr,dep}}
-function dism(c){const keys=Object.keys(c.DM).filter(k=>c.DM[k]>0);if(!keys.length)return null;const r2=v=>Math.round((v+Number.EPSILON)*100)/100,dep=P().meta.pay==="dep";
+function dism(c){const keys=Object.keys(c.DM).filter(k=>c.DM[k]>0);if(!keys.length)return null;const r2=v=>Math.round((v+Number.EPSILON)*100)/100,dep=/^depU?$/.test(P().meta.pay);
  const rows=keys.map(k=>{const R=RATES[k],q=R[1]==="Km."?Math.round(c.DM[k]*1000)/1000:Math.ceil(c.DM[k]-1e-9),r85=r2(R[2]*0.85);return{sor:k,desc:R[0],unit:R[1],q,rate:R[2],r85,amt:r2(q*r85),why:(c.dwhy[k]||[]).join("; ")}});
  const A=r2(rows.reduce((s,r)=>s+r.amt,0)),B=r2(A*.05),C=r2(A+B),D=r2(C*.15),E=0,F=dep?r2(D*.15):0,G=r2(C+D+E+F),H=r2(G-A),I=r2(H*.09),J=r2(H*.09),K=r2(H+I+J),Pr=Math.ceil(K-1e-6),SG=r2(F*1.18);
  return{rows,A,B,C,D,E,F,G,H,I,J,K,P:Pr,dep,SG,SGP:Math.ceil(SG-1e-6)}}
@@ -1640,7 +1640,7 @@ function estHTML(c){const p=P(),m=p.meta,b=boq(c);let i=0;const row=r=>`<tr><td 
  <tr class="ab"><td class="n">E</td><td></td><td colspan="6">Other expenses where labour is included</td></tr>
  ${b.job.map((r,k)=>`<tr class="ab"><td class="n">${jl[k]||k+1}</td><td class="n">${r.sor}</td><td>${r.desc}</td><td>${r.unit}</td><td class="n q" title="${r.why.replace(/"/g,"&quot;")}">${r.q}</td><td class="n">${inr(r.rate)}</td><td class="n">${inr(r.amt)}</td><td></td></tr>`).join("")}
  ${ab("","Total of E",b.E)}${ab("","Total: D + E",b.D+b.E,"tot")}
- ${ab("F","Contingency @ "+(b.dep?"3% of C":"0% (departmental)"),b.F)}${ab("G","Supervision charges @ "+(b.dep?"15% of D + 2.25% of E":"0% (departmental)"),b.G)}
+ ${ab("F","Contingency @ "+(b.dep?"3% of C":"0% (departmental)"),b.F)}${ab("G","Supervision charges @ "+(b.dep?(P().meta.pay==="depU"?"15% of D + 2.25% of E":"15% of (D+E)"):"0% (departmental)"),b.G)}
  ${ab("H","Gross total (C+D+E+F+G)",b.H,"tot")}${ab("I","Processing fees",b.I)}${ab("J","CGST @ 9% on H",b.J)}${ab("K","SGST @ 9% on H",b.K)}${ab("L","Total (H+I+J+K)",b.L,"tot")}
  ${b.XA?`<tr class="ab"><td></td><td></td><td colspan="5">Total of existing / O&amp;M stock materials</td><td class="n">${inr(b.XA)}</td></tr>`:""}${ab("M","Less: existing / O&M stock materials (material + 18% GST)",b.M)}${ab("O","Total (L−M)",b.O,"tot")}
  <tr class="ab tot"><td class="n">P</td><td></td><td colspan="4">Say (rounded off)</td><td class="n">${b.P.toLocaleString("en-IN")}.00</td><td></td></tr>
@@ -1664,7 +1664,7 @@ function notesOf(c,b){const S=c.S,n=[];const mk=c.pts.length,gp=c.pts.filter(x=>
  if(b.XA)n.push("Existing / O&M stock materials are included in A so that labour is charged on them, and deducted at M as material + 18% GST.");
  if(Object.keys(c.DM).length)n.push("A separate dismantling estimate (85% of SoR) covers the materials to be removed.");
  if(c.pts.some(x=>x.kind==="xRail"))n.push("The way-leave charges for railway track crossing payable to the Railways are not included in this estimate.");
- if(!b.dep)n.push("Departmental work: contingency and supervision at 0%.");else n.push("Deposit work executed by APDCL: contingency 3% of C, supervision 15% of (D+E).");
+ if(!b.dep)n.push("Departmental work: contingency and supervision at 0%.");else n.push("Deposit work executed by APDCL: contingency 3% of C, supervision "+(P().meta.pay==="depU"?"15% of D + 2.25% of E (Assam Mala / NHIDCL pattern).":"15% of (D+E)."));
  return n}
 
 async function storeInfo(){const el=$("#storeInfo");let pers=null;try{pers=navigator.storage&&navigator.storage.persisted?await navigator.storage.persisted():null}catch(e){}
@@ -1794,7 +1794,7 @@ function buildXlsx(){const c=compute(P()),p=P(),m=p.meta,b=boq(c),ws=Sheet("Esti
  const rE=lab("","Total of E",b.job.length?`SUM(G${e1}:G${e2})`:"0",b.E);
  const rDE=lab("","Total: D + E",`G${rD}+G${rE}`,b.D+b.E,1);
  const rF=lab("F","Contingency @ "+(b.dep?"3% of C":"0% (departmental)"),b.dep?`ROUND(G${rC}*3%,2)`:"0",b.F);
- const rG=lab("G","Supervision charges @ "+(b.dep?"15% of D + 2.25% of E":"0% (departmental)"),b.dep?`ROUND(G${rD}*15%+G${rE}*2.25%,2)`:"0",b.G);
+ const rG=lab("G","Supervision charges @ "+(b.dep?(P().meta.pay==="depU"?"15% of D + 2.25% of E":"15% of (D+E)"):"0% (departmental)"),b.dep?(P().meta.pay==="depU"?`ROUND(G${rD}*15%+G${rE}*2.25%,2)`:`ROUND((G${rD}+G${rE})*15%,2)`):"0",b.G);
  const rH=lab("H","Gross total (C+D+E+F+G)",`G${rC}+G${rDE}+G${rF}+G${rG}`,b.H,1);
  const rI=lab("I","Processing fees",String(b.I),b.I);
  const rJ=lab("J","CGST @ 9% on H",`ROUND(G${rH}*9%,2)`,b.J);const rK=lab("K","SGST @ 9% on H",`ROUND(G${rH}*9%,2)`,b.K);
@@ -1852,5 +1852,5 @@ window.__test={compute,boq,P,DB,save,renderAll,sldSVG,buildXlsx,words};
   if(!a){a=document.createElement("a");a.id="pracChip";a.style.cssText="position:fixed;right:14px;bottom:16px;z-index:1200;background:#18221f;color:#fff;text-decoration:none;border-radius:999px;padding:10px 16px;font:650 14px system-ui,sans-serif;box-shadow:0 6px 20px #0004";document.body.appendChild(a)}
   a.href="est-practice.html?t="+encodeURIComponent(p.practice);a.textContent="Practice "+p.practice+" · check my estimate ›"}catch(e){}};renderAll(false)})();
 </script>
-<script src="drive.js?v=20261102t"></script><script src="est-assets.js?v=20261105g"></script><script src="est-doc.js?v=20261108b"></script><script src="build-steps.js?v=20261110a"></script>
+<script src="drive.js?v=20261102t"></script><script src="est-assets.js?v=20261105g"></script><script src="est-doc.js?v=20261110a"></script><script src="build-steps.js?v=20261110a"></script>
 </body></html>

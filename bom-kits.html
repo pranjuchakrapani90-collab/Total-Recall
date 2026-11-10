@@ -93,7 +93,7 @@ footer{margin-top:28px;font-size:13px;color:var(--muted);display:grid;gap:6px;ma
 
   <footer>
     <div>Rates: SoR 2021-22 ex-works, excl. GST, read from the same SoR sheet as Line Survey (MVCC as per Corrigendum No-2; DTR fencing as per CGM(PP&amp;D) memo 1150 dt 06.03.2024). <span class="tag e">E</span> marks a labour-included job item that goes in row E, not row A. <span class="tag f">NOT IN SoR</span> marks an approved rate outside the SoR.</div>
-    <div>Polymeric pin insulators (626 / 613) come with the GI pin fitted, so no 841 / 840 pins are listed. Departmental, O&amp;M and calamity work: F = G = 0. Deposit work, utility shifting and vehicular damage: F = 3% of C, G = 15% of D + 2.25% of E. Railway way-leave and other non-SoR charges are not included.</div>
+    <div>Polymeric pin insulators (626 / 613) come with the GI pin fitted, so no 841 / 840 pins are listed. Departmental, O&amp;M and calamity work: F = G = 0. Deposit work, utility shifting and vehicular damage: F = 3% of C, G = 15% of (D+E). Railway way-leave and other non-SoR charges are not included.</div>
   </footer>
 </div>
 
@@ -138,8 +138,8 @@ function calc(k){
     return {s,q,note,r,amt,tq:q*u};
   });
   const dep = (state.mode[k.id]||"dept")==="dep";
-  // G: 15% of D + 2.25% of E (the same rule as the estimate sheet), not 15% of (D+E)
-  const B=.05*A, C=A+B, D=.15*C, F=dep?.03*C:0, G=dep?.15*D+.0225*E:0, H=C+D+E+F+G, J=.09*H, K=.09*H, L=H+J+K;
+  // G: 15% of (D+E), as in the APDCL proforma invoice format (Annexure-1)
+  const B=.05*A, C=A+B, D=.15*C, F=dep?.03*C:0, G=dep?.15*(D+E):0, H=C+D+E+F+G, J=.09*H, K=.09*H, L=H+J+K;
   const unitCost = u ? (A+E)/u : k.items.reduce((t,[s,q])=>t+q*RATE[s].r,0);
   return {u,rows,A,B,C,D,E,F,G,H,J,K,L,dep,unitCost};
 }
@@ -152,7 +152,7 @@ function kitHTML(k){
     <td class="w">${x.r.u}</td><td class="n w">${qty(x.q)}</td><td class="n w">${inr(x.r.r)}</td><td class="n">${qty(x.tq)}<span class="note mob">${x.r.u}</span></td><td class="n">${inr(x.amt)}</td></tr>`).join("");
   const ab = [["A","Materials (excl. GST)",c.A],["B","T&S 5% of A",c.B],["C","Total materials",c.C],["D","Labour 15% of C",c.D],
     ["E","Job items, labour incl.",c.E],["F",c.dep?"Contingency 3% of C":"Contingency (nil)",c.F],
-    ["G",c.dep?"Supervision 15% of D + 2.25% of E":"Supervision (nil)",c.G],["H","Gross C+D+E+F+G",c.H],["J","CGST 9% on H",c.J],["K","SGST 9% on H",c.K]];
+    ["G",c.dep?"Supervision 15% of (D+E)":"Supervision (nil)",c.G],["H","Gross C+D+E+F+G",c.H],["J","CGST 9% on H",c.J],["K","SGST 9% on H",c.K]];
   return `<div class="body">
     <div class="ctrl">
       <label for="u${k.id}">No. of units (${k.basis})<input id="u${k.id}" type="number" min="0" step="any" inputmode="decimal" value="${c.u}" data-u="${k.id}"></label>
