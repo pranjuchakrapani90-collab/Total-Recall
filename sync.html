@@ -77,7 +77,7 @@ details summary{cursor:pointer;font-weight:700}
 (function(){
 "use strict";
 var $=function(id){return document.getElementById(id)},DEF="https://total-recall-ticktick.pranjuchakrapani90.workers.dev",API="https://www.googleapis.com/drive/v3",UP="https://www.googleapis.com/upload/drive/v3";
-var FOLDER="application/vnd.google-apps.folder",IDX="pos-dsync-index",HIST="pos-dsync-history",DAYS="pos-dsync-days",PAR=3;
+var FOLDER="application/vnd.google-apps.folder",IDX="pos-dsync-index",IDXAT="pos-dsync-index-at",HIST="pos-dsync-history",DAYS="pos-dsync-days",PAR=5,SMALL=5242880;
 var tok=null,idx=null,stop=false,running=false;
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
 function base(){var u=null;try{u=localStorage.getItem("totalRecallTickTickUrl")}catch(e){}return u||window.TOTAL_RECALL_TICKTICK_URL||DEF}
@@ -103,34 +103,50 @@ function idb(){return new Promise(function(ok,no){var r=indexedDB.open("pos-dsyn
 async function kget(k){var d=await idb();return new Promise(function(ok){var r=d.transaction("kv").objectStore("kv").get(k);r.onsuccess=function(){ok(r.result)};r.onerror=function(){ok(null)}})}
 async function kset(k,v){var d=await idb();return new Promise(function(ok){var t=d.transaction("kv","readwrite");t.objectStore("kv").put(v,k);t.oncomplete=function(){ok()};t.onerror=function(){ok()}})}
 /* rows: [id,name,mime,size,parent,createdTime] */
-/* Full listing of My Drive is slow (thousands of files = many pages), so after the first full read only files
-   added/changed since the last read are fetched and merged in. Full re-read: Refresh button, or index > 24 h old. */
+/* Full listing of My Drive is slow (1000 files a page, one page at a time), so it is done once. After that only
+   Drive's own "changes" feed since the last read is fetched and merged in — it also reports files trashed or deleted.
+   Full re-read: Refresh button only (or if Drive no longer accepts the saved place in the feed). */
 var idxP=null;
 function ensureIndex(progress,full){
   if(idxP)return idxP;
-  var inc=!full&&idx&&idx.rows&&idx.root&&Date.now()-idx.at<24*36e5;
-  idxP=(inc?fetchChanges(progress):fetchIndex(progress)).finally(function(){idxP=null});return idxP}
+  var inc=!full&&idx&&idx.rows&&idx.root;
+  idxP=(inc?fetchChanges(progress).catch(function(e){if(e&&e.relist)return fetchIndex(progress);throw e}):fetchIndex(progress)).finally(function(){idxP=null});return idxP}
+async function startTok(){var r=await g(API+"/changes/startPageToken");if(!r.ok)throw await gerr(r,"Drive");return (await r.json()).startPageToken}
 async function fetchChanges(progress){
-  var since=new Date(idx.at-10*60000).toISOString(),start=Date.now(),got=[],page="",q="'me' in owners and modifiedTime > '"+since+"'";
-  for(var i=0;i<100;i++){
-    var r=await g(API+"/files?spaces=drive&pageSize=1000&fields=nextPageToken,files(id,name,mimeType,size,parents,createdTime,trashed)&q="+encodeURIComponent(q)+(page?"&pageToken="+encodeURIComponent(page):""));
-    if(!r.ok)throw await gerr(r,"Drive listing");var d=await r.json();got=got.concat(d.files||[]);
-    if(progress)progress(idx.rows.length+got.length);if(!d.nextPageToken)break;page=d.nextPageToken}
-  if(got.length){var at={};idx.rows.forEach(function(r,j){at[r[0]]=j});var rows=idx.rows.slice(),drop={};
-    got.forEach(function(f){if(f.trashed){drop[f.id]=1;return}var row=[f.id,f.name,f.mimeType,Number(f.size||0),(f.parents||[])[0]||"",f.createdTime];
+  var start=Date.now(),got=[],gone={},ct=idx.ct,r,d,i;
+  if(ct){
+    for(i=0;i<200;i++){
+      r=await g(API+"/changes?pageToken="+encodeURIComponent(ct)+"&pageSize=1000&spaces=drive&includeRemoved=true&fields=nextPageToken,newStartPageToken,changes(fileId,removed,file(id,name,mimeType,size,parents,createdTime,trashed,ownedByMe))");
+      if(!r.ok){var e=await gerr(r,"Drive changes");if(r.status===400||r.status===404||r.status===410)e.relist=true;throw e}
+      d=await r.json();
+      (d.changes||[]).forEach(function(c){if(c.removed||!c.file||c.file.trashed||c.file.ownedByMe===false)gone[c.fileId]=1;else{delete gone[c.fileId];got.push(c.file)}});
+      if(progress)progress(idx.rows.length+got.length);
+      if(d.nextPageToken)ct=d.nextPageToken;else{ct=d.newStartPageToken||ct;break}}}
+  else{
+    /* index saved before the changes feed was used: note the place in the feed first, then catch up once by date */
+    ct=await startTok();
+    var since=new Date(idx.at-10*60000).toISOString(),page="",q="'me' in owners and modifiedTime > '"+since+"'";
+    for(i=0;i<100;i++){
+      r=await g(API+"/files?spaces=drive&pageSize=1000&fields=nextPageToken,files(id,name,mimeType,size,parents,createdTime,trashed)&q="+encodeURIComponent(q)+(page?"&pageToken="+encodeURIComponent(page):""));
+      if(!r.ok)throw await gerr(r,"Drive listing");d=await r.json();
+      (d.files||[]).forEach(function(f){if(f.trashed)gone[f.id]=1;else got.push(f)});
+      if(progress)progress(idx.rows.length+got.length);if(!d.nextPageToken)break;page=d.nextPageToken}}
+  if(got.length||Object.keys(gone).length){var at={};idx.rows.forEach(function(r,j){at[r[0]]=j});var rows=idx.rows.slice();
+    got.forEach(function(f){var row=[f.id,f.name,f.mimeType,Number(f.size||0),(f.parents||[])[0]||"",f.createdTime];
       if(at[f.id]!=null)rows[at[f.id]]=row;else{at[f.id]=rows.length;rows.push(row)}});
-    idx={rows:rows.filter(function(r){return !drop[r[0]]}),root:idx.root,at:start}}
-  else idx={rows:idx.rows,root:idx.root,at:start};
-  await kset(IDX,idx);return idx}
+    idx={rows:rows.filter(function(r){return !gone[r[0]]}),root:idx.root,at:start,ct:ct};await kset(IDX,idx)}
+  /* nothing changed: do not rewrite the whole index (lakhs of rows) — only note when it was checked */
+  else{idx.at=start;idx.ct=ct;await kset(IDXAT,{at:start,ct:ct})}
+  return idx}
 async function fetchIndex(progress){
-  var rows=[],page="",q="trashed=false and 'me' in owners";
+  var ct=await startTok(),rows=[],page="",q="trashed=false and 'me' in owners";
   for(var i=0;i<400;i++){
     var r=await g(API+"/files?spaces=drive&pageSize=1000&fields=nextPageToken,files(id,name,mimeType,size,parents,createdTime)&q="+encodeURIComponent(q)+(page?"&pageToken="+encodeURIComponent(page):""));
     if(!r.ok)throw await gerr(r,"Drive listing");var d=await r.json();
     (d.files||[]).forEach(function(f){rows.push([f.id,f.name,f.mimeType,Number(f.size||0),(f.parents||[])[0]||"",f.createdTime])});
     if(progress)progress(rows.length);if(!d.nextPageToken)break;page=d.nextPageToken}
   var r2=await g(API+"/files/root?fields=id");if(!r2.ok)throw await gerr(r2,"Drive");var root=(await r2.json()).id;
-  idx={rows:rows,root:root,at:Date.now()};await kset(IDX,idx);return idx}
+  idx={rows:rows,root:root,at:Date.now(),ct:ct};await kset(IDX,idx);return idx}
 function build(ix){
   var byId={},kids={},fm=null;
   ix.rows.forEach(function(r){byId[r[0]]=r;(kids[r[4]]=kids[r[4]]||[]).push(r);if(r[2]===FOLDER&&r[1]==="File manager"&&r[4]===ix.root&&!fm)fm=r[0]});
@@ -158,12 +174,26 @@ async function folderFor(name,b){
     if(!r.ok)throw await gerr(r,"Making File manager");fm=b.fm=(await r.json()).id}
   var r3=await g(API+"/files?fields=id",{method:"POST",headers:{"Content-Type":"application/json; charset=UTF-8"},body:JSON.stringify({name:name,mimeType:FOLDER,parents:[fm]})});
   if(!r3.ok)throw await gerr(r3,"Making "+name);var id=(await r3.json()).id;b.folders.push({id:id,name:name,path:"File manager › "+name,n:0});return made[name]=id}
-async function upload(f,parent){
+/* Files up to 5 MB go in ONE request (details + contents together); bigger ones use Drive's two-step upload. */
+async function upload1(f,parent){
   var type=f.type||"application/octet-stream",meta={name:f.name,parents:[parent]};
   if(f.lastModified)meta.modifiedTime=new Date(f.lastModified).toISOString();
+  if(f.size<=SMALL){
+    var bd="pos"+Date.now().toString(36)+Math.random().toString(36).slice(2);
+    var body=new Blob(["--"+bd+"\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n"+JSON.stringify(meta)+"\r\n--"+bd+"\r\nContent-Type: "+type+"\r\n\r\n",f,"\r\n--"+bd+"--"]);
+    var m=await g(UP+"/files?uploadType=multipart&fields=id,name,size,createdTime",{method:"POST",headers:{"Content-Type":"multipart/related; boundary="+bd},body:body});
+    if(!m.ok)throw await gerr(m,"Upload");return m.json()}
   var s=await g(UP+"/files?uploadType=resumable&fields=id,name,size,createdTime",{method:"POST",headers:{"Content-Type":"application/json; charset=UTF-8","X-Upload-Content-Type":type,"X-Upload-Content-Length":String(f.size)},body:JSON.stringify(meta)});
   if(!s.ok)throw await gerr(s,"Upload");var loc=s.headers.get("Location");if(!loc)throw new Error("Drive gave no upload address");
   var p=await fetch(loc,{method:"PUT",headers:{"Content-Type":type},body:f});if(!p.ok)throw await gerr(p,"Upload");return p.json()}
+function wait(ms){return new Promise(function(ok){setTimeout(ok,ms)})}
+/* Drive says "slow down" (rate limit) or the network hiccups: wait a little and try that file again instead of failing it */
+async function upload(f,parent){
+  for(var n=0;;n++){
+    try{return await upload1(f,parent)}
+    catch(e){var m=String(e&&e.message||e),busy=/HTTP (429|5\d\d)/.test(m)||/rate limit/i.test(m),net=!/HTTP \d/.test(m)&&/fetch|network/i.test(m);
+      if(stop||!((busy&&n<4)||(net&&n<2)))throw e;
+      await wait(Math.min(30000,1500*Math.pow(2,n))+Math.random()*1000)}}}
 
 /* ---------- keep the screen on ----------
    Android releases a screen wake lock every time the page is hidden (file picker open, screen dimmed, app switch),
@@ -182,19 +212,21 @@ async function sync(list){
   $("run").hidden=false;$("pick").disabled=$("pickDir").disabled=true;$("stop").disabled=false;
   picking=false;wake();
   var up=0,skip=0,bad=0,bytes=0,tot=items.length;
-  function paint(){var done=up+skip+bad;$("bar").style.width=(tot?Math.round(done*100/tot):0)+"%";
+  var pt=0,pq=null;
+  function paint(now){if(now||Date.now()-pt>400){if(pq){clearTimeout(pq);pq=null}pt=Date.now();draw()}else if(!pq)pq=setTimeout(function(){pq=null;pt=Date.now();draw()},400)}
+  function draw(){var done=up+skip+bad;$("bar").style.width=(tot?Math.round(done*100/tot):0)+"%";
     $("runSt").textContent=(running?(stop?"Stopping… ":"Uploading… "):"Done · ")+up+" uploaded ("+mb(bytes)+"), "+skip+" already in Drive"+(bad?", "+bad+" failed":"")+" · "+done+"/"+tot;
     var order={go:0,bad:1,up:2,wait:3,skip:4},show=items.slice().sort(function(a,b){return order[a.st]-order[b.st]}).slice(0,150);
     $("runList").innerHTML=show.map(function(it){var lab={wait:"waiting",go:"uploading…",up:"uploaded",skip:"in Drive",bad:"failed"}[it.st];
       return '<div class="f">'+(it.id?'<a href="https://drive.google.com/file/d/'+esc(it.id)+'/view" target="_blank" rel="noopener">'+esc(it.f.name)+'</a>':'<span>'+esc(it.f.name)+'</span>')+
         '<span class="s '+it.st+'" title="'+esc(it.msg)+'">'+lab+'</span></div>'}).join("")+(items.length>150?'<div class="muted" style="font-size:12px;padding-top:6px">…and '+(items.length-150)+' more</div>':'')}
-  paint();$("runSt").textContent="Checking what is already in your Drive…";
+  paint(true);$("runSt").textContent="Checking what is already in your Drive…";
   var hist=[];
   try{
     await ensureIndex(function(n){$("runSt").textContent="Checking what is already in your Drive… "+n.toLocaleString("en-IN")+" files"});
     var b=build(idx);
     items.forEach(function(it){var s=b.names[it.f.name.toLowerCase()];if(junk(it.f)||(s&&s.indexOf(it.f.size)>=0)){it.st="skip";it.msg=junk(it.f)?"temp/empty file":"same name and size already in Drive";skip++}});
-    paint();
+    paint(true);
     var q=items.filter(function(it){return it.st==="wait"});
     async function worker(){while(q.length&&!stop){var it=q.shift();it.st="go";paint();
       try{var to=await folderFor(bucket(it.f),b),d=await upload(it.f,to);it.st="up";it.id=d.id;up++;bytes+=it.f.size;
@@ -213,7 +245,7 @@ async function sync(list){
   if(hist.length){var dt=(await kget(DAYS))||{};hist.forEach(function(x){var d=istDay(x.at),t=dt[d]=dt[d]||{n:0,s:0};t.n++;t.s+=x.s});await kset(DAYS,dt);
     var h=(await kget(HIST))||[];h=hist.reverse().concat(h).slice(0,500);await kset(HIST,h);
     try{localStorage.setItem("pos-dsync-last",JSON.stringify({at:new Date().toISOString(),up:up,skip:skip,bad:bad}))}catch(e){}}
-  paint();$("pick").disabled=$("pickDir").disabled=false;$("stop").disabled=true;
+  paint(true);$("pick").disabled=$("pickDir").disabled=false;$("stop").disabled=true;
   $("fi").value="";$("fd").value="";
   if(up){await ensureIndex().catch(function(){});}
   dash();history_()}
@@ -292,7 +324,9 @@ window.addEventListener("beforeunload",function(e){if(running){e.preventDefault(
 (async function(){
   try{if(sessionStorage.getItem("pos-dsync-picking")){sessionStorage.removeItem("pos-dsync-picking");
     note("The phone reloaded this page while it was reading the picked files, so nothing was uploaded — usually too many files at once. Pick fewer at a time (e.g. a few hundred) and try again.",true)}}catch(e){}
-  idx=await kget(IDX).catch(function(){return null});history_();await dash();
+  idx=await kget(IDX).catch(function(){return null});
+  var m=idx&&await kget(IDXAT).catch(function(){return null});if(m&&m.at>idx.at){idx.at=m.at;if(m.ct)idx.ct=m.ct}
+  history_();await dash();
   if(!idx||Date.now()-idx.at>10*60000)refresh(false)})();
 })();
 </script>
