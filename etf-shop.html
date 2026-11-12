@@ -15,7 +15,7 @@
   <div id="out"></div>
 </main>
 <script src="gsync.js?v=20261020"></script>
-<script src="invest.js?v=20261112a"></script>
+<script src="invest.js?v=20261112b"></script>
 <script>
 "use strict";
 const I=Invest,{esc,inr,price,pct,signInr,tone,ok,r2,dshort}=I;
@@ -43,6 +43,12 @@ function model(){
       if(l.armed){l.stop=r2(l.high*(1-S.trail));l.signal=l.close<=l.stop?"SELL":"TRAILING";}}});
   const sells=open.filter(l=>l.signal==="SELL").sort((a,b)=>b.gain-a.gain).map(l=>({l,qty:l.qty,lim:r2(l.close*(1-S.buffer))}));
   const trailing=open.filter(l=>l.signal==="TRAILING").sort((a,b)=>b.gain-a.gain);
+  /* Kite cross-check: a GTT saved here that Kite's list (today's, fetched after it was saved) doesn't have was never placed.
+     Each Kite GTT covers one lot (closest trigger); a lot left without one goes back to "not placed yet". */
+  {const byC={};open.filter(l=>l.gtt).forEach(l=>(byC[l.code]=byC[l.code]||[]).push(l));
+   Object.entries(byC).forEach(([c,L])=>{const K=I.kiteSellGtts(c);if(!K)return;const left=K.list.slice(),t=g=>Array.isArray(g.trig)?g.trig[0]:g.trig,newer=l=>(l.gtt.at||l.t||0)>=K.at;
+     L.slice().sort((a,b)=>newer(b)-newer(a)).forEach(l=>{if(left.length){left.sort((x,y)=>Math.abs(t(x)-l.gtt.trig)-Math.abs(t(y)-l.gtt.trig));left.shift();}
+       else if(!newer(l)){l.noKite=l.gtt;l.gtt=null;}});});}
   /* GTT stop-loss: what the broker GTT should be (trigger = trailing stop) against what was placed */
   const gtts=open.filter(l=>(l.armed&&!(l.signal==="SELL"&&!l.gtt))||l.gtt).map(l=>{const g=l.gtt||null,sug=l.armed?{trig:l.stop,lim:r2(l.stop*(1-S.buffer)),qty:l.qty}:null;let st="warn",todo=true,msg;
     if(l.signal==="SELL"&&g){st="bad";msg=`Price ${price(l.close)} is at or below the stop. If your GTT triggered, record the sale.`;}
@@ -214,7 +220,7 @@ function gttForm(id){const M=model(),l=M.open.find(x=>x.id===id);if(!l)return;co
     fields:[{k:"trig",label:"Trigger price",type:"number",value:sug?sug.trig:g?g.trig:""},{k:"lim",label:"Limit price",type:"number",value:sug?sug.lim:g?g.lim:""},
       {k:"qty",label:"Units",type:"number",step:"1",value:sug?sug.qty:g?g.qty:l.qty},{k:"date",label:"Set on",type:"date",value:today()}],
     onSubmit:v=>{if(!(v.trig>0)||!(v.lim>0)||!(v.qty>0))return "Fill in trigger, limit and units.";if(v.lim>v.trig)return "For a stop-loss sell, keep the limit at or below the trigger.";if(v.qty>l.qty)return `The lot has ${l.qty} units.`;
-      I.upsert(KEY,"lots",id,{...lotRec(id),gtt:{trig:v.trig,lim:v.lim,qty:Math.round(v.qty),date:v.date}});draw();},
+      I.upsert(KEY,"lots",id,{...lotRec(id),gtt:{trig:v.trig,lim:v.lim,qty:Math.round(v.qty),date:v.date,at:Date.now()}});draw();},
     onDelete:g?()=>{const r=lotRec(id);delete r.gtt;I.upsert(KEY,"lots",id,r);draw();}:null,delLabel:"Remove",delConfirm:"Remove this GTT from the app? Cancel it in your broker app too.",
     extra:g?[{label:"It triggered",run:()=>{later(()=>sellForm(l.code,id,{price:g.lim,units:g.qty<l.qty?g.qty:"",reason:"system"}));}}]:null});}
 /* ---------- Kite cross-checks ----------
@@ -306,7 +312,7 @@ function tonight(M){
       ok(M.F.liqPrice)?"≈ "+inr(M.liqSell*M.F.liqPrice):"",["Sold",`id="liqSold"`]):"",
     ...(M.avg?[M.avg]:[]).map(o=>I.todo("avg","Average",esc(o.h.code),`${o.qty} × ${price(o.lim)}`,`${pct(o.h.fallLast*100)} from last buy · ${o.h.L.length} lot${o.h.L.length>1?"s":""}`,inr(o.qty*o.lim),fill("avg",o.h.code,o.qty,o.lim))),
     ...M.buys.map(o=>I.todo("buy","Buy",esc(o.c.code),`${o.qty} × ${price(o.lim)}`,`${pct(o.c.fall*100)} from 52W high · ${esc(o.c.group)}`,inr(o.qty*o.lim),fill("buy",o.c.code,o.qty,o.lim))),
-    ...gt.map(x=>{const l=x.l,s=x.sug;return I.todo("gt "+x.st,"GTT",esc(l.code),s?price(s.trig):"",esc(!x.g&&s?"not placed yet":x.msg),s?`limit ${price(s.lim)} · ${s.qty}`:"",[x.g?"Update":"Placed",`data-gtt="${esc(l.id)}"`]);})];
+    ...gt.map(x=>{const l=x.l,s=x.sug;return I.todo("gt "+x.st,"GTT",esc(l.code),s?price(s.trig):"",esc(!x.g&&s?(l.noKite?"not placed yet · Kite has no GTT for it":"not placed yet"):x.msg),s?`limit ${price(s.lim)} · ${s.qty}`:"",[x.g?"Update":"Placed",`data-gtt="${esc(l.id)}"`]);})];
   const why=[];if(!M.sells.length&&!M.avg&&!M.buys.length&&!M.amo.length){if(M.buyMsg)why.push("No new buy: "+M.buyMsg);if(M.avgMsg)why.push("No average: "+M.avgMsg);}
   if(M.buys.length&&M.avgMsg)why.push(M.avgMsg);
   {const f=c=>esc(c.code)+" "+pct((ok(c.fall52)?c.fall52:c.fall)*100),deep=M.checks.filter(c=>!isIntl(c)),prem=M.checks.filter(c=>isIntl(c));
