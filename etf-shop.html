@@ -48,7 +48,7 @@ function model(){
     if(l.signal==="SELL"&&g){st="bad";msg=`Price ${price(l.close)} is at or below the stop. If your GTT triggered, record the sale.`;}
     else if(!g){msg=`No GTT yet. Place: trigger ${price(sug.trig)} · limit ${price(sug.lim)} · ${sug.qty} units.`;}
     else if(!sug){todo=false;msg=`GTT ${price(g.trig)} is your own stop. The app's trailing stop starts once the high reaches ${price(l.tgt)}.`;}
-    else if(g.trig>sug.trig+0.005){st="bad";msg=`GTT ${price(g.trig)} is tighter than the stop ${price(sug.trig)}: a small dip can sell this winner early. Lower it to ${price(sug.trig)}, limit ${price(sug.lim)}.`;}
+    else if(g.trig>sug.trig+0.005){st="ok";todo=false;msg=`GTT ${price(g.trig)} is above the app's stop ${price(sug.trig)} · kept as it is (a GTT is only ever raised).`;}
     else if(g.trig<sug.trig-0.005){msg=`Raise GTT from ${price(g.trig)} to ${price(sug.trig)}, limit ${price(sug.lim)} (new high ${price(l.high)}).`;}
     else if(g.qty!==l.qty){msg=`GTT is for ${g.qty} units; the lot has ${l.qty}.`;}
     else {st="ok";todo=false;msg=`GTT matches the stop · set ${dshort(g.date)}.`;}
