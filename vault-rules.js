@@ -69,11 +69,11 @@ function names(t){var out=[],m,re=new RegExp("\\b(?:Consumer\\s+Name|Name)\\s*:\
   while((m=re.exec(t))){if(/^(the|of|under|and|name|engineer|manager|officer|said|this|any|each)$/i.test(m[1])||/engineer$/i.test(m[1]))continue;out.push(title(m[1])+" Electrical "+title(m[2]).replace(/Sub ?Division/i,"Sub-Division"))}
   return uniq(out.map(scrub),12)}
 var GAZ=["Samaguri","Rupahi","Rupahihat","Amoni","Barhampur","Puranigudam","Bheloguri","Missa","Laokhowa","Lawkhuwa","Kawaimari","Singimari","Nonoi","Ambagan","Bharaguri","Halowagaon","Amlokhi","Chapanala","Kaliabor","Nagaon","Hojai","Raha","Doboka","Dhing","Kathiatoli","Lanka","Borduwa","Bhoggamukh","Khanatup","Hatipukhuri","Dighali","Garajan","Namkuri","Bilasipara","Gauripur","Dhubri","Kokrajhar","Guwahati"];
-function places(t){var out=[],m,re=/\b(?:[Vv]ill(?:age)?|VILL(?:AGE)?|P\.?O|P\.?S|Address|ADDRESS|Mouza)\b\.?\s*[:\-.]?\s*([A-Z][A-Za-z]+(?: (?!P\.?O\b|P\.?S\b|Old\b|Dist\b|Under\b)[A-Z][A-Za-z]+)?)/g;
-  while((m=re.exec(t))){if(/^(The|And|Under|Of|Is|No)$/i.test(m[1]))continue;out.push(title(m[1]))}
+function places(t,strict){var out=[],m,re=/\b(?:[Vv]ill(?:age)?|VILL(?:AGE)?|P\.?O|P\.?S|Address|ADDRESS|Mouza)\b\.?\s*[:\-.]?\s*([A-Z][A-Za-z]+(?: (?!P\.?O\b|P\.?S\b|Old\b|Dist\b|Under\b)[A-Z][A-Za-z]+)?)/g;
+  while(!strict&&(m=re.exec(t))){if(/^(The|And|Under|Of|Is|No)$/i.test(m[1]))continue;out.push(title(m[1]))}
   re=/\b(\d{2,3}(?:\/\d{1,2})? ?kV) +([A-Z][A-Za-z\-]+(?: [A-Z0-9][A-Za-z0-9\-]*)?) +(Feeder|Line|SS|Sub-?station)\b/gi;
   while((m=re.exec(t)))out.push(m[1].replace(/ ?kv/i," kV")+" "+title(m[2])+" "+title(m[3]));
-  re=/\bDTR\s*(?:No|Number|Code)?\.?\s*[:\-]?\s*(\d{2,6})\b/gi;while((m=re.exec(t)))out.push("DTR "+m[1]);
+  re=/\bDTR\s*(?:No|Number|Code)?\.?\s*[:\-]?\s*(\d{2,6})\b/gi;while(!strict&&(m=re.exec(t)))out.push("DTR "+m[1]);
   var low=t.toLowerCase();GAZ.forEach(function(g){if(new RegExp("\\b"+g.toLowerCase()+"\\b").test(low))out.push(g)});
   return uniq(out.map(scrub),12)}
 function subject(t){var m=t.match(/(?:^|\n)\s*Sub(?:ject)?\s*[:\-.]+\s*([^\n]+(?:\n(?!\s*\n)(?!\s*(?:Sir|Madam|Ref|Dear|Respected)\b)[^\n]+){0,2})/i);
@@ -114,12 +114,13 @@ function typeLabel(k){return k.charAt(0).toUpperCase()+k.slice(1)}
 function read(file,text){
   var raw=String(text||"").replace(/\r/g,"").replace(/\\([&\-.()#*_])/g,"$1").replace(/[ \t\u00a0]+/g," "),t=raw.length>60000?raw.slice(0,60000):raw;
   var f={doc_type:"other",confidence:"low",needs:false,reason:"",consumer_nos:[],memo_nos:[],receipt_nos:[],names:[],places:[],amounts:[],date:"",subject:"",summary:"",read:raw.length>60000?"first 60,000 characters":"full"};
-  var letters=(t.match(/[A-Za-z\u0980-\u09FF]/g)||[]).length;
+  var letters=(t.match(/[A-Za-z\u0900-\u09FF]/g)||[]).length;
   if(letters<60){f.needs=true;f.reason="No readable text (photo, handwriting or a blank scan)";f.summary="No text could be read from this file.";f.read="none";return f}
   f.consumer_nos=consumers(t);f.memo_nos=memos(t);f.receipt_nos=receipts(t);f.names=names(t);f.places=places(t);f.amounts=amounts(t);f.date=docDate(t);f.subject=scrub(subject(t));
   var c=classify(file&&file.name,t);f.doc_type=c.type;f.confidence=c.conf;
-  var w=wordiness(t);
-  if(w<0.45){f.needs=true;f.reason="Text is garbled (poor scan or handwriting)";f.confidence="low"}
+  var w=wordiness(t),indic=(t.match(/[\u0900-\u09FF]/g)||[]).length;
+  if(indic>letters*0.3){f.needs=true;f.reason="Written in Assamese or Hindi; the rules read English only";f.confidence="low"}
+  else if(w<0.45){f.needs=true;f.reason="Text is garbled (poor scan or handwriting)";f.confidence="low"}
   else if(c.type==="other"){f.needs=true;f.reason="Document type not recognised by the rules"}
   var bits=[],own=receipts(t,true),nR=own.length;
   if(f.doc_type==="receipt"){bits.push(nR>1?nR+" payment receipts ("+own.slice(0,4).join(", ")+(nR>4?"…":"")+")":"Payment receipt"+(nR?" "+own[0]:""));
@@ -136,7 +137,7 @@ function readSheet(file,tabs){
   tabs.forEach(function(tb){var rows=tb.sample||[];rows.forEach(function(r){(r||[]).forEach(function(c){if(c!==""&&c!=null){cells++;all.push(String(c))}})})});
   if(!cells){f.needs=true;f.reason="Empty sheet, or nothing in its first rows";f.doc_type="other";f.confidence="low";f.summary="No data found in the first rows of this sheet.";return f}
   var text=all.join("\n");
-  f.consumer_nos=consumers(text);f.memo_nos=memos(text);f.names=names(text);f.places=places(text);f.date=dateIn((file&&file.name||"")+" "+text.slice(0,3000));
+  f.consumer_nos=consumers(text);f.memo_nos=memos(text);f.names=names(text);f.places=places(text,true);f.date=dateIn((file&&file.name||"")+" "+text.slice(0,3000));
   var head=null,ttl="";
   tabs.forEach(function(tb,i){var rows=tb.sample||[],h=null;
     for(var r=0;r<Math.min(rows.length,12);r++){var row=(rows[r]||[]).map(function(c){return String(c==null?"":c).trim()}),full=row.filter(Boolean);
@@ -146,7 +147,7 @@ function readSheet(file,tabs){
     if(i===0)head=h;
     desc.push('"'+tb.title+'"'+(tb.rows?" ("+Number(tb.rows).toLocaleString("en-IN")+" rows in grid)":""))});
   var nm=(file&&file.name||"")+" "+ttl,c=classify(file&&file.name,nm+"\n"+(head||[]).join(" "));
-  f.doc_type=/report|status|daily|progress|summary|checking|non.?com/i.test(nm)?"report":(c.type==="other"||c.type==="letter"?"register":c.type);
+  f.doc_type=/register|ledger|\blist\b|\blog\b/i.test(file&&file.name||"")?"register":/report|status|daily|progress|summary|checking|non.?com/i.test(nm)?"report":(c.type==="other"||c.type==="letter"?"register":c.type);
   if(!head){f.confidence="low"}
   var bits=["Workbook with "+tabs.length+" tab"+(tabs.length>1?"s":"")+": "+desc.slice(0,8).join(", ")+(desc.length>8?"…":"")];
   if(ttl)bits.push("Title: "+scrub(ttl.slice(0,160)));

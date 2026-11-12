@@ -134,6 +134,8 @@ async function manual(id,type,note){
   absorb([row]);await save();return mem}
 
 /* ---------- coverage: every file you own in Drive against the index ---------- */
+/* working sheets of Pranju OS and of the AI reviews themselves: not documents to review */
+var OWN=/^(WA Review learning log|Pranju OS Drafts)$/i;
 function junkName(n){return /\.(tmp|thumb|nomedia)$/i.test(n)||/\.thumb\.tmp$/i.test(n)}
 /* rows: [id, name, mimeType, modifiedTime, createdTime, size, md5, parent] */
 async function listDrive(progress,opt){
@@ -142,7 +144,7 @@ async function listDrive(progress,opt){
   for(var i=0;i<600;i++){
     var d=await gjson(API+"/files?spaces=drive&pageSize=1000&fields="+encodeURIComponent("nextPageToken,files(id,name,mimeType,modifiedTime,createdTime,size,md5Checksum,parents,appProperties)")+"&q="+encodeURIComponent(q)+(page?"&pageToken="+encodeURIComponent(page):""),null,"Drive listing");
     (d.files||[]).forEach(function(f){
-      if(f.appProperties||f.id===skipId||/\.(vault|gpx)$/i.test(f.name)||f.name==="master_document_vault.json"||f.name==="reviewed_files_log.json"||f.name===SHEET_NAME)return;
+      if(f.appProperties||f.id===skipId||/\.(vault|gpx)$/i.test(f.name)||f.name==="master_document_vault.json"||f.name==="reviewed_files_log.json"||f.name===SHEET_NAME||OWN.test(f.name))return;
       if(junkName(f.name)){junk++;return}
       rows.push([f.id,f.name,f.mimeType,f.modifiedTime,f.createdTime||"",Number(f.size||0),f.md5Checksum||"",(f.parents||[])[0]||""])});
     if(progress)progress(rows.length+junk);
