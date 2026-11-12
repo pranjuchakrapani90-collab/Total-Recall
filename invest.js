@@ -64,13 +64,20 @@ async function quotes(symbols){
     Object.entries(j.quotes||{}).forEach(([s,q])=>{if(q&&!q.error&&q.price!=null){q.at=j.at;q.closes=(q.closes||[]).slice(-420);out[s]=q;}else errs.push(s);});}
   if(!put(QK,out)){const slim={};Object.entries(out).forEach(([s,q])=>slim[s]={...q,closes:(q.closes||[]).slice(-260)});put(QK,slim);}
   return {quotes:out,missing:errs};}
-function highSince(q,fromIso){let h=-Infinity;(q&&q.closes||[]).forEach(([d,c])=>{if(d>=fromIso&&c>h)h=c;});return h;}
+/* price history with impossible rows dropped: the feed sometimes serves a day, or a whole pre-split stretch, at the wrong
+   scale (e.g. 10x), which made a false high and a false SELL. Walk back from the live price; a close more than 30% away from
+   the next good day is skipped (an NSE ETF cannot move that far in a session). */
+function sane(q){const rows=(q&&q.closes)||[],out=[];let a=q&&ok(q.price)&&q.price>0?q.price:NaN;
+  for(let i=rows.length-1;i>=0;i--){const c=rows[i][1];if(!ok(c)||c<=0||(ok(a)&&(c>a*1.3||c<a/1.3)))continue;a=c;out.push(rows[i]);}
+  return out.reverse();}
+function highSince(q,fromIso){let h=-Infinity;sane(q).forEach(([d,c])=>{if(d>=fromIso&&c>h)h=c;});return h;}
 /* lowest (side "low") or highest (side "high") traded price since a date: intraday low/high when the feed has them,
    else the close; includes the live price. Used to tell whether a GTT trigger was touched. */
 function touched(q,fromIso,side){if(!q)return NaN;const lo=side==="low";let v=lo?Infinity:-Infinity;
   const take=x=>{if(ok(x))v=lo?Math.min(v,x):Math.max(v,x);};
-  (q.closes||[]).forEach(r=>{if(r[0]>=fromIso)take(ok(lo?r[2]:r[3])?(lo?r[2]:r[3]):r[1]);});
-  if(q.day&&q.day>=fromIso)take(lo?q.dayLow:q.dayHigh);take(q.price);return ok(v)?v:NaN;}
+  const near=(x,c)=>ok(x)&&x>0&&x<c*1.3&&x>c/1.3;
+  sane(q).forEach(r=>{if(r[0]>=fromIso){const x=lo?r[2]:r[3];take(near(x,r[1])?x:r[1]);}});
+  if(q.day&&q.day>=fromIso){const x=lo?q.dayLow:q.dayHigh;if(near(x,q.price))take(x);}take(q.price);return ok(v)?v:NaN;}
 function high52(q){const d=new Date(Date.now()-365*864e5).toISOString().slice(0,10);return highSince(q,d);}
 
 /* ---------- mutual fund NAVs (AMFI, through mfapi.in) ----------
