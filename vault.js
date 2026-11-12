@@ -21,7 +21,7 @@
           src "ai" (Gemini) | "rules" (Pranju OS) | "manual" (you) · c confidence · m modified · p folder */
 (function(){
 "use strict";
-var DB="pos-vault",ST="kv",KEY="data3",CK="pos-vault-checked",DEF="https://total-recall-ticktick.pranjuchakrapani90.workers.dev";
+var DB="pos-vault",ST="kv",KEY="data4",CK="pos-vault-checked",DEF="https://total-recall-ticktick.pranjuchakrapani90.workers.dev";
 var API="https://www.googleapis.com/drive/v3",SH="https://sheets.googleapis.com/v4/spreadsheets/";
 var SHEET_NAME="Gemini Vault Index",T_AI="Index",T_AUTO="Auto index",T_QUEUE="Needs review";
 var mem=null,tok=null;
@@ -66,6 +66,28 @@ async function values(id,range){var d=await gjson(SH+id+"/values/"+encodeURIComp
 async function tabs(id){var d=await gjson(SH+id+"?fields="+encodeURIComponent("sheets.properties(title,sheetId,gridProperties(rowCount))"),null,"Reading the index sheet");
   return (d.sheets||[]).map(function(s){return s.properties})}
 
+/* ---------- topics: every record goes under ONE topic, picked by which topic's words it mentions most ---------- */
+var TOPICS=[
+ ["Theft & enforcement",/theft|hooking|pilfer|unauthori[sz]ed|section\s*1(?:26|35)|compound|assessment bill|raid|enforcement|tamper/gi],
+ ["Accidents & safety",/accident|electrocut|fatal|\bptw\b|permit to work|shut ?down|safety|earthing/gi],
+ ["Smart meters",/smart ?meter|non.?comm?\b|non.?communicat|prepaid|postpaid|\bmdm\b|meter replacement|defective meter|not working meter/gi],
+ ["Billing & revenue",/electricity bill|\bbill\b|receipt|arrear|revenue|collection|payment|outstanding|\bdues\b|disconnect|\btdc\b|defaulter|tariff/gi],
+ ["Estimates & works",/estimate|\bboq\b|cost abstract|\bsor\b|deposit work|\brdss\b|sanction|scheme|tender|work order|ab cable|utility shifting|crossing/gi],
+ ["Network & DTR",/\bdtr\b|transformer|feeder|\b(?:11|33) ?kv\b|sub-?station|\bptr\b|\bsld\b|single line|indexing|\bpole\b|conductor|line checking|line status|inspection|interruption|storm|energy audit|\bjmr\b|injection/gi],
+ ["Consumers & connections",/new (?:service )?connection|\bnsc\b|load (?:extension|sanction|enhancement)|application|petition|complain|grievance|consumer list|rooftop|solar/gi],
+ ["Staff & office",/office order|transfer|posting|superannuation|retire|\bleave\b|salary|imprest|establishment|attendance|deployment|election|meeting|circular|notification|vacanc/gi]];
+function topicOf(text){var best="Other",top=0;text=String(text||"");
+  TOPICS.forEach(function(t){var m=text.match(t[1]),n=m?m.length:0;if(n>top){top=n;best=t[0]}});return best}
+/* words that mean nearly the same thing in APDCL paperwork: a search for one also offers the others as "related" */
+var ALIKE=[["dtr","transformer"],["ptr","power transformer"],["theft","hooking","pilferage","unauthorised","section 135","section 126"],["accident","electrocution","electrocuted","fatal"],
+ ["fir","police"],["bill","invoice","billing"],["receipt","payment"],["estimate","boq","cost abstract"],["non-comm","non comm","non com","non communicating","not working meter"],
+ ["feeder","line"],["substation","sub-station","33/11"],["pole","psc"],["shutdown","ptw","permit to work","outage","interruption"],["complaint","grievance","petition"],
+ ["connection","nsc","load extension"],["solar","rooftop"],["arrear","outstanding","dues","defaulter"],["disconnection","tdc","disconnected"],["railway","rail crossing","track crossing"],
+ ["tree","jungle"],["storm","damage","restoration"],["transfer","posting","office order"],["retirement","superannuation"],["sld","single line diagram"],["ab cable","abc","rdss"],
+ ["indexing","gis"],["energy audit","jmr","at&c"],["smart meter","prepaid","postpaid"],["letter","memo"]];
+function alike(w){var out=[];ALIKE.forEach(function(g){if(g.indexOf(w)>=0)g.forEach(function(x){if(x!==w&&out.indexOf(x)<0)out.push(x)})});
+  if(w.length>3&&/s$/.test(w))out.push(w.slice(0,-1));return out}
+
 /* ---------- rows -> entries ---------- */
 var LBL=[[9,"consumer nos"],[10,"memo nos"],[11,"receipt / bill nos"],[12,"names"],[13,"places"],[14,"amounts"],[19,"unclear"],[20,"discrepancies"],[21,"note"]];
 function entry(r,src){
@@ -73,21 +95,21 @@ function entry(r,src){
   var st=String(r[23]||"").trim().toLowerCase(),x=[];if(r[15])x.push(String(r[15]));
   LBL.forEach(function(l){if(l[0]===19&&st==="needs_review")return;if(r[l[0]])x.push(l[1]+": "+r[l[0]])});
   var s=x.join(" · ");if(s.length>2600)s=s.slice(0,2600)+"…";
-  return {id:id,t:String(r[1]||id),u:String(r[2]||"https://drive.google.com/file/d/"+encodeURIComponent(id)+"/view"),p:String(r[3]||""),ft:String(r[4]||""),m:String(r[5]||""),
+  return {id:id,s:String(r[15]||"").slice(0,700),k:topicOf(String(r[1]||"")+" "+String(r[1]||"")+" "+s+" "+String(r[8]||"")),t:String(r[1]||id),u:String(r[2]||"https://drive.google.com/file/d/"+encodeURIComponent(id)+"/view"),p:String(r[3]||""),ft:String(r[4]||""),m:String(r[5]||""),
     d:String(r[8]||"other").trim().toLowerCase()||"other",x:s,c:String(r[17]||""),st:st,dup:String(r[24]||""),why:String(r[19]||""),src:src==="ai"?"ai":(st==="manual"?"manual":"rules")}}
 function merge(ai,auto){
   var by={},order=[];
   auto.forEach(function(e){if(!by[e.id])order.push(e.id);by[e.id]=e});
   ai.forEach(function(e){if(e.st==="skipped"&&by[e.id])return;if(!by[e.id])order.push(e.id);by[e.id]=e});
-  var entries=[],queue=[],dups=[],doms={},n={ai:0,rules:0,manual:0};
+  var entries=[],queue=[],dups=[],doms={},tops={},n={ai:0,rules:0,manual:0};
   order.forEach(function(id){var e=by[id];
     if(e.st==="duplicate"){dups.push(id);return}
     if(e.st==="needs_review"){queue.push(e);return}
-    entries.push(e);doms[e.d]=(doms[e.d]||0)+1;n[e.src]=(n[e.src]||0)+1});
+    entries.push(e);doms[e.d]=(doms[e.d]||0)+1;tops[e.k]=(tops[e.k]||0)+1;n[e.src]=(n[e.src]||0)+1});
   queue.sort(function(a,b){return a.m<b.m?1:-1});
-  return {entries:entries,queue:queue,log:{ids:dups},counts:n,domains:doms}}
+  return {entries:entries,queue:queue,log:{ids:dups},counts:n,domains:doms,topics:tops}}
 function build(st){var m=merge(st.ai,st.auto);
-  m.meta={v:3,sheetId:st.sheetId,modified:st.modified,fetched:st.fetched,count:m.entries.length,domains:m.domains,ai:m.counts.ai,rules:m.counts.rules,manual:m.counts.manual,
+  m.meta={v:3,sheetId:st.sheetId,modified:st.modified,fetched:st.fetched,count:m.entries.length,domains:m.domains,topics:m.topics,ai:m.counts.ai,rules:m.counts.rules,manual:m.counts.manual,
     queue:m.queue.length,dups:m.log.ids.length,autoRows:st.autoRows,hasAuto:st.hasAuto};
   m.raw=st;return m}
 
@@ -173,7 +195,29 @@ function search(q,max){
     res.push(Object.assign({score:score},e))});
   res.sort(function(a,b){return b.score-a.score||(a.m<b.m?1:-1)});
   return res.slice(0,max||50)}
-window.PosVault={coverage:coverage,checkedAt:checkedAt,load:load,ensure:ensure,search:search,domainLabel:label,manual:manual,absorb:absorb,save:save,listDrive:listDrive,kind:kind,
+/* search-first lookup. Returns {exact, related}: "exact" has every word you typed; "related" has, for at least one
+   word, only a word that means the same (DTR for transformer). opt.topic keeps to one topic. No words + a topic =
+   that topic's newest records. */
+function find(q,opt){opt=opt||{};var out={exact:[],related:[],words:[]};if(!mem)return out;
+  var words=norm(q).split(/\s+/).filter(Boolean),alt=words.map(alike),max=opt.max||40;out.words=words;
+  if(!words.length){if(!opt.topic)return out;
+    out.exact=mem.entries.filter(function(e){return e.k===opt.topic}).sort(function(a,b){return a.m<b.m?1:-1}).slice(0,max);return out}
+  mem.entries.forEach(function(e){if(opt.topic&&e.k!==opt.topic)return;
+    var t=norm(e.t),sm=norm(e.s),all=t+" "+norm(e.x)+" "+e.d+" "+norm(e.p),score=0,loose=false;
+    for(var i=0;i<words.length;i++){var w=words[i];
+      if(all.indexOf(w)>=0){score+=t.indexOf(w)>=0?6:sm.indexOf(w)>=0?3:1;continue}
+      var hit=false;for(var j=0;j<alt[i].length;j++)if(all.indexOf(alt[i][j])>=0){hit=true;break}
+      if(!hit)return;loose=true;score+=1}
+    (loose?out.related:out.exact).push({e:e,score:score})});
+  var srt=function(a,b){return b.score-a.score||(a.e.m<b.e.m?1:-1)},pick=function(a){return a.sort(srt).slice(0,max).map(function(x){return x.e})};
+  out.nExact=out.exact.length;out.nRelated=out.related.length;out.exact=pick(out.exact);out.related=pick(out.related);return out}
+/* every file in Drive, reviewed or not, photos included: Google's own index of names and of the text inside files */
+async function driveSearch(q,skip){var words=String(q||"").split(/\s+/).filter(function(w){return w.length>=2}).slice(0,6);if(!words.length)return [];
+  var qs="trashed=false and 'me' in owners and mimeType!='application/vnd.google-apps.folder' and "+words.map(function(w){return "fullText contains '"+w.replace(/\\/g,"\\\\").replace(/'/g,"\\'")+"'"}).join(" and ");
+  var d=await gjson(API+"/files?spaces=drive&pageSize=40&fields="+encodeURIComponent("files(id,name,mimeType,modifiedTime,appProperties)")+"&q="+encodeURIComponent(qs),null,"Drive search");
+  skip=skip||{};return (d.files||[]).filter(function(f){return !skip[f.id]&&!f.appProperties&&!junkName(f.name)&&f.name!==SHEET_NAME&&!OWN.test(f.name)}).slice(0,20)
+    .map(function(f){return {id:f.id,t:f.name,u:"https://drive.google.com/file/d/"+encodeURIComponent(f.id)+"/view",m:f.modifiedTime||"",kind:kind(f.mimeType,f.name)}})}
+window.PosVault={find:find,driveSearch:driveSearch,topicOf:topicOf,coverage:coverage,checkedAt:checkedAt,load:load,ensure:ensure,search:search,domainLabel:label,manual:manual,absorb:absorb,save:save,listDrive:listDrive,kind:kind,
   names:{sheet:SHEET_NAME,ai:T_AI,auto:T_AUTO,queue:T_QUEUE},
   g:{token:token,gfetch:gfetch,gjson:gjson,fail:fail,findSheet:findSheet,values:values,tabs:tabs,a1:a1,sleep:sleep,API:API,SH:SH},
   _:{entry:entry,merge:merge}};

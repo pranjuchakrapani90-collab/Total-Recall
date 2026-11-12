@@ -1,118 +1,135 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="drive.js?v=20261102t"></script><script src="vault.js?v=20261112b"></script><script src="vault-rules.js?v=20261112b"></script><script src="vault-scan.js?v=20261112a"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
+<html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="drive.js?v=20261102t"></script><script src="vault.js?v=20261112c"></script><script src="vault-rules.js?v=20261112b"></script><script src="vault-scan.js?v=20261112a"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
 <title>Vault · Pranju OS</title>
 <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="stylesheet" href="tr-theme.css?v=20261020">
 <style>
-/* Vault (1 Nov 2026; 12 Nov 2026: reads the "Gemini Vault Index" sheet, and reviews Drive files itself with rules).
-   Every Drive document with a record: searchable, by document type, each linking to its source file in Drive.
-   Records come from three places, shown by a badge: Gemini ("AI summary"), Pranju OS's own rules ("Rules, no AI"),
-   or you ("By hand"). "Review my Drive" runs the rules over files that have no record yet; whatever the rules
-   cannot read lands under "Needs review". Data handling: vault.js, vault-rules.js, vault-scan.js. */
+/* Vault (1 Nov 2026; 12 Nov 2026 evening: search-first).
+   What this page is for: type a word, get the documents about it, each as a short summary with a link to the file.
+   The whole index is never listed. With nothing typed, the page shows only the topics. A search shows, in order:
+   records that contain your words; records that contain a word meaning the same ("Related"); and files anywhere in
+   Drive, photos included, that Google's own index matches ("Also in your Drive"), so files not reviewed yet are
+   still found. Everything to do with building the index (review by rules, needs review, coverage) sits folded
+   away under "Manage the vault" at the bottom. Data handling: vault.js, vault-rules.js, vault-scan.js. */
 *{box-sizing:border-box}html,body{margin:0}
 body{font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100vh;background:var(--tr-bg);color:var(--tr-ink)}
-body>header{padding:calc(10px + env(safe-area-inset-top,0px)) 16px 10px;position:sticky;top:0;z-index:20;background:var(--tr-head);color:var(--tr-head-ink)}
-.hin,main{max-width:760px;margin:0 auto}
+body>header{padding:calc(10px + env(safe-area-inset-top,0px)) 16px 12px;position:sticky;top:0;z-index:20;background:var(--tr-head);color:var(--tr-head-ink)}
+.hin,main{max-width:720px;margin:0 auto}
 .backlink{font-size:13px;text-decoration:none;color:var(--tr-head-mute)}
 h1{margin:4px 0 8px;font-size:22px}
-main{padding:14px 16px 120px}
+main{padding:16px 16px 120px}
 .muted{color:var(--tr-muted)}
 .btn{border:1px solid var(--tr-line);background:var(--tr-paper);color:var(--tr-ink);border-radius:10px;padding:8px 13px;font:600 13px system-ui,sans-serif;cursor:pointer}
 .btn.pri{background:var(--tr-acc);border-color:var(--tr-acc);color:#fff}
 .btn:disabled{opacity:.45}
 input,select,textarea{font:inherit;width:100%;padding:11px 13px;border:1px solid var(--tr-line);border-radius:12px;background:#fff;color:var(--tr-ink)}
-.stat{display:flex;gap:10px;align-items:center;justify-content:space-between;font-size:13px;margin:0 0 12px}
-.chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:12px -16px;padding:0 16px}
-.chips::-webkit-scrollbar{display:none}
-.chips button{flex:0 0 auto;border:1px solid var(--tr-line);background:var(--tr-paper);color:var(--tr-ink);border-radius:999px;padding:6px 11px;font:600 12.5px system-ui,sans-serif;cursor:pointer;white-space:nowrap}
-.chips button.on{background:var(--tr-acc);border-color:var(--tr-acc);color:#fff}
-.chips button.rev{border-color:#fed7aa;background:#fff7ed;color:#9a3412}
-.chips button.rev.on{background:#c2410c;border-color:#c2410c;color:#fff}
-.chips b{font-weight:500;opacity:.7;margin-left:3px}
-.it{border:1px solid var(--tr-line);border-radius:12px;background:var(--tr-paper);padding:11px 13px;margin:0 0 8px}
+.lead{font-size:13px;margin:0 0 14px}
+.topics{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.topics button{display:flex;justify-content:space-between;align-items:center;gap:8px;text-align:left;border:1px solid var(--tr-line);background:var(--tr-paper);color:var(--tr-ink);border-radius:12px;padding:13px 14px;font:600 14px system-ui,sans-serif;cursor:pointer}
+.topics button span{font-weight:500;font-size:12.5px;color:var(--tr-muted)}
+.crumb{display:flex;align-items:center;gap:10px;margin:0 0 12px;font-weight:700}
+.crumb button{border:0;background:none;color:var(--tr-acc);font:600 13px system-ui,sans-serif;padding:0;cursor:pointer}
+.sec{font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--tr-muted);margin:20px 0 8px}
+.it{border:1px solid var(--tr-line);border-radius:12px;background:var(--tr-paper);padding:12px 14px;margin:0 0 8px}
 .it h3{margin:0;font-size:15px;line-height:1.35;word-break:break-word}
-.meta{font-size:12px;color:var(--tr-muted);margin-top:3px}
-.tag{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:999px;margin-left:4px}
-.tag.ai{background:#fff7ed;color:#9a3412}.tag.rules{background:var(--tr-acc-soft);color:var(--tr-acc-ink)}.tag.manual{background:#ecfdf5;color:#065f46}
-.x{font-size:13.5px;margin-top:7px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
-.x.short{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.it h3 a{color:inherit;text-decoration:none}
+.sum{font-size:14px;margin-top:5px;line-height:1.5;word-break:break-word;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.sum.all{display:block;white-space:pre-wrap}
+.meta{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:var(--tr-muted);margin-top:8px}
+.meta button{border:0;background:none;color:var(--tr-muted);font:600 12px system-ui,sans-serif;padding:0;cursor:pointer;flex:none}
+.plain{display:flex;justify-content:space-between;gap:10px;padding:10px 2px;border-bottom:1px solid var(--tr-line);font-size:14px;text-decoration:none;color:var(--tr-ink);word-break:break-word}
+.plain span{flex:none;font-size:12px;color:var(--tr-muted)}
+.msg{padding:12px 14px;border-radius:12px;background:var(--tr-paper);border:1px solid var(--tr-line);font-size:14px;margin:8px 0}
+.msg.err{background:#fff7ed;border-color:#fed7aa;color:#9a3412}
+table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0}td,th{padding:5px 4px;border-bottom:1px solid var(--tr-line);text-align:right}td:first-child,th:first-child{text-align:left}
+mark{background:var(--tr-acc-soft);color:inherit;border-radius:3px}
+#manage{margin-top:44px;font-size:14px}
+#manage>summary{cursor:pointer;color:var(--tr-muted);font-weight:600;font-size:13px}
+#manage details{border-top:1px solid var(--tr-line);padding:12px 0}#manage details summary{cursor:pointer;font-weight:700}
 .row{display:flex;gap:10px 14px;margin-top:9px;flex-wrap:wrap;align-items:center}
 .row a{font:600 13px system-ui,sans-serif;color:var(--tr-acc);text-decoration:none}
 .row button.lnk{border:0;background:none;color:var(--tr-muted);font:600 13px system-ui,sans-serif;padding:0;cursor:pointer}
-.msg{padding:12px 14px;border-radius:12px;background:var(--tr-paper);border:1px solid var(--tr-line);font-size:14px;margin:8px 0}
-table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0}td,th{padding:5px 4px;border-bottom:1px solid var(--tr-line);text-align:right}td:first-child,th:first-child{text-align:left}
-.msg.err{background:#fff7ed;border-color:#fed7aa;color:#9a3412}
-mark{background:var(--tr-acc-soft);color:inherit;border-radius:3px}
-summary{cursor:pointer;font-weight:700}
 .bar{height:6px;border-radius:999px;background:var(--tr-soft);overflow:hidden;margin:10px 0 6px}.bar i{display:block;height:100%;background:var(--tr-acc);width:0}
 .nums{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:10px 0 2px}.nums div{background:var(--tr-soft);border-radius:10px;padding:7px 4px;text-align:center}.nums b{display:block;font-size:16px}.nums span{font-size:11px;color:var(--tr-muted)}
 .why{font-size:13px;color:#9a3412;margin-top:6px}
 .form{margin-top:10px;display:grid;gap:8px}
 </style></head><body>
 <header><div class="hin"><a class="backlink" href="./#f-db">← Database</a><h1>Vault</h1>
-<input id="q" type="search" placeholder="Search the document vault" autocomplete="off" enterkeyhint="search"></div></header>
+<input id="q" type="search" placeholder="Search by name, number, place or subject" autocomplete="off" enterkeyhint="search"></div></header>
 <main>
-<div class="stat"><span id="st" class="muted">Loading…</span><button class="btn" id="refresh" type="button">Check for newer</button></div>
 <div id="note"></div>
-<details class="it" id="scanBox"><summary>Review my Drive — by rules, no AI</summary><div id="scan" style="margin-top:10px">
-  <div class="muted" style="font-size:13px">Reads the PDFs, Sheets and Docs that have no record yet. Exact copies are marked as duplicates without being opened. Anything the rules cannot read goes to “Needs review”, the only list left for Gemini.</div>
-  <div class="row"><button class="btn" type="button" id="scanCount">Count what is left</button></div></div></details>
-<details class="it" id="covBox"><summary>Coverage — how much of your Drive has a record</summary><div id="cov" style="margin-top:10px"><button class="btn" type="button" id="covGo">Count my Drive files</button></div></details>
-<div class="chips" id="chips"></div>
-<div id="list"></div>
-<p class="muted" style="font-size:12px;margin-top:18px">“AI summary” records are Gemini’s wording and can be wrong. “Rules” records copy numbers and names as written in the file, but can miss things or pick the wrong document type. Open the source file before using a figure in a letter or estimate.</p>
+<div id="view"></div>
+<details id="manage"><summary id="manageSum">Manage the vault</summary>
+  <div class="row" style="justify-content:space-between;margin:12px 0"><span id="st" class="muted" style="font-size:13px">Loading…</span><button class="btn" id="refresh" type="button">Check for newer</button></div>
+  <details id="scanBox"><summary>Review my Drive by rules, no AI</summary><div id="scan" style="margin-top:10px">
+    <div class="muted" style="font-size:13px">Reads the PDFs, Sheets and Docs that have no record yet. Exact copies are marked as duplicates without being opened. Anything the rules cannot read goes to “Needs review”.</div>
+    <div class="row"><button class="btn" type="button" id="scanCount">Count what is left</button></div></div></details>
+  <details id="revBox"><summary id="revSum">Needs review</summary><div id="rev" style="margin-top:10px"></div></details>
+  <details id="covBox"><summary>Coverage of your Drive</summary><div id="cov" style="margin-top:10px"><button class="btn" type="button" id="covGo">Count my Drive files</button></div></details>
+  <p class="muted" style="font-size:12px;margin-top:12px">Summaries written by Gemini can be wrong. Summaries made by rules copy numbers and names as written in the file, but can miss things. Open the file before using a figure in a letter or estimate.</p>
+</details>
 </main>
 <script>
 (function(){
 "use strict";
-var $=function(id){return document.getElementById(id)},data=null,dom="",open={},LIM=60,more=0,sorted=null,form="",timer=0,lastPlan=null;
-var TAG={ai:"AI summary",rules:"Rules, no AI",manual:"By hand"};
+var $=function(id){return document.getElementById(id)},data=null,topic="",open={},form="",timer=0,dtimer=0,lastPlan=null,dseq=0;
+var BY={ai:"summary by Gemini",rules:"summary by rules",manual:"reviewed by hand"};
 function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
-function mark(s,w){s=esc(s);w.forEach(function(x){if(x.length<2)return;s=s.replace(new RegExp("("+esc(x).replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+")","ig"),"<mark>$1</mark>")});return s}
+function mark(s,w){s=esc(s);(w||[]).forEach(function(x){if(x.length<2)return;s=s.replace(new RegExp("("+esc(x).replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+")","ig"),"<mark>$1</mark>")});return s}
 function when(iso){if(!iso)return "";var d=new Date(iso);return isNaN(d)?String(iso):d.toLocaleString("en-IN",{day:"numeric",month:"short",hour:"numeric",minute:"2-digit"})}
 function day(iso){if(!iso)return "";var d=new Date(iso);return isNaN(d)?"":d.toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})}
 function num(n){return Number(n||0).toLocaleString("en-IN")}
-function setData(d){data=d;sorted=null}
-function status(){if(!data){$("st").textContent="Not downloaded yet";return}
-  var m=data.meta;$("st").textContent=num(m.count)+" document"+(m.count===1?"":"s")+" ("+num(m.ai)+" by Gemini, "+num(m.rules+m.manual)+" by rules)"+(m.queue?" · "+num(m.queue)+" need review":"")+" · sheet changed "+when(m.modified)}
-function chips(){if(!data){$("chips").innerHTML="";return}var d=data.meta.domains,ks=Object.keys(d).sort(function(a,b){return d[b]-d[a]});
-  $("chips").innerHTML='<button type="button" data-d="" class="'+(dom?"":"on")+'">All<b>'+num(data.meta.count)+'</b></button>'+
-    (data.meta.queue?'<button type="button" data-d="?" class="rev'+(dom==="?"?" on":"")+'">Needs review<b>'+num(data.meta.queue)+'</b></button>':'')+ks.map(function(k){
-    return '<button type="button" data-d="'+esc(k)+'" class="'+(dom===k?"on":"")+'">'+esc(PosVault.domainLabel(k))+'<b>'+num(d[k])+'</b></button>'}).join("")}
-function card(e,w){var o=open[e.id],x=e.x||"";
-  return '<div class="it"><h3>'+mark(e.t,w)+'</h3><div class="meta">'+esc(PosVault.domainLabel(e.d))+(e.m?" · "+esc(day(e.m)):"")+'<span class="tag '+e.src+'">'+TAG[e.src]+'</span></div>'+
-    (x?'<div class="x'+(o?"":" short")+'">'+mark(o?x.split(" · ").join("\n"):x,w)+'</div>':'')+
-    '<div class="row"><a href="'+esc(e.u)+'" target="_blank" rel="noopener">Open in Drive ↗</a>'+(x.length>160?'<button class="lnk" type="button" data-o="'+esc(e.id)+'">'+(o?"Less":"All details")+'</button>':'')+'</div></div>'}
-function qcard(e,w){var f=form===e.id;
-  return '<div class="it"><h3>'+mark(e.t,w)+'</h3><div class="meta">'+esc(e.ft||"file")+(e.m?" · "+esc(day(e.m)):"")+(e.p?" · "+esc(e.p):"")+'</div>'+
-    (e.why?'<div class="why">'+esc(e.why)+'</div>':'')+(e.x&&!/^(Not read:|No text|No data)/.test(e.x)?'<div class="x short">'+mark(e.x,w)+'</div>':'')+
-    '<div class="row"><a href="'+esc(e.u)+'" target="_blank" rel="noopener">Open in Drive ↗</a><button class="lnk" type="button" data-f="'+esc(e.id)+'">'+(f?"Cancel":"I have checked it")+'</button></div>'+
+function setData(d){data=d}
+function status(){if(!data){$("st").textContent="Not downloaded yet";return}var m=data.meta;
+  $("st").textContent=num(m.count)+" document"+(m.count===1?"":"s")+" · "+num(m.ai)+" by Gemini, "+num(m.rules+m.manual)+" by rules · sheet changed "+when(m.modified);
+  $("manageSum").textContent="Manage the vault"+(m.queue?" · "+num(m.queue)+" need review":"");$("revSum").textContent="Needs review ("+num(m.queue)+")";renderQueue()}
+function card(e,w){var o=open[e.id],sum=e.s||e.x||"";
+  return '<div class="it"><h3><a href="'+esc(e.u)+'" target="_blank" rel="noopener">'+mark(e.t,w)+'</a></h3>'+
+    (sum?'<div class="sum'+(o?" all":"")+'">'+mark(o?(e.x||sum).split(" · ").join("\n"):sum,w)+'</div>':'')+
+    '<div class="meta"><span>'+esc(e.k||"")+(e.m?" · "+esc(day(e.m)):"")+(o?" · "+BY[e.src]:"")+'</span><button type="button" data-o="'+esc(e.id)+'">'+(o?"Less":"Details")+'</button></div></div>'}
+function home(){var m=data.meta,t=m.topics||{},ks=Object.keys(t).sort(function(a,b){return (a==="Other")-(b==="Other")||t[b]-t[a]});
+  return '<p class="lead muted">'+num(m.count)+' documents indexed. Search above, or pick a topic.</p><div class="topics">'+ks.map(function(k){
+    return '<button type="button" data-t="'+esc(k)+'">'+esc(k)+'<span>'+num(t[k])+'</span></button>'}).join("")+'</div>'}
+function render(){if(!data){$("view").innerHTML="";return}
+  var q=$("q").value.trim();
+  if(!q&&!topic){$("view").innerHTML=home();return}
+  var r=PosVault.find(q,{topic:topic}),w=r.words,h="";
+  if(topic)h+='<div class="crumb"><button type="button" id="back">← Topics</button><span>'+esc(topic)+'</span></div>';
+  if(!q)h+='<p class="lead muted">Newest '+num(r.exact.length)+' of '+num(data.meta.topics[topic]||0)+'. Type above to search inside this topic.</p>';
+  h+=r.exact.map(function(e){return card(e,w)}).join("");
+  if(q&&r.nExact>r.exact.length)h+='<p class="muted" style="font-size:13px">Showing the best '+num(r.exact.length)+' of '+num(r.nExact)+'. Add a word to narrow it down.</p>';
+  if(r.related.length)h+='<div class="sec">Related</div>'+r.related.slice(0,15).map(function(e){return card(e,[])}).join("");
+  if(q&&!r.exact.length&&!r.related.length)h+='<p class="muted">No record mentions that'+(topic?" in this topic":"")+'.</p>';
+  if(q)h+='<div id="drv"></div>';
+  $("view").innerHTML=h;
+  if(q){clearTimeout(dtimer);var seq=++dseq;dtimer=setTimeout(function(){drive(q,r,seq)},650)}}
+/* files anywhere in Drive that Google's own search matches and that are not already shown above */
+async function drive(q,r,seq){var skip={};r.exact.concat(r.related).forEach(function(e){skip[e.id]=1});
+  try{var fs=await PosVault.driveSearch(q,skip);if(seq!==dseq||!$("drv"))return;
+    $("drv").innerHTML=fs.length?'<div class="sec">Also in your Drive</div>'+fs.map(function(f){return '<a class="plain" href="'+esc(f.u)+'" target="_blank" rel="noopener">'+esc(f.t)+'<span>'+esc(f.kind.replace(/s$/,""))+(f.m?" · "+esc(day(f.m)):"")+'</span></a>'}).join(""):''}
+  catch(e){}}
+function qcard(e){var f=form===e.id;
+  return '<div class="it"><h3><a href="'+esc(e.u)+'" target="_blank" rel="noopener">'+esc(e.t)+'</a></h3>'+(e.why?'<div class="why">'+esc(e.why)+'</div>':'')+
+    '<div class="meta"><span>'+esc(e.ft||"file")+(e.m?" · "+esc(day(e.m)):"")+'</span><button type="button" data-f="'+esc(e.id)+'">'+(f?"Cancel":"I have checked it")+'</button></div>'+
     (f?'<div class="form"><select id="fType">'+PosRules.TYPES.map(function(t){return '<option value="'+esc(t)+'"'+(t===e.d?" selected":"")+'>'+esc(PosVault.domainLabel(t))+'</option>'}).join("")+'</select>'+
       '<textarea id="fNote" rows="2" placeholder="What is it? (a line you will search for later)"></textarea><button class="btn pri" type="button" data-save="'+esc(e.id)+'">Save and take off the list</button></div>':'')+'</div>'}
-function render(){if(!data){$("list").innerHTML="";return}
-  var q=$("q").value.trim(),w=q.toLowerCase().split(/\s+/).filter(Boolean),rows,html="";
-  if(dom==="?"){rows=data.queue;if(w.length)rows=rows.filter(function(e){var a=(e.t+" "+e.x+" "+e.why).toLowerCase();return w.every(function(x){return a.indexOf(x)>=0})});
-    html='<p class="muted" style="font-size:13px">The rules could not read or classify these. Gemini works through this list; you can also clear one yourself.</p>'}
-  else{if(!sorted)sorted=data.entries.slice().sort(function(a,b){return a.m<b.m?1:a.m>b.m?-1:a.t.localeCompare(b.t)});
-    rows=q?PosVault.search(q,3000):sorted;if(dom)rows=rows.filter(function(e){return e.d===dom})}
-  var n=LIM*(1+more);
-  $("list").innerHTML=html+(rows.length?"":'<p class="muted">Nothing matches.</p>')+rows.slice(0,n).map(function(e){return dom==="?"?qcard(e,w):card(e,w)}).join("")+
-    (rows.length>n?'<button class="btn" type="button" id="more">Show more ('+num(rows.length-n)+' left)</button>':'')}
+function renderQueue(){if(!data)return;var q=data.queue;
+  $("rev").innerHTML=q.length?'<p class="muted" style="font-size:13px;margin-top:0">The rules could not read these. Gemini works through this list; you can also clear one yourself.</p>'+q.slice(0,30).map(qcard).join("")+(q.length>30?'<p class="muted" style="font-size:13px">And '+num(q.length-30)+' more.</p>':''):'<span class="muted">Nothing is waiting.</span>'}
 function err(e,where){var m=String(e&&e.message||e),c=e&&e.code;
   (where||$("note")).innerHTML='<div class="msg err">'+esc(m)+(c==="need_full"||c==="not_connected"?' <a href="index.html#travel">Open Travel Trace</a>':'')+'</div>'}
-async function go(force){$("refresh").disabled=true;$("note").innerHTML='<div class="msg">'+(data?"Checking the index sheet for changes…":"Reading the index sheet… (a few MB the first time)")+'</div>';
+async function go(force){$("refresh").disabled=true;if(!data)$("note").innerHTML='<div class="msg">Reading the index… (a few MB the first time)</div>';
   try{setData(await PosVault.ensure(force));$("note").innerHTML=""}catch(e){err(e)}
-  $("refresh").disabled=false;status();chips();render()}
-$("q").addEventListener("input",function(){clearTimeout(timer);timer=setTimeout(function(){more=0;render()},160)});
-$("chips").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;dom=b.getAttribute("data-d");more=0;form="";chips();render()});
-$("list").addEventListener("click",async function(e){
-  var b=e.target.closest("button[data-o]");if(b){var id=b.getAttribute("data-o");open[id]=!open[id];render();return}
-  b=e.target.closest("button[data-f]");if(b){var fid=b.getAttribute("data-f");form=form===fid?"":fid;render();return}
+  $("refresh").disabled=false;status();render()}
+$("q").addEventListener("input",function(){clearTimeout(timer);timer=setTimeout(render,180)});
+$("view").addEventListener("click",function(e){
+  var b=e.target.closest("button[data-t]");if(b){topic=b.getAttribute("data-t");render();window.scrollTo(0,0);return}
+  if(e.target.id==="back"){topic="";render();return}
+  b=e.target.closest("button[data-o]");if(b){var id=b.getAttribute("data-o");open[id]=!open[id];render()}});
+$("rev").addEventListener("click",async function(e){
+  var b=e.target.closest("button[data-f]");if(b){var fid=b.getAttribute("data-f");form=form===fid?"":fid;renderQueue();return}
   b=e.target.closest("button[data-save]");if(b){b.disabled=true;b.textContent="Saving…";
-    try{setData(await PosVault.manual(b.getAttribute("data-save"),$("fType").value,$("fNote").value.trim()));form="";if(!data.meta.queue)dom="";status();chips();render()}
-    catch(x){b.disabled=false;b.textContent="Save and take off the list";alertLine(x)}return}
-  if(e.target.id==="more"){more++;render()}});
-function alertLine(x){$("note").innerHTML='<div class="msg err">'+esc(x.message||x)+'</div>';window.scrollTo({top:0,behavior:"smooth"})}
+    try{setData(await PosVault.manual(b.getAttribute("data-save"),$("fType").value,$("fNote").value.trim()));form="";status();render()}
+    catch(x){b.disabled=false;b.textContent="Save and take off the list";$("rev").insertAdjacentHTML("afterbegin",'<div class="msg err">'+esc(x.message||x)+'</div>')}}});
 
 /* ---------- review my Drive ---------- */
 function scanIdle(msg){var p=lastPlan,s=$("scan"),left=p?p.todo.length+p.dups.length:0;
@@ -133,11 +150,11 @@ async function scanRun(limit){var s=$("scan"),total=limit?Math.min(limit,lastPla
     g("nA").textContent=num(t.auto);g("nR").textContent=num(t.review);g("nD").textContent=num(t.dups);g("nL").textContent=num(t.left);
     g("scanBar").style.width=(total?Math.min(100,Math.round((total-t.left)*100/total)):0)+"%";if(t.msg)g("scanSay").textContent=t.msg}})}
   catch(e){bad=e}
-  lastPlan=null;var d=await PosVault.load();setData(d);status();chips();render();
+  lastPlan=null;var d=await PosVault.load();setData(d);status();render();
   var msg=res?'<div class="msg">'+(limit?"Trial done: ":"Done: ")+num(res.auto)+' read by rules, '+num(res.review)+' sent to Needs review, '+num(res.dups)+' duplicates'+
       (res.failed?', '+num(res.failed)+' could not be reached and will be tried again next time':'')+(res.gone?', '+num(res.gone)+' no longer in Drive':'')+'.'+
       (res.errors&&res.errors.length?'<div class="muted" style="font-size:12px;margin-top:6px">'+res.errors.map(esc).join("<br>")+'</div>':'')+
-      (limit?'<div style="margin-top:6px">The newest records in the list below are the ones just made. Check them against their files before reviewing everything.</div>':'')+'</div>':
+      '</div>':
     '<div class="msg err">'+esc(bad&&bad.message||bad)+'</div>';
   scanIdle(msg)}
 $("scan").addEventListener("click",function(e){var id=e.target.id;
@@ -161,7 +178,7 @@ async function cov(){var c=$("cov");c.innerHTML='<span class="muted">Counting ev
 $("cov").addEventListener("click",function(e){if(e.target.id==="covGo")cov()});
 $("refresh").addEventListener("click",function(){if(window.PosScan&&PosScan.running())return;go(true)});
 /* always ask the sheet on open (only its details; rows are read only when it changed) */
-PosVault.load().then(function(d){setData(d);status();chips();render();go(true)});
+PosVault.load().then(function(d){setData(d);status();render();go(true)});
 })();
 </script>
 </body></html>
