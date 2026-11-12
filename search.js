@@ -40,7 +40,7 @@ function sTravel(w){var db=J("totalRecallPWA_v2")||{},n=db.travelNotes||{},res=[
     res.push({sc:sc,d:e.date||"",h:"#travel",date:e.date,t:around(e.text||"(photo memory)",w,90),m:e.date||"",x:""})});
   res.sort(function(a,b){return b.sc-a.sc||(a.d<b.d?1:-1)});return res}
 function sVault(w){if(!window.PosVault)return [];return PosVault.search(w.join(" "),60).map(function(e){
-  return {sc:e.score,h:e.u,ext:1,t:e.t,m:PosVault.domainLabel(e.d)+" · AI summary — check the source",x:around(e.x,w,170)}})}
+  return {sc:e.score,h:e.u,ext:1,t:e.t,m:PosVault.domainLabel(e.d)+(e.src==="ai"?" · AI summary":e.src==="manual"?" · reviewed by hand":" · read by rules")+" — check the source",x:around(e.x,w,170)}})}
 
 var GROUPS=[["Tasks",sTasks],["People",sPeople],["Money Book",sMoney],["Travel memories",sTravel],["Document vault",sVault]];
 var shown={};

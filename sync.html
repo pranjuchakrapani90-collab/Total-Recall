@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="vault.js?v=20261102a"></script><script src="drive.js?v=20261102t"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
+<html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="vault.js?v=20261112a"></script><script src="drive.js?v=20261102t"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
 <title>Drive Sync · Pranju OS</title>
 <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="stylesheet" href="tr-theme.css?v=20261020">
@@ -280,11 +280,11 @@ async function dash(){
   h+='<div class="card" style="margin-top:8px"><div class="muted" style="font-size:12px">Files arriving per day · last 14 days</div><div class="bars">'+
     days.map(function(x,i){return '<div class="'+(x.n?"":"z")+(i===13?" t":"")+'" style="height:'+Math.max(2,Math.round(x.n*100/mx))+'%" title="'+new Date(x.t).toLocaleDateString("en-IN",{day:"numeric",month:"short"})+": "+x.n+'"></div>'}).join("")+
     '</div><div class="bx"><span>'+new Date(days[0].t).toLocaleDateString("en-IN",{day:"numeric",month:"short"})+'</span><span>today</span></div></div>';
-  h+='<div class="card" style="margin-top:8px"><div class="row"><div><div class="muted" style="font-size:12px">Gemini review of File manager</div><div class="big">'+(docT?Math.round(docR*100/docT):0)+'% of documents reviewed</div></div></div>'+
-    (v?'':'<div class="muted" style="font-size:12px">Open the Vault once so this can compare with Gemini’s log.</div>')+
+  h+='<div class="card" style="margin-top:8px"><div class="row"><div><div class="muted" style="font-size:12px">Review of File manager (Gemini and rules)</div><div class="big">'+(docT?Math.round(docR*100/docT):0)+'% of documents reviewed</div></div></div>'+
+    (v?'':'<div class="muted" style="font-size:12px">Open the Vault once so this can compare with the index.</div>')+
     '<table style="margin-top:8px"><tr><th>Type</th><th>Files</th><th>Reviewed</th><th>Waiting</th></tr>'+
     ["PDFs","Docs","Sheets","Images","Videos","Audio","Other"].filter(function(k){return types[k]}).map(function(k){var x=types[k];return '<tr><td>'+k+'</td><td>'+x.n+'</td><td>'+x.rev+'</td><td>'+x.pend+'</td></tr>'}).join("")+'</table>'+
-    (pend.length?'<details style="margin-top:10px"><summary>Newest documents Gemini hasn’t reviewed ('+pend.length+')</summary><div style="margin-top:6px">'+pend.slice(0,40).map(function(r){return '<div class="f"><a href="https://drive.google.com/file/d/'+esc(r[0])+'/view" target="_blank" rel="noopener">'+esc(r[1])+'</a><span class="muted" style="font-size:12px;flex:0 0 auto">'+esc(when(r[5]))+'</span></div>'}).join("")+'</div></details>':'')+'</div>';
+    (pend.length?'<details style="margin-top:10px"><summary>Newest documents without a record ('+pend.length+')</summary><div style="margin-top:6px">'+pend.slice(0,40).map(function(r){return '<div class="f"><a href="https://drive.google.com/file/d/'+esc(r[0])+'/view" target="_blank" rel="noopener">'+esc(r[1])+'</a><span class="muted" style="font-size:12px;flex:0 0 auto">'+esc(when(r[5]))+'</span></div>'}).join("")+'</div></details>':'')+'</div>';
   var fl=b.folders.filter(function(f){return f.n}).sort(function(a,c){return c.n-a.n}).slice(0,12);
   if(fl.length)h+='<details class="card" style="margin-top:8px"><summary>Folders</summary><table style="margin-top:6px">'+fl.map(function(f){return '<tr><td><a href="https://drive.google.com/drive/folders/'+esc(f.id)+'" target="_blank" rel="noopener" style="color:var(--tr-ink);text-decoration:none">'+esc(f.path)+'</a></td><td>'+f.n+'</td></tr>'}).join("")+'</table></details>';
   $("dash").innerHTML=h}
