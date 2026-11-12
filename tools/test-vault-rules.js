@@ -50,7 +50,7 @@ f=R.readSheet({name:'Daily Non Com Report.xlsx'},[{title:'MAIN',rows:137,cols:15
 ok(f.doc_type==='report'&&/2 tabs: "MAIN" \(137 rows in grid\)/.test(f.summary)&&f.consumer_nos[0]==='130000018948','spreadsheet');
 ok(R.toRow({id:'A',name:'a.pdf',type:'pdf'},f).length===26,'26 columns');
 f=R.readSheet({name:'Estimate Register'},[{title:'Register',rows:50,cols:5,sample:[['Sl No','Estimate title','Location / feeder','Remarks'],[1,'LT extension','11 kV Testpur feeder','PS Theft case, CCTV, From DTO']]}]);
-ok(f.doc_type==='register'&&f.places.join()==='11 kV Testpur Feeder','sheet named register is a register; no junk places from loose cells');
+ok(f.doc_type==='register'&&f.places.join()==='11 kV Testpur feeder','sheet named register is a register; no junk places from loose cells');
 f=R.read({name:'Application.pdf'},'\u0997\u09a8\u09c0\u09ae \u09ac\u09bf\u09a6\u09ce \u0989\u09aa\u09b8\u09b2 \u0995\u09be\u09ae\u0993\u09f0 \u09a6\u09bf\u09ce \u0989\u09aa\u0997\u09ce\u09b8\u09aa \u09ae\u09a4\u09be \u0986\u09b2\u09bf\u09af\u09bc \u0989\u09aa\u0995\u09cd\u09a4 \u09aa\u09bf\u09a6\u09ce \u09ac\u09bf\u09a6\u09ce \u0989\u09aa\u09b8\u09b2 \u0995\u09be\u09ae\u0993\u09f0 \u09a6\u09bf\u09ce date 13/11/2026');
 ok(f.needs&&/Assamese/.test(f.reason),'Assamese text goes to review with a clear reason');
 process.exit(bad?1:0);
