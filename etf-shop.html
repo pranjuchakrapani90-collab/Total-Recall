@@ -21,7 +21,7 @@
 const I=Invest,{esc,inr,price,pct,signInr,tone,ok,r2,dshort}=I;
 const KEY="etf",$=id=>document.getElementById(id);
 /* the rules of the old sheet's Orders tab (Order Calc), kept as editable settings */
-const DEF={parts:40,reserve:0.2,minFall:-0.10,twoFall:-0.15,avgFall:-0.06,maxLots:4,target:0.075,trail:0.02,buffer:0.005,check:-0.30,dividend:0,universe:[]};
+const DEF={parts:40,reserve:0.2,minFall:-0.10,twoFall:-0.15,avgFall:-0.06,maxLots:4,target:0.075,trail:0.02,floor:0.06,buffer:0.005,check:-0.30,dividend:0,universe:[]};
 const today=()=>I.ist().iso;
 const wdS=s=>s===today()?"today":new Date(s+"T00:00:00").toLocaleDateString("en-IN",{weekday:"short"})+" "+I.dshort(s);
 let Q=I.quotesCache(),qAt=Math.max(0,...Object.values(Q).map(q=>q.at||0)),missing=[];
@@ -40,8 +40,10 @@ function model(){
   open.forEach(l=>{const q=qOf(l.code);l.close=q?q.price:NaN;l.chg=q?q.chg:NaN;l.gain=l.close/l.price-1;l.value=l.qty*l.close;
     l.tgt=r2(l.price*(1+S.target));
     if(q&&l.gain>=0){l.high=Math.max(l.close,I.highSince(q,l.date));l.armed=l.high>=l.price*(1+S.target);
-      if(l.armed){l.stop=r2(l.high*(1-S.trail));l.signal=l.close<=l.stop?"SELL":"TRAILING";}}});
-  const sells=open.filter(l=>l.signal==="SELL").sort((a,b)=>b.gain-a.gain).map(l=>({l,qty:l.qty,lim:r2(l.close*(1-S.buffer))}));
+      /* floor: the stop never sits below the trigger whose limit still books S.floor on the lot */
+      if(l.armed){const tr=r2(l.high*(1-S.trail));l.minLim=S.floor>0?Math.ceil(l.price*(1+S.floor)*100-1e-6)/100:0;const fl=l.minLim?Math.ceil((l.minLim+0.005)/(1-S.buffer)*100-1e-6)/100:0;
+        l.floored=fl>tr;l.stop=l.floored?fl:tr;l.signal=l.close<=l.stop?"SELL":"TRAILING";}}});
+  const sells=open.filter(l=>l.signal==="SELL").sort((a,b)=>b.gain-a.gain).map(l=>({l,qty:l.qty,lim:Math.max(r2(l.close*(1-S.buffer)),l.minLim||0)}));
   const trailing=open.filter(l=>l.signal==="TRAILING").sort((a,b)=>b.gain-a.gain);
   /* Kite cross-check: a GTT saved here that Kite's list (today's, fetched after it was saved) doesn't have was never placed.
      Each Kite GTT covers one lot (closest trigger); a lot left without one goes back to "not placed yet". */
@@ -55,7 +57,7 @@ function model(){
     else if(!g){msg=`No GTT yet. Place: trigger ${price(sug.trig)} · limit ${price(sug.lim)} · ${sug.qty} units.`;}
     else if(!sug){todo=false;msg=`GTT ${price(g.trig)} is your own stop. The app's trailing stop starts once the high reaches ${price(l.tgt)}.`;}
     else if(g.trig>sug.trig+0.005){st="ok";todo=false;msg=`GTT ${price(g.trig)} is above the app's stop ${price(sug.trig)} · kept as it is (a GTT is only ever raised).`;}
-    else if(g.trig<sug.trig-0.005){msg=`Raise GTT from ${price(g.trig)} to ${price(sug.trig)}, limit ${price(sug.lim)} (new high ${price(l.high)}).`;}
+    else if(g.trig<sug.trig-0.005){msg=`Raise GTT from ${price(g.trig)} to ${price(sug.trig)}, limit ${price(sug.lim)} (${l.floored?`${pct(S.floor*100)} minimum profit`:`new high ${price(l.high)}`}).`;}
     else if(g.qty!==l.qty){msg=`GTT is for ${g.qty} units; the lot has ${l.qty}.`;}
     else {st="ok";todo=false;msg=`GTT matches the stop · set ${dshort(g.date)}.`;}
     return {l,g,sug,st,msg,todo};}).sort((a,b)=>(b.todo-a.todo)||(b.l.gain-a.l.gain));
@@ -272,6 +274,7 @@ function settingsForm(S){const P=x=>r2(x*100);
     {k:"parts",label:"Parts of capital (tranches)",type:"number",step:"1",value:S.parts},
     {k:"target",label:"Profit that starts the trailing stop %",type:"number",value:P(S.target)},
     {k:"trail",label:"Trailing stop below highest close %",type:"number",value:P(S.trail)},
+    {k:"floor",label:"Minimum profit a sale must book % (0 = none)",type:"number",value:P(S.floor)},
     {k:"avgFall",label:"Average when fallen from last buy %",type:"number",value:P(S.avgFall)},
     {k:"minFall",label:"New buy: minimum fall from 52W high %",type:"number",value:P(S.minFall)},
     {k:"reserve",label:"Cash reserve kept for averaging %",type:"number",value:P(S.reserve)},
@@ -398,7 +401,7 @@ function setup(M){const S=M.S;
    <ol class="rules">
     <li>Check once a day after 4 PM on closing prices; place AMO limit orders.</li>
     <li>Capital split into ${S.parts} parts: one buy or one averaging = one tranche (${inr(M.tranche)}); profits compound into it.</li>
-    <li>Sell: once a lot's highest close since buying is ${pct(S.target*100)} above cost, trail ${pct(S.trail*100)} below that high; sell the whole lot when the close reaches the stop. LIFO, no daily limit.</li>
+    <li>Sell: once a lot's highest close since buying is ${pct(S.target*100)} above cost, trail ${pct(S.trail*100)} below that high; sell the whole lot when the close reaches the stop.${S.floor>0?` The stop is never below the price whose limit books ${pct(S.floor*100)} on the lot, and a sell order's limit is never below that either.`:""} LIFO, no daily limit.</li>
     <li>One purchase a day: a new ETF if one qualifies, otherwise an average.</li>
     <li>Average: only when no new ETF qualifies, the ETF most fallen ≥ ${pct(-S.avgFall*100)} below its last buy and closing green; not above ${S.maxLots} lots per index group, not for hold-only ETFs, not with cash below a tranche.</li>
     <li>New buy: ≥ ${pct(-S.minFall*100)} below the 52-week-high close, closing green, index group not held (unique), the most fallen first. Keep ${pct(S.reserve*100)} of capital as reserve.</li>
