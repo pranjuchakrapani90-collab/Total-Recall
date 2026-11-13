@@ -176,7 +176,7 @@ async function folderFor(name,b){
   if(!r3.ok)throw await gerr(r3,"Making "+name);var id=(await r3.json()).id;b.folders.push({id:id,name:name,path:"File manager › "+name,n:0});return made[name]=id}
 /* Files up to 5 MB go in ONE request (details + contents together); bigger ones use Drive's two-step upload. */
 async function upload1(f,parent){
-  var type=f.type||"application/octet-stream",meta={name:f.name,parents:[parent]};
+  var type=f.type||"application/octet-stream",meta={name:f.name,parents:[parent],properties:{via:"pranju-os-sync"}};   /* marks who uploaded it, for tracing duplicates */
   if(f.lastModified)meta.modifiedTime=new Date(f.lastModified).toISOString();
   if(f.size<=SMALL){
     var bd="pos"+Date.now().toString(36)+Math.random().toString(36).slice(2);
@@ -187,6 +187,15 @@ async function upload1(f,parent){
   if(!s.ok)throw await gerr(s,"Upload");var loc=s.headers.get("Location");if(!loc)throw new Error("Drive gave no upload address");
   var p=await fetch(loc,{method:"PUT",headers:{"Content-Type":type},body:f});if(!p.ok)throw await gerr(p,"Upload");return p.json()}
 function wait(ms){return new Promise(function(ok){setTimeout(ok,ms)})}
+/* Second check, straight from Drive, just before a file is uploaded (13 Nov 2026): Drive was found holding several
+   copies of the same WhatsApp documents, uploaded on different nights. Whatever the phone's saved list of Drive
+   says, a file whose name and size Drive already has is never uploaded again. If Drive cannot be asked, the file is
+   left for the next run instead of being uploaded blind. */
+async function inDrive(f){
+  var q="name = '"+f.name.replace(/\\/g,"\\\\").replace(/'/g,"\\'")+"' and trashed=false and 'me' in owners";
+  var r=await g(API+"/files?spaces=drive&pageSize=100&fields=files(id,size)&q="+encodeURIComponent(q));
+  if(!r.ok)throw await gerr(r,"Checking Drive");
+  return ((await r.json()).files||[]).some(function(x){return Number(x.size||0)===f.size})}
 /* Drive says "slow down" (rate limit) or the network hiccups: wait a little and try that file again instead of failing it */
 async function upload(f,parent){
   for(var n=0;;n++){
@@ -211,7 +220,7 @@ async function sync(list){
   var files=Array.prototype.slice.call(list),items=files.map(function(f){return {f:f,st:"wait",msg:""}});
   $("run").hidden=false;$("pick").disabled=$("pickDir").disabled=true;$("stop").disabled=false;
   picking=false;wake();
-  var up=0,skip=0,bad=0,bytes=0,tot=items.length;
+  var up=0,skip=0,bad=0,bytes=0,tot=items.length,late=0,claimed={};
   var pt=0,pq=null;
   function paint(now){if(now||Date.now()-pt>400){if(pq){clearTimeout(pq);pq=null}pt=Date.now();draw()}else if(!pq)pq=setTimeout(function(){pq=null;pt=Date.now();draw()},400)}
   function draw(){var done=up+skip+bad;$("bar").style.width=(tot?Math.round(done*100/tot):0)+"%";
@@ -228,8 +237,12 @@ async function sync(list){
     items.forEach(function(it){var s=b.names[it.f.name.toLowerCase()];if(junk(it.f)||(s&&s.indexOf(it.f.size)>=0)){it.st="skip";it.msg=junk(it.f)?"temp/empty file":"same name and size already in Drive";skip++}});
     paint(true);
     var q=items.filter(function(it){return it.st==="wait"});
-    async function worker(){while(q.length&&!stop){var it=q.shift();it.st="go";paint();
-      try{var to=await folderFor(bucket(it.f),b),d=await upload(it.f,to);it.st="up";it.id=d.id;up++;bytes+=it.f.size;
+    async function worker(){while(q.length&&!stop){var it=q.shift(),ck=it.f.name.toLowerCase()+"|"+it.f.size;
+      /* the same file picked twice in one go (it sits in two phone folders) */
+      if(claimed[ck]){it.st="skip";it.msg="same file picked twice";skip++;paint();continue}
+      claimed[ck]=1;it.st="go";paint();
+      try{if(await inDrive(it.f)){it.st="skip";it.msg="already in Drive (found by the second check)";skip++;late++;paint();continue}
+        var to=await folderFor(bucket(it.f),b),d=await upload(it.f,to);it.st="up";it.id=d.id;up++;bytes+=it.f.size;
         var k=it.f.name.toLowerCase();(b.names[k]=b.names[k]||[]).push(it.f.size);
         hist.push({n:it.f.name,id:d.id,s:it.f.size,to:bucket(it.f),at:new Date().toISOString()})}
       catch(e){it.st="bad";it.msg=String(e.message||e);bad++;if(/HTTP 40[13]/.test(it.msg)&&!/rate/i.test(it.msg))stop=true}
@@ -244,7 +257,8 @@ async function sync(list){
   running=false;sleep_();
   if(hist.length){var dt=(await kget(DAYS))||{};hist.forEach(function(x){var d=istDay(x.at),t=dt[d]=dt[d]||{n:0,s:0};t.n++;t.s+=x.s});await kset(DAYS,dt);
     var h=(await kget(HIST))||[];h=hist.reverse().concat(h).slice(0,500);await kset(HIST,h);
-    try{localStorage.setItem("pos-dsync-last",JSON.stringify({at:new Date().toISOString(),up:up,skip:skip,bad:bad}))}catch(e){}}
+    if(late)$("note").insertAdjacentHTML("beforeend",'<div class="msg err">'+"<b>"+late+"</b> picked files were already in Drive but missing from this phone's saved list of Drive; the second check caught them, so nothing was uploaded twice. Tap Refresh below to rebuild the list."+'</div>');
+    try{localStorage.setItem("pos-dsync-last",JSON.stringify({at:new Date().toISOString(),up:up,skip:skip,bad:bad,late:late}))}catch(e){}}
   paint(true);$("pick").disabled=$("pickDir").disabled=false;$("stop").disabled=true;
   $("fi").value="";$("fd").value="";
   if(up){await ensureIndex().catch(function(){});}
