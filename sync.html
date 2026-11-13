@@ -6,10 +6,11 @@
 <style>
 /* Drive Sync (5 Nov 2026): bulk upload of phone files (WhatsApp media) into Google Drive › File manager, skipping
    anything already in Drive (same name + same size, anywhere in My Drive), plus a dashboard of what has arrived in
-   File manager (from DriveSync or from here) and how much of it Gemini has reviewed.
-   Files go into the same type folders DriveSync uses (WhatsApp Documents / Images / Video / Audio…) when they exist
+   File manager and how much of it Gemini has reviewed.
+   Files go into type folders (WhatsApp Documents / Images / Video / Audio…) when they exist
    under File manager, otherwise those folders are made there. Uploads carry no appProperties, so the Vault's
-   coverage count and Gemini treat them exactly like DriveSync's. */
+   coverage count and Gemini treat them like any other Drive file. The DriveSync Android app, which used to fill
+   File manager in the background, is no longer used (13 Nov 2026): this page is the only uploader. */
 *{box-sizing:border-box}html,body{margin:0}
 body{font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;min-height:100vh;background:var(--tr-bg);color:var(--tr-ink)}
 body>header{padding:calc(10px + env(safe-area-inset-top,0px)) 16px 10px;background:var(--tr-head);color:var(--tr-head-ink)}
@@ -64,7 +65,7 @@ details summary{cursor:pointer;font-weight:700}
     <div class="list" id="runList"></div>
   </div>
 </div>
-<p class="muted" style="font-size:12px">The screen is kept on while files are read and uploaded — keep Pranju OS in front (don't switch apps). If it stops anyway, just pick the same files again: finished ones are skipped. On Android, WhatsApp's files are under Internal storage › Android › media › com.whatsapp › WhatsApp › Media. DriveSync keeps running in the background as before.</p>
+<p class="muted" style="font-size:12px">The screen is kept on while files are read and uploaded — keep Pranju OS in front (don't switch apps). If it stops anyway, just pick the same files again: finished ones are skipped. On Android, WhatsApp's files are under Internal storage › Android › media › com.whatsapp › WhatsApp › Media.</p>
 
 <h2>File manager in Drive</h2>
 <div class="row" style="margin-bottom:8px"><span id="dashSt" class="muted" style="font-size:13px">…</span><button class="btn sm" id="refresh" type="button">Refresh</button></div>
@@ -168,7 +169,7 @@ function bucket(f){var n=f.name,t=f.type||"",l=n.toLowerCase();
 var made={};
 async function folderFor(name,b){
   if(made[name])return made[name];
-  /* DriveSync's own folder of that name under File manager (the one holding most files), else make it */
+  /* the existing folder of that name under File manager (the one holding most files), else make it */
   var c=b.folders.filter(function(f){return f.name===name}).sort(function(x,y){return y.n-x.n})[0];
   if(c)return made[name]=c.id;
   var fm=b.fm;
@@ -254,7 +255,7 @@ async function sync(list){
     var badOne=items.filter(function(it){return it.st==="bad"})[0];
     if(badOne)note("Some uploads failed: "+esc(badOne.msg),true);
     else if(!stop)note(up?"Uploaded <b>"+up+"</b> new file"+(up>1?"s":"")+" to Drive › File manager"+(skip?" · "+skip+" were already in Drive and skipped":"")+".":
-      "Nothing to upload — all <b>"+skip+"</b> picked files are already in your Drive (same name and size), most likely sent there already by DriveSync.",false);
+      "Nothing to upload — all <b>"+skip+"</b> picked files are already in your Drive (same name and size).",false);
   }catch(e){failNote(e)}
   running=false;sleep_();
   if(hist.length){var dt=(await kget(DAYS))||{};hist.forEach(function(x){var d=istDay(x.at),t=dt[d]=dt[d]||{n:0,s:0};t.n++;t.s+=x.s});await kset(DAYS,dt);
@@ -291,7 +292,7 @@ async function dash(){
   var stale=last&&Date.now()-new Date(last[5])>36*36e5;
   var h='<div class="card" style="margin-bottom:8px"><div class="muted" style="font-size:12px">Last file to arrive</div>'+
     (last?'<div class="big" style="'+(stale?"color:#b45309":"")+'">'+ago(last[5])+'</div><div style="font-size:13px;word-break:break-all"><a href="https://drive.google.com/file/d/'+esc(last[0])+'/view" target="_blank" rel="noopener" style="color:var(--tr-ink)">'+esc(last[1])+'</a> <span class="muted">· '+esc(when(last[5]))+'</span></div>'+
-      (stale?'<div class="muted" style="font-size:12px;margin-top:4px">Nothing new for over a day and a half — check that DriveSync is still running on the phone.</div>':''):'<div class="big">No files yet</div>')+'</div>';
+      (stale?'<div class="muted" style="font-size:12px;margin-top:4px">Nothing new for over a day and a half. Upload from this page when you have new files.</div>':''):'<div class="big">No files yet</div>')+'</div>';
   h+='<div class="tiles"><div class="tile"><b>'+today+'</b><span>arrived today</span></div><div class="tile"><b>'+week+'</b><span>last 7 days</span></div><div class="tile"><b>'+fs.length.toLocaleString("en-IN")+'</b><span>in File manager</span></div></div>';
   h+='<div class="card" style="margin-top:8px"><div class="muted" style="font-size:12px">Files arriving per day · last 14 days</div><div class="bars">'+
     days.map(function(x,i){return '<div class="'+(x.n?"":"z")+(i===13?" t":"")+'" style="height:'+Math.max(2,Math.round(x.n*100/mx))+'%" title="'+new Date(x.t).toLocaleDateString("en-IN",{day:"numeric",month:"short"})+": "+x.n+'"></div>'}).join("")+
