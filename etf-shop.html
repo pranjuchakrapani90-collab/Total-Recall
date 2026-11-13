@@ -328,21 +328,18 @@ function tonight(M){
     ${why.length?`<p class="foot">${why.map(esc).join("<br>")}</p>`:""}</section>`;}
 function summary(M){
   const val=M.open.reduce((a,l)=>a+(ok(l.value)?l.value:l.price*l.qty),0),pl=val-M.invested,dep=M.invested/M.capital*100;
-  return I.sum([["Value",inr(val),"",`${M.open.length} lots · ${M.held.length} ETFs`],["P / L",signInr(pl),tone(pl),pct(pl/M.invested*100,1)],M.useF?["Invested",inr(M.invested),"",ok(dep)?dep.toFixed(0)+"% of capital":""]:["Cash",inr(M.cash),"",ok(dep)?dep.toFixed(0)+"% invested":""]])+(()=>{const G=M.open.filter(l=>l.gtt&&ok(l.gtt.lim));if(!G.length)return "";
-    const K=G.map(l=>lockOf(l,l.gtt.lim,l.gtt.qty)),a=K.reduce((x,k)=>x+k.a,0),cost=G.reduce((x,l,i)=>x+l.price*K[i].q,0);
-    return `<p class="line" style="padding:0 4px;margin:6px 0 0">Locked by GTTs <b class="${tone(a)}">${signInr(Math.round(a))}</b> (${pct(a/cost*100,1)}) · if all ${G.length} trigger, at their limit prices</p>`;})();}
+  return I.sum([["Value",inr(val),"",`${M.open.length} lots · ${M.held.length} ETFs`],["P / L",signInr(pl),tone(pl),pct(pl/M.invested*100,1)],M.useF?["Invested",inr(M.invested),"",ok(dep)?dep.toFixed(0)+"% of capital":""]:["Cash",inr(M.cash),"",ok(dep)?dep.toFixed(0)+"% invested":""]]);}
 function holdings(M){
   const G=M.held.slice().sort((a,b)=>(b.last.gain||-9)-(a.last.gain||-9));
   if(!G.length)return `<p class="nothing">No open lots.</p>`;
-  return G.map(x=>{const g=x.last.gain*100,pl=x.val-x.inv,gtt=x.L.some(l=>l.gtt);
-     return `<details class="hold"><summary><span><b>${esc(x.code)}</b> <span class="tag">${x.L.length}</span>${gtt?` <span class="tag ok">GTT</span>`:""}${x.mode!=="buy"?` <span class="tag">hold</span>`:""}
+  return G.map(x=>{const g=x.last.gain*100,pl=x.val-x.inv,gtt=x.L.some(l=>l.gtt),GL=x.L.filter(l=>l.gtt&&ok(l.gtt.lim)).sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:(b.t||0)-(a.t||0)),gk=GL.length?lockOf(GL[0],GL[0].gtt.lim,GL[0].gtt.qty):null;
+     return `<details class="hold"><summary><span><b>${esc(x.code)}</b> <span class="tag">${x.L.length}</span>${gtt?` <span class="tag ${gk&&gk.p<0?"":"ok"}">GTT${gk?" "+pct(gk.p,1):""}</span>`:""}${x.mode!=="buy"?` <span class="tag">hold</span>`:""}
        <div class="sub muted">newest <span class="${tone(g)}">${pct(g,1)}</span> · day <span class="${tone(x.chg)}">${pct(x.chg,1)}</span></div></span>
        <span class="r mono"><span class="${tone(pl)}">${ok(pl)?signInr(pl):"—"}</span><div class="sub">${inr(x.val)}</div></span></summary>
-       <table class="lots"><tr><th>Bought</th><th>Price</th><th>Qty</th><th>Gain</th></tr>
-       ${x.L.map(l=>`<tr class="tap" data-lot="${esc(l.id)}"><td>${esc(dshort(l.date))}</td><td>${price(l.price)}</td><td>${l.qty}</td><td class="${tone(l.gain)}">${pct(l.gain*100,1)}${l.gtt?` · GTT ${price(l.gtt.trig)}`:""}</td></tr>`).join("")}
-       <tr><td>Now</td><td>${price(x.close)}</td><td></td><td class="${tone(pl)}">${pct(pl/x.inv*100,1)}</td></tr></table>
-       ${(()=>{const G=x.L.filter(l=>l.gtt&&ok(l.gtt.lim));if(!G.length)return "";const K=G.map(l=>lockOf(l,l.gtt.lim,l.gtt.qty)),a=K.reduce((s,k)=>s+k.a,0),c=G.reduce((s,l,i)=>s+l.price*K[i].q,0);
-         return `<p class="small" style="margin:-4px 0 8px">If GTT hits: <b class="${tone(a)}">${lockTxt({a,p:a/c*100})}</b> · ${K.reduce((s,k)=>s+k.q,0)} units at limit ${G.map(l=>price(l.gtt.lim)).join(", ")}</p>`;})()}
+       <table class="lots"><tr><th>Bought</th><th>Price</th><th>Qty</th><th>Gain</th>${GL.length?"<th>If GTT hits</th>":""}</tr>
+       ${x.L.map(l=>`<tr class="tap" data-lot="${esc(l.id)}"><td>${esc(dshort(l.date))}</td><td>${price(l.price)}</td><td>${l.qty}</td><td class="${tone(l.gain)}">${pct(l.gain*100,1)}</td>${GL.length?(()=>{if(!l.gtt||!ok(l.gtt.lim))return "<td>—</td>";const k=lockOf(l,l.gtt.lim,l.gtt.qty);return `<td class="${tone(k.a)}">${pct(k.p,1)} · ${signInr(Math.round(k.a))}</td>`;})():""}</tr>`).join("")}
+       <tr><td>Now</td><td>${price(x.close)}</td><td></td><td class="${tone(pl)}">${pct(pl/x.inv*100,1)}</td>${GL.length?"<td></td>":""}</tr></table>
+       ${GL.length?`<p class="small muted" style="margin:-4px 0 8px">GTT trigger ${GL.map(l=>price(l.gtt.trig)).join(", ")} · booked at the limit price, before charges.</p>`:""}
        <p class="small muted" style="margin:-4px 0 10px">Trailing starts at ${price(x.last.tgt)} · ${pct(x.fall52*100,1)} from 52W high · tap a lot to edit or sell.</p></details>`;}).join("");}
 let showAll=false;
 function watch(M){
