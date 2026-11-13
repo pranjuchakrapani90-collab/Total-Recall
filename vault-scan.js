@@ -54,10 +54,13 @@ async function append(sheetId,tab,rows){
   var r=await G.gfetch(SH+sheetId+"/values/"+encodeURIComponent(G.a1(tab,"A1"))+":append?valueInputOption=RAW&insertDataOption=INSERT_ROWS",jpost({values:rows}));
   if(!r.ok)throw await G.fail(r,"Writing to the index sheet")}
 /* ids and statuses already in a tab: {id: status} */
-async function known(sheetId,tab){var out={},n=0;
-  var a=await G.values(sheetId,G.a1(tab,"A2:A")),x=await G.values(sheetId,G.a1(tab,"X2:X"));
-  a.forEach(function(r,i){var id=String(r&&r[0]||"").trim();n=i+1;if(id)out[id]=String(x[i]&&x[i][0]||"").trim().toLowerCase()||"?"});
-  return {ids:out,rows:a.length}}
+async function known(sheetId,tab){var out={},old={},tag="rules v"+R.VERSION;
+  var a=await G.values(sheetId,G.a1(tab,"A2:A")),x=await G.values(sheetId,G.a1(tab,"T2:X"));   /* T why, V note, X status */
+  a.forEach(function(r,i){var id=String(r&&r[0]||"").trim();if(!id)return;var c=x[i]||[],st=String(c[4]||"").trim().toLowerCase()||"?",note=String(c[2]||"");
+    out[id]=st;
+    /* read by an older version of the rules: worth reading again (not duplicates, not files that simply have no text) */
+    old[id]=/Pranju OS rules/.test(note)&&note.indexOf(tag)<0&&(st==="auto"||(st==="needs_review"&&/not recognised/i.test(String(c[0]||""))))});
+  return {ids:out,old:old,rows:a.length}}
 
 /* ---------- folders, for the folder_path column ---------- */
 async function folderPaths(){
@@ -142,7 +145,7 @@ async function plan(progress){
   Object.keys(auto.ids).forEach(function(k){done[k]=auto.ids[k]});Object.keys(ai.ids).forEach(function(k){if(ai.ids[k]==="skipped"&&done[k])return;done[k]=ai.ids[k]});
   say("Listing your Drive…");
   var list=await V.listDrive(function(n){say("Listing your Drive… "+n.toLocaleString("en-IN")+" files")}),pathOf=await folderPaths(),dir=await tmpFolder();
-  var files=[],byMd5={},counts={drive:0,docs:0,indexed:0,waiting:0,PDFs:0,Sheets:0,Docs:0};
+  var files=[],byMd5={},counts={drive:0,docs:0,indexed:0,waiting:0,PDFs:0,Sheets:0,Docs:0,redo:0},redo=[];
   list.files.forEach(function(f){counts.drive++;if(f[7]===dir)return;var h=how(f[2],f[1]);if(!h)return;counts.docs++;
     var o={id:f[0],name:f[1],mime:f[2],modified:f[3],created:f[4],size:f[5],md5:f[6],parent:f[7],how:h,type:typeWord(h)};files.push(o);
     if(o.md5)(byMd5[o.md5]=byMd5[o.md5]||[]).push(o)});
@@ -152,11 +155,13 @@ async function plan(progress){
     var p=g.filter(function(o){return isRec(o.id)})[0]||g.slice().sort(function(a,b){return (a.created||a.modified)<(b.created||b.modified)?-1:1})[0];primary[k]=p});
   var todo=[],dups=[];
   files.forEach(function(o){
-    if(done[o.id]){counts.indexed++;if(done[o.id]==="needs_review")counts.waiting++;return}
+    if(done[o.id]){counts.indexed++;if(done[o.id]==="needs_review")counts.waiting++;
+      if(auto.old[o.id]&&!ai.ids[o.id]){o.path=pathOf(o.parent);redo.push(o);counts.redo++}return}
     o.path=pathOf(o.parent);
     var p=o.md5&&primary[o.md5];if(p&&p.id!==o.id){dups.push({file:o,of:p});return}
     todo.push(o);counts[o.type==="pdf"?"PDFs":o.type==="sheet"?"Sheets":"Docs"]++});
-  todo.sort(function(a,b){return a.modified<b.modified?1:-1});
+  todo.sort(function(a,b){return a.modified<b.modified?1:-1});redo.sort(function(a,b){return a.modified<b.modified?1:-1});
+  todo=todo.concat(redo);   /* new files first, then the ones to read again with the improved rules */
   /* take files that now have a proper record off the "Needs review" tab */
   var tidied=0;try{tidied=await tidy(sheetId,done)}catch(e){}
   var swept=0;try{swept=await sweep()}catch(e){}

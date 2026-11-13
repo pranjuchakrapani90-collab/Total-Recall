@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="drive.js?v=20261102t"></script><script src="vault.js?v=20261112c"></script><script src="vault-rules.js?v=20261112b"></script><script src="vault-scan.js?v=20261112a"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
+<html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="drive.js?v=20261102t"></script><script src="vault.js?v=20261113a"></script><script src="vault-rules.js?v=20261113a"></script><script src="vault-scan.js?v=20261113a"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
 <title>Vault · Pranju OS</title>
 <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="stylesheet" href="tr-theme.css?v=20261020">
@@ -132,8 +132,8 @@ $("rev").addEventListener("click",async function(e){
     catch(x){b.disabled=false;b.textContent="Save and take off the list";$("rev").insertAdjacentHTML("afterbegin",'<div class="msg err">'+esc(x.message||x)+'</div>')}}});
 
 /* ---------- review my Drive ---------- */
-function scanIdle(msg){var p=lastPlan,s=$("scan"),left=p?p.todo.length+p.dups.length:0;
-  s.innerHTML=(msg||"")+(p?'<div style="margin-top:8px"><b>'+num(left)+'</b> documents have no record yet: <b>'+num(p.todo.length)+'</b> to read ('+num(p.counts.PDFs)+' PDFs, '+num(p.counts.Sheets)+' Sheets, '+num(p.counts.Docs)+' Docs) and <b>'+num(p.dups.length)+'</b> exact copies.'+
+function scanIdle(msg){var p=lastPlan,s=$("scan"),left=p?p.todo.length+p.dups.length:0,fresh=p?p.todo.length-(p.counts.redo||0):0;
+  s.innerHTML=(msg||"")+(p?'<div style="margin-top:8px"><b>'+num(left-(p.counts.redo||0))+'</b> documents have no record yet: <b>'+num(fresh)+'</b> to read ('+num(p.counts.PDFs)+' PDFs, '+num(p.counts.Sheets)+' Sheets, '+num(p.counts.Docs)+' Docs) and <b>'+num(p.dups.length)+'</b> exact copies.'+(p.counts.redo?' Also <b>'+num(p.counts.redo)+'</b> files read earlier will be read again with the improved rules.':'')+
       '<div class="muted" style="font-size:12px;margin-top:4px">'+num(p.counts.indexed)+' of your '+num(p.counts.docs)+' documents already have one'+(p.counts.waiting?" ("+num(p.counts.waiting)+" of them waiting for review)":"")+'. Photos are left out for now.</div></div>'+
       (left?'<div class="row"><button class="btn" type="button" id="scanTry">Try 5 files first</button><button class="btn pri" type="button" id="scanAll">Review all '+num(left)+'</button></div>'+
         '<div class="muted" style="font-size:12px;margin-top:8px">A big backlog takes hours: about a second or two per file. Keep this page open and the phone charging, or run it on the laptop. You can stop any time; it carries on from where it stopped.</div>':
