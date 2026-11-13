@@ -65,7 +65,7 @@ async function known(sheetId,tab){var out={},old={},tag="rules v"+R.VERSION;
 /* ---------- folders, for the folder_path column ---------- */
 async function folderPaths(){
   var by={},page="";
-  for(var i=0;i<60;i++){var d=await G.gjson(API+"/files?spaces=drive&pageSize=1000&fields="+encodeURIComponent("nextPageToken,files(id,name,parents)")+"&q="+encodeURIComponent("mimeType='application/vnd.google-apps.folder' and trashed=false and 'me' in owners")+(page?"&pageToken="+encodeURIComponent(page):""),null,"Folder listing");
+  for(var i=0;i<5000;i++){var d=await G.gjson(API+"/files?spaces=drive&pageSize=1000&fields="+encodeURIComponent("nextPageToken,files(id,name,parents)")+"&q="+encodeURIComponent("mimeType='application/vnd.google-apps.folder' and trashed=false and 'me' in owners")+(page?"&pageToken="+encodeURIComponent(page):""),null,"Folder listing");
     (d.files||[]).forEach(function(f){by[f.id]={n:f.name,p:(f.parents||[])[0]||""}});if(!d.nextPageToken)break;page=d.nextPageToken}
   var memo={};
   return function(id){if(memo[id])return memo[id];var parts=[],cur=id;for(var k=0;k<12&&by[cur];k++){parts.unshift(by[cur].n);cur=by[cur].p}

@@ -163,7 +163,7 @@ function junkName(n){return /\.(tmp|thumb|nomedia)$/i.test(n)||/\.thumb\.tmp$/i.
 async function listDrive(progress,opt){
   opt=opt||{};var rows=[],page="",junk=0,q="trashed=false and mimeType!='application/vnd.google-apps.folder' and 'me' in owners"+(opt.q?" and ("+opt.q+")":"");
   var skipId=mem&&mem.raw?mem.raw.sheetId:"";
-  for(var i=0;i<600;i++){
+  for(var i=0;i<20000;i++){   /* ends when Drive has no more pages; pages can be much smaller than 1000 */
     var d=await gjson(API+"/files?spaces=drive&pageSize=1000&fields="+encodeURIComponent("nextPageToken,files(id,name,mimeType,modifiedTime,createdTime,size,md5Checksum,parents,appProperties)")+"&q="+encodeURIComponent(q)+(page?"&pageToken="+encodeURIComponent(page):""),null,"Drive listing");
     (d.files||[]).forEach(function(f){
       if(f.appProperties||f.id===skipId||/\.(vault|gpx)$/i.test(f.name)||f.name==="master_document_vault.json"||f.name==="reviewed_files_log.json"||f.name===SHEET_NAME||OWN.test(f.name))return;

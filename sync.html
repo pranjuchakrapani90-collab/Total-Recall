@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="vault.js?v=20261113a"></script><script src="drive.js?v=20261102t"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
+<html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="vault.js?v=20261113b"></script><script src="drive.js?v=20261102t"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
 <title>Drive Sync · Pranju OS</title>
 <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="stylesheet" href="tr-theme.css?v=20261020">
@@ -140,7 +140,9 @@ async function fetchChanges(progress){
   return idx}
 async function fetchIndex(progress){
   var ct=await startTok(),rows=[],page="",q="trashed=false and 'me' in owners";
-  for(var i=0;i<400;i++){
+  /* Drive may hand over far fewer than 1000 files a page, so the page count must not be what ends this: a list cut
+     short makes files already in Drive look new, and they get uploaded again (13 Nov 2026). */
+  for(var i=0;i<20000;i++){
     var r=await g(API+"/files?spaces=drive&pageSize=1000&fields=nextPageToken,files(id,name,mimeType,size,parents,createdTime)&q="+encodeURIComponent(q)+(page?"&pageToken="+encodeURIComponent(page):""));
     if(!r.ok)throw await gerr(r,"Drive listing");var d=await r.json();
     (d.files||[]).forEach(function(f){rows.push([f.id,f.name,f.mimeType,Number(f.size||0),(f.parents||[])[0]||"",f.createdTime])});
