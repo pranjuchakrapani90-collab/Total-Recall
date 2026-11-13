@@ -21,14 +21,16 @@
 const I=Invest,{esc,inr,price,pct,signInr,tone,ok,r2,dshort}=I;
 const KEY="etf",$=id=>document.getElementById(id);
 /* the rules of the old sheet's Orders tab (Order Calc), kept as editable settings */
-const DEF={parts:40,reserve:0.2,minFall:-0.10,twoFall:-0.15,avgFall:-0.06,maxLots:4,target:0.075,trail:0.02,floor:0.06,buffer:0.005,check:-0.30,dividend:0,universe:[]};
+const DEF={parts:40,reserve:0.2,minFall:-0.10,twoFall:-0.15,avgFall:-0.06,maxLots:4,target:0.08,trail:0.02,floor:0.06,buffer:0.005,check:-0.30,dividend:0,universe:[]};
 const today=()=>I.ist().iso;
 const wdS=s=>s===today()?"today":new Date(s+"T00:00:00").toLocaleDateString("en-IN",{weekday:"short"})+" "+I.dshort(s);
 let Q=I.quotesCache(),qAt=Math.max(0,...Object.values(Q).map(q=>q.at||0)),missing=[];
 
 /* ---------- the numbers ---------- */
 function model(){
-  const s=I.load(KEY),S={...DEF,...(s.settings||{})},U={};(S.universe||[]).forEach(u=>U[u.code]=u);
+  const s=I.load(KEY),S={...DEF,...(s.settings||{})},U={};
+  /* no stop (and no GTT) until the lot has been a full trail above the minimum profit: 6% floor + 2% trail = 8% */
+  if(S.floor>0)S.target=Math.max(S.target,r2((S.floor+S.trail)*1e4)/1e4);(S.universe||[]).forEach(u=>U[u.code]=u);
   const lots=Object.entries(s.lots).map(([id,l])=>({id,...l})),open=lots.filter(l=>!ok(l.sellPrice)),sold=lots.filter(l=>ok(l.sellPrice));
   sold.forEach(l=>{l.p=(l.sellPrice-l.price)*l.qty;l.ch=l.qty*(l.price+l.sellPrice)*0.0012+16;l.tax=(l.p-l.ch)*0.2*1.04;l.net=l.p-l.ch-l.tax;l.g=l.net-l.net*(S.dividend||0);
     l.pp=l.p/(l.price*l.qty)*100;l.days=I.days(l.date,l.sellDate);});
@@ -272,7 +274,7 @@ function moneyForm(c){c=c||{};
 function settingsForm(S){const P=x=>r2(x*100);
   I.form({title:"Rules",note:"Percentages as numbers, e.g. 7.5 for 7.5%.",fields:[
     {k:"parts",label:"Parts of capital (tranches)",type:"number",step:"1",value:S.parts},
-    {k:"target",label:"Profit that starts the trailing stop %",type:"number",value:P(S.target)},
+    {k:"target",label:"Profit that starts the trailing stop % (never less than minimum profit + trail)",type:"number",value:P(S.target)},
     {k:"trail",label:"Trailing stop below highest close %",type:"number",value:P(S.trail)},
     {k:"floor",label:"Minimum profit a sale must book % (0 = none)",type:"number",value:P(S.floor)},
     {k:"avgFall",label:"Average when fallen from last buy %",type:"number",value:P(S.avgFall)},
@@ -401,7 +403,7 @@ function setup(M){const S=M.S;
    <ol class="rules">
     <li>Check once a day after 4 PM on closing prices; place AMO limit orders.</li>
     <li>Capital split into ${S.parts} parts: one buy or one averaging = one tranche (${inr(M.tranche)}); profits compound into it.</li>
-    <li>Sell: once a lot's highest close since buying is ${pct(S.target*100)} above cost, trail ${pct(S.trail*100)} below that high; sell the whole lot when the close reaches the stop.${S.floor>0?` The stop is never below the price whose limit books ${pct(S.floor*100)} on the lot, and a sell order's limit is never below that either.`:""} LIFO, no daily limit.</li>
+    <li>Sell: once a lot's highest close since buying is ${pct(S.target*100)} above cost, trail ${pct(S.trail*100)} below that high; sell the whole lot when the close reaches the stop. Below ${pct(S.target*100)} a lot has no stop and no GTT.${S.floor>0?` The stop is never below the price whose limit books ${pct(S.floor*100)} on the lot, and a sell order's limit is never below that either.`:""} LIFO, no daily limit.</li>
     <li>One purchase a day: a new ETF if one qualifies, otherwise an average.</li>
     <li>Average: only when no new ETF qualifies, the ETF most fallen ≥ ${pct(-S.avgFall*100)} below its last buy and closing green; not above ${S.maxLots} lots per index group, not for hold-only ETFs, not with cash below a tranche.</li>
     <li>New buy: ≥ ${pct(-S.minFall*100)} below the 52-week-high close, closing green, index group not held (unique), the most fallen first. Keep ${pct(S.reserve*100)} of capital as reserve.</li>
