@@ -549,7 +549,7 @@ function drawLines(){document.querySelectorAll(".map").forEach(m=>{const svg=m.q
 let rz=0;window.addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(()=>{if(MF.p&&!$("mflash").hidden)fitMember();else drawLines()},150)});
 
 async function share(pid){const p=D.people[pid];if(!p)return;const open=tasksOf(pid).filter(a=>!isDone(a.id,a)&&!isAhead(a.id,a));
-  const text=`${p.name} — tasks\n`+open.map((a,i)=>`${i+1}. ${a.k} — ${a.t}${stOf(a.id,a)==="later"?" (from "+fmtDay(a.until)+")":""}`).join("\n");
+  const text=`${p.name} — tasks\n`+open.map((a,i)=>`${i+1}. ${String(a.t||a.k||"").replace(/^\d{1,2}\.\s+/,"")}${stOf(a.id,a)==="later"?" (from "+fmtDay(a.until)+")":""}`).join("\n");
   try{if(navigator.share){await navigator.share({text});return}}catch(e){if(e&&e.name==="AbortError")return}
   try{await navigator.clipboard.writeText(text);toast("Copied — paste it in WhatsApp")}catch(e){toast("Could not copy")}}
 
