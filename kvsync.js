@@ -1,7 +1,7 @@
 /* Pranju OS · sync for the small stores that had none (28 Oct 2026).
    Most sections sync their own data. These did not, so they lived on one phone only:
      BoM Kits ("bomkits"), T&C Handbook ("tc-prog"), BoQ Trainer position and settings ("p2b-cur", "p2b-qck", "p2b-std"),
-     Estimate Practice progress ("est-practice"), Delegation cards ("deleg"), Pranju OS tasks ("pos-tasks", since leaving TickTick), hidden Completed tasks, Travel Trace's map key, Guitar plan skips and popups, metronome, Weight range, and small preferences.
+     Estimate Practice progress ("est-practice"), Delegation cards ("deleg"), Pranju OS tasks ("pos-tasks", since leaving TickTick), hidden Completed tasks, Travel Studio's map key, Guitar plan skips and popups, metronome, Weight range, and small preferences.
    How: each value is split into its leaves (nested object fields); every leaf carries the time it last changed on a device.
    Merging keeps, leaf by leaf, the newer change, deletions included, so two phones never overwrite each other's edits.
    Encrypted with the sync code, in the "#kv" slot, the same way every other section is. Load this on every page.

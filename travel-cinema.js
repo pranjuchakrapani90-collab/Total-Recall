@@ -1,4 +1,4 @@
-/* Pranju OS — Travel Trace "Week in Motion"
+/* Pranju OS — Travel Studio "Week in Motion"
    A full-screen film of one week (Monday–Sunday) of GPS days:
    week title → for each day with a trace: title card, then a marker that runs the route from the first point
    to the last at a steady pace (by distance, not clock time, so time spent in one place is never replayed).
@@ -159,19 +159,19 @@ function hideCard(){$('tcCard').classList.add('hide')}
 
 /* ---------- open: pick a day (yesterday by default) or a week ---------- */
 async function open(date,mode){
-  if(!TB()){alert('Travel Trace is not ready yet.');return}
+  if(!TB()){alert('Travel Studio is not ready yet.');return}
   close();injectStyles();stage();
   S={weeks:weeksWithData(),dates:(TB().dates()||[]).slice().sort().reverse(),days:[],di:0,speed:pref('speed',1),zoomAdj:pref('zoom',0),playing:false,phase:'pick',hold:0,then:null,raf:0,last:0,map:null,ov:[],wake:null,idleT:0};
   $('tcClose').onclick=close;
   document.addEventListener('keydown',onKey);
-  if(!S.weeks.length){card('<div class="kicker">Travel Trace</div><div class="title">No traces yet</div><div class="sub">Once GPSLogger has recorded a few days, they play here as a film.</div>');return}
+  if(!S.weeks.length){card('<div class="kicker">Travel Studio</div><div class="title">No traces yet</div><div class="sub">Once GPSLogger has recorded a few days, they play here as a film.</div>');return}
   var today=TB().today?TB().today():iso(new Date()),yest=addDays(today,-1);
   /* the day: yesterday if it has a trace, else the latest day before today, else the newest */
   var dayCur=S.dates.indexOf(yest)>=0?yest:(S.dates.filter(function(d){return d<today})[0]||S.dates[0]);
   if(mode==='day'&&date&&S.dates.indexOf(date)>=0)dayCur=date;
   var wkCur=date?monday(date):S.weeks[0].start;if(!S.weeks.some(function(w){return w.start===wkCur}))wkCur=S.weeks[0].start;
   function dayName(d){return d===today?'Today':d===yest?'Yesterday':fmt(d,{weekday:'long'})}
-  card('<div class="kicker">Travel Trace</div><div class="title">Cinema</div><div class="sub">The marker runs your route from the first point to the last at a steady pace, skips the time you stayed put, and stops only at your memories.</div>'+
+  card('<div class="kicker">Travel Studio</div><div class="title">Cinema</div><div class="sub">The marker runs your route from the first point to the last at a steady pace, skips the time you stayed put, and stops only at your memories.</div>'+
    '<div class="pick"><div class="kicker" style="margin-top:6px">A day</div><select id="tcDay">'+S.dates.map(function(d){return '<option value="'+d+'"'+(d===dayCur?' selected':'')+'>'+h(dayName(d)+' · '+fmt(d,{day:'numeric',month:'short',year:'numeric'}))+'</option>'}).join('')+'</select>'+
    '<button class="tcbtn primary" id="tcGoDay">▶ Play the day</button>'+
    '<div class="kicker" style="margin-top:14px">A week</div><select id="tcWeek">'+S.weeks.map(function(w){return '<option value="'+w.start+'"'+(w.start===wkCur?' selected':'')+'>'+h(weekLabel(w.start))+' · '+w.dates.length+' day'+(w.dates.length===1?'':'s')+'</option>'}).join('')+'</select>'+
@@ -185,7 +185,7 @@ async function start(dates,weekStart){
   $('tcMsg').innerHTML='<div class="loading"><i></i><i></i><i></i><span id="tcLoadTxt">Loading the map…</span></div>';
   $('tcGo').disabled=$('tcGoDay').disabled=true;
   function fail(html){$('tcMsg').innerHTML='<div class="sub">'+html+'</div>';$('tcGo').disabled=$('tcGoDay').disabled=false}
-  try{await TB().maps()}catch(e){fail(h(e.message)+' Open Travel Trace → Map key to add it.');return}
+  try{await TB().maps()}catch(e){fail(h(e.message)+' Open Travel Studio → Map key to add it.');return}
   var days=[],fails=[];
   for(var i=0;i<dates.length;i++){
     var d=dates[i];if($('tcLoadTxt'))$('tcLoadTxt').textContent='Loading '+fmt(d,{weekday:'long'})+'…';

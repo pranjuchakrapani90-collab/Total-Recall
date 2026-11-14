@@ -1,6 +1,6 @@
 // Cloudflare Worker bridge for Total Recall.
 // Secrets: TICKTICK_ACCESS_TOKEN for TickTick, OPENAI_API_KEY for Memory Lane AI,
-// GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET for Travel Trace's Google Drive storage,
+// GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET for Travel Studio's Google Drive storage,
 // KITE_API_KEY + KITE_API_SECRET for the read-only Zerodha Kite link (Investments).
 // Never put either token in index.html or this repository.
 
@@ -130,7 +130,7 @@ async function handleTravelFile(request,env){
   return new Response(JSON.stringify({error:'Method not allowed'}),{status:405,headers:{...corsHeaders(request.headers.get('Origin')||''),'Content-Type':'application/json'}});
 }
 
-/* Travel Trace live tracking.
+/* Travel Studio live tracking.
    GPSLogger (mendhak) on the phone calls, for every recorded point:
      GET or POST ?mode=live-log&k=<live token>&lat=%LAT&lon=%LON&ts=%TIMESTAMP&time=%TIME&acc=%ACC&spd=%SPD&alt=%ALT
    (query values win; a form or JSON body fills anything missing). Pranju OS reads with header X-Live-Token:
@@ -231,7 +231,7 @@ async function handleLive(request,env,origin){
 }
 
 /* ---------- Google Drive storage (27 Oct 2026) ----------
-   Travel Trace keeps finished GPS days and memory photos in the owner's own Google Drive, in
+   Travel Studio keeps finished GPS days and memory photos in the owner's own Google Drive, in
    "Pranju OS / Travel Trace / GPS archive" and ".../Memory photos". The Worker holds the Google connection
    (a refresh token in KV) so no phone ever sees a sign-in popup; pages ask it for a short-lived access token and
    then talk to Google Drive directly. Scope is drive.file: the app sees only the files it created itself.
@@ -257,7 +257,7 @@ async function gdAccessToken(env){
   const d=await r.json().catch(()=>({}));
   if(!r.ok||!d.access_token){
     if(d.error==='invalid_grant'){await env.SYNC_KV.delete('drive:refresh');await env.SYNC_KV.delete('drive:access');gdAccess=null;
-      throw Object.assign(new Error('Google Drive access was withdrawn or expired. Connect it again in Travel Trace.'),{code:'not_connected'});}
+      throw Object.assign(new Error('Google Drive access was withdrawn or expired. Connect it again in Travel Studio.'),{code:'not_connected'});}
     throw new Error('Google token refresh failed: '+(d.error_description||d.error||'HTTP '+r.status));}
   gdAccess={token:d.access_token,exp:Date.now()+(d.expires_in||3600)*1000};
   await env.SYNC_KV.put('drive:access',JSON.stringify(gdAccess),{expirationTtl:Math.max(120,(d.expires_in||3600)-60)});
@@ -404,7 +404,7 @@ async function handleSync(request,env){
   let token;
   try{token=await driveToken(env);}
   catch(e){if(mark)return json({error:'Google Drive could not be reached just now; your data on this device is safe, try again shortly. ('+(e&&e.message||e)+')'},503);token=null;}
-  if(mark&&!token)return json({error:'Your sync data now lives in Google Drive, which is disconnected. Open Travel Trace → Google Drive → Connect.',code:'drive_needed'},409);
+  if(mark&&!token)return json({error:'Your sync data now lives in Google Drive, which is disconnected. Open Travel Studio → Google Drive → Connect.',code:'drive_needed'},409);
   if(request.method==='POST'){
     const body=await request.json();
     if(!body||!body.state)return json({error:'state is required'},400);
@@ -658,7 +658,7 @@ async function handleDrafts(kind,request,env,origin,legacy){
   if(request.method!=='POST')return json({error:'Method not allowed'},405);
   const text=await request.text();let body={};try{body=JSON.parse(text)}catch(_){return json({error:'Invalid JSON'},400)}
   if(String(body.id||'').indexOf('S:')!==0)return legacy(new Request(request.url,{method:'POST',headers:request.headers,body:text}));
-  if(!token)return json({error:'Google Drive is not connected (Travel Trace → Google Drive).'},409);
+  if(!token)return json({error:'Google Drive is not connected (Travel Studio → Google Drive).'},409);
   const id=await draftsSheet(env,token),want=String(body.id).slice(2),rows=await draftRows(token,id,tab),x=rows.find(r=>r.id===want);
   if(!x)return json({ok:true,gone:true});
   const status=body.action==='approve'||body.as==='approved'?'approved':'discarded';
@@ -725,7 +725,7 @@ async function gdList(token,q,fields,order){const out=[];let page='';
 const gdTrash=(token,id)=>gdCall(token,'/files/'+encodeURIComponent(id)+'?fields=id',{method:'PATCH',body:JSON.stringify({trashed:true})});
 async function bkNeedFull(env){const rt=await gdRefresh(env);
   if(!rt)throw Object.assign(new Error('Google Drive is not connected.'),{code:'not_connected'});
-  if(!gdFull(rt))throw Object.assign(new Error('Google Drive needs to be reconnected once to allow full access (Travel Trace → Google Drive → Disconnect, then Connect).'),{code:'need_full'});
+  if(!gdFull(rt))throw Object.assign(new Error('Google Drive needs to be reconnected once to allow full access (Travel Studio → Google Drive → Disconnect, then Connect).'),{code:'need_full'});
   const a=await gdAccessToken(env);return {token:a.token,folders:await gdFolders(env,a.token,false)};}
 async function runBackup(env,kind){
   const {token,folders}=await bkNeedFull(env),now=istNow(),date=now.slice(0,10),time=now.slice(11,16);

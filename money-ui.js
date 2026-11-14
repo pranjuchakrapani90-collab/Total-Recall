@@ -1,4 +1,4 @@
-/* Money Book and APDCL Expenditure (Money Trace): the page logic, shared by money.html and apdcl.html.
+/* Money Book and APDCL Expenditure (Finance Studio): the page logic, shared by money.html and apdcl.html.
    Every entry is Personal or APDCL (book). Both pages show the same records: the Money Book all of them, with APDCL
    ones marked; APDCL Expenditure only the APDCL ones. */
 "use strict";

@@ -86,7 +86,7 @@ function when(t){var d=new Date(t);return isNaN(d)?"":d.toLocaleString("en-IN",{
 function ago(t){var m=(Date.now()-new Date(t))/60000;return m<2?"just now":m<60?Math.round(m)+" min ago":m<48*60?Math.round(m/60)+" h ago":Math.round(m/1440)+" days ago"}
 function mb(n){n=Number(n||0);return n<1048576?Math.max(1,Math.round(n/1024))+" KB":(n/1048576).toFixed(n<10485760?1:0)+" MB"}
 function note(m,bad){$("note").innerHTML=m?'<div class="msg'+(bad?" err":"")+'">'+m+'</div>':""}
-function failNote(e){var m=esc(e&&e.message||e);if(e&&(e.code==="not_connected"||e.code==="need_full")||/insufficient|scope|not connected/i.test(m))m+=' <a href="index.html#travel">Open Travel Trace → Google Drive</a> and reconnect.';note(m,true)}
+function failNote(e){var m=esc(e&&e.message||e);if(e&&(e.code==="not_connected"||e.code==="need_full")||/insufficient|scope|not connected/i.test(m))m+=' <a href="index.html#travel">Open Travel Studio → Google Drive</a> and reconnect.';note(m,true)}
 
 /* ---------- Drive access (full Drive token from the Worker, same as Vault) ---------- */
 async function token(fresh){

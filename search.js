@@ -1,6 +1,6 @@
 /* Pranju OS · one search box on Home (1 Nov 2026).
    Searches, all at once and on the phone: Tasks (open, closed, any list), People Recall (name, hooks, note, office
-   details), Money Book entries, Travel Trace memories, and the Gemini document vault (vault.js). Every word typed
+   details), Money Book entries, Travel Studio memories, and the Gemini document vault (vault.js). Every word typed
    must match. Results are grouped by section; tapping one opens it. Loaded by index.html after tasks-local.js,
    drive.js and vault.js. */
 (function(){
@@ -82,7 +82,7 @@ function init(){
     /* refresh the vault quietly in the background (at most every 10 minutes) */
     if(window.PosDrive&&PosDrive.connected())PosVault.ensure(false).then(function(d2){window.__posVaultMeta=d2&&d2.meta||null}).catch(function(){})});
 }
-/* a Travel memory result opens Travel Trace on that memory's day */
+/* a Travel memory result opens Travel Studio on that memory's day */
 window.addEventListener("hashchange",function(){if(location.hash!=="#travel")return;var d=null;try{d=sessionStorage.getItem("pos-search-travel-date");sessionStorage.removeItem("pos-search-travel-date")}catch(e){}
   if(!d)return;setTimeout(function(){var el=$("travelDate");if(el&&el.value!==d){el.value=d;el.dispatchEvent(new Event("change",{bubbles:true}));el.dispatchEvent(new Event("input",{bubbles:true}))}},400)});
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();

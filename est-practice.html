@@ -94,7 +94,7 @@ function fmt(t){if(!t)return "";if(Array.isArray(t))return "<ul>"+t.map(x=>"<li>
 function renderList(){
   const L=sorted(),P=prog();
   if(!L.length){$("main").innerHTML=`<article class="sec"><h2>No tasks yet</h2><div class="txt"><p>A new task arrives each morning after the daily estimate run reads one of your estimates.</p>
-    <p class="muted small">This page needs Google Drive connected (Travel Trace → Google Drive). The first time it opens with Drive connected, it creates the "Estimate Practice feed" sheet in your Pranju OS folder for the daily run to fill.</p></div></article>`;return}
+    <p class="muted small">This page needs Google Drive connected (Travel Studio → Google Drive). The first time it opens with Drive connected, it creates the "Estimate Practice feed" sheet in your Pranju OS folder for the daily run to fill.</p></div></article>`;return}
   const done=L.filter(t=>stOf(t.id)==="checked"),avg=done.length?Math.round(done.reduce((s,t)=>s+(P[t.id].score||0),0)/done.length):null;
   $("main").innerHTML=`<article class="sec"><div class="score"><div><b>${L.length}</b><span>tasks</span></div><div><b>${L.filter(t=>stOf(t.id)==="new").length}</b><span>not started</span></div><div><b>${done.length}</b><span>checked</span></div><div><b>${avg==null?"–":avg+"%"}</b><span>average match</span></div></div></article>
   <div class="list">`+L.map(t=>{const s=stOf(t.id),p=P[t.id]||{};
@@ -195,7 +195,7 @@ function parseCSV(t){const rows=[];let r=[],f="",q=false;
 const syncMsg=h=>{$("sync").innerHTML=h};
 async function pull(){
   const P=window.PosDrive;if(!P){syncMsg("Offline copy");return}
-  if(!P.connected()){syncMsg(`Drive not connected · <a href="./#travel">connect in Travel Trace</a>`);return}
+  if(!P.connected()){syncMsg(`Drive not connected · <a href="./#travel">connect in Travel Studio</a>`);return}
   syncMsg("Checking Drive…");
   try{
     let id=fileIds.feed;

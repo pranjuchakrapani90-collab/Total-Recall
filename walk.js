@@ -1,5 +1,5 @@
 /* Pranju OS · walking from GPS (14 Nov 2026)
-   Works out how far you WALKED in a day from the points GPSLogger sends to Travel Trace. Riding in a vehicle does
+   Works out how far you WALKED in a day from the points GPSLogger sends to Travel Studio. Riding in a vehicle does
    not count, and neither does the GPS wandering about while the phone lies on a table.
    How a day's points are read:
      1. poor fixes are dropped (accuracy worse than 30 m, impossible jumps);

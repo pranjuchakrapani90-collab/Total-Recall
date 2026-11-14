@@ -4,7 +4,7 @@
    window.PosDrive:
      status()                          -> {configured, connected, email}   (also cached in localStorage "posDriveState")
      connected()                       -> true when the last status said connected (no network)
-     connect()                         -> goes to Google's consent page; comes back to Travel Trace with ?drive=ok
+     connect()                         -> goes to Google's consent page; comes back to Travel Studio with ?drive=ok
      disconnect()
      find({key:value})                 -> [{id,name,size}] files this app made with those appProperties
      upload(folder, name, blob, props) -> {id,name,size}   folder: "gps" | "photos" (resumable, any size)

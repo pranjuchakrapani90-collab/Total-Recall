@@ -51,12 +51,12 @@ async function api(op,method,extra){var u=base();var r=await fetch(u+(u.indexOf(
 function when(iso){var d=new Date(iso);return isNaN(d)?"":d.toLocaleString("en-IN",{day:"numeric",month:"short",year:"numeric",hour:"numeric",minute:"2-digit"})}
 function ago(iso){var h=(Date.now()-new Date(iso))/3600000;return h<1?"less than an hour ago":h<48?Math.round(h)+" hours ago":Math.round(h/24)+" days ago"}
 function note(m,bad){$("note").innerHTML=m?'<div class="msg'+(bad?" err":"")+'">'+m+'</div>':""}
-function fail(e){note(esc(e.message)+(e.code==="need_full"||e.code==="not_connected"?' <a href="index.html#travel">Open Travel Trace → Google Drive</a>':""),true)}
+function fail(e){note(esc(e.message)+(e.code==="need_full"||e.code==="not_connected"?' <a href="index.html#travel">Open Travel Studio → Google Drive</a>':""),true)}
 async function status(){try{var s=await api("status");
   if(s.last){$("last").textContent="Last backup "+ago(s.last.at);$("lastSub").textContent=when(s.last.at)+" · "+s.last.files+" files · "+(s.last.kind==="nightly"?"nightly":s.last.kind.replace("-"," "))}
   else{$("last").textContent="No backup yet";$("lastSub").textContent=s.full?"The first one runs tonight, or tap Back up now.":""}
   if(s.error&&(!s.last||s.error.at>s.last.at))note("Last night's backup failed: "+esc(s.error.error),true);
-  if(!s.full)note("Google Drive needs reconnecting once to allow backups and the vault: Travel Trace → Google Drive → Disconnect, then Connect. On Google's “unverified app” screen tap Advanced → Go to Pranju OS.",true);
+  if(!s.full)note("Google Drive needs reconnecting once to allow backups and the vault: Travel Studio → Google Drive → Disconnect, then Connect. On Google's “unverified app” screen tap Advanced → Go to Pranju OS.",true);
   $("gem").textContent=s.cleanup?"Last clean-up "+ago(s.cleanup.at)+": "+s.cleanup.trashed+" old copies moved to Drive's bin (newest 3 of each kept).":"Old copies of master_document_vault.json and reviewed_files_log.json are moved to Drive's bin each night; the newest 3 are kept.";
   return s}catch(e){fail(e)}}
 async function list(){try{var d=await api("list");var b=d.backups||[];

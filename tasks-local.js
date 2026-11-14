@@ -356,8 +356,8 @@ function mountEditor(root,id,editing){var host=root&&(root.querySelector(".pteMo
   q("att").onclick=function(){if(!busy)fi.click()};
   fi.onchange=function(){var files=[].slice.call(fi.files||[]);fi.value="";if(!files.length)return;busy=true;q("att").disabled=true;
     var say=function(m){var o=el.querySelector('[data-pe="ok"]');if(o)o.textContent=m};
-    needDrive().then(function(D){if(!D.connected())return D.status().then(function(s){if(!s.connected)throw new Error("Google Drive isn't connected — connect it once from Travel Trace, then attach again.");return D})
-        .catch(function(e){throw e&&/connect/.test(e.message)?e:new Error("Google Drive isn't connected — connect it once from Travel Trace, then attach again.")});return D})
+    needDrive().then(function(D){if(!D.connected())return D.status().then(function(s){if(!s.connected)throw new Error("Google Drive isn't connected — connect it once from Travel Studio, then attach again.");return D})
+        .catch(function(e){throw e&&/connect/.test(e.message)?e:new Error("Google Drive isn't connected — connect it once from Travel Studio, then attach again.")});return D})
      .then(function(D){var x=get(id),stamp=today(),links=[],i=0,
         safe=String(x&&x.ti||"task").replace(/[\\/:*?"<>|]+/g," ").replace(/\s+/g," ").trim().slice(0,50);
       var next=function(){if(i>=files.length)return Promise.resolve();var f=files[i++];say("Uploading "+i+" of "+files.length+" to Drive…");

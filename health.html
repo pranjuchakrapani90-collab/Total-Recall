@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="kvsync.js?v=20261105a" data-reload="health-range"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
-<title>Health · Pranju OS</title>
+<title>Health Studio · Pranju OS</title>
 <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="icon" href="icon-192.png" sizes="192x192"><link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>
 /* Health. Same family as tr-theme.css / invest.css: warm paper, charcoal header, hairline borders; teal as the section rule. */
@@ -118,7 +118,7 @@ tr.r{cursor:pointer}tr.r:hover td{background:var(--soft)}
 </head><body class="tr-hl">
 <header><div class="hin">
   <a class="backlink" href="./">← Home</a>
-  <h1>Health</h1>
+  <h1>Health Studio</h1>
 </div></header>
 <main class="wrap">
   <div class="bar"><span class="st" id="st"></span><button class="ghost" id="bSet" type="button">Goals &amp; profile</button></div>
@@ -130,10 +130,10 @@ tr.r{cursor:pointer}tr.r:hover td{background:var(--soft)}
 <script>
 "use strict";
 /* ============================================================================
-   Health (14 Nov 2026; before that this page was "Weight & calories")
+   Health Studio (14 Nov 2026; before that this page was "Weight & calories")
    Four things are tracked: weight, blood pressure, pulse, and distance walked. Waist is optional, about weekly.
    - Weight, BP, pulse and waist are typed in from the weighing machine, the BP machine and a tape.
-   - Walking is NOT typed: it is worked out from the GPS points Travel Trace already collects (walk.js), counting
+   - Walking is NOT typed: it is worked out from the GPS points Travel Studio already collects (walk.js), counting
      only stretches at walking pace. Riding in a vehicle is left out.
    - The calorie counter and food log were removed on 14 Nov 2026 at the owner's request; the first time this page
      opens it deletes the saved calories, meals and "My foods" (and the deletion spreads to the other phone).
@@ -258,7 +258,7 @@ function todayCard(M){
     tile("tW","Weight",w!==null?`${fmt(w)}<small>kg</small>`:"Tap to log",w!==null?(ok(M.cur)?"trend "+fmt(M.cur)+" kg":""):(M.last?"last "+fmt(M.last.w)+" kg on "+dshort(M.last.d):"after waking, before eating"),w===null)+
     tile("tB","Blood pressure",b?`${int(b.s)}/${int(b.d)}`:"Tap to log",b?band(bpBand(b.s,b.d))+" <span>"+clock(b.ms)+"</span>":(lastB?"last "+int(lastB.s)+"/"+int(lastB.d)+" on "+dshort(lastB.date):"after 5 minutes sitting"),!b)+
     tile("tP","Pulse",b&&ok(b.p)?`${int(b.p)}<small>a minute</small>`:"–",b&&ok(b.p)?band(pulseBand(b.p)):"comes with the BP reading",false)+
-    tile("tK","Walked",wk?`${fmt(wk.km,2)}<small>km</small>`:"–",wk?`about ${int(wk.steps)} steps · ${int(wk.min)} min`:(walkState||"from Travel Trace GPS"),false)+
+    tile("tK","Walked",wk?`${fmt(wk.km,2)}<small>km</small>`:"–",wk?`about ${int(wk.steps)} steps · ${int(wk.min)} min`:(walkState||"from Travel Studio GPS"),false)+
     `</div>`+(g?`<div class="meter"><i style="width:${pc}%"></i></div><div class="tot"><span>Walking goal ${fmt(g,1)} km a day</span><span>${wk&&wk.km>=g?"Done"+(M.streak>1?" · "+M.streak+" days in a row":""):pc+"%"}</span></div>`:"")+
     (veryHigh?`<div class="alert"><b>${int(b.s)}/${int(b.d)} is very high.</b> Sit quietly for 5 minutes and measure again. If it is still this high, or you have chest pain, breathlessness, a severe headache, weakness or blurred vision, get medical help now.</div>`:"")+
     `<div class="acts" style="margin-top:12px"><button type="button" id="aB">+ BP &amp; pulse</button><button class="ghost" type="button" id="aW">+ Weight</button><button class="plain" type="button" id="aWa">+ Waist</button></div></section>`;}
@@ -306,7 +306,7 @@ function footCard(){return `<section class="card"><h2>About the bands</h2><p cla
   <b>Pulse at rest:</b> 60 to 100 a minute (American Heart Association).<br>
   <b>BMI and waist:</b> for Asian Indians, normal BMI 18.5–22.9, overweight 23–24.9, obese 25 or above; waist line 90 cm for men, 80 cm for women (consensus statement, Misra et al., 2009).<br>
   <b>Activity:</b> at least 150 minutes a week of moderate activity such as brisk walking (WHO 2020).<br><br>
-  <b>Walking</b> is worked out from Travel Trace's GPS points: only stretches at walking pace (1.6 to 8 km/h) that last 90 seconds and cover 80 m count; vehicle rides and slow traffic are left out. Steps are distance divided by your step length (0.414 × height), so they are an estimate. Walking indoors, or with the phone left behind, is not seen.</p></section>`;}
+  <b>Walking</b> is worked out from Travel Studio's GPS points: only stretches at walking pace (1.6 to 8 km/h) that last 90 seconds and cover 80 m count; vehicle rides and slow traffic are left out. Steps are distance divided by your step length (0.414 × height), so they are an estimate. Walking indoors, or with the phone left behind, is not seen.</p></section>`;}
 
 /* ---------- charts (plain SVG; one axis each) ---------- */
 function domain(first){const T=today(),n=range?range-1:Math.max(13,diffDays(first||T,T));return {start:addDays(T,-n),end:T,n:n+1};}
@@ -350,7 +350,7 @@ function pulseChart(M){
   hover(el,"hP","tipP",F,x,d=>{const r=pts.find(p=>p.d===d);return r?{y:y(r.p),html:`<b>${dlong(d)}</b><br>${int(r.p)} a minute`,mark:""}:null;},pts.map(p=>p.d));}
 function walkChart(M){
   const el=$("cK");if(!el)return;const D=domain(firstDay(M)),pts=M.walk.filter(r=>r.d>=D.start);
-  if(!pts.length){el.innerHTML=`<div class="empty">${esc(walkState||"Walking appears here once Travel Trace has GPS points for a day.")}</div>`;return;}
+  if(!pts.length){el.innerHTML=`<div class="empty">${esc(walkState||"Walking appears here once Travel Studio has GPS points for a day.")}</div>`;return;}
   const F=frame(el,160),g=M.goalKm;let hi=Math.max(1,...pts.map(r=>r.km),g||0)*1.15;const A=axes(F,0,hi,true),x=xOf(D,F),y=A.y,bw=Math.max(2,Math.min(18,F.iw/D.n*0.7));
   const goal=g?`<line x1="${F.P.l}" x2="${F.W-F.P.r}" y1="${y(g)}" y2="${y(g)}" stroke="var(--good)" stroke-width="1.5" stroke-dasharray="5 4"/>`:"";
   el.innerHTML=`<svg viewBox="0 0 ${F.W} ${F.H}" height="${F.H}" role="img" aria-label="Walking chart">${A.grid}${pts.map(r=>`<rect x="${x(r.d)-bw/2}" y="${y(r.km)}" width="${bw}" height="${Math.max(0,y(0)-y(r.km))}" rx="2" fill="${g&&r.km>=g?"var(--good)":"var(--acc)"}"/>`).join("")}${goal}${xLabels(D,F,x)}<g id="hK"></g></svg><div class="tip" id="tipK"></div>`;
@@ -427,9 +427,9 @@ function importData(){const i=document.createElement("input");i.type="file";i.ac
   i.onchange=async()=>{const f=i.files&&i.files[0];if(!f)return;try{const o=JSON.parse(await f.text());if(!o||o.kind!=="pranju-os-health")throw new Error("This isn't a Pranju OS health backup.");
     save(merge(load(),o.data||{}));draw();alert("Restored. Calories and meals in an old backup are not brought back.");}catch(e){alert(e.message);}};i.click();}
 
-/* ---------- walking: read Travel Trace's GPS points and work out each day ----------
-   Sources for a day, all merged: points still on the Worker (today, and finished days Travel Trace has not filed
-   yet) and the day's GPX files in Travel Trace's archive (on this phone, or fetched from Google Drive).
+/* ---------- walking: read Travel Studio's GPS points and work out each day ----------
+   Sources for a day, all merged: points still on the Worker (today, and finished days Travel Studio has not filed
+   yet) and the day's GPX files in Travel Studio's archive (on this phone, or fetched from Google Drive).
    A finished day is worked out once and kept; today is worked out again every few minutes while this page is open. */
 let walkMsg="",walkState="",walkBusy=false;
 const istDay=ms=>new Date(ms+19800000).toISOString().slice(0,10);
@@ -438,7 +438,7 @@ function workerUrl(){let u=null;try{u=localStorage.getItem("totalRecallTickTickU
 async function liveApi(token,params){const u=workerUrl(),r=await fetch(u+(u.indexOf("?")>=0?"&":"?")+"mode=live"+(params||""),{headers:{"X-Live-Token":token},cache:"no-store"});
   let d={};try{d=await r.json();}catch(e){}if(!r.ok||d.error)throw new Error(d.error||"the Worker answered HTTP "+r.status);return d;}
 function gpxLocal(id){return new Promise(res=>{let q;try{q=indexedDB.open("TotalRecallTravelFiles_v1",1);}catch(e){return res(null);}
-  /* the archive is made by Travel Trace, never here: if it does not exist yet, back out without creating it */
+  /* the archive is made by Travel Studio, never here: if it does not exist yet, back out without creating it */
   q.onupgradeneeded=()=>{try{q.transaction.abort();}catch(e){}};
   q.onerror=()=>res(null);q.onsuccess=()=>{try{const g=q.result.transaction("files","readonly").objectStore("files").get(id);g.onsuccess=()=>res(g.result?g.result.gpx:null);g.onerror=()=>res(null);}catch(e){res(null);}};});}
 async function gpxFor(meta){let t=await gpxLocal(meta.id);if(t!==null&&t!==undefined)return t;
@@ -449,7 +449,7 @@ async function refreshWalk(force){
     const db=mainDb(),token=db.travelLive&&db.travelLive.token||"",metas=Object.values(db.travelFiles||{}),T=istDay(Date.now());
     let live={};
     if(token){try{((await liveApi(token,"")).days||[]).forEach(x=>{if(x.n>0)live[x.day]=x;});}catch(e){walkState="Could not reach live GPS: "+e.message;}}
-    else if(!metas.length)walkState="Travel Trace has no GPS yet. Set up GPSLogger in Travel Trace to count walking.";
+    else if(!metas.length)walkState="Travel Studio has no GPS yet. Set up GPSLogger in Travel Studio to count walking.";
     const s0=load(),height=s0.settings&&s0.settings.height,out={};
     for(let i=0;i<35;i++){
       const d=istDay(Date.now()-i*864e5),old=s0.walk[d];

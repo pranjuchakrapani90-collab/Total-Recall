@@ -116,7 +116,7 @@ function qcard(e){var f=form===e.id;
 function renderQueue(){if(!data)return;var q=data.queue;
   $("rev").innerHTML=q.length?'<p class="muted" style="font-size:13px;margin-top:0">The rules could not read these. Gemini works through this list; you can also clear one yourself.</p>'+q.slice(0,30).map(qcard).join("")+(q.length>30?'<p class="muted" style="font-size:13px">And '+num(q.length-30)+' more.</p>':''):'<span class="muted">Nothing is waiting.</span>'}
 function err(e,where){var m=String(e&&e.message||e),c=e&&e.code;
-  (where||$("note")).innerHTML='<div class="msg err">'+esc(m)+(c==="need_full"||c==="not_connected"?' <a href="index.html#travel">Open Travel Trace</a>':'')+'</div>'}
+  (where||$("note")).innerHTML='<div class="msg err">'+esc(m)+(c==="need_full"||c==="not_connected"?' <a href="index.html#travel">Open Travel Studio</a>':'')+'</div>'}
 async function go(force){$("refresh").disabled=true;if(!data)$("note").innerHTML='<div class="msg">Reading the index… (a few MB the first time)</div>';
   try{setData(await PosVault.ensure(force));$("note").innerHTML=""}catch(e){err(e)}
   $("refresh").disabled=false;status();render()}
@@ -141,7 +141,7 @@ function scanIdle(msg){var p=lastPlan,s=$("scan"),left=p?p.todo.length+p.dups.le
     '<div class="row"><button class="btn" type="button" id="scanCount">Count what is left</button></div>')}
 async function scanPlan(){var s=$("scan");s.innerHTML='<span class="muted" id="scanSay">Starting…</span>';
   try{lastPlan=await PosScan.plan(function(t){var el=$("scanSay");if(el)el.textContent=t});scanIdle()}
-  catch(e){lastPlan=null;var c=e&&e.code;scanIdle('<div class="msg err">'+esc(e&&e.message||e)+(c==="need_full"||c==="not_connected"?' <a href="index.html#travel">Open Travel Trace</a>':'')+'</div>')}}
+  catch(e){lastPlan=null;var c=e&&e.code;scanIdle('<div class="msg err">'+esc(e&&e.message||e)+(c==="need_full"||c==="not_connected"?' <a href="index.html#travel">Open Travel Studio</a>':'')+'</div>')}}
 async function scanRun(limit){var s=$("scan"),total=limit?Math.min(limit,lastPlan.todo.length)+Math.min(limit,lastPlan.dups.length):lastPlan.todo.length+lastPlan.dups.length;
   s.innerHTML='<div class="bar"><i id="scanBar"></i></div><div class="nums"><div><b id="nA">0</b><span>read by rules</span></div><div><b id="nR">0</b><span>need review</span></div><div><b id="nD">0</b><span>duplicates</span></div><div><b id="nL">'+num(total)+'</b><span>left</span></div></div>'+
     '<div class="muted" id="scanSay" style="font-size:12px;word-break:break-all;min-height:18px">Starting…</div><div class="row"><button class="btn" type="button" id="scanStop">Stop</button></div>';

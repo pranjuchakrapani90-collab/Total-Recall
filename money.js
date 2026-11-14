@@ -1,4 +1,4 @@
-/* Money Book engine (Money Trace › Money Book and APDCL Expenditure), shared by those pages and Portfolio.
+/* Money Book engine (Finance Studio › Money Book and APDCL Expenditure), shared by those pages and Portfolio.
    Records live in the Invest store under "cash" (encrypted sync slot "#inv-cash"), never in this repo:
      tx    — approved entries {date, time, kind: out|in|move, acct: bank|wallet, to (move only), amt, cat, note, src: hand|yono, ref, raw}
      pend  — rows read from a YONO statement, waiting for Pranju's approval (same shape + draft remark)
