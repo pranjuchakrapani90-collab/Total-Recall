@@ -2,7 +2,7 @@
    Run:  node tools/test-upload-skip.js
    The point of these cases: after the Vault clean-up moves duplicate copies to Drive's bin, uploading the same
    phone folder again must NOT bring them back, while a file the owner binned himself must still be uploadable. */
-const src=require('fs').readFileSync('__dirname+'/../sync.html'','utf8');
+const src=require('fs').readFileSync(require('path').join(__dirname,'..','sync.html'),'utf8');
 const fn=src.match(/async function inDrive\(f\)\{[\s\S]*?\n    return !x\.trashed[^\n]*\n/)[0];
 let drive=[],seenQ='';const API='x';
 const g=async u=>{seenQ=decodeURIComponent(u.split('&q=')[1]);return {ok:true,json:async()=>({files:drive})}};
