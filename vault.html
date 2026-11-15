@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="drive.js?v=20261102t"></script><script src="vault.js?v=20261115b"></script><script src="vault-rules.js?v=20261113a"></script><script src="vault-scan.js?v=20261115b"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
+<html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="drive.js?v=20261102t"></script><script src="vault.js?v=20261115b"></script><script src="vault-rules.js?v=20261113a"></script><script src="vault-scan.js?v=20261115b"></script><script src="vault-dupes.js?v=20261115a"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
 <title>Vault · Pranju OS</title>
 <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="stylesheet" href="tr-theme.css?v=20261020">
@@ -65,6 +65,9 @@ mark{background:var(--tr-acc-soft);color:inherit;border-radius:3px}
     <div class="muted" style="font-size:13px">Reads the PDFs, Sheets and Docs that have no record yet. Exact copies are marked as duplicates without being opened. Anything the rules cannot read goes to “Needs review”.</div>
     <div class="row"><button class="btn" type="button" id="scanCount">Count what is left</button></div></div></details>
   <details id="revBox"><summary id="revSum">Needs review</summary><div id="rev" style="margin-top:10px"></div></details>
+  <details id="dupBox"><summary>Duplicate copies</summary><div id="dup" style="margin-top:10px">
+    <div class="muted" style="font-size:13px">Drive holds many files several times over, from the uploads of October and November. This keeps one copy of each and moves the rest to Drive's bin, where Google keeps them for 30 days. Copies are matched by Drive's own checksum, so only byte-for-byte copies are touched. The copy the vault links to is the one kept.</div>
+    <div class="row"><button class="btn" type="button" id="dupCount">Find duplicate copies</button></div></div></details>
   <details id="covBox"><summary>Coverage of your Drive</summary><div id="cov" style="margin-top:10px"><button class="btn" type="button" id="covGo">Count my Drive files</button></div></details>
   <p class="muted" style="font-size:12px;margin-top:12px">Summaries written by Gemini can be wrong. Summaries made by rules copy numbers and names as written in the file, but can miss things. Open the file before using a figure in a letter or estimate.</p>
 </details>
@@ -161,6 +164,45 @@ $("scan").addEventListener("click",function(e){var id=e.target.id;
   if(id==="scanCount")scanPlan();else if(id==="scanTry")scanRun(5);else if(id==="scanAll")scanRun(0);
   else if(id==="scanStop"){PosScan.stop();e.target.disabled=true;e.target.textContent="Stopping after the files in hand…"}});
 window.addEventListener("beforeunload",function(e){if(window.PosScan&&PosScan.running()){e.preventDefault();e.returnValue=""}});
+
+/* ---------- duplicate copies ---------- */
+var dupPlan=null;
+function dupIdle(msg){var p=dupPlan,s=$("dup"),docs=p?p.trash.filter(function(f){return /^(PDFs|Sheets|Docs)$/.test(f.kind)}):[];
+  var kinds=p?Object.keys(p.byKind).sort(function(a,b){return p.byKind[b].n-p.byKind[a].n}):[];
+  s.innerHTML=(msg||"")+(p?'<div style="margin-top:8px"><b>'+num(p.trash.length)+'</b> copies can go to the bin, freeing <b>'+PosDupes.gb(p.bytes)+'</b>. One copy of each of '+num(p.kept)+' files stays.</div>'+
+      '<table><tr><th>Type</th><th>Copies</th><th>Space</th></tr>'+kinds.map(function(k){return '<tr><td>'+esc(k)+'</td><td>'+num(p.byKind[k].n)+'</td><td>'+PosDupes.gb(p.byKind[k].bytes)+'</td></tr>'}).join("")+'</table>'+
+      (p.trash.length?'<label style="display:flex;gap:8px;align-items:center;font-size:13px;margin:10px 0"><input type="checkbox" id="dupDocs" style="width:auto"> Only PDFs, Sheets and Docs ('+num(docs.length)+' copies)</label>'+
+        '<div class="row"><button class="btn" type="button" id="dupTry">Try 20 first</button><button class="btn pri" type="button" id="dupGo">Move them to the bin</button></div>'+
+        '<div class="muted" style="font-size:12px;margin-top:8px">Drive limits how fast files can be changed, so this runs at about 8 a second — roughly '+(function(m){return m<2?"a minute":m<60?m+" minutes":Math.round(m/6)/10+" hours"})(Math.ceil(p.trash.length/8/60))+'. Keep this page open; you can stop any time and carry on later. Nothing is deleted: everything goes to the bin and can be put back below.</div>':
+        '<div class="msg" style="margin-top:10px">No duplicate copies found.</div>')
+    :'<div class="row"><button class="btn" type="button" id="dupCount">Find duplicate copies</button></div>')+
+    '<div class="row" style="margin-top:12px"><button class="plain" type="button" id="dupUndo">Restore what this moved</button></div><div id="dupNote"></div>';}
+async function dupFind(){var s=$("dup");s.innerHTML='<span class="muted" id="dupSay">Starting…</span>';
+  try{dupPlan=await PosDupes.plan(function(t){var e=$("dupSay");if(e)e.textContent=t});dupIdle()}
+  catch(e){dupPlan=null;dupIdle('<div class="msg err">'+esc(e&&e.message||e)+'</div>')}}
+async function dupRun(limit){var s=$("dup"),docsOnly=$("dupDocs")&&$("dupDocs").checked,all=dupPlan.trash.filter(function(f){return !docsOnly||/^(PDFs|Sheets|Docs)$/.test(f.kind)}),total=limit?Math.min(limit,all.length):all.length;
+  if(!limit&&!confirm("Move "+total.toLocaleString("en-IN")+" duplicate copies to Drive's bin?\n\nOne copy of each file stays in Drive. The rest can be put back from this page for 30 days."))return;
+  s.innerHTML='<div class="bar"><i id="dupBar"></i></div><div class="nums"><div><b id="dM">0</b><span>in the bin</span></div><div><b id="dS">0</b><span>freed</span></div><div><b id="dF">0</b><span>failed</span></div><div><b id="dL">'+num(total)+'</b><span>left</span></div></div>'+
+    '<div class="muted" id="dupSay" style="font-size:12px;word-break:break-all;min-height:18px">Starting…</div><div class="row"><button class="btn" type="button" id="dupStop">Stop</button></div>';
+  var res=null,bad=null;
+  try{res=await PosDupes.run({docsOnly:docsOnly,limit:limit||0,onProgress:function(t){if(!$("dM"))return;
+    $("dM").textContent=num(t.moved);$("dS").textContent=PosDupes.gb(t.bytes);$("dF").textContent=num(t.failed);$("dL").textContent=num(t.left);
+    $("dupBar").style.width=(total?Math.min(100,Math.round((total-t.left)*100/total)):0)+"%";if(t.msg)$("dupSay").textContent=t.msg}})}
+  catch(e){bad=e}
+  dupPlan=null;
+  dupIdle(res?'<div class="msg">'+num(res.moved)+' copies moved to the bin, '+PosDupes.gb(res.bytes)+' freed'+(res.failed?', '+num(res.failed)+' could not be moved':'')+(res.skipped?', '+num(res.skipped)+' were already gone':'')+'.'+
+      (res.errors&&res.errors.length?'<div class="muted" style="font-size:12px;margin-top:6px">'+res.errors.map(esc).join("<br>")+'</div>':'')+'</div>':'<div class="msg err">'+esc(bad&&bad.message||bad)+'</div>');}
+async function dupUndo(){var n=$("dupNote");n.innerHTML='<div class="msg">Looking in the bin…</div>';
+  try{var c=await PosDupes.count();
+    if(!c){n.innerHTML='<div class="msg">Nothing in the bin from this clean-up.</div>';return}
+    if(!confirm("Put "+c.toLocaleString("en-IN")+" copies back into Drive?")){n.innerHTML="";return}
+    n.innerHTML='<div class="msg"><span id="undoSay">Restoring…</span></div>';
+    var r=await PosDupes.undo({onProgress:function(t){var e=$("undoSay");if(e)e.textContent="Restored "+num(t.restored)+"…"}});
+    n.innerHTML='<div class="msg">'+num(r.restored)+' copies put back'+(r.failed?', '+num(r.failed)+' failed':'')+'.</div>'}
+  catch(e){n.innerHTML='<div class="msg err">'+esc(e&&e.message||e)+'</div>'}}
+$("dup").addEventListener("click",function(e){var id=e.target.id;
+  if(id==="dupCount")dupFind();else if(id==="dupTry")dupRun(20);else if(id==="dupGo")dupRun(0);else if(id==="dupUndo")dupUndo();
+  else if(id==="dupStop"){PosDupes.stop();e.target.disabled=true;e.target.textContent="Stopping…"}});
 
 /* ---------- coverage ---------- */
 async function cov(){var c=$("cov");c.innerHTML='<span class="muted">Counting every file in your Drive…</span>';
