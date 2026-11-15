@@ -2,7 +2,7 @@
 <html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="kvsync.js?v=20261105a"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Fingerstyle Solo · Guitar Studio</title>
 <script src="gsync.js?v=20261023"></script>
-<script src="fs-course.js?v=20261031a"></script>
+<script src="fs-course.js?v=20261115"></script>
 <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="icon" href="icon-192.png" sizes="192x192"><link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>
 :root{
@@ -376,13 +376,19 @@ function start(){
 function stop(){if(!play)return;flush(true);scheduleSync();clearInterval(play.timer);cancelAnimationFrame(play.raf);try{play.wake&&play.wake.release();}catch(e){}
   play=null;document.querySelectorAll(".col.on,.col.tick").forEach(c=>c.classList.remove("on","tick"));setBar();}
 const bt=b=>play.t0+(b+play.ci)*spb();
+const passTgt=L=>L&&L.goalPass||0; // how many unbroken passes this exercise asks for (0 = no target)
+function finMsg(n){const el=document.getElementById("nbInfo");if(el)el.textContent=`✓ ${n} passes, no break — mark it done`;}
 function sched(){
   if(!play)return;const hz=ctx.currentTime+.15,E=play.E;
   for(;;){
     const base=play.cyc*E.total,tn=play.i<E.ev.length?bt(base+E.ev[play.i].b):Infinity,tc=bt(play.cb);
     const t=Math.min(tn,tc);if(t>hz)break;
     if(tc<=tn){if(play.cb<0||st.set.click)click(tc,(((play.cb%E.meter)+E.meter)%E.meter)===0);play.cb++;
-      if(play.cb>=base+E.total&&play.i>=E.ev.length){if(st.set.loop||sel){play.cyc++;play.i=0;climb();}else{const p=play;setTimeout(()=>{if(play===p)stop();},(tc-ctx.currentTime)*1000+400);play.cb=Infinity;}}
+      if(play.cb>=base+E.total&&play.i>=E.ev.length){
+        /* a warm-up round has a pass target: it loops whatever the Loop box says and stops itself on the last pass */
+        const tgt=sel?0:passTgt(play.L),last=tgt&&play.cyc+1>=tgt;
+        if(!last&&(st.set.loop||sel||tgt)){play.cyc++;play.i=0;climb();}
+        else{const p=play;if(last)p.fin=tgt;setTimeout(()=>{if(play===p){stop();if(p.fin)finMsg(p.fin);}},(tc-ctx.currentTime)*1000+400);play.cb=Infinity;}}
       continue;}
     const e=E.ev[play.i++];note(e,tn,e.d*spb()*1.4);play.vis.push([tn,e]);
   }
@@ -399,9 +405,10 @@ function draw(){if(!play)return;let hit=null;
   if(hit){document.querySelectorAll(".col.on").forEach(c=>c.classList.remove("on"));const c=document.querySelector(`.col[data-s="${slotOf(hit.b+play.off)}"]`);if(c){c.classList.add("on");follow(c);}}
   let b=(ctx.currentTime-play.t0)/spb()-play.ci;if(b>=0&&(st.set.loop||sel))b=b%play.E.total;
   const g=b>=0&&b<play.E.total?Math.floor((b+play.off)*play.sub+1e-6):null;
-  if(play.L.chain&&b>=0){const bar=Math.floor((b+play.off)/play.E.meter+1e-6),R=play.L.rep,q=play.L.seq,ci=Math.floor(bar/R);
-    if(ci<q.length){const k=ci+"."+bar;if(k!==play.ck){play.ck=k;const nx=q[ci+1]||q[0];
-      document.getElementById("nbInfo").textContent=`${cname(q[ci])} ${bar%R+1}/${R} → ${cname(nx)}`;}}}
+  if(play.L.chain&&b>=0){const bar=Math.floor((b+play.off)/play.E.meter+1e-6),R=play.L.rep,q=play.L.seq,ci=Math.floor(bar/R),
+      tgt=sel?0:passTgt(play.L),ps=tgt?` · pass ${Math.min(play.cyc+1,tgt)}/${tgt}`:"";
+    if(ci<q.length){const k=ci+"."+bar+"."+play.cyc;if(k!==play.ck){play.ck=k;const nx=q[ci+1]||q[0];
+      document.getElementById("nbInfo").textContent=`${cname(q[ci])} ${bar%R+1}/${R}${q.length>1?` → ${cname(nx)}`:""}${ps}`;}}}
   if(g!==play.tg){play.tg=g;document.querySelectorAll(".col.tick").forEach(c=>c.classList.remove("tick"));if(g!=null){const c=document.querySelector(`.col[data-s="${g}"]`);if(c)c.classList.add("tick");}}
   play.raf=requestAnimationFrame(draw);}
 let lastRow=null;
@@ -483,10 +490,11 @@ function taskView(L){const Lv=LEVELS[L.lv],all=ALL.indexOf(lessonOf(L)),prev=ALL
 function howTo(L){const lo=L.tempo[0],hi=L.tempo[1];
   if(L.how)return `<details class="how" open><summary>How to practise this lesson</summary><ol>${L.how.map(x=>`<li>${x}</li>`).join("")}</ol></details>`;
   if(L.chain)return `<details class="how" open><summary>How to use the warm-up</summary><ol>
-    <li>Pick a part for a short warm-up (one to two minutes at 60 bpm), or the full chain when you have more time.</li>
-    <li>Press Play. Each chord gets ${L.rep} bars of eighth notes, every string of the shape: thumb (p) on the bass strings from the lowest one the chord uses, i-m-a on the G, B and high e, up and back. Six-string, five-string and four-string shapes are in separate parts, so the pattern stays the same within a part. The next chord follows by itself; the bar under Play tells you which chord is coming.</li>
-    <li>Choose your tempo with the slider or − / +. Slow enough that every change lands on beat 1 is the right speed; it never climbs on its own.</li>
-    <li>When a part runs through with no gaps at the changes and every string ringing, mark it done. Keep using it as a warm-up afterwards.</li></ol></details>`;
+    <li>A part comes one chord at a time. Round 1 is its first chord on its own, ${L.first} passes without a break. Each round after that has two blocks: the new chord alone ${L.spot} passes, then the chords learned so far chained. The chain's passes drop as it grows (36 at two chords, 7 at ten), so a round stays about 13 minutes — one sitting.</li>
+    <li>Press Play and leave it running. Each chord gets ${L.rep} bars of eighth notes, every string of the shape: thumb (p) on the bass strings from the lowest one the chord uses, i-m-a on the G, B and high e, up and back. The line under Play shows the chord, which of its ${L.rep} bars, what is next, and the pass count. <b>The player stops itself on the last pass</b> — that is the block finished.</li>
+    <li>Choose your tempo with the slider or − / +. Slow enough that every change lands on beat 1 is the right speed; it never climbs on its own. A slower tempo makes the block longer than 13 minutes.</li>
+    <li>Mark the block done only if you got through it with no break and every string ringing. If you had to stop, play it again. The next block, and then the next chord, unlock as you tick them.</li>
+    <li>Once a part is finished, keep it as a plain warm-up: the <b>full chain</b> plays all three parts straight through, with no pass target.</li></ol></details>`;
   if(L.scan)return `<details class="how" open><summary>How to practise this lesson</summary><ol>
     <li>Look at the diagram and place the fingers one at a time, then lift the whole hand off and place the shape again, all fingers together. Five times.</li>
     <li>Press Play. Pluck the strings one by one with the tab: thumb on the bass strings, i-m-a on the top three. Stop on any note that buzzes or sounds dead, fix the finger, carry on.</li>
@@ -541,7 +549,7 @@ function lessonView(L){
       <button type="button" data-bars="add">＋ Add next bar</button><button type="button" data-bars="next">Next bar only ▶</button><button type="button" data-bars="all"${sel?"":" disabled"}>All bars</button></div>
     <div class="tabscroll"><div class="tab${sel?" hassel":""}">${tabHTML(E)}</div></div>
     <div class="navf">${prev?`<button type="button" data-open="${prev.id}">◂ ${prev.id}</button>`:"<span></span>"}<button type="button" class="linkb" data-home="1">All levels</button>
-      ${exDone(L)?`<button type="button" data-undone="${L.id}">Mark as not done</button>`:`<button type="button" class="good big" data-done="${L.id}">${L.chain?"✓ Clean changes all the way through":L.free?"✓ Every string rings clean":`✓ I can play it at ${L.tempo[1]} bpm`}</button>`}
+      ${exDone(L)?`<button type="button" data-undone="${L.id}">Mark as not done</button>`:`<button type="button" class="good big" data-done="${L.id}">${L.goalPass?`✓ ${L.goalPass} passes with no break`:L.chain?"✓ Clean changes all the way through":L.free?"✓ Every string rings clean":`✓ I can play it at ${L.tempo[1]} bpm`}</button>`}
       ${next?`<button type="button" data-open="${next.id}"${unlockedLv(next.lv)||next.lv===L.lv?"":" disabled"}>${next.id} ▸</button>`:""}</div></section>`;
 }
 function render(){
@@ -555,7 +563,10 @@ function setBar(){const nb=document.getElementById("nowbar"),L0=view.k==="lesson
   document.getElementById("nbT").textContent=tempoOf(L);
   {const dn=document.getElementById("nbDone");dn.hidden=!play||!!exDone(L);dn.dataset.done=L.id;}
   if(play)play.sub=SUB;}
-function open(id){const P=ALL.find(l=>l.id===id);if(P&&P.ex.length>1)id=(P.ex.find(e=>!exDone(e))||P.ex[0]).id;view={k:"lesson",id};sel=null;st.last=id;save();render();window.scrollTo({top:0});}
+function open(id){const P=ALL.find(l=>l.id===id);if(P&&P.ex.length>1)id=(P.ex.find(e=>!exDone(e))||P.ex[0]).id;
+  /* a group id (e.g. wu.p2) opens its first unfinished exercise */
+  else if(!EX.some(x=>x.id===id)){const g=EX.filter(x=>x.id.startsWith(id+"."));if(g.length)id=(g.find(e=>!exDone(e))||g[0]).id;}
+  view={k:"lesson",id};sel=null;st.last=id;save();render();window.scrollTo({top:0});}
 function setSel(s){const wasPlaying=!!play;sel=s;render();if(wasPlaying)start();}
 document.addEventListener("click",e=>{
   const o=e.target.closest("[data-open]");if(o){open(o.dataset.open);return;}

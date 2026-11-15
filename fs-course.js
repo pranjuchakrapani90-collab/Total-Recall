@@ -85,15 +85,22 @@ CHG.push(
    hand keeps one plucking pattern through a whole part: six-string shapes, then five (low E not played), then four
    (only D, G, B, e). Inside a part each chord leads to the next with the fewest fingers moving, and each part ends on a
    chord that pulls into the next part's first (G7 → C, A7 → D, Fmaj7 → Em), so the full chain runs unbroken.
-   Every string of the shape is plucked in eighth notes (PATS below, one bar each), held for REP bars, then on. */
-const REP=2,CHAIN=[
+   Every string of the shape is plucked in eighth notes (PATS below, one bar each), held for REP bars, then on.
+
+   A part is unlocked one chord at a time, in rounds (15 Nov 2026). Round 1 is the first chord on its own, FIRST
+   times without a break. Every round after it adds one chord and has two blocks: the new chord alone SPOT times
+   (the spotlight, so the chord being learned always gets the most repetitions), then the chords learned so far
+   chained, as many times as fit the rest of a BLOCK-second sitting. At 60 bpm a chord takes REP x 4 = 8 s, so a
+   round is always about 13 minutes however many chords are in it: round 2 chains 36 times, round 10 only 7.
+   The full chain (all three parts) stays a straight play-through with no rounds. */
+const REP=2,SPOT=25,FIRST=50,BLOCK=780,CHAIN=[
   ["Part 1 · six-string chords",["Em","Em7","E","E7","Emaj7","G","Gmaj7","G7"]],
   ["Part 2 · five-string chords",["C","Cmaj7","C7","Am","Am7","Bm7","B7","A","Amaj7","A7"]],
   ["Part 3 · four-string chords",["D","Dmaj7","D7","Dm","Dm7","Fmaj7"]]],
   PATS={6:"1:6 1.5:5 2:4 2.5:3 3:2 3.5:1 4:2 4.5:3",5:"1:5 1.5:4 2:3 2.5:2 3:1 3.5:2 4:3 4.5:4",4:"1:4 1.5:3 2:2 2.5:1 3:4 3.5:3 4:2 4.5:1"};
-const WARMUP={id:"wu",t:`Warm-up: the chord chain (each chord ${REP} bars)`,chain:CHAIN,rep:REP,pats:PATS,free:1,meter:4,tempo:[60,60],pat:PATS[6],
-  w:`Every open shape you have learned, grouped by how many strings it uses, and every one of those strings plucked. Part 1 is the six-string shapes (Em, E, G and their sevenths): thumb from the low E, up to the high e and back. Part 2 is the five-string shapes (C, Am, Bm7, B7, A…): the thumb starts on the A string. Part 3 is the four-string shapes (D, Dm, Fmaj7…): the thumb starts on the D string. Each chord gets ${REP} bars of eighth notes, then the next chord comes on its own. One pattern per part, so the right hand settles while the left hand learns to find shapes in time.`,
-  tip:"The line under the Play button shows the chord you are on, which of its two bars, and the chord coming next. The notes are eighths, twice as many per beat as before, so drop the tempo if the changes feel rushed. Start moving the left hand on the last two notes of the second bar and land all fingers together on beat 1."};
+const WARMUP={id:"wu",t:`Warm-up: the chord chain (one chord at a time, ${REP} bars each)`,chain:CHAIN,rep:REP,pats:PATS,spot:SPOT,first:FIRST,block:BLOCK,free:1,meter:4,tempo:[60,60],pat:PATS[6],
+  w:`Every open shape you have learned, grouped by how many strings it uses, and every one of those strings plucked. Part 1 is the six-string shapes (Em, E, G and their sevenths): thumb from the low E, up to the high e and back. Part 2 is the five-string shapes (C, Am, Bm7, B7, A…): the thumb starts on the A string. Part 3 is the four-string shapes (D, Dm, Fmaj7…): the thumb starts on the D string. Each chord gets ${REP} bars of eighth notes. A part comes one chord at a time: round 1 is its first chord alone ${FIRST} times without a break, and each round after it drills the new chord on its own ${SPOT} times before chaining everything learned so far. The chain gets shorter in passes as it grows in chords, so a round stays about 13 minutes — one sitting.`,
+  tip:"The line under the Play button shows the chord you are on, which of its two bars, the chord coming next, and how many passes of the target you have done; the player stops itself when the count is reached. The notes are eighths, so drop the tempo if the changes feel rushed. Start moving the left hand on the last two notes of the second bar and land all fingers together on beat 1."};
 /* ===================== Generated exercises for the newer lessons =====================
    Exact notes are written as s@f tokens (string@fret), "!" = melody voice, ".i/.m/.a/.p" = which finger plucks. */
 CH.Bm7=CH.Bm7||{f:[X,2,0,2,0,2],r:[5,2],a:[4,0]};
@@ -510,9 +517,19 @@ function expand(L){const one=[{...L,pid:L.id,home:1}];
     const n=CH[c].f.filter(x=>x!=null).length,cyc=2*n-2,M=L.meter||4;let k=1;while((k*cyc)%M||k*cyc<4*M)k++;
     return {...L,id:`${L.id}.${c}`,pid:L.id,vt:c,prog:Array(k*cyc/M).fill(c).join("|"),home:i?0:1};});
   if(L.chain){const run=cs=>cs.map(c=>Array(L.rep).fill(c).join("|")).join("|"),
-      pb=cs=>L.pats?cs.flatMap(c=>Array(L.rep).fill(L.pats[CH[c].f.filter(x=>x!=null).length]||L.pat)).join("|"):L.pat; // one pattern per bar, by the shape's string count
-    return [...L.chain.map(([t,cs],i)=>({...L,id:`${L.id}.p${i+1}`,pid:L.id,vt:t,prog:run(cs),pat:pb(cs),seq:cs,home:i?0:1})),
-      {...L,id:`${L.id}.all`,pid:L.id,vt:"Full chain · all parts",prog:run(L.chain.flatMap(x=>x[1])),pat:pb(L.chain.flatMap(x=>x[1])),seq:L.chain.flatMap(x=>x[1]),home:0}];}
+      pb=cs=>L.pats?cs.flatMap(c=>Array(L.rep).fill(L.pats[CH[c].f.filter(x=>x!=null).length]||L.pat)).join("|"):L.pat, // one pattern per bar, by the shape's string count
+      mk=(id,vt,cs,pass,home)=>({...L,id:`${L.id}.${id}`,pid:L.id,vt,prog:run(cs),pat:pb(cs),seq:cs,goalPass:pass||0,home:home?1:0}),
+      ps=L.rep*(L.meter||4), // seconds one chord holds at 60 bpm
+      ex=[];
+    /* one chord at a time: round r = the new chord alone (spotlight), then the r chords so far chained */
+    L.chain.forEach(([,cs],pi)=>{const P=`p${pi+1}`,pn=`Part ${pi+1}`;
+      cs.forEach((c,i)=>{const r=i+1;
+        if(r===1){ex.push(mk(`${P}.r1`,`${pn} · round 1 · ${c} alone ×${L.first}`,[c],L.first,!pi));return;}
+        ex.push(mk(`${P}.r${r}.s`,`${pn} · round ${r} · new chord ${c} ×${L.spot}`,[c],L.spot));
+        const cy=Math.max(3,Math.floor((L.block-L.spot*ps)/(ps*r)));
+        ex.push(mk(`${P}.r${r}.c`,`${pn} · round ${r} · chain of ${r} ×${cy}`,cs.slice(0,r),cy));});});
+    ex.push(mk("all","Full chain · all parts",L.chain.flatMap(x=>x[1]),0));
+    return ex;}
   if(L.progs)return L.progs.map(([k,pr],i)=>({...L,id:`${L.id}.${k.replace(/[^A-Za-z#]/g,"")}`,pid:L.id,vt:`in ${k}`,prog:pr+"|"+pr,home:i?0:1}));
   if(L.pairs)return L.pairs.map(([a,b],i)=>({...L,id:`${L.id}.${a}-${b}`,pid:L.id,vt:`${a} ↔ ${b}`,prog:`${a}|${a}|${b}|${b}|${a}|${a}|${b}|${b}`,home:i?0:1}));
   if(L.task||L.tune)return one;
