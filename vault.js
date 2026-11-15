@@ -66,28 +66,43 @@ async function values(id,range){var d=await gjson(SH+id+"/values/"+encodeURIComp
 async function tabs(id){var d=await gjson(SH+id+"?fields="+encodeURIComponent("sheets.properties(title,sheetId,gridProperties(rowCount))"),null,"Reading the index sheet");
   return (d.sheets||[]).map(function(s){return s.properties})}
 
-/* ---------- topics: every record goes under ONE topic, picked by which topic's words it mentions most ---------- */
+/* ---------- topics: every record goes under ONE topic ----------
+   Each topic has a list of words. A record's whole row is read (name, summary, memo numbers, places, names,
+   amounts, document type) and the topic whose words appear most often wins. Two stronger signals are added on top:
+   the APDCL file code inside a memo number (T-9 is theft, T-7 estimates, Rev-1 revenue…), which is worth three
+   words, and the document type, worth one and a half, so a bill with a scanner-generated name still lands under
+   Billing. Nothing matching at all stays "Other". Changing these lists re-sorts the vault on the next page load;
+   no re-scan is needed. */
 var TOPICS=[
- ["Theft & enforcement",/theft|hooking|pilfer|unauthori[sz]ed|section\s*1(?:26|35)|compound|assessment bill|raid|enforcement|tamper/gi],
- ["Accidents & safety",/accident|electrocut|fatal|\bptw\b|permit to work|shut ?down|safety|earthing/gi],
- ["Smart meters",/smart ?meter|non.?comm?\b|non.?communicat|prepaid|postpaid|\bmdm\b|meter replacement|defective meter|not working meter/gi],
- ["Billing & revenue",/electricity bill|\bbill\b|receipt|arrear|revenue|collection|payment|outstanding|\bdues\b|disconnect|\btdc\b|defaulter|tariff/gi],
- ["Estimates & works",/estimate|\bboq\b|cost abstract|\bsor\b|deposit work|\brdss\b|sanction|scheme|tender|work order|ab cable|utility shifting|crossing/gi],
- ["Network & DTR",/\bdtr\b|transformer|feeder|\b(?:11|33) ?kv\b|sub-?station|\bptr\b|\bsld\b|single line|indexing|\bpole\b|conductor|line checking|line status|inspection|interruption|storm|energy audit|\bjmr\b|injection/gi],
- ["Consumers & connections",/new (?:service )?connection|\bnsc\b|load (?:extension|sanction|enhancement)|application|petition|complain|grievance|consumer list|rooftop|solar/gi],
- ["Staff & office",/office order|transfer|posting|superannuation|retire|\bleave\b|salary|imprest|establishment|attendance|deployment|election|meeting|circular|notification|vacanc/gi]];
-function topicOf(text){var best="Other",top=0;text=String(text||"");
-  TOPICS.forEach(function(t){var m=text.match(t[1]),n=m?m.length:0;if(n>top){top=n;best=t[0]}});return best}
-/* words that mean nearly the same thing in APDCL paperwork: a search for one also offers the others as "related" */
-var ALIKE=[["dtr","transformer"],["ptr","power transformer"],["theft","hooking","pilferage","unauthorised","section 135","section 126"],["accident","electrocution","electrocuted","fatal"],
- ["fir","police"],["bill","invoice","billing"],["receipt","payment"],["estimate","boq","cost abstract"],["non-comm","non comm","non com","non communicating","not working meter"],
- ["feeder","line"],["substation","sub-station","33/11"],["pole","psc"],["shutdown","ptw","permit to work","outage","interruption"],["complaint","grievance","petition"],
- ["connection","nsc","load extension"],["solar","rooftop"],["arrear","outstanding","dues","defaulter"],["disconnection","tdc","disconnected"],["railway","rail crossing","track crossing"],
- ["tree","jungle"],["storm","damage","restoration"],["transfer","posting","office order"],["retirement","superannuation"],["sld","single line diagram"],["ab cable","abc","rdss"],
- ["indexing","gis"],["energy audit","jmr","at&c"],["smart meter","prepaid","postpaid"],["letter","memo"]];
-function alike(w){var out=[];ALIKE.forEach(function(g){if(g.indexOf(w)>=0)g.forEach(function(x){if(x!==w&&out.indexOf(x)<0)out.push(x)})});
-  if(w.length>3&&/s$/.test(w))out.push(w.slice(0,-1));return out}
-
+ ["Theft & enforcement",/theft|hooking|pilfer|unauthori[sz]ed|section\s*1(?:26|35|63)|compound|assessment bill|raid|enforcement|tamper|\bFIR\b|police|seizure|penal|malpractice|direct hook|meter burn/gi],
+ ["Accidents & safety",/accident|electrocut|fatal|\bptw\b|permit to work|safety|earthing|injur|snapped conductor|live wire|ex.?gratia|casualt/gi],
+ ["Smart meters",/smart ?meter|non.?comm?\b|non.?communicat|prepaid|postpaid|\bmdm\b|meter replacement|defective meter|not working meter|\brdss\b|\bgenus\b|\bHPL\b|meter installation|\blot-?\d|utilisation certificate|utilization certificate/gi],
+ ["Billing & revenue",/electricity bill|\bbill\b|billing|receipt|arrear|revenue|collection|payment|outstanding|\bdues\b|disconnect|\btdc\b|defaulter|tariff|unbilled|\bdemand\b|surcharge|waiver|waival|instal?ment|lok adalat|realisation|realization|e-?suvidha|easypay|\bbbps\b|meter reading|\bMRBC\b|\bDC\b|collection gap|energy charge|mobile tower|\bPDC\b|zero unit/gi],
+ ["Estimates & works",/estimate|\bboq\b|cost abstract|\bsor\b|deposit work|sanction|\bscheme\b|tender|work order|ab cable|\bmvcc\b|utility shifting|crossing|renovation|augmentation|erection|material|supervision charge|turnkey|\bdpr\b/gi],
+ ["Network & DTR",/\bdtr\b|transformer|feeder|\b(?:11|33|132) ?kv\b|sub-?station|\bptr\b|\bsld\b|single line|indexing|\bpole\b|conductor|line checking|line status|line inspection|interruption|storm|energy audit|\bjmr\b|injection|shut ?down|outage|jungle|tree cutting|\bvcb\b|\bbay\b|\bscada\b|network status|\bLAR\b|jumper|insulator|\bO&M\b|preventive/gi],
+ ["Consumers & connections",/new (?:service )?connection|\bnsc\b|load (?:extension|sanction|enhancement)|application|petition|complain|grievance|consumer list|rooftop|solar|\bjjm\b|\bpwss\b|water supply|reconnection|name change|\bagri\b|irrigation|street ?light|\bBPL\b|feasibility|charging permission|charging approval/gi],
+ ["Staff & office",/office order|transfer|posting|promotion|superannuation|retire|gratuity|\bDCRG\b|\bleave\b|salary|\bpay\b|imprest|establishment|attendance|deployment|election|meeting|minutes|circular|notification|vacanc|seniority|training|\baudit\b|income tax|\bIPR\b|tour programme|disciplinar|suspension|inauguration|invitation/gi],
+ ["Rules & references",/specification|standard bidding|bid document|\bmanual\b|handbook|gazette|regulation|\bact,? ?(?:19|20)\d\d|\bSOP\b|guideline|\bBIS\b|\bIS ?\d{3,}|study material|tariff order|amendment|policy/gi]];
+/* APDCL file codes seen inside memo numbers (SDE/SESD/APDCL/T-9/2026/3504) */
+var CODES=[
+ [/\bT-?9\b|\bPol-?1\b/i,"Theft & enforcement"],
+ [/\bT-?7\b|\bT-?26\b|\bDW-?\d/i,"Estimates & works"],
+ [/\bT-?1\b|\bT-?2\b|\bT-?4\b|\bT-?5\b|\bT-?30\b|\bM-?1\b|\bInjection-?\d/i,"Network & DTR"],
+ [/\bT-?14\b|\bSolar-?\d/i,"Consumers & connections"],
+ [/\bT-?20\b|\bRev-?\d/i,"Billing & revenue"],
+ [/\bE-?[1-9]\b|\bElec-?\d/i,"Staff & office"]];
+/* what the document type alone says, when the words are thin */
+var BYTYPE={invoice:"Billing & revenue",receipt:"Billing & revenue",estimate:"Estimates & works",sld:"Network & DTR",
+  petition:"Consumers & connections",complaint:"Consumers & connections","office order":"Staff & office",circular:"Staff & office",
+  certificate:"Staff & office",agreement:"Staff & office",form:"Staff & office",reference:"Rules & references"};
+function topicOf(text,dtype,memos){
+  var sc={},add=function(k,n){if(k)sc[k]=(sc[k]||0)+n};
+  text=String(text||"");
+  TOPICS.forEach(function(t){t[1].lastIndex=0;var m=text.match(t[1]);if(m)add(t[0],m.length)});
+  if(memos)CODES.forEach(function(c){if(c[0].test(memos))add(c[1],3)});
+  add(BYTYPE[String(dtype||"").trim().toLowerCase()],1.5);
+  var best="Other",top=0;Object.keys(sc).forEach(function(k){if(sc[k]>top){top=sc[k];best=k}});
+  return best}
 /* ---------- rows -> entries ---------- */
 var LBL=[[9,"consumer nos"],[10,"memo nos"],[11,"receipt / bill nos"],[12,"names"],[13,"places"],[14,"amounts"],[19,"unclear"],[20,"discrepancies"],[21,"note"]];
 function entry(r,src){
@@ -95,7 +110,7 @@ function entry(r,src){
   var st=String(r[23]||"").trim().toLowerCase(),x=[];if(r[15])x.push(String(r[15]));
   LBL.forEach(function(l){if(l[0]===19&&st==="needs_review")return;if(r[l[0]])x.push(l[1]+": "+r[l[0]])});
   var s=x.join(" · ");if(s.length>2600)s=s.slice(0,2600)+"…";
-  return {id:id,s:String(r[15]||"").slice(0,700),k:topicOf(String(r[1]||"")+" "+String(r[1]||"")+" "+s+" "+String(r[8]||"")),t:String(r[1]||id),u:String(r[2]||"https://drive.google.com/file/d/"+encodeURIComponent(id)+"/view"),p:String(r[3]||""),ft:String(r[4]||""),m:String(r[5]||""),
+  return {id:id,s:String(r[15]||"").slice(0,700),k:topicOf(String(r[1]||"")+" "+String(r[1]||"")+" "+s+" "+String(r[8]||""),r[8],String(r[10]||"")),t:String(r[1]||id),u:String(r[2]||"https://drive.google.com/file/d/"+encodeURIComponent(id)+"/view"),p:String(r[3]||""),ft:String(r[4]||""),m:String(r[5]||""),
     d:String(r[8]||"other").trim().toLowerCase()||"other",x:s,c:String(r[17]||""),st:st,dup:String(r[24]||""),why:String(r[19]||""),src:src==="ai"?"ai":(st==="manual"?"manual":"rules")}}
 function merge(ai,auto){
   var by={},order=[];
