@@ -163,7 +163,9 @@ async function plan(progress){
   todo.sort(function(a,b){return a.modified<b.modified?1:-1});redo.sort(function(a,b){return a.modified<b.modified?1:-1});
   todo=todo.concat(redo);   /* new files first, then the ones to read again with the improved rules */
   /* take files that now have a proper record off the "Needs review" tab */
-  var tidied=0;try{tidied=await tidy(sheetId,done)}catch(e){}
+  /* for the review list, anything Gemini has written about a file settles it, "skipped" included */
+  var qdone={};Object.keys(done).forEach(function(k){qdone[k]=done[k]});Object.keys(ai.ids).forEach(function(k){qdone[k]=ai.ids[k]});
+  var tidied=0;try{tidied=await tidy(sheetId,qdone)}catch(e){}
   var swept=0;try{swept=await sweep()}catch(e){}
   lastPlan={sheetId:sheetId,dir:dir,todo:todo,dups:dups,counts:counts,autoRows:auto.rows,at:Date.now(),tidied:tidied,swept:swept};
   return lastPlan}

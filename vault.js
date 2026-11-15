@@ -113,13 +113,16 @@ function entry(r,src){
   return {id:id,s:String(r[15]||"").slice(0,700),k:topicOf(String(r[1]||"")+" "+String(r[1]||"")+" "+s+" "+String(r[8]||""),r[8],String(r[10]||"")),t:String(r[1]||id),u:String(r[2]||"https://drive.google.com/file/d/"+encodeURIComponent(id)+"/view"),p:String(r[3]||""),ft:String(r[4]||""),m:String(r[5]||""),
     d:String(r[8]||"other").trim().toLowerCase()||"other",x:s,c:String(r[17]||""),st:st,dup:String(r[24]||""),why:String(r[19]||""),src:src==="ai"?"ai":(st==="manual"?"manual":"rules")}}
 function merge(ai,auto){
-  var by={},order=[];
+  /* a file Gemini looked at and could not use (status "skipped") leaves the review queue for good: it stays
+     findable by name, but it is not work waiting to be done */
+  var by={},order=[],given={};
+  ai.forEach(function(e){if(e.st==="skipped")given[e.id]=1});
   auto.forEach(function(e){if(!by[e.id])order.push(e.id);by[e.id]=e});
   ai.forEach(function(e){if(e.st==="skipped"&&by[e.id])return;if(!by[e.id])order.push(e.id);by[e.id]=e});
   var entries=[],queue=[],dups=[],doms={},tops={},n={ai:0,rules:0,manual:0};
   order.forEach(function(id){var e=by[id];
     if(e.st==="duplicate"){dups.push(id);return}
-    if(e.st==="needs_review"){queue.push(e);return}
+    if(e.st==="needs_review"&&!given[e.id]){queue.push(e);return}
     entries.push(e);doms[e.d]=(doms[e.d]||0)+1;tops[e.k]=(tops[e.k]||0)+1;n[e.src]=(n[e.src]||0)+1});
   queue.sort(function(a,b){return a.m<b.m?1:-1});
   return {entries:entries,queue:queue,log:{ids:dups},counts:n,domains:doms,topics:tops}}
