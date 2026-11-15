@@ -8,7 +8,8 @@
 
    Which copy is kept, in this order:
      1. the copy the vault's records point at, so every link in the Vault and in search keeps working;
-     2. otherwise the one Drive created first.
+     2. otherwise the copy with the plain name, not a "(1)" or "-1" copy name;
+     3. otherwise the one Drive created first.
 
    Nothing is deleted. Each file is moved to the bin and marked, in the same request, with appProperties
    posDup=<id of the copy that was kept>. That mark is what "Restore" looks for, so this clean-up can be undone
@@ -33,6 +34,10 @@ function jpatch(body){return {method:"PATCH",headers:{"Content-Type":"applicatio
 var gate=Promise.resolve();
 function turn(){var p=gate.then(function(){return G.sleep(PACE)});gate=p.catch(function(){});return p}
 function kindOf(mime,name){return V.kind(mime,name)}
+/* 1 for a name Drive or Windows gave a copy, such as "bill (1).pdf" or "bill-1.pdf"; 0 for a plain name.
+   Keeping the plain name means the phone's own file still matches something in Drive, so the uploader
+   recognises it and does not send it again. */
+function copyName(n){return /(?:\(\d+\)|[-_]\d{1,2}|\bcopy\b)\s*(?:\.[A-Za-z0-9]{1,5})?$/i.test(String(n||""))?1:0}
 function gb(n){return n>=1073741824?(n/1073741824).toFixed(2)+" GB":n>=1048576?(n/1048576).toFixed(0)+" MB":Math.round(n/1024)+" KB"}
 
 /* ---------- what would be moved ---------- */
@@ -46,7 +51,8 @@ async function plan(progress){
   var trash=[],groups=0,bytes=0,byKind={},kept=0;
   Object.keys(by).forEach(function(k){var g=by[k];if(g.length<2)return;groups++;kept++;
     var keep=g.filter(function(f){return keepIds[f.id]})[0];
-    if(!keep)keep=g.slice().sort(function(a,b){return a.created<b.created?-1:a.created>b.created?1:(a.id<b.id?-1:1)})[0];
+    if(!keep)keep=g.slice().sort(function(a,b){var ca=copyName(a.name),cb=copyName(b.name);
+      return ca!==cb?ca-cb:a.created<b.created?-1:a.created>b.created?1:(a.id<b.id?-1:1)})[0];
     g.forEach(function(f){if(f.id===keep.id)return;
       var kind=kindOf(f.mime,f.name);trash.push({id:f.id,name:f.name,size:f.size,keep:keep.id,kind:kind});
       bytes+=f.size;var b=byKind[kind]=byKind[kind]||{n:0,bytes:0};b.n++;b.bytes+=f.size})});

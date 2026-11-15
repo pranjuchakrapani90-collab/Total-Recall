@@ -195,10 +195,15 @@ function wait(ms){return new Promise(function(ok){setTimeout(ok,ms)})}
    says, a file whose name and size Drive already has is never uploaded again. If Drive cannot be asked, the file is
    left for the next run instead of being uploaded blind. */
 async function inDrive(f){
-  var q="name = '"+f.name.replace(/\\/g,"\\\\").replace(/'/g,"\\'")+"' and trashed=false and 'me' in owners";
-  var r=await g(API+"/files?spaces=drive&pageSize=100&fields=files(id,size)&q="+encodeURIComponent(q));
+  var q="name = '"+f.name.replace(/\\/g,"\\\\").replace(/'/g,"\\'")+"' and 'me' in owners";
+  var r=await g(API+"/files?spaces=drive&pageSize=100&fields=files(id,size,trashed,appProperties)&q="+encodeURIComponent(q));
   if(!r.ok)throw await gerr(r,"Checking Drive");
-  return ((await r.json()).files||[]).some(function(x){return Number(x.size||0)===f.size})}
+  return ((await r.json()).files||[]).some(function(x){
+    if(Number(x.size||0)!==f.size)return false;
+    /* A copy the Vault's clean-up moved to Drive's bin counts as already in Drive. Without this, uploading the
+       phone folder again would bring every binned copy straight back and undo the clean-up. A file you binned
+       yourself carries no such mark, so it can still be uploaded again. */
+    return !x.trashed||!!(x.appProperties&&x.appProperties.posDup)})}
 /* Drive says "slow down" (rate limit) or the network hiccups: wait a little and try that file again instead of failing it */
 async function upload(f,parent){
   for(var n=0;;n++){
@@ -255,7 +260,7 @@ async function sync(list){
     var badOne=items.filter(function(it){return it.st==="bad"})[0];
     if(badOne)note("Some uploads failed: "+esc(badOne.msg),true);
     else if(!stop)note(up?"Uploaded <b>"+up+"</b> new file"+(up>1?"s":"")+" to Drive › File manager"+(skip?" · "+skip+" were already in Drive and skipped":"")+".":
-      "Nothing to upload — all <b>"+skip+"</b> picked files are already in your Drive (same name and size).",false);
+      "Nothing to upload — all <b>"+skip+"</b> picked files are already in your Drive (same name and size, including copies the Vault clean-up moved to the bin).",false);
   }catch(e){failNote(e)}
   running=false;sleep_();
   if(hist.length){var dt=(await kget(DAYS))||{};hist.forEach(function(x){var d=istDay(x.at),t=dt[d]=dt[d]||{n:0,s:0};t.n++;t.s+=x.s});await kset(DAYS,dt);

@@ -8,6 +8,8 @@ const files=[
   ['a3','bill (1).pdf','application/pdf','2026-10-01','2026-11-01',100,'m1','f3'],
   ['b1','photo.jpg','image/jpeg','2026-10-02','2026-10-02',5000,'m2','f1'],
   ['b2','photo.jpg','image/jpeg','2026-10-02','2026-10-03',5000,'m2','f2'],
+  ['g1','scan (1).pdf','application/pdf','2026-10-07','2026-10-07',300,'m6','f1'],
+  ['g2','scan.pdf','application/pdf','2026-10-07','2026-10-08',300,'m6','f2'],
   ['c1','report.xlsx','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','2026-10-03','2026-10-03',200,'m3','f1'],
   ['d1','note','application/vnd.google-apps.document','2026-10-04','2026-10-04',0,'','f1'],
   ['d2','note copy','application/vnd.google-apps.document','2026-10-04','2026-10-04',0,'','f2'],
@@ -37,21 +39,22 @@ require('../vault-dupes.js');const D=window.PosDupes;
 (async()=>{
   const p=await D.plan();
   const ids=p.trash.map(t=>t.id).sort().join(',');
-  ok(ids==='a1,a2,b1'||ids==='a1,a2,b2','only true copies are listed: '+ids);
+  ok(ids==='a1,a2,b2,g1','only true copies are listed: '+ids);
   ok(!p.trash.some(t=>/^(c1|d1|d2|e1|e2|f1x|f2x)$/.test(t.id)),'single files, Google Docs, empty files and same-md5-different-size are left alone');
   ok(p.trash.filter(t=>/^a/.test(t.id)).every(t=>t.keep==='a3'),'the copy the vault links to is the one kept');
   ok(p.trash.filter(t=>/^b/.test(t.id))[0].keep==='b1','with no vault link, the oldest-created copy is kept');
-  ok(p.kept===2&&p.groups===2,'2 groups, one copy of each kept');
-  ok(p.bytes===5200,'space to free counted: '+p.bytes);
+  ok(p.kept===3&&p.groups===3,'3 groups, one copy of each kept');
+  ok(p.trash.filter(t=>/^g/.test(t.id))[0].id==='g1','the plain name is kept over the "(1)" copy, so the phone still matches it');
+  ok(p.bytes===5500,'space to free counted: '+p.bytes);
   ok(p.trash[0].size>=p.trash[1].size,'biggest first');
   const r1=await D.run({docsOnly:true});
-  ok(r1.moved===2&&r1.bytes===200,'"only documents" moved the 2 pdf copies, left the photo: '+JSON.stringify(r1));
+  ok(r1.moved===3&&r1.bytes===500,'"only documents" moved the pdf copies, left the photo: '+JSON.stringify(r1));
   ok(drive.a1.trashed&&drive.a2.trashed&&!drive.a3.trashed&&!drive.b1.trashed,'the right files are in the bin');
   ok(drive.a1.props.posDup==='a3','each one is marked with the copy that was kept');
   await D.plan();failOnce='b2';
   const r2=await D.run({});
   ok(r2.failed===1&&r2.moved===0&&r2.errors.length===1,'a one-off server error is reported, not hidden: '+JSON.stringify({moved:r2.moved,failed:r2.failed,errors:r2.errors}));
-  const n=await D.count();ok(n===2,'the bin count finds exactly what this moved: '+n);
+  const n=await D.count();ok(n===3,'the bin count finds exactly what this moved: '+n);
   const u=await D.undo({});
   ok(u.restored===n&&!drive.a1.trashed&&!drive.a1.props.posDup,'restore puts them back and clears the mark');
   await D.plan();authFail=true;let threw=null;try{await D.run({})}catch(e){threw=e}
