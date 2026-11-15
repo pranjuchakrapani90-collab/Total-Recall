@@ -1,4 +1,5 @@
-/* Guitar Studio · the 45-minute cycle: 15 min Melodic Lead → 15 min Fingerstyle Solo → 15 min Soloing Course.
+/* Guitar Studio · the 45-minute cycle: 15 min Melodic Lead → 15 min Soloing Course → 15 min Fingerstyle Solo.
+   (Order from 15 Nov 2026: the two plectrum sections come first, then fingerstyle last, so the pick is put down once.)
    (The Soloing Course joined on 20 Oct 2026; days before that count Melodic Lead and Fingerstyle only.)
    (Lead Course is on hold since 18 Oct 2026: to bring it back, uncomment its line in PLAN and set its minutes.)
    A cycle is not a day: it stays open across days until every section has had its minutes,
@@ -11,8 +12,8 @@
 const PLAN=[
   {k:"ml",n:"Melodic Lead",ico:"🎸",href:"guitar.html",min:15,col:"#4f46e5"},
   // {k:"lc",n:"Lead Course",ico:"⚡",href:"lead.html",min:10,col:"#0f766e"}, // on hold
-  {k:"fs",n:"Fingerstyle Solo",ico:"🎶",href:"fingerstyle.html",min:15,col:"#7c3aed"},
-  {k:"sc",n:"Soloing Course",ico:"✍️",href:"solo.html",min:15,col:"#c2410c",from:"2026-10-20"}];
+  {k:"sc",n:"Soloing Course",ico:"✍️",href:"solo.html",min:15,col:"#c2410c",from:"2026-10-20"},
+  {k:"fs",n:"Fingerstyle Solo",ico:"🎶",href:"fingerstyle.html",min:15,col:"#7c3aed"}];
 const act=k=>PLAN.filter(p=>!p.from||k>=p.from); // the sections in the plan on day k
 const START="2026-10-18"; // cycles count from the day the 15 + 15 plan started
 const get=k=>{try{return JSON.parse(localStorage.getItem(k)||"null");}catch(e){return null;}};

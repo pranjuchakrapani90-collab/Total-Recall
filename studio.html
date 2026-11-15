@@ -198,7 +198,7 @@ details.more>section+section{margin-top:18px}
     <p class="advice" id="advice" hidden></p>
   </section>
 
-  <nav class="apps" aria-label="Sections"><a class="app" href="guitar.html"><i><svg viewBox="0 0 24 24"><path d="M9 18V5l11-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/></svg></i><span>Melodic Lead</span></a><a class="app" href="fingerstyle.html"><i><svg viewBox="0 0 24 24"><path d="M5 3v18M9.7 3v18M14.3 3v18M19 3v18"/><path d="M3.5 13.5c3 2 14 2 17 0"/></svg></i><span>Fingerstyle</span></a><a class="app" href="solo.html"><i><svg viewBox="0 0 24 24"><path d="M3 16c2.5 0 2.5-6 5-6s2.5 8 5 8 2.5-12 5-12c1.5 0 1.8 2 3 3"/></svg></i><span>Soloing</span></a><a class="app" href="drills.html"><i><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r=".8"/></svg></i><span>Drills</span></a></nav>
+  <nav class="apps" aria-label="Sections"><a class="app" href="guitar.html"><i><svg viewBox="0 0 24 24"><path d="M9 18V5l11-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/></svg></i><span>Melodic Lead</span></a><a class="app" href="solo.html"><i><svg viewBox="0 0 24 24"><path d="M3 16c2.5 0 2.5-6 5-6s2.5 8 5 8 2.5-12 5-12c1.5 0 1.8 2 3 3"/></svg></i><span>Soloing</span></a><a class="app" href="fingerstyle.html"><i><svg viewBox="0 0 24 24"><path d="M5 3v18M9.7 3v18M14.3 3v18M19 3v18"/><path d="M3.5 13.5c3 2 14 2 17 0"/></svg></i><span>Fingerstyle</span></a><a class="app" href="drills.html"><i><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r=".8"/></svg></i><span>Drills</span></a></nav>
 
   <details class="more" id="more"><summary>Practice notes</summary>
   <section class="panel" aria-label="Practice notes">
@@ -207,7 +207,7 @@ details.more>section+section{margin-top:18px}
       <label>What went well<textarea id="nGood" rows="2" placeholder="e.g. pattern 7 clean at 45 bpm in shape C"></textarea></label>
       <label>Fix next time<textarea id="nFix" rows="2" placeholder="e.g. pick stroke drifts on string crossings in shape A"></textarea></label>
     </div>
-    <div class="nrow"><select id="nSec" aria-label="Section"><option value="">General</option><option value="ml">Melodic Lead</option><option value="fs">Fingerstyle Solo</option><option value="sc">Soloing Course</option><option value="dr">Daily Drills</option></select>
+    <div class="nrow"><select id="nSec" aria-label="Section"><option value="">General</option><option value="ml">Melodic Lead</option><option value="sc">Soloing Course</option><option value="fs">Fingerstyle Solo</option><option value="dr">Daily Drills</option></select>
       <button class="pri" id="nSave" type="button" disabled>Save note</button><span id="nMsg" style="font-size:13px;color:var(--muted)"></span></div>
     <ul class="nlist" id="nList"></ul>
     <button class="linkb" id="nMore" type="button" hidden></button>
@@ -215,7 +215,7 @@ details.more>section+section{margin-top:18px}
   </details>
 </main>
 
-<script src="plan.js?v=20261101"></script>
+<script src="plan.js?v=20261115"></script>
 <script>
 "use strict";
 const NUL=document.createElement("div"),$=id=>document.getElementById(id)||NUL;
@@ -304,7 +304,7 @@ function months(M,goal){
 addEventListener("resize",()=>{const b=$("months");b.scrollLeft=(b.children.length-1-monBack)*b.clientWidth;});
 
 /* stacked columns, one per bucket; a top data-end rounded at 4px, 2px gaps between segments */
-const ORD=["ml","fs","sc","lc","dr"];
+const ORD=["ml","sc","fs","lc","dr"];
 function topRound(x,y,w,h,r){r=Math.min(r,h,w/2);return `M${x},${y+h}V${y+r}Q${x},${y} ${x+r},${y}H${x+w-r}Q${x+w},${y} ${x+w},${y+r}V${y+h}Z`;}
 function stackChart(el,tipEl,B,goalLine,dflt){
   /* B: [{lab,full,today,parts:{ml:sec..}}] */
@@ -357,7 +357,7 @@ function insights(M,goal){
    stackChart($("weeks8"),$("wkTip"),B,best>=goal*7*60*.4?goal*7:0,`best week ${Math.round(best/60)} min · goal ${goal*7}`);}
 
   /* split of the last 30 days */
-  const S={ml:0,fs:0,sc:0,lc:0,dr:0};for(let i=0;i<30;i++){const x=new Date();x.setDate(x.getDate()-i);Object.entries(M[dkey(x)]||{}).forEach(([k,v])=>{S[k]=(S[k]||0)+v;});}
+  const S={ml:0,sc:0,fs:0,lc:0,dr:0};for(let i=0;i<30;i++){const x=new Date();x.setDate(x.getDate()-i);Object.entries(M[dkey(x)]||{}).forEach(([k,v])=>{S[k]=(S[k]||0)+v;});}
   const T=Object.values(S).reduce((a,b)=>a+b,0);
   const keys=Object.keys(S).filter(k=>S[k]>0);
   $("sbar").innerHTML=T?keys.map(k=>`<i style="width:${S[k]/T*100}%;background:${COL[k]}" title="${NAME[k]}"></i>`).join(""):"";
@@ -365,7 +365,7 @@ function insights(M,goal){
 
   /* one piece of honest advice from the numbers */
   let a="";
-  const core=["ml","fs","sc"].map(k=>({k,v:S[k]||0}));const lo=core.slice().sort((x,y)=>x.v-y.v)[0],hi=core.slice().sort((x,y)=>y.v-x.v)[0];
+  const core=["ml","sc","fs"].map(k=>({k,v:S[k]||0}));const lo=core.slice().sort((x,y)=>x.v-y.v)[0],hi=core.slice().sort((x,y)=>y.v-x.v)[0];
   if(T<60)a="";
   else if(hi.v>0&&lo.v<hi.v*.5)a=`${NAME[lo.k]} has had ${Math.round(lo.v/60)} min in 30 days against ${Math.round(hi.v/60)} for ${NAME[hi.k]}. Start your next sitting there so the cycle stays balanced.`;
   else if(!S.dr)a="No drills in the last 30 days. Two minutes of Fretboard Notes before a section makes the CAGED shapes easier to name.";
