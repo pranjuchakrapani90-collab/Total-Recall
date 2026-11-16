@@ -53,14 +53,32 @@ function balance(acct,T){T=T||entries();
   const cps=list("bal").filter(b=>b.acct===acct&&ok(b.amt)).sort((a,b)=>ord(a)<ord(b)?-1:1),cp=cps[cps.length-1]||null;
   const after=T.filter(x=>!cp||counts(x,cp));
   return {acct,cp,val:(cp?cp.amt:0)+after.reduce((a,x)=>a+effect(x,acct),0),set:!!cp||T.some(x=>effect(x,acct))};}
-/* the APDCL ledger at Samaguri (Bilasipara's closed imprest stays out): received − spent */
-function apdcl(T){T=(T||entries()).filter(x=>isApdcl(x)&&x.acct!=="imprest-bil"&&x.kind!=="move");
-  const inn=T.filter(x=>x.kind==="in").reduce((a,x)=>a+x.amt,0),out=T.filter(x=>x.kind==="out").reduce((a,x)=>a+x.amt,0);
-  return {T,received:inn,spent:out,val:inn-out,set:T.length>0};}
+/* ---------- APDCL postings ----------
+   The APDCL ledger is kept per posting. Samaguri ESD ran until he joined Bilasipara again (Nov 2026); from that day every
+   APDCL entry is Bilasipara's. Samaguri is closed and its balance (usually money spent from his own pocket, due from APDCL)
+   is carried over as Bilasipara's opening balance, so Money now doesn't change. The changeover day is a setting
+   (settings.bilFrom) he can move. An entry's posting comes from its date, or x.office if one was set by hand.
+   The FINANCE sheet's "imprest-bil" account is his first Bilasipara posting (2020–22), closed and kept apart. */
+const BIL_FROM="2026-11-17";
+function bilFrom(){const s=(I.load(KEY).settings)||{};return /^\d{4}-\d{2}-\d{2}$/.test(s.bilFrom||"")?s.bilFrom:BIL_FROM;}
+function setBilFrom(d){if(/^\d{4}-\d{2}-\d{2}$/.test(d||""))I.setSettings(KEY,{bilFrom:d});}
+/* posting of an APDCL entry: "bil" (Bilasipara now), "sam" (Samaguri, closed) or "old" (Bilasipara 2020–22, closed) */
+function officeOf(x,from){if(x.acct==="imprest-bil")return "old";if(x.acct==="imprest")return "sam";
+  if(x.office==="sam"||x.office==="bil")return x.office;return (x.date||"")>=(from||bilFrom())?"bil":"sam";}
+const OFFICES={bil:"Bilasipara",sam:"Samaguri",old:"Bilasipara 2020–22"};
+function ledger(T,o){const L=T.filter(x=>x.kind!=="move"),inn=L.filter(x=>x.kind==="in").reduce((a,x)=>a+x.amt,0),out=L.filter(x=>x.kind==="out").reduce((a,x)=>a+x.amt,0);
+  return {T:L,received:inn,spent:out,val:inn-out,set:L.length>0,office:o};}
+/* one posting's ledger; the current one (Bilasipara) opens with Samaguri's closing balance */
+function apdclOf(o,T){T=(T||entries()).filter(isApdcl);const from=bilFrom(),A=T.filter(x=>officeOf(x,from)===o);
+  const r=ledger(A,o);r.from=from;
+  if(o==="bil"){const sam=ledger(T.filter(x=>officeOf(x,from)==="sam"),"sam");r.open=sam.val;r.own=r.val;r.val=r.open+r.val;r.set=r.set||sam.set;}
+  return r;}
+/* the APDCL ledger that counts in Money now: Bilasipara, with Samaguri's balance brought forward */
+function apdcl(T){return apdclOf("bil",T);}
 /* Money now = wallet + bank; of which APDCL = the APDCL ledger's balance (negative: spent from your own money, due from APDCL) */
 function summary(){const T=entries(),b=balance("bank",T),w=balance("wallet",T),ap=apdcl(T),total=b.val+w.val;
   return {T,bank:b,wallet:w,apdcl:ap,total,personal:total-ap.val,any:b.set||w.set};}
-function names(){const s=(I.load(KEY).settings)||{};return {bank:s.bankName||"Bank",wallet:s.walletName||"Wallet",imprest:"Imprest (sheet)","imprest-bil":"Bilasipara imprest",old:"FINANCE sheet"};}
+function names(){const s=(I.load(KEY).settings)||{};return {bank:s.bankName||"Bank",wallet:s.walletName||"Wallet",imprest:"Samaguri imprest (sheet)","imprest-bil":"Bilasipara 2020–22 imprest",old:"FINANCE sheet"};}
 function archive(){return list("arch").filter(a=>a.rows).sort((a,b)=>(a.n||0)-(b.n||0));}
 
 /* ---------- YONO statement ---------- */
@@ -192,5 +210,5 @@ function linkKite(){const s=I.load(KEY),e=I.load("etf");let n=0;
       if(ch){delete r.t;I.upsert(KEY,"tx",id,r);n++;}}
     else if(x.kiteId){I.remove("etf","cap",x.kiteId);const r={...x,at:x.at||x.t};delete r.kiteId;delete r.t;I.upsert(KEY,"tx",id,r);n++;}});
   return n;}
-window.Money={isKite,linkKite,isApdcl,apdcl,OWN,IMP,IMP_CATS,IMP_IN_CATS,archive,impCat,migrateApdcl,counts,KEY,ACCTS,OUT_CATS,IN_CATS,NOT_SPEND,now,ord,isSpend,list,entries,effect,balance,summary,names,readStatement,payee,draft,importRows,approve,discard,handTwin,addWa};
+window.Money={apdclOf,officeOf,OFFICES,bilFrom,setBilFrom,isKite,linkKite,isApdcl,apdcl,OWN,IMP,IMP_CATS,IMP_IN_CATS,archive,impCat,migrateApdcl,counts,KEY,ACCTS,OUT_CATS,IN_CATS,NOT_SPEND,now,ord,isSpend,list,entries,effect,balance,summary,names,readStatement,payee,draft,importRows,approve,discard,handTwin,addWa};
 })();

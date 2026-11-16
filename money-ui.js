@@ -8,8 +8,9 @@ const AP=document.body.dataset.mode==="apdcl";/* true on the APDCL Expenditure p
 const KINDS=[["out","Spent"],["in","Received"],["inv","Invest"],["atm","ATM ↓"],["dep","Deposit ↑"]];
 const BOOKS=[["personal","Personal"],["apdcl","APDCL"]];
 let showDays=10,deferredInstall=null,view=AP?"apdcl":"all",query="";
-/* which entries a list shows: all, personal, apdcl (Samaguri) or bil (Bilasipara imprest, closed) */
-const inView=x=>view==="all"?true:view==="personal"?!M.isApdcl(x):view==="apdcl"?M.isApdcl(x)&&x.acct!=="imprest-bil":x.acct==="imprest-bil";
+/* which entries a list shows: all, personal, apdcl (Bilasipara now), sam (Samaguri, closed) or bil (Bilasipara 2020–22, closed) */
+const inView=x=>view==="all"?true:view==="personal"?!M.isApdcl(x):!M.isApdcl(x)?false:
+  view==="apdcl"?(AP?M.officeOf(x)==="bil":M.officeOf(x)!=="old"):view==="sam"?M.officeOf(x)==="sam":M.officeOf(x)==="old";
 const matches=x=>{if(!query)return true;const q=query.toLowerCase();return [x.note,x.cat,x.date,String(x.amt),x.raw].some(v=>v&&String(v).toLowerCase().includes(q));};
 const kindOf=x=>x.kind==="move"?(x.to==="wallet"?"atm":"dep"):x.kind==="out"&&x.cat==="Investment"?"inv":x.kind;
 const fromKind=(k,acct)=>k==="atm"?{kind:"move",acct:"bank",to:"wallet"}:k==="dep"?{kind:"move",acct:"wallet",to:"bank"}:{kind:k==="inv"?"out":k,acct,to:undefined};
@@ -48,10 +49,10 @@ function todayCard(m){return `<section class="card"><div class="today">
   ${m.aOut||m.aIn?`<a class="aprow" href="apdcl.html"><span><i class="ad"></i>APDCL this month</span><span><b>−${inr(m.aOut)}</b> · <b class="up">+${inr(m.aIn)}</b> ›</span></a>`:""}</section>`;}
 /* APDCL Expenditure page: the ledger's balance and this month */
 function apHero(m){const a=m.apdcl;
-  return `<section class="card hero aph"><div class="when">APDCL balance</div><div class="tot ${a.val<0?"dn":""}">${inr(a.val)}</div>
-   <p class="small muted" style="margin:0 0 10px">${apTxt(a.val)}. Received ${inr(a.received)} − spent ${inr(a.spent)} since Jan 2022. It's part of your Money now (${inr(m.total)}).</p>
+  return `<section class="card hero aph"><div class="when">APDCL balance · Bilasipara ESD</div><div class="tot ${a.val<0?"dn":""}">${inr(a.val)}</div>
+   <p class="small muted" style="margin:0 0 10px">${apTxt(a.val)}. Brought forward from Samaguri <b class="${a.open<0?"dn":""}">${inr(a.open)}</b> + received ${inr(a.received)} − spent ${inr(a.spent)} at Bilasipara since ${I.dshort(a.from)}. It's part of your Money now (${inr(m.total)}).</p>
    <div class="today"><div><span>Spent today</span><b class="${m.aToday?"dn":""}">${inr(m.aToday)}</b></div><div><span>This month</span><b>${inr(m.aOut)}</b></div><div><span>Received</span><b class="${m.aIn?"up":""}">${inr(m.aIn)}</b><small>this month</small></div></div></section>`;}
-function monthsCard(m){const A=m.apdcl.T,t=new Date(m.today+"T00:00:00"),rows=[];
+function monthsCard(m){const A=m.T.filter(x=>M.isApdcl(x)&&M.officeOf(x)!=="old"&&x.kind!=="move"),t=new Date(m.today+"T00:00:00"),rows=[];
   for(let i=0;i<12;i++){const d=new Date(t.getFullYear(),t.getMonth()-i,1),k=isoOf(d).slice(0,7),L=A.filter(x=>x.date.slice(0,7)===k);
     rows.push([d.toLocaleDateString("en-IN",{month:"short",year:"2-digit"}),sumOf(L.filter(x=>x.kind==="in")),sumOf(L.filter(x=>x.kind==="out"))]);}
   if(!rows.some(r=>r[1]||r[2]))return "";
@@ -67,14 +68,28 @@ function entRow(x,N){const ap=M.isApdcl(x),acc=x.kind==="move"?(x.to==="wallet"?
   return `<button type="button" class="ent" data-tx="${esc(x.id)}"><span style="min-width:0"><div class="n">${ap&&!AP?`<em class="apt">APDCL</em>`:""}${esc(x.note||x.cat||(x.kind==="move"?"Transfer":"—"))}</div><div class="s">${esc(sub)}</div></span><span class="a ${cls}">${sign}${inr(x.amt,x.amt%1?2:0)}</span></button>`;}
 function listCard(m){const any=AP?m.T.some(M.isApdcl):m.T.length;
   if(!any)return `<section class="card empty"><b>No entries yet</b><p class="small muted">${AP?"Log APDCL money with + APDCL, or approve WhatsApp notes as APDCL in the Money Book.":"Set your wallet and bank balances above, then log cash spends with + Log and bring in online ones with a YONO statement file."}</p></section>`;
-  const V=AP?[["apdcl","Samaguri"],["bil","Bilasipara (closed)"]]:[["all","All"],["personal","Personal"],["apdcl","APDCL"]];
+  const V=AP?[["apdcl","Bilasipara"],["sam","Samaguri (closed)"],["bil","Bilasipara 2020–22"]]:[["all","All"],["personal","Personal"],["apdcl","APDCL"]];
   return `<section class="card" id="entCard"><h2>Entries <small id="entN"></small></h2>
    <div class="seg" id="sV">${V.map(([v,l])=>`<button type="button" data-v="${v}" class="${v===view?"on":""}">${l}</button>`).join("")}</div>
    <input id="q" class="srch" type="search" placeholder="Search: remark, amount, 2022-05…" value="${esc(query)}" autocomplete="off">
-   <div id="entList"></div></section>`;}
-function drawList(){const el=$("entList");if(!el)return;const N=M.names(),T=M.entries().filter(x=>inView(x)&&matches(x));
+   <div id="entHead"></div><div id="entList"></div></section>`;}
+/* a closed posting's account, shown above its entries */
+function postHead(){const el=$("entHead");if(!el)return;
+  if(view==="sam"){const s=M.apdclOf("sam"),f=M.bilFrom();
+    el.innerHTML=`<div class="closed"><p class="small" style="margin:8px 0 2px"><b>Samaguri ESD · closed</b> on ${I.dshort(f)} (the day before is its last day).</p>
+     <p class="small muted" style="margin:0 0 6px">Received ${inr(s.received)} − spent ${inr(s.spent)} = <b class="${s.val<0?"dn":""}">${inr(s.val)}</b>, carried over to Bilasipara as its opening balance. APDCL entries dated from ${I.dshort(f)} go to Bilasipara.</p>
+     <button type="button" class="lnk" id="bilFrom">Change the changeover day</button></div>`;
+    $("bilFrom").onclick=changeover;}
+  else if(view==="bil"){const s=M.apdclOf("old");
+    el.innerHTML=`<p class="small muted" style="margin:8px 0 6px">First Bilasipara posting (2020–22), from the FINANCE sheet. Closed: received ${inr(s.received)} − spent ${inr(s.spent)} = ${inr(s.val)}, kept apart.</p>`;}
+  else el.innerHTML="";}
+function changeover(){const d=sheet(`<h3>Bilasipara from</h3><p class="small muted">APDCL entries dated on or after this day are Bilasipara's; earlier ones stay with Samaguri.</p>
+   <input type="date" id="cvD" value="${M.bilFrom()}"><div class="fbtns"><button type="button" class="ghost" id="cvX">Cancel</button><button type="button" id="cvOk">Save</button></div>`);
+  $("cvX").onclick=()=>{d.close();d.remove();};
+  $("cvOk").onclick=()=>{const v=$("cvD").value;if(!v)return;M.setBilFrom(v);d.close();d.remove();draw();toast("Bilasipara from "+I.dshort(v));};d.showModal();}
+function drawList(){const el=$("entList");if(!el)return;postHead();const N=M.names(),T=M.entries().filter(x=>inView(x)&&matches(x));
   const dayHead=L=>{const p=sumOf(L.filter(M.isSpend)),a=sumOf(L.filter(x=>M.isApdcl(x)&&x.kind==="out"));
-    return view==="apdcl"||view==="bil"?(a?"spent "+inr(a):""):view==="personal"?(p?"spent "+inr(p):""):[p?"spent "+inr(p):"",a?"APDCL "+inr(a):""].filter(Boolean).join(" · ");};
+    return view==="apdcl"||view==="bil"||view==="sam"?(a?"spent "+inr(a):""):view==="personal"?(p?"spent "+inr(p):""):[p?"spent "+inr(p):"",a?"APDCL "+inr(a):""].filter(Boolean).join(" · ");};
   const byDay={};T.forEach(x=>(byDay[x.date]=byDay[x.date]||[]).push(x));const ds=Object.keys(byDay).sort().reverse(),shown=query?ds.slice(0,Math.max(showDays,60)):ds.slice(0,showDays);
   $("entN").textContent=T.length+(query?" found":"");
   el.innerHTML=!T.length?`<p class="small muted" style="margin:12px 0 4px">Nothing here${query?" for “"+esc(query)+"”":""}.</p>`:shown.map(d=>{const L=byDay[d].slice().reverse();
