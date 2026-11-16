@@ -187,13 +187,62 @@ function balForm(acct){const N=M.names(),b=M.balance(acct),n=M.now(),L=movedSinc
       fields:[{k:"id",label:"Entry",type:"select",value:L[0].id,options:L.slice(0,40).map(x=>[x.id,`${I.dshort(x.date)} ${x.time||""} · ${M.effect(x,acct)>0?"+":"−"}${inr(Math.abs(M.effect(x,acct)))} · ${x.note||x.cat||"—"}`])}],
       onSubmit:v=>{const x=I.load(KEY).tx[v.id];if(x)setTimeout(()=>entry({id:v.id,...x}),0);}}),0);}}]:null,
     fields:[{k:"amt",label:acct==="wallet"?"Cash in hand (₹)":"Balance (₹)",type:"number",value:b.set?r2(b.val):""},
-      ...(b.set?[{k:"gap",label:"If it differs from the book",type:"select",value:"fix",options:[["fix","Just correct the balance"],["log","Log the difference as unaccounted"]]}]:[]),
+      ...(b.set&&acct!=="wallet"?[{k:"gap",label:"If it differs from the book",type:"select",value:"fix",options:[["fix","Just correct the balance"],["log","Log the difference as unaccounted"]]}]:[]),
       {k:"name",label:"Name shown",value:N[acct],req:false,hint:acct==="bank"?"e.g. SBI":"e.g. Wallet"},
       {k:"date",label:"As on",type:"date",value:n.date}],ok:"Save",
     onSubmit:v=>{if(!ok(v.amt))return "Enter the amount.";const t=v.date===n.date?n.time:"23:59";
+      if(v.name&&v.name!==N[acct])I.setSettings(KEY,{[acct+"Name"]:v.name.trim()});
+      /* cash counted differs from the book: ask where the gap went (or came from) before saving the count */
+      if(acct==="wallet"&&b.set&&Math.abs(v.amt-b.val)>=0.5){setTimeout(()=>breakup(b.val,r2(v.amt),v.date,t),0);return;}
       if(b.set&&v.gap==="log"&&Math.abs(v.amt-b.val)>=0.5){const g=r2(b.val-v.amt);I.upsert(KEY,"tx",null,{kind:g>0?"out":"in",acct,amt:Math.abs(g),cat:"Other",note:"Unaccounted",date:v.date,time:t,src:"hand"});}
-      I.upsert(KEY,"bal",null,{acct,amt:r2(v.amt),date:v.date,time:t});
-      if(v.name&&v.name!==N[acct])I.setSettings(KEY,{[acct+"Name"]:v.name.trim()});draw();}});}
+      I.upsert(KEY,"bal",null,{acct,amt:r2(v.amt),date:v.date,time:t});draw();}});}
+
+/* ---------- cash count break-up ----------
+   The wallet book says `book`, he counted `real`. Less cash: where did the gap go (spends)? More cash: where did it
+   come from (received)? He lists lines (amount, category, remark, Personal/APDCL); whatever isn't listed is logged as
+   one "Unaccounted" entry, so the count always matches. The lines are saved before the count, so they sit inside it
+   (they don't move the counted figure again). */
+function breakup(book,real,date,time){const N=M.names(),less=real<book,gap=r2(Math.abs(book-real)),k=less?"out":"in",lines=[];
+  let bk=AP?"apdcl":"personal",cat="";
+  const left=()=>r2(gap-lines.reduce((a,x)=>a+x.amt,0));
+  const d=sheet(`<h3>${less?`Where did ${inr(gap,gap%1?2:0)} go?`:`Where did the extra ${inr(gap,gap%1?2:0)} come from?`}</h3>
+    <p class="small muted">${esc(N.wallet)}: book ${inr(book,book%1?2:0)} → counted ${inr(real,real%1?2:0)}. List what you remember; anything left over is logged as Unaccounted.</p>
+    <div id="bL"></div>
+    <div class="seg bk" id="bB">${BOOKS.map(([v,l])=>`<button type="button" data-v="${v}" class="${v===bk?"on":""}">${l}</button>`).join("")}</div>
+    <label class="amt"><span>₹</span><input id="bAmt" inputmode="decimal" autocomplete="off" placeholder="0"></label>
+    <div class="chips" id="bCat"></div>
+    <label class="fld"><span>Remark</span><input id="bNote" list="bNotes" autocomplete="off"><datalist id="bNotes">${recentNotes().map(x=>`<option value="${esc(x)}">`).join("")}</datalist></label>
+    <p class="ferr" hidden></p>
+    <div class="fbtns"><button type="button" class="ghost" id="bAdd">+ Add another</button><span></span><button type="button" class="ghost" id="bX">Cancel</button><button type="submit" id="bOk">Save</button></div>`);
+  const err=d.querySelector(".ferr"),close=()=>{d.close();d.remove();},amtIn=$("bAmt"),noteIn=$("bNote");
+  const fail=m=>{err.hidden=false;err.textContent=m;return false;};
+  const showCats=()=>{$("bCat").innerHTML=chipsHtml(k,cat,bk);$("bCat").querySelectorAll("button").forEach(b=>b.onclick=e=>{e.preventDefault();cat=cat===b.dataset.c?"":b.dataset.c;showCats();});
+    noteIn.placeholder=bk==="apdcl"?(less?"e.g. Labour · Bichitra, Tea for crew":"e.g. Imprest from AGM"):less?"e.g. Mess lunch, Sethia Brothers":"e.g. Refund from Monuj";};
+  const drawLines=()=>{const l=left();
+    $("bL").innerHTML=(lines.length?`<div class="bl">${lines.map((x,i)=>`<div class="ent"><span style="min-width:0"><div class="n">${x.book==="apdcl"?`<em class="apt">APDCL</em>`:""}${esc(x.note||x.cat)}</div><div class="s">${esc(x.note?x.cat:"")}</div></span><span class="a ${k==="in"?"in":""}">${k==="in"?"+":"−"}${inr(x.amt,x.amt%1?2:0)} <button type="button" class="lnk" data-rm="${i}" aria-label="Remove">✕</button></span></div>`).join("")}</div>`:"")+
+      `<p class="small" style="margin:6px 0 10px">${l>0.004?`<b>${inr(l,l%1?2:0)}</b> not listed yet — ${lines.length?"add more, or Save to log it as Unaccounted":"Save now to log it all as Unaccounted"}.`:`<b class="up">All ${inr(gap,gap%1?2:0)} accounted for.</b>`}</p>`;
+    $("bL").querySelectorAll("[data-rm]").forEach(b=>b.onclick=e=>{e.preventDefault();lines.splice(+b.dataset.rm,1);drawLines();});
+    amtIn.value=l>0.004?l:"";};
+  /* the line being typed: added if it has an amount; blank is fine (nothing to add) */
+  const take=()=>{err.hidden=true;const raw=String(amtIn.value).replace(/[,₹\s]/g,"");if(!raw)return true;const a=parseFloat(raw),note=noteIn.value.trim();
+    if(!(a>0))return fail("Enter the amount.");
+    if(a-left()>0.004)return fail(`That's more than the ${inr(left(),left()%1?2:0)} left to explain.`);
+    if(!note&&!cat)return fail("Pick a category or add a remark for this line.");
+    lines.push({amt:r2(a),cat:cat||"Other",note,book:bk});cat="";noteIn.value="";showCats();drawLines();return true;};
+  segWire(d,"#bB",v=>{if(v!==bk)cat="";bk=v;showCats();});showCats();drawLines();
+  $("bAdd").onclick=e=>{e.preventDefault();if(take()&&left()>0.004)setTimeout(()=>amtIn.select(),30);};
+  $("bX").onclick=close;
+  d.querySelector("form").onsubmit=e=>{e.preventDefault();
+    /* a line typed but not added yet is added now; the untouched leftover amount with nothing picked is just Unaccounted */
+    const typed=String(amtIn.value).trim(),untouched=!cat&&!noteIn.value.trim()&&Math.abs(parseFloat(typed)-left())<0.005;
+    if(typed&&!untouched&&!take())return;
+    const now=Date.now(),l=left();let i=0;
+    lines.forEach(x=>I.upsert(KEY,"tx",null,{kind:k,acct:"wallet",amt:x.amt,cat:x.cat,note:x.note,book:x.book,date,time,src:"hand",at:now+(i++)}));
+    if(l>0.004)I.upsert(KEY,"tx",null,{kind:k,acct:"wallet",amt:l,cat:"Other",note:"Unaccounted",book:"personal",date,time,src:"hand",at:now+(i++)});
+    /* the count comes last, so every line above sits inside it */
+    const s=I.load(KEY),id=I.uid();s.bal[id]={acct:"wallet",amt:real,date,time,t:Math.max(Date.now(),now+i)};I.save(KEY,s);
+    close();draw();toast(`Cash ${inr(real,real%1?2:0)} · ${lines.length} line${lines.length===1?"":"s"}${l>0.004?` + ${inr(l,l%1?2:0)} unaccounted`:""}`);};
+  d.showModal();setTimeout(()=>amtIn.select(),60);}
 
 /* ---------- YONO statement ---------- */
 function loadXlsx(){return window.XLSX?Promise.resolve():new Promise((res,rej)=>{const s=document.createElement("script");s.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";s.onload=res;s.onerror=()=>rej(new Error("couldn't load the spreadsheet reader (are you online?)"));document.head.appendChild(s);});}
