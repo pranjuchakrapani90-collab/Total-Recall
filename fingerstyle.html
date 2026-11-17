@@ -2,7 +2,7 @@
 <html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="kvsync.js?v=20261105a"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Fingerstyle Solo · Guitar Studio</title>
 <script src="gsync.js?v=20261023"></script>
-<script src="fs-course.js?v=20261115"></script>
+<script src="fs-course.js?v=20261117"></script>
 <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="icon" href="icon-192.png" sizes="192x192"><link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>
 :root{
@@ -406,7 +406,7 @@ function draw(){if(!play)return;let hit=null;
   let b=(ctx.currentTime-play.t0)/spb()-play.ci;if(b>=0&&(st.set.loop||sel))b=b%play.E.total;
   const g=b>=0&&b<play.E.total?Math.floor((b+play.off)*play.sub+1e-6):null;
   if(play.L.chain&&b>=0){const bar=Math.floor((b+play.off)/play.E.meter+1e-6),R=play.L.rep,q=play.L.seq,ci=Math.floor(bar/R),
-      tgt=sel?0:passTgt(play.L),ps=tgt?` · play ${Math.min(play.cyc,tgt-1)*R+bar%R+1}/${tgt*R}`:"";
+      tgt=sel?0:passTgt(play.L),gp=play.L.goalPlays||tgt*R,ps=tgt?` · play ${Math.min(Math.min(play.cyc,tgt-1)*R+bar%R+1,gp)}/${gp}`:"";
     if(ci<q.length){const k=ci+"."+bar+"."+play.cyc;if(k!==play.ck){play.ck=k;const nx=q[ci+1]||q[0];
       document.getElementById("nbInfo").textContent=`${cname(q[ci])} ${bar%R+1}/${R}${q.length>1?` → ${cname(nx)}`:""}${ps}`;}}}
   if(g!==play.tg){play.tg=g;document.querySelectorAll(".col.tick").forEach(c=>c.classList.remove("tick"));if(g!=null){const c=document.querySelector(`.col[data-s="${g}"]`);if(c)c.classList.add("tick");}}
