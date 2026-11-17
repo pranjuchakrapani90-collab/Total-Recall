@@ -377,7 +377,7 @@ function stop(){if(!play)return;flush(true);scheduleSync();clearInterval(play.ti
   play=null;document.querySelectorAll(".col.on,.col.tick").forEach(c=>c.classList.remove("on","tick"));setBar();}
 const bt=b=>play.t0+(b+play.ci)*spb();
 const passTgt=L=>L&&L.goalPass||0; // how many unbroken passes this exercise asks for (0 = no target)
-function finMsg(n){const el=document.getElementById("nbInfo");if(el)el.textContent=`✓ ${n} passes, no break — mark it done`;}
+function finMsg(n){const el=document.getElementById("nbInfo");if(el)el.textContent=`✓ ${n} plays, no break — mark it done`;}
 function sched(){
   if(!play)return;const hz=ctx.currentTime+.15,E=play.E;
   for(;;){
@@ -388,7 +388,7 @@ function sched(){
         /* a warm-up round has a pass target: it loops whatever the Loop box says and stops itself on the last pass */
         const tgt=sel?0:passTgt(play.L),last=tgt&&play.cyc+1>=tgt;
         if(!last&&(st.set.loop||sel||tgt)){play.cyc++;play.i=0;climb();}
-        else{const p=play;if(last)p.fin=tgt;setTimeout(()=>{if(play===p){stop();if(p.fin)finMsg(p.fin);}},(tc-ctx.currentTime)*1000+400);play.cb=Infinity;}}
+        else{const p=play;if(last)p.fin=p.L.goalPlays||tgt;setTimeout(()=>{if(play===p){stop();if(p.fin)finMsg(p.fin);}},(tc-ctx.currentTime)*1000+400);play.cb=Infinity;}}
       continue;}
     const e=E.ev[play.i++];note(e,tn,e.d*spb()*1.4);play.vis.push([tn,e]);
   }
@@ -406,7 +406,7 @@ function draw(){if(!play)return;let hit=null;
   let b=(ctx.currentTime-play.t0)/spb()-play.ci;if(b>=0&&(st.set.loop||sel))b=b%play.E.total;
   const g=b>=0&&b<play.E.total?Math.floor((b+play.off)*play.sub+1e-6):null;
   if(play.L.chain&&b>=0){const bar=Math.floor((b+play.off)/play.E.meter+1e-6),R=play.L.rep,q=play.L.seq,ci=Math.floor(bar/R),
-      tgt=sel?0:passTgt(play.L),ps=tgt?` · pass ${Math.min(play.cyc+1,tgt)}/${tgt}`:"";
+      tgt=sel?0:passTgt(play.L),ps=tgt?` · play ${Math.min(play.cyc,tgt-1)*R+bar%R+1}/${tgt*R}`:"";
     if(ci<q.length){const k=ci+"."+bar+"."+play.cyc;if(k!==play.ck){play.ck=k;const nx=q[ci+1]||q[0];
       document.getElementById("nbInfo").textContent=`${cname(q[ci])} ${bar%R+1}/${R}${q.length>1?` → ${cname(nx)}`:""}${ps}`;}}}
   if(g!==play.tg){play.tg=g;document.querySelectorAll(".col.tick").forEach(c=>c.classList.remove("tick"));if(g!=null){const c=document.querySelector(`.col[data-s="${g}"]`);if(c)c.classList.add("tick");}}
@@ -490,8 +490,8 @@ function taskView(L){const Lv=LEVELS[L.lv],all=ALL.indexOf(lessonOf(L)),prev=ALL
 function howTo(L){const lo=L.tempo[0],hi=L.tempo[1];
   if(L.how)return `<details class="how" open><summary>How to practise this lesson</summary><ol>${L.how.map(x=>`<li>${x}</li>`).join("")}</ol></details>`;
   if(L.chain)return `<details class="how" open><summary>How to use the warm-up</summary><ol>
-    <li>A part comes one chord at a time. Round 1 is its first chord on its own, ${L.first} passes without a break. Each round after that has two blocks: the new chord alone ${L.spot} passes, then the chords learned so far chained. The chain's passes drop as it grows (36 at two chords, 7 at ten), so a round stays about 13 minutes — one sitting.</li>
-    <li>Press Play and leave it running. Each chord gets ${L.rep} bars of eighth notes, every string of the shape: thumb (p) on the bass strings from the lowest one the chord uses, i-m-a on the G, B and high e, up and back. The line under Play shows the chord, which of its ${L.rep} bars, what is next, and the pass count. <b>The player stops itself on the last pass</b> — that is the block finished.</li>
+    <li>A part comes one chord at a time. Every bar counts as one play of the chord, so ${L.rep} bars of Em = ${L.rep} plays. Round 1 is its first chord on its own, ${L.first} plays without a break. Each round after that has two blocks: the new chord alone ${L.spot} plays, then the chords learned so far chained. Each chord's plays in the chain drop as it grows (34 at two chords, 6 at ten), so a round is about 6½ minutes.</li>
+    <li>Press Play and leave it running. Each chord gets ${L.rep} bars of eighth notes, every string of the shape: thumb (p) on the bass strings from the lowest one the chord uses, i-m-a on the G, B and high e, up and back. The line under Play shows the chord, which of its ${L.rep} bars, what is next, and the play count. <b>The player stops itself on the last play</b> — that is the block finished.</li>
     <li>Choose your tempo with the slider or − / +. Slow enough that every change lands on beat 1 is the right speed; it never climbs on its own. A slower tempo makes the block longer than 13 minutes.</li>
     <li>Mark the block done only if you got through it with no break and every string ringing. If you had to stop, play it again. The next block, and then the next chord, unlock as you tick them.</li>
     <li>Once a part is finished, keep it as a plain warm-up: the <b>full chain</b> plays all three parts straight through, with no pass target.</li></ol></details>`;
@@ -549,7 +549,7 @@ function lessonView(L){
       <button type="button" data-bars="add">＋ Add next bar</button><button type="button" data-bars="next">Next bar only ▶</button><button type="button" data-bars="all"${sel?"":" disabled"}>All bars</button></div>
     <div class="tabscroll"><div class="tab${sel?" hassel":""}">${tabHTML(E)}</div></div>
     <div class="navf">${prev?`<button type="button" data-open="${prev.id}">◂ ${prev.id}</button>`:"<span></span>"}<button type="button" class="linkb" data-home="1">All levels</button>
-      ${exDone(L)?`<button type="button" data-undone="${L.id}">Mark as not done</button>`:`<button type="button" class="good big" data-done="${L.id}">${L.goalPass?`✓ ${L.goalPass} passes with no break`:L.chain?"✓ Clean changes all the way through":L.free?"✓ Every string rings clean":`✓ I can play it at ${L.tempo[1]} bpm`}</button>`}
+      ${exDone(L)?`<button type="button" data-undone="${L.id}">Mark as not done</button>`:`<button type="button" class="good big" data-done="${L.id}">${L.goalPass?`✓ ${L.goalPlays||L.goalPass} plays with no break`:L.chain?"✓ Clean changes all the way through":L.free?"✓ Every string rings clean":`✓ I can play it at ${L.tempo[1]} bpm`}</button>`}
       ${next?`<button type="button" data-open="${next.id}"${unlockedLv(next.lv)||next.lv===L.lv?"":" disabled"}>${next.id} ▸</button>`:""}</div></section>`;
 }
 function render(){
