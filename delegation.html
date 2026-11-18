@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="kvsync.js?v=20261105a"></script><script src="tasks-local.js?v=20261108a"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
+<html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="kvsync.js?v=20261105a"></script><script src="tasks-local.js?v=20261108a"></script><script src="transfer-bilasipara.js?v=20261118a"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
 <title>Delegation · Pranju OS</title>
 <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="icon" href="icon-192.png" sizes="192x192"><link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>
@@ -253,7 +253,8 @@ function shortKw(title){
   let k=w.filter(x=>!STOP.has(x.toUpperCase()));if(!k.length)k=w;
   const WORD=new Set("PAY NEW OLD GET SET PUT BUY FIX RUN CAR BOX DAY ALL ONE TWO OUT OFF END MAP BAG FEE TAX SEE ASK USE ADD CUT TOP LOW HIGH BIG RED DUE NOT YET SEND CALL".split(" "));
   return k.slice(0,3).map(x=>/\d/.test(x)||(x.length<=3&&x===x.toUpperCase()&&!WORD.has(x))?x:x.charAt(0).toUpperCase()+x.slice(1).toLowerCase()).join(" ");}
-function peopleSorted(){return Object.entries(D.people).map(([id,p])=>({id,...p})).sort((a,b)=>(b.u||0)-(a.u||0)||a.name.localeCompare(b.name));}
+/* staff retired on transfer (Samaguri → Bilasipara, 18 Nov 2026) stay hidden unless "Show done" is on */
+function peopleSorted(){return Object.entries(D.people).filter(([,p])=>!p.ret||D.prefs.showDone).map(([id,p])=>({id,...p})).sort((a,b)=>(b.u||0)-(a.u||0)||a.name.localeCompare(b.name));}
 function addPerson(name,g){name=String(name||"").trim();if(!name)return null;
   const ex=Object.entries(D.people).find(([,p])=>p.name.toLowerCase()===name.toLowerCase());
   const id=ex?ex[0]:uid();if(!ex)D.people[id]={name,g:g||"office",u:Date.now()};save();return id;}

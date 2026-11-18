@@ -18,11 +18,11 @@ function shortKw(title){
   var WORD={};"PAY NEW OLD GET SET PUT BUY FIX RUN CAR BOX DAY ALL ONE TWO OUT OFF END MAP BAG FEE TAX SEE ASK USE ADD CUT TOP LOW HIGH BIG RED DUE NOT YET SEND CALL".split(" ").forEach(function(w){WORD[w]=1});
   var w=String(title||"").replace(/[^\w\s\/&.\-]/g," ").split(/\s+/).filter(Boolean),k=w.filter(function(x){return !STOP[x.toUpperCase()]});if(!k.length)k=w;
   return k.slice(0,3).map(function(x){return /\d/.test(x)||(x.length<=3&&x===x.toUpperCase()&&!WORD[x])?x:x.charAt(0).toUpperCase()+x.slice(1).toLowerCase()}).join(" ");}
-function people(D){return Object.keys(D.people).map(function(id){var p=D.people[id];return {id:id,name:p.name,g:p.g,u:p.u||0}})
+function people(D){return Object.keys(D.people).filter(function(id){return !D.people[id].ret}).map(function(id){var p=D.people[id];return {id:id,name:p.name,g:p.g,u:p.u||0}})
   .sort(function(a,b){return (b.u-a.u)||a.name.localeCompare(b.name)});}
 /* pending = not "done today, continues" (a.d is today) and not "done & dusted" (a.s fin); pushed and later tasks still count */
 function todayIST(){return new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Kolkata",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date())}
-function pending(D,pid){var td=todayIST(),P=window.PosTasks&&PosTasks.on()?PosTasks:null;return Object.keys(D.assign).filter(function(id){var a=D.assign[id];if(a.p!==pid||a.s==="fin"||a.d===td)return false;
+function pending(D,pid){var td=todayIST(),P=window.PosTasks&&PosTasks.on()?PosTasks:null;return Object.keys(D.assign).filter(function(id){var a=D.assign[id];if(a.p!==pid||a.s==="fin"||a.s==="arch"||a.s==="abn"||a.d===td)return false;
   /* set to a future date: not pending yet */var t=P&&P.get(id);if(t&&(t.st===2||(t.du&&t.du>td)))return false;if(!t&&a.s==="later"&&a.until>td)return false;if(a.s==="push"&&a.on===td)return false;return true}).length;}
 function current(){try{var S=window.TRToday&&window.TRToday.state();if(!S||S.mode!=="resp"||!S.sub)return null;var arr=S.taskGroups[S.cards[S.idx].key]||[];var t=arr[S.subIdx];return t&&t.id?{task:t,tag:S.cards[S.idx].key}:null}catch(e){return null}}
 
