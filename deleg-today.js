@@ -11,14 +11,17 @@ var GROUPS={me:{n:"Me",c:"#4f46e5"},office:{n:"Office",c:"#0f766e"},family:{n:"F
 var $=function(id){return document.getElementById(id)};
 var esc=function(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})};
 function load(){var d={};try{d=JSON.parse(localStorage.getItem(KEY)||"{}")||{}}catch(e){}
-  d.people=d.people||{};d.assign=d.assign||{};if(!d.people.me)d.people.me={name:"Me",g:"me",u:0};return d;}
+  d.people=d.people||{};d.assign=d.assign||{};d.prefs=d.prefs||{};if(!d.people.me)d.people.me={name:"Me",g:"me",u:0};
+  /* Samaguri chapter (21 Nov 2026): same one-time marking as delegation.html — off the "Delegate to" row unless searched */
+  if(!d.prefs.hidSam){d.prefs.hidSam=1;Object.keys(d.people).forEach(function(id){var p=d.people[id];if(p.hid===undefined&&/\b(junai|mousum|mausum|moushum)\b/i.test(p.name||""))p.hid=1});}
+  return d;}
 function save(D){try{localStorage.setItem(KEY,JSON.stringify(D))}catch(e){}}
 function shortKw(title){
   var STOP={};"A AN THE TO OF FOR AND OR IN ON AT BY FROM WITH REG REGARDING ABOUT RE PLEASE PLS KINDLY IS ARE BE INTO THIS THAT".split(" ").forEach(function(w){STOP[w]=1});
   var WORD={};"PAY NEW OLD GET SET PUT BUY FIX RUN CAR BOX DAY ALL ONE TWO OUT OFF END MAP BAG FEE TAX SEE ASK USE ADD CUT TOP LOW HIGH BIG RED DUE NOT YET SEND CALL".split(" ").forEach(function(w){WORD[w]=1});
   var w=String(title||"").replace(/[^\w\s\/&.\-]/g," ").split(/\s+/).filter(Boolean),k=w.filter(function(x){return !STOP[x.toUpperCase()]});if(!k.length)k=w;
   return k.slice(0,3).map(function(x){return /\d/.test(x)||(x.length<=3&&x===x.toUpperCase()&&!WORD[x])?x:x.charAt(0).toUpperCase()+x.slice(1).toLowerCase()}).join(" ");}
-function people(D){return Object.keys(D.people).filter(function(id){return !D.people[id].ret}).map(function(id){var p=D.people[id];return {id:id,name:p.name,g:p.g,u:p.u||0}})
+function people(D){return Object.keys(D.people).map(function(id){var p=D.people[id];return {id:id,name:p.name,g:p.g,u:p.u||0,off:!!(p.ret||p.hid)}})
   .sort(function(a,b){return (b.u-a.u)||a.name.localeCompare(b.name)});}
 /* pending = not "done today, continues" (a.d is today) and not "done & dusted" (a.s fin); pushed and later tasks still count */
 function todayIST(){return new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Kolkata",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date())}
@@ -36,6 +39,7 @@ css.textContent=".dlg{margin-top:14px;padding:12px;border:1px solid var(--tr-lin
 ".dlg .pc{display:inline-flex;align-items:center;gap:6px;border:1.5px solid var(--g);background:#fff;color:var(--tr-ink,#1c1b19);border-radius:999px;padding:7px 12px;font:650 13px system-ui,sans-serif;cursor:pointer}"+
 ".dlg .pc i{width:8px;height:8px;border-radius:50%;background:var(--g)}.dlg .pc small{color:var(--tr-muted,#6b6a64);font-weight:600;font-size:11px}"+
 ".dlg .pc.on{background:var(--g);color:#fff}.dlg .pc.on i{background:#fff}.dlg .pc.on small{color:#ffffffcc}"+
+".dlg .pc[hidden]{display:none}.dlg .dq{margin-top:9px}"+
 ".dlg .pc.add{border-style:dashed;border-color:#9a978e;color:#6b6a64}"+
 ".dlg .nw{display:grid;grid-template-columns:1fr 104px auto;gap:7px;margin-top:9px}.dlg .nw button{border:0;border-radius:10px;background:var(--tr-acc,#4f46e5);color:#fff;font:650 13px system-ui,sans-serif;padding:0 14px;cursor:pointer}"+
 ".recallPane{display:flex;flex-direction:column;gap:12px}.recallPane[hidden]{display:none}.recallHead{display:flex;align-items:center;gap:10px}.recallHead b{flex:1;font-size:16px}"+
@@ -54,10 +58,12 @@ function paint(){var c=current();if(!c){box.classList.add("hidden");return}
   var kw=a?a.k:(kwFor&&kwFor.id===t.id?kwFor.v:shortKw(t.title));
   box.innerHTML='<div class="dh"><b>Delegate to</b><span class="now">'+(who?"→ "+esc(who.name):"")+'</span><a href="delegation.html">Delegation ▸</a></div>'+
     '<input id="dlgKw" maxlength="40" placeholder="Keyword for the card" value="'+esc(kw)+'" aria-label="Keyword for the card">'+
-    '<div class="pp">'+people(D).map(function(p){var g=(GROUPS[p.g]||GROUPS.other).c,n=pending(D,p.id);
-      return '<button type="button" class="pc'+(a&&a.p===p.id?" on":"")+'" data-dp="'+esc(p.id)+'" style="--g:'+g+'"><i></i>'+esc(p.name)+(n?"<small>"+n+"</small>":"")+"</button>"}).join("")+
+    (function(){var off=people(D).filter(function(p){return p.off&&!(a&&a.p===p.id)}).length;return off?'<input id="dlgQ" type="search" class="dq" autocomplete="off" placeholder="Search a name — '+off+' more hidden (Samaguri etc.)" aria-label="Search people">':""})()+
+    '<div class="pp">'+people(D).map(function(p){var g=(GROUPS[p.g]||GROUPS.other).c,n=pending(D,p.id),h=p.off&&!(a&&a.p===p.id);
+      return '<button type="button" class="pc'+(a&&a.p===p.id?" on":"")+'" data-dp="'+esc(p.id)+'" data-n="'+esc(String(p.name).toLowerCase())+'" data-h="'+(h?1:0)+'"'+(h?" hidden":"")+' style="--g:'+g+'"><i></i>'+esc(p.name)+(n?"<small>"+n+"</small>":"")+"</button>"}).join("")+
     '<button type="button" class="pc add" data-dadd="1">+ New</button></div>'+
     (adding?'<div class="nw"><input id="dlgName" placeholder="Name" autocomplete="off"><select id="dlgGrp"><option value="office">Office</option><option value="family">Family</option><option value="other">Other</option></select><button type="button" id="dlgGo">Add</button></div>':"");
+  var q=$("dlgQ");if(q){q.oninput=function(){var v=q.value.trim().toLowerCase();box.querySelectorAll("[data-dp]").forEach(function(b){b.hidden=v?b.dataset.n.indexOf(v)<0:b.dataset.h==="1"})};q.onclick=function(e){e.stopPropagation()}}
   var kwEl=$("dlgKw");
   kwEl.oninput=function(){kwFor={id:t.id,v:kwEl.value}};
   kwEl.onchange=function(){var D2=load(),a2=D2.assign[t.id];if(a2){a2.k=kwEl.value.trim()||shortKw(t.title);save(D2)}};

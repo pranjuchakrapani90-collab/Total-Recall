@@ -45,6 +45,9 @@ input,select{font:inherit;width:100%;padding:10px 12px;border:1px solid var(--tr
 .pchip i{width:9px;height:9px;border-radius:50%;background:var(--g)}
 .pchip small{font-weight:600;color:var(--tr-muted);font-size:11px}
 .pchip:active{background:var(--tr-soft)}
+.pchip[hidden]{display:none}
+.psearch{width:100%;box-sizing:border-box;font:inherit;padding:10px 12px;border:1px solid var(--tr-line);border-radius:12px;background:#fff;margin:0 0 10px}
+.hidck{display:flex;gap:8px;align-items:flex-start;margin-top:12px;font-size:13.5px;color:var(--tr-muted)}
 .pchip.add{border-style:dashed;border-color:var(--tr-muted);color:var(--tr-muted)}
 .newp{display:grid;grid-template-columns:1fr 120px auto;gap:8px;margin-top:10px}
 .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px;padding-top:14px;border-top:1px solid var(--tr-line)}
@@ -244,7 +247,12 @@ const fmtDate=ms=>{try{return new Date(ms).toLocaleDateString("en-IN",{day:"nume
    prefs:  {showDone:1|0, view:"one"|"all"} */
 function load(){let d={};try{d=JSON.parse(localStorage.getItem(KEY)||"{}")||{}}catch(e){}
   const D={people:d.people||{},assign:d.assign||{},aside:d.aside||{},prefs:d.prefs||{}};
-  if(!D.people.me)D.people.me={name:"Me",g:"me",u:0};return D;}
+  if(!D.people.me)D.people.me={name:"Me",g:"me",u:0};hideSamaguri(D);return D;}
+/* Samaguri chapter (21 Nov 2026): Junai and Mousum stay off the pick lists ("Move to", "Give to", "Delegate to")
+   and come up only when searched for. p.hid=1 marks such a person; their member card still shows while they have open tasks.
+   Runs once (prefs.hidSam syncs); later changes go through the person's Edit sheet. */
+function hideSamaguri(D){if(D.prefs.hidSam)return;D.prefs.hidSam=1;
+  Object.values(D.people).forEach(p=>{if(p.hid===undefined&&/\b(junai|mousum|mausum|moushum)\b/i.test(p.name||""))p.hid=1;});}
 let D=load();
 function save(){try{localStorage.setItem(KEY,JSON.stringify(D))}catch(e){toast("Could not save on this device")}}
 function shortKw(title){
@@ -254,6 +262,12 @@ function shortKw(title){
   const WORD=new Set("PAY NEW OLD GET SET PUT BUY FIX RUN CAR BOX DAY ALL ONE TWO OUT OFF END MAP BAG FEE TAX SEE ASK USE ADD CUT TOP LOW HIGH BIG RED DUE NOT YET SEND CALL".split(" "));
   return k.slice(0,3).map(x=>/\d/.test(x)||(x.length<=3&&x===x.toUpperCase()&&!WORD.has(x))?x:x.charAt(0).toUpperCase()+x.slice(1).toLowerCase()).join(" ");}
 /* staff retired on transfer (Samaguri → Bilasipara, 18 Nov 2026) stay hidden unless "Show done" is on */
+/* every person (incl. retired and Samaguri), for pick lists: off-list ones hidden until a search matches them */
+function pickList(skip){return Object.entries(D.people).filter(([id])=>id!==skip).map(([id,p])=>({id,...p})).sort((a,b)=>(b.u||0)-(a.u||0)||a.name.localeCompare(b.name));}
+function pickerHtml(list){const off=list.filter(x=>x.ret||x.hid).length;
+  return `${off?`<input class="psearch" type="search" placeholder="Search a name — ${off} more hidden (Samaguri etc.)" autocomplete="off" aria-label="Search people">`:""}<div class="people">${list.map(x=>`<button type="button" class="pchip" data-mv="${esc(x.id)}" data-n="${esc(String(x.name).toLowerCase())}" data-h="${x.ret||x.hid?1:0}"${x.ret||x.hid?" hidden":""} style="--g:${(GROUPS[x.g]||GROUPS.other).c}"><i></i>${esc(x.name)}</button>`).join("")}</div>`;}
+function bindPicker(s){const q=s.querySelector(".psearch");if(!q)return;
+  q.oninput=()=>{const v=q.value.trim().toLowerCase();s.querySelectorAll(".people [data-mv]").forEach(b=>{b.hidden=v?b.dataset.n.indexOf(v)<0:b.dataset.h==="1"});};}
 function peopleSorted(){return Object.entries(D.people).filter(([,p])=>!p.ret||D.prefs.showDone).map(([id,p])=>({id,...p})).sort((a,b)=>(b.u||0)-(a.u||0)||a.name.localeCompare(b.name));}
 function addPerson(name,g){name=String(name||"").trim();if(!name)return null;
   const ex=Object.entries(D.people).find(([,p])=>p.name.toLowerCase()===name.toLowerCase());
@@ -560,13 +574,13 @@ function closeSheet(){$("scrim").hidden=true;$("sheet").innerHTML="";}
 $("scrim").addEventListener("click",e=>{if(e.target.id==="scrim")closeSheet()});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("scrim").hidden)closeSheet()});
 function taskSheet(id){const a=D.assign[id];if(!a)return;const p=D.people[a.p]||{name:"?"},tt=closedTT(id,a);
-  const others=peopleSorted().filter(x=>x.id!==a.p);
+  const others=pickList(a.p);
   openSheet(`<div class="meta">${esc(a.pr||"Pranju OS")} · given to ${esc(p.name)} on ${esc(fmtDate(a.at))}${tt?" · closed":""}</div><h3>${esc(a.t)}</h3>
     <label class="lbl" for="sk">Keyword on the card</label><input id="sk" value="${esc(a.k||"")}" maxlength="40">
     <div class="row2"><button class="btn pri" id="sSave" type="button">Save</button></div>
-    ${others.length?`<span class="lbl">Move to</span><div class="people">${others.map(x=>`<button type="button" class="pchip" data-mv="${esc(x.id)}" style="--g:${(GROUPS[x.g]||GROUPS.other).c}"><i></i>${esc(x.name)}</button>`).join("")}</div>`:""}
+    ${others.length?`<span class="lbl">Move to</span>${pickerHtml(others)}`:""}
     <div class="row2" style="margin-top:18px"><button class="btn danger" id="sBack" type="button">Remove from card</button><span style="flex:1"></span><button class="btn ghost" id="sClose" type="button">Close</button></div>`,s=>{
-      const sk=s.querySelector("#sk");
+      const sk=s.querySelector("#sk");bindPicker(s);
       /* after any change here, go straight back to the member card the task was opened from (2 Nov 2026) */
       const home=()=>{closeSheet();if(TF){$("tflash").hidden=true;TF=null;}render();document.body.style.overflow=$("mflash").hidden?"":"hidden";};
       s.querySelector("#sSave").onclick=()=>{a.k=sk.value.trim()||shortKw(a.t);save();home();toast("Saved")};
@@ -576,13 +590,15 @@ function taskSheet(id){const a=D.assign[id];if(!a)return;const p=D.people[a.p]||
 function personSheet(pid){const p=pid?D.people[pid]:null,n=pid?tasksOf(pid).length:0;
   openSheet(`<h3>${p?"Edit person":"New person"}</h3>
     <label class="lbl" for="pn">Name</label><input id="pn" value="${esc(p?p.name:"")}" autocomplete="off">
-    ${pid==="me"?"":`<label class="lbl" for="pg">Group</label><select id="pg">${["office","family","other"].map(g=>`<option value="${g}" ${p&&p.g===g?"selected":""}>${GROUPS[g].n}</option>`).join("")}</select>`}
+    ${pid==="me"?"":`<label class="lbl" for="pg">Group</label><select id="pg">${["office","family","other"].map(g=>`<option value="${g}" ${p&&p.g===g?"selected":""}>${GROUPS[g].n}</option>`).join("")}</select>
+    <label class="hidck"><input type="checkbox" id="ph" ${p&&(p.hid||p.ret)?"checked":""}> Keep off the pick lists — show only when searched (e.g. Samaguri staff)</label>`}
     <div class="row2"><button class="btn pri" id="pSave" type="button">Save</button><button class="btn ghost" id="pClose" type="button">Close</button>
     ${p&&pid!=="me"?`<span style="flex:1"></span><button class="btn danger" id="pDel" type="button">Delete</button>`:""}</div>
     ${p&&pid!=="me"&&n?`<p class="meta" style="margin-top:10px">Deleting also removes their ${n} delegated task${n>1?"s":""}.</p>`:""}`,s=>{
       const pn=s.querySelector("#pn");setTimeout(()=>pn.focus(),30);
       const go=()=>{const name=pn.value.trim();if(!name)return;const g=s.querySelector("#pg");
-        if(p){p.name=name;if(g)p.g=g.value;save();}else addPerson(name,g?g.value:"office");closeSheet();render();};
+        const h=s.querySelector("#ph");
+        if(p){p.name=name;if(g)p.g=g.value;if(h){p.hid=h.checked?1:0;if(!h.checked)delete p.ret;}save();}else addPerson(name,g?g.value:"office");closeSheet();render();};
       s.querySelector("#pSave").onclick=go;pn.onkeydown=e=>{if(e.key==="Enter")go()};
       s.querySelector("#pClose").onclick=closeSheet;
       const del=s.querySelector("#pDel");if(del)del.onclick=()=>{if(n&&!confirm(`Delete ${p.name}? Their ${n} delegated task${n>1?"s":""} will be removed.`))return;
@@ -680,8 +696,8 @@ function selAct(k){const ids=selIds();if(k==="x"){selClear();return}if(!ids.leng
       <label class="lbl" for="sd">Or pick a day</label><input type="date" id="sd" min="${addDay(td,1)}" value="${addDay(td,2)}"><div class="row2"><button class="btn pri" id="sy" type="button">Push</button><button class="btn ghost" id="sn" type="button">Cancel</button></div>`,
       s=>{const go=d=>{if(!d||d<=td){toast("Pick a day after today");return}closeSheet();many("later",d)};
         s.querySelectorAll("[data-qd]").forEach(b=>b.onclick=()=>go(b.dataset.qd));s.querySelector("#sy").onclick=()=>go(s.querySelector("#sd").value);s.querySelector("#sn").onclick=closeSheet;});return}
-  if(k==="move"){openSheet(`<h3>Give ${ids.length} task${ids.length>1?"s":""} to</h3><div class="people">${peopleSorted().map(x=>`<button type="button" class="pchip" data-mv="${esc(x.id)}" style="--g:${(GROUPS[x.g]||GROUPS.other).c}"><i></i>${esc(x.name)}</button>`).join("")}</div>
-      <div class="row2"><button class="btn ghost" id="sn" type="button">Cancel</button></div>`,s=>{s.querySelector("#sn").onclick=closeSheet;
+  if(k==="move"){openSheet(`<h3>Give ${ids.length} task${ids.length>1?"s":""} to</h3>${pickerHtml(pickList())}
+      <div class="row2"><button class="btn ghost" id="sn" type="button">Cancel</button></div>`,s=>{s.querySelector("#sn").onclick=closeSheet;bindPicker(s);
       s.querySelectorAll("[data-mv]").forEach(b=>b.onclick=()=>{const p=b.dataset.mv;ids.forEach(id=>{D.assign[id].p=p});D.people[p].u=Date.now();save();closeSheet();selClear();toast(ids.length+" moved to "+D.people[p].name)});});return}
   if(k==="merge"){if(ids.length<2)return;const T=PosTasks.all();const list=ids.map(id=>({id,a:D.assign[id],t:T[id]})).sort((x,y)=>String((x.t||{}).cr||x.a.at).localeCompare(String((y.t||{}).cr||y.a.at)));
     const missing=list.filter(x=>!x.t);if(missing.length){toast("Some of these aren't Pranju OS tasks any more — can't merge them");return}
