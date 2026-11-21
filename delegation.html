@@ -597,7 +597,9 @@ function drawFlash(){if(!TF)return;const p=D.people[TF.pid];TF.ids=TF.ids.filter
   const id=TF.ids[TF.i],a=D.assign[id],g=GROUPS[p.g]||GROUPS.other,dn=isDone(id,a),x=stOf(id,a);
   const stLine=x==="open"?"":(x==="later"?"📅 Pushed to "+fmtDay(a.until):(OUT[x].i+" "+OUT[x].n))+" · ";
   $("tfTop").innerHTML=`<button class="btn" type="button" id="tfClose">← ${esc(p.name)}'s card</button><span class="muted">${TF.i+1} / ${TF.ids.length}</span>`;
-  $("tfCard").style.setProperty("--g",g.c);$("tfCard").classList.remove("flipped");
+  /* a redraw of the same task (sync, list refresh, back from "Edit task") keeps it flipped to its details (21 Nov 2026) */
+  const keepFlip=TF.shown===id&&$("tfCard").classList.contains("flipped");TF.shown=id;
+  $("tfCard").style.setProperty("--g",g.c);$("tfCard").classList.toggle("flipped",keepFlip);
   $("tfFront").innerHTML=`<span class="tfSrc">${esc(a.pr||"Pranju OS")}</span><div class="tfCounter">${esc(p.name)} • TASK ${TF.i+1} OF ${TF.ids.length}</div>
     <div class="tfKw">${esc(a.k||shortKw(a.t))}</div><div class="tfName${dn?" dn":""}">${esc(a.t)}</div>
     ${(()=>{const m=missedOf(id,a);return m?`<div class="tfMiss">Left pending ${missedDays(m)>1?"since "+esc(fmtDay(m))+" ("+missedDays(m)+" days)":"yesterday"} — do this first</div>`:""})()}
@@ -608,13 +610,14 @@ function drawFlash(){if(!TF)return;const p=D.people[TF.pid];TF.ids=TF.ids.filter
   $("tfTop").insertAdjacentHTML("beforeend",`<button class="btn" type="button" id="tfMore">Move / edit</button>`);
   $("tfClose").onclick=closeFlash;bindOutcome($("tfOc"),id);
   $("tfMore").onclick=()=>taskSheet(id);
-  TF.loaded=null;}
+  TF.loaded=null;if(keepFlip)revealFlash();}
 async function revealFlash(){if(!TF)return;const id=TF.ids[TF.i],a=D.assign[id];if(!a||TF.loaded===id)return;TF.loaded=id;
   const box=$("tfReveal"),pj=a.pj||projById[id]||"";
   if(!pj){box.innerHTML=`<div class="taskHead"><h4>${esc(a.t)}</h4></div><div class="taskBody"><div class="taskEmpty">Details aren't available for this task (it may be closed or deleted).</div></div>`;return}
   try{const r=await fetch(wurl("mode=task-detail&projectId="+encodeURIComponent(pj)+"&taskId="+encodeURIComponent(id)),{cache:"no-store"});
     const d=await r.json();if(!r.ok||d.error)throw new Error(d.error||("HTTP "+r.status));
     if(!TF||TF.ids[TF.i]!==id)return;box.innerHTML=detailHtml(d.task||{},Array.isArray(d.comments)?d.comments:[],pj,id);if(d.task&&d.task.local&&window.PosTasks)PosTasks.mountEditor(box,id);
+    const ol=box.querySelector(".taskOpenLink");if(ol&&d.task&&d.task.local)ol.addEventListener("click",()=>{try{sessionStorage.setItem("deleg-resume",JSON.stringify({pid:TF.pid,id}))}catch(e){}});
   }catch(e){if(TF&&TF.ids[TF.i]===id){box.innerHTML=`<div class="taskBody"><div class="err">Couldn't load the task details: ${esc(e.message||e)}</div></div>`;TF.loaded=null;}}}
 function richText(raw){const files=[];let s=String(raw||"").replace(/\r/g,"").replace(/!?\[file\]\(([^)]*)\)/g,(m,p)=>{files.push(p);return "\u0000"+(files.length-1)+"\u0000"});
   const lines=s.split(/\n/).map(x=>x.trim()).filter(Boolean);
@@ -623,7 +626,7 @@ function richText(raw){const files=[];let s=String(raw||"").replace(/\r/g,"").re
     h=h.replace(/\u0000(\d+)\u0000/g,(m,n)=>{let nm=files[+n]||"";try{nm=decodeURIComponent(nm)}catch(e){}nm=nm.split("/").pop()||"Attachment";
       return `<div class="taskAttachment"><div class="taskAttachmentIcon">C</div><div style="min-width:0"><div class="taskAttachmentName">${esc(nm)}</div><div class="taskAttachmentSize">Attachment</div></div></div>`});
     return /^[-*]\s+/.test(x)?`<ul class="tickList"><li>${h}</li></ul>`:`<p>${h}</p>`}).join("");}
-function detailHtml(t,comments,pj,id){const url=t.local?"tasks.html#t="+encodeURIComponent(id):"https://ticktick.com/webapp/#p/"+encodeURIComponent(pj)+"/tasks/"+encodeURIComponent(id);
+function detailHtml(t,comments,pj,id){const url=t.local?"tasks.html?back=deleg#t="+encodeURIComponent(id):"https://ticktick.com/webapp/#p/"+encodeURIComponent(pj)+"/tasks/"+encodeURIComponent(id);
   const content=t.content||t.desc||"",items=Array.isArray(t.items)?t.items:[],atts=Array.isArray(t.attachments)?t.attachments:(Array.isArray(t.files)?t.files:[]);
   let h=`<div class="taskHead"><div class="tfHeadRow"><h4>${esc(t.title||"Task")}</h4><a class="taskOpenLink" href="${url}"${t.local?"":' target="_blank" rel="noopener noreferrer"'}>${t.local?"Edit task ✎":"Open task ↗"}</a></div>
     <div class="taskMeta">${t.list?`<span class="taskPill">${esc(t.list)}</span>`:""}${t.dueDate?`<span class="taskPill">Due ${esc(String(t.dueDate).slice(0,10))}</span>`:""}${t.repeat?`<span class="taskPill">↻ ${esc(t.repeat)}</span>`:""}${(t.tags||[]).map(x=>`<span class="taskPill">#${esc(x)}</span>`).join("")}</div></div>`;
@@ -702,5 +705,13 @@ let posT=0;window.addEventListener("pos-tasks",()=>{clearTimeout(posT);posT=setT
 window.addEventListener("kvsync",e=>{if((e.detail||[]).indexOf(KEY)<0)return;D=load();if($("scrim").hidden)render();});
 window.addEventListener("storage",e=>{if(e.key===KEY){D=load();if($("scrim").hidden)render();}});
 render();fetchOpen();
+/* 21 Nov 2026: after "Edit task ✎" (tasks.html) saves or cancels, come back to the same task card, flipped to its details */
+function flipNow(){$("tfCard").classList.add("flipped");revealFlash();}
+function resumeFlash(){let r=null;try{r=JSON.parse(sessionStorage.getItem("deleg-resume")||"null");sessionStorage.removeItem("deleg-resume")}catch(e){}
+  if(!r||!r.id)return false;D=load();if(TF){render();TF.loaded=null;drawFlash();if(TF)flipNow();return true}
+  const a=D.assign[r.id];if(!a)return false;const pid=D.people[a.p]?a.p:r.pid;if(!D.people[pid])return false;
+  openFlash(pid,r.id);flipNow();return true;}
+resumeFlash();
+window.addEventListener("pageshow",e=>{if(!e.persisted)return;resumeFlash();if(window.PosKV)PosKV.sync();});
 </script>
 </body></html>

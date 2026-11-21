@@ -269,7 +269,12 @@ function edit(id){const t=id?P.get(id):{ti:"",pj:tab!=="today"&&tab!=="closed"?t
   if($("eFin"))$("eFin").onclick=()=>{const s=saveIt();if(!s)return;P.act(s.id,"fin");close();toast("Closed for good ✔✔");render()};
   if($("eReopen"))$("eReopen").onclick=()=>{const s=saveIt();if(!s)return;P.act(s.id,"reopen");close();toast("Reopened");render()};
   if($("eDel"))$("eDel").onclick=()=>{if(!confirm("Delete this task for good?\n\n"+t.ti))return;P.del(id);close();toast("Deleted");render()};}
-function close(){$("scrim").hidden=true;$("sheet").innerHTML="";if(/^#t=/.test(location.hash))history.replaceState(null,"",location.pathname+location.search);}
+/* opened from a Delegation card ("Edit task ✎", ?back=deleg): saving or cancelling goes straight back to that card (21 Nov 2026) */
+const BACK=new URLSearchParams(location.search).get("back");let backArmed=false;
+function goBack(){if(window.PosKV)PosKV.sync();if(history.length>1)history.back();else location.replace(BACK==="deleg"?"delegation.html":"index.html");}
+function close(){$("scrim").hidden=true;$("sheet").innerHTML="";
+  if(backArmed){backArmed=false;setTimeout(goBack,250);return}
+  if(/^#t=/.test(location.hash))history.replaceState(null,"",location.pathname+location.search);}
 $("scrim").addEventListener("click",e=>{if(e.target.id==="scrim")close()});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("scrim").hidden)close()});
 $("fab").onclick=()=>edit(null);
@@ -306,6 +311,6 @@ $("bkfile").onchange=async e=>{const file=e.target.files[0];e.target.value="";if
   }catch(x){toast("Couldn't read the backup: "+(x.message||x),4500)}};
 window.addEventListener("pos-tasks",()=>{if($("scrim").hidden)render()});
 render();
-const m=location.hash.match(/^#t=(.+)$/);if(m&&P.on())edit(decodeURIComponent(m[1]));
+const m=location.hash.match(/^#t=(.+)$/);if(m&&P.on()){backArmed=!!BACK;edit(decodeURIComponent(m[1]));}
 </script>
 </body></html>
