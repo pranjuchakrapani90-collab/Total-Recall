@@ -239,7 +239,7 @@ const secTot=(m,withDr)=>m?Object.entries(m).reduce((a,[k,v])=>a+(k==="dr"&&!wit
 function render(){
   const mel=get("mss-sessions")||{},fs=get("fs-v1")||{},so=get("solo-v1")||{};
   const M=dayMap(),now=new Date(),tk=dkey(now);
-  const goal=(mel.st&&mel.st.goalMin&&!(mel.st.goalMin===30&&!mel.st.goal3))?mel.st.goalMin:45;
+  const goal=(mel.st&&mel.st.goal60&&mel.st.goalMin)?mel.st.goalMin:60;
   const tsec=secTot(M[tk]),tmin=Math.floor(tsec/60),drm=Math.floor(((M[tk]||{}).dr||0)/60);
   $("dateTxt").textContent=now.toLocaleDateString(undefined,{weekday:"long",day:"numeric",month:"long"})+(drm?` · +${drm} min drills`:"");
   $("tMin").textContent=tmin;$("tGoal").textContent=goal;

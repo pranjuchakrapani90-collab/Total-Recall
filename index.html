@@ -1445,7 +1445,7 @@ function badges(){
   try{var db=get("totalRecallPWA_v2")||{},P=Object.values(db.people||{}),hist=function(p){return p&&Array.isArray(p.history)?p.history:[]};
     var n=window.PeopleToday?PeopleToday().left:P.filter(function(p){var h=hist(p);if(!h.length)return true;var iv=IV[Math.min(h.length-1,7)];return (Date.now()-new Date(h[h.length-1].date).getTime())/864e5>=iv}).length;
     $("bPeople").hidden=!n;$("bPeople").textContent=n>99?"99+":n;}catch(e){}
-  try{if(window.GSPlan){var mel=get("mss-sessions")||{},goal=(mel.st&&mel.st.goalMin&&!(mel.st.goalMin===30&&!mel.st.goal3))?mel.st.goalMin:45;
+  try{if(window.GSPlan){var mel=get("mss-sessions")||{},goal=(mel.st&&mel.st.goal60&&mel.st.goalMin)?mel.st.goalMin:60;
     var m=GSPlan.today().reduce(function(a,r){return a+r.sec},0)/60;$("bGuitarF").hidden=m<goal;}}catch(e){}}
 function route(){var t=location.hash.slice(1);
   if(t==="travel"){history.replaceState(null,"",location.pathname);$("home").removeAttribute("data-tool");$("startTravelTrace").click();return;}
