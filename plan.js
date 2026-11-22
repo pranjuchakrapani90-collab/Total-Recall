@@ -1,4 +1,4 @@
-/* Guitar Studio · the cycle: 15 min Melodic Lead → 15 min Soloing Course.
+/* Guitar Studio · the cycle: 30 min Melodic Lead → 30 min Soloing Course (30 each from 22 Nov 2026; 15 each before).
    (Fingerstyle Solo is on hold from 22 Nov 2026, hidden everywhere, so the two plectrum courses get finished first.
     To bring it back, delete until:"2026-11-22" from its PLAN line and restore the Fingerstyle links/flags marked FS_ON.)
    (Order from 15 Nov 2026: the two plectrum sections come first, then fingerstyle last, so the pick is put down once.)
@@ -12,11 +12,13 @@
 (function(){
 "use strict";
 const PLAN=[
-  {k:"ml",n:"Melodic Lead",ico:"🎸",href:"guitar.html",min:15,col:"#4f46e5"},
+  {k:"ml",n:"Melodic Lead",ico:"🎸",href:"guitar.html",min:15,mins:{"2026-11-22":30},col:"#4f46e5"},
   // {k:"lc",n:"Lead Course",ico:"⚡",href:"lead.html",min:10,col:"#0f766e"}, // on hold
-  {k:"sc",n:"Soloing Course",ico:"✍️",href:"solo.html",min:15,col:"#c2410c",from:"2026-10-20"},
+  {k:"sc",n:"Soloing Course",ico:"✍️",href:"solo.html",min:15,mins:{"2026-11-22":30},col:"#c2410c",from:"2026-10-20"},
   {k:"fs",n:"Fingerstyle Solo",ico:"🎶",href:"fingerstyle.html",min:15,col:"#7c3aed",until:"2026-11-22"}]; // on hold
-const act=k=>PLAN.filter(p=>(!p.from||k>=p.from)&&(!p.until||k<p.until)); // the sections in the plan on day k
+/* a section's minutes on day k: min, changed from each date in mins (so past cycles keep the minutes they had) */
+const minOn=(p,k)=>Object.keys(p.mins||{}).sort().reduce((m,d)=>k>=d?p.mins[d]:m,p.min);
+const act=k=>PLAN.filter(p=>(!p.from||k>=p.from)&&(!p.until||k<p.until)).map(p=>({...p,min:minOn(p,k)})); // the sections in the plan on day k
 const START="2026-10-18"; // cycles count from the day the 15 + 15 plan started
 const get=k=>{try{return JSON.parse(localStorage.getItem(k)||"null");}catch(e){return null;}};
 const pad=n=>String(n).padStart(2,"0"),dkey=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
