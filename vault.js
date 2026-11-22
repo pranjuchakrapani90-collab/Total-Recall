@@ -8,6 +8,10 @@
    them and keeps the result on the phone (IndexedDB "pos-vault").
    Which row wins for a file: Gemini's row in "Index" > a later row in "Auto index" > an earlier one. "Auto index" is
    only ever added to, never edited, so the phone fetches just the rows it has not seen yet.
+   22 Nov 2026: Gemini cannot edit a file over 1 MB, so the sheet is kept small. Older Gemini rows are moved into
+   read-only archive spreadsheets ("Gemini Vault Index – Archive …", same folder), and the rules' rows live in their
+   own spreadsheet, "Pranju OS Auto Index" (tab "Auto index"), never in Gemini's sheet. This file reads all of them;
+   archives are read once and kept on the phone until they change.
    Needs pos-guard.js loaded first.
    window.PosVault:
      load()            -> {meta, entries, queue, log} from the phone (no network); null before the first download
@@ -21,9 +25,11 @@
           src "ai" (Gemini) | "rules" (Pranju OS) | "manual" (you) · c confidence · m modified · p folder */
 (function(){
 "use strict";
-var DB="pos-vault",ST="kv",KEY="data4",CK="pos-vault-checked",DEF="https://total-recall-ticktick.pranjuchakrapani90.workers.dev";
+var DB="pos-vault",ST="kv",KEY="data5",CK="pos-vault-checked",DEF="https://total-recall-ticktick.pranjuchakrapani90.workers.dev";
 var API="https://www.googleapis.com/drive/v3",SH="https://sheets.googleapis.com/v4/spreadsheets/";
 var SHEET_NAME="Gemini Vault Index",T_AI="Index",T_AUTO="Auto index",T_QUEUE="Needs review";
+var AUTO_NAME="Pranju OS Auto Index",ARCH_PREFIX="Gemini Vault Index – Archive";
+var AUTO_HEAD=["file_id","file_name","view_url","folder_path","file_type","modified_time","created_time","source","doc_type","consumer_nos","memo_letter_nos","receipt_nos","names","places","amounts","summary","handwritten","confidence","verified","uncertain","discrepancies","analyst_note","read_complete","status","duplicate_of","indexed_at"];
 var mem=null,tok=null;
 function idb(){return new Promise(function(ok,no){var r=indexedDB.open(DB,1);r.onupgradeneeded=function(){r.result.createObjectStore(ST)};r.onsuccess=function(){ok(r.result)};r.onerror=function(){no(r.error)}})}
 async function get(k){var d=await idb();return new Promise(function(ok,no){var r=d.transaction(ST).objectStore(ST).get(k);r.onsuccess=function(){ok(r.result)};r.onerror=function(){no(r.error)}})}
@@ -59,8 +65,24 @@ async function fail(r,what){var m="";try{var d=await r.clone().json();m=d.error&
 async function gjson(url,init,what){var r=await gfetch(url,init);if(!r.ok)throw await fail(r,what||"Google request");return r.json()}
 async function findSheet(){
   var q="name='"+SHEET_NAME+"' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false and 'me' in owners";
-  var d=await gjson(API+"/files?spaces=drive&pageSize=1&orderBy="+encodeURIComponent("modifiedTime desc")+"&fields=files(id,name,modifiedTime)&q="+encodeURIComponent(q),null,"Looking for the index sheet");
+  var d=await gjson(API+"/files?spaces=drive&pageSize=1&orderBy="+encodeURIComponent("modifiedTime desc")+"&fields=files(id,name,modifiedTime,parents)&q="+encodeURIComponent(q),null,"Looking for the index sheet");
   var f=(d.files||[])[0];if(!f)throw new Error('No Google Sheet named "'+SHEET_NAME+'" was found in your Drive.');return f}
+/* the rules' own spreadsheet; made (next to Gemini's sheet) when create is true and it does not exist yet */
+async function findAuto(create,near){
+  var q="name='"+AUTO_NAME+"' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false and 'me' in owners";
+  var d=await gjson(API+"/files?spaces=drive&pageSize=1&orderBy="+encodeURIComponent("modifiedTime desc")+"&fields=files(id,name,modifiedTime)&q="+encodeURIComponent(q),null,"Looking for the auto index");
+  var f=(d.files||[])[0];if(f||!create)return f||null;
+  var c=await gjson(SH,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({properties:{title:AUTO_NAME},
+    sheets:[{properties:{title:T_AUTO,gridProperties:{rowCount:1000,columnCount:26,frozenRowCount:1}}}]})},"Making the auto index");
+  await gjson(SH+c.spreadsheetId+"/values/"+encodeURIComponent(a1(T_AUTO,"A1"))+"?valueInputOption=RAW",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({values:[AUTO_HEAD]})},"Making the auto index");
+  if(near&&near.parents&&near.parents[0])try{await gfetch(API+"/files/"+encodeURIComponent(c.spreadsheetId)+"?addParents="+encodeURIComponent(near.parents[0])+"&removeParents=root&fields=id",{method:"PATCH"})}catch(e){}
+  return {id:c.spreadsheetId,name:AUTO_NAME,modifiedTime:new Date().toISOString()}}
+/* Gemini's archive volumes: read-only copies of older "Index" rows */
+async function findArchives(){
+  var q="name contains '"+ARCH_PREFIX+"' and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false and 'me' in owners";
+  var d=await gjson(API+"/files?spaces=drive&pageSize=100&fields=files(id,name,modifiedTime)&q="+encodeURIComponent(q),null,"Looking for the archives");
+  return (d.files||[]).filter(function(f){return f.name.indexOf(ARCH_PREFIX)===0})}
+function isOwnSheet(n){n=String(n||"");return n===SHEET_NAME||n===AUTO_NAME||n.indexOf(SHEET_NAME+" –")===0}
 function a1(tab,range){return "'"+String(tab).replace(/'/g,"''")+"'!"+range}
 async function values(id,range){var d=await gjson(SH+id+"/values/"+encodeURIComponent(range)+"?majorDimension=ROWS",null,"Reading the index sheet");return d.values||[]}
 async function tabs(id){var d=await gjson(SH+id+"?fields="+encodeURIComponent("sheets.properties(title,sheetId,gridProperties(rowCount))"),null,"Reading the index sheet");
@@ -126,9 +148,17 @@ function merge(ai,auto){
     entries.push(e);doms[e.d]=(doms[e.d]||0)+1;tops[e.k]=(tops[e.k]||0)+1;n[e.src]=(n[e.src]||0)+1});
   queue.sort(function(a,b){return a.m<b.m?1:-1});
   return {entries:entries,queue:queue,log:{ids:dups},counts:n,domains:doms,topics:tops}}
-function build(st){var m=merge(st.ai,st.auto);
+/* one Gemini row per file across the sheet and its archives: the fullest one wins (the 18 Nov archive keeps the
+   long summaries that were emptied in the sheet); on a tie the newer source wins */
+function allAi(st){var by={},order=[],arch=st.arch||{};
+  var lists=Object.keys(arch).sort(function(a,b){return (arch[a].name||"")<(arch[b].name||"")?-1:1}).map(function(k){return arch[k].rows||[]});
+  lists.push(st.ai||[]);
+  lists.forEach(function(l){l.forEach(function(e){var o=by[e.id];if(!o)order.push(e.id);
+    if(!o||(e.x||"").length>=(o.x||"").length)by[e.id]=e})});
+  return order.map(function(id){return by[id]})}
+function build(st){var m=merge(allAi(st),st.auto);
   m.meta={v:3,sheetId:st.sheetId,modified:st.modified,fetched:st.fetched,count:m.entries.length,domains:m.domains,topics:m.topics,ai:m.counts.ai,rules:m.counts.rules,manual:m.counts.manual,
-    queue:m.queue.length,dups:m.log.ids.length,autoRows:st.autoRows,hasAuto:st.hasAuto};
+    queue:m.queue.length,dups:m.log.ids.length,autoRows:st.autoRows,hasAuto:st.hasAuto,autoId:st.autoId||"",archives:Object.keys(st.arch||{}).length};
   m.raw=st;return m}
 
 function checkedAt(){var n=0;try{n=Number(localStorage.getItem(CK)||0)}catch(e){}return n||0}
@@ -139,27 +169,33 @@ function ensure(force){if(busy)return busy;busy=ensure1(force).finally(function(
 async function ensure1(force){
   var cur=await load();
   if(!force&&cur&&Date.now()-checkedAt()<10*60000)return cur;
-  var f=await findSheet();
+  var f=await findSheet(),af=await findAuto(false),arcs=await findArchives();
   try{localStorage.setItem(CK,String(Date.now()))}catch(e){}
-  var old=cur&&cur.raw,same=old&&old.sheetId===f.id;
-  if(same&&old.modified===f.modifiedTime&&force!=="full")return cur;
+  var old=cur&&cur.raw,sig=[f.id,f.modifiedTime,af?af.id+":"+af.modifiedTime:"-"].concat(arcs.map(function(a){return a.id+":"+a.modifiedTime}).sort()).join("|");
+  if(old&&old.sig===sig&&force!=="full")return cur;
   var tb=await tabs(f.id),has=function(n){return tb.some(function(t){return t.title===n})};
   if(!has(T_AI))throw new Error('The sheet "'+SHEET_NAME+'" has no "'+T_AI+'" tab.');
-  var st={sheetId:f.id,modified:f.modifiedTime,fetched:new Date().toISOString(),ai:[],auto:[],autoRows:0,hasAuto:has(T_AUTO),hasQueue:has(T_QUEUE)};
+  var st={v:4,sig:sig,sheetId:f.id,modified:f.modifiedTime,fetched:new Date().toISOString(),ai:[],auto:[],autoRows:0,autoId:af?af.id:"",hasAuto:!!af,hasQueue:has(T_QUEUE),arch:{}};
   (await values(f.id,a1(T_AI,"A2:Z"))).forEach(function(r){var e=entry(r,"ai");if(e)st.ai.push(e)});
-  if(st.hasAuto){
-    var keep=same&&force!=="full"&&old.autoRows>0?old.autoRows:0;
+  /* archives never change once written: re-read one only when Drive says it changed */
+  for(var i=0;i<arcs.length;i++){var a=arcs[i],was=old&&old.arch&&old.arch[a.id];
+    if(was&&was.modified===a.modifiedTime&&force!=="full"){st.arch[a.id]=was;continue}
+    var at=await tabs(a.id),t=(at.filter(function(x){return /^Index/.test(x.title)})[0]||at[0]||{}).title;if(!t)continue;
+    var rows=[];(await values(a.id,a1(t,"A2:Z"))).forEach(function(r){var e=entry(r,"ai");if(e)rows.push(e)});
+    st.arch[a.id]={name:a.name,modified:a.modifiedTime,rows:rows}}
+  if(af){
+    var same=old&&old.autoId===af.id,keep=same&&force!=="full"&&old.autoRows>0?old.autoRows:0;
     if(keep){ /* the last row already on the phone must still be where it was; if not, read the whole tab again */
-      var chk=await values(f.id,a1(T_AUTO,"A"+(keep+1)+":A"+(keep+1))),lastId=old.auto.length?old.auto[old.auto.length-1].id:"";
+      var chk=await values(af.id,a1(T_AUTO,"A"+(keep+1)+":A"+(keep+1))),lastId=old.auto.length?old.auto[old.auto.length-1].id:"";
       if(!chk.length||String(chk[0][0]||"")!==String(old.autoLast||lastId))keep=0}
     st.auto=keep?old.auto.slice():[];st.autoRows=keep;st.autoLast=keep?old.autoLast:"";
-    var rows=await values(f.id,a1(T_AUTO,"A"+(keep+2)+":Z"));
-    rows.forEach(function(r){st.autoRows++;st.autoLast=String(r[0]||"");var e=entry(r,"rules");if(e)st.auto.push(e)})}
+    var ar=await values(af.id,a1(T_AUTO,"A"+(keep+2)+":Z"));
+    ar.forEach(function(r){st.autoRows++;st.autoLast=String(r[0]||"");var e=entry(r,"rules");if(e)st.auto.push(e)})}
   await set(KEY,st);mem=build(st);
   try{window.dispatchEvent(new CustomEvent("posvault",{detail:mem.meta}))}catch(e){}
   return mem}
 /* vault-scan.js has just added these rows to the "Auto index" tab: take them into the phone's copy without re-reading */
-function absorb(rows){if(!mem||!mem.raw)return;var st=mem.raw;st.hasAuto=true;
+function absorb(rows,autoId){if(!mem||!mem.raw)return;var st=mem.raw;st.hasAuto=true;if(autoId)st.autoId=autoId;
   rows.forEach(function(r){st.autoRows++;st.autoLast=String(r[0]||"");var e=entry(r,"rules");if(e)st.auto.push(e)});
   mem=build(st)}
 /* you looked at a queued file yourself */
@@ -168,10 +204,11 @@ async function manual(id,type,note){
   var q=cur.queue.filter(function(e){return e.id===id})[0];if(!q)throw new Error("That file is not waiting for review any more.");
   var now=new Date(Date.now()+19800000).toISOString().slice(0,16)+"+05:30";
   var row=[q.id,q.t,q.u,q.p,q.ft,q.m,"","drive",type||"other","","","","","","",String(note||"").slice(0,1500),"","","yes","","","Reviewed by hand in Pranju OS","","manual","",now];
-  var r=await gfetch(SH+cur.raw.sheetId+"/values/"+encodeURIComponent(a1(T_AUTO,"A1"))+":append?valueInputOption=RAW&insertDataOption=INSERT_ROWS",
+  var aid=cur.raw.autoId;if(!aid){var af=await findAuto(true,await findSheet());aid=af.id}
+  var r=await gfetch(SH+aid+"/values/"+encodeURIComponent(a1(T_AUTO,"A1"))+":append?valueInputOption=RAW&insertDataOption=INSERT_ROWS",
     {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({values:[row]})});
   if(!r.ok)throw await fail(r,"Saving your review");
-  absorb([row]);await save();return mem}
+  absorb([row],aid);await save();return mem}
 
 /* ---------- coverage: every file you own in Drive against the index ---------- */
 /* working sheets of Pranju OS and of the AI reviews themselves: not documents to review */
@@ -184,7 +221,7 @@ async function listDrive(progress,opt){
   for(var i=0;i<20000;i++){   /* ends when Drive has no more pages; pages can be much smaller than 1000 */
     var d=await gjson(API+"/files?spaces=drive&pageSize=1000&fields="+encodeURIComponent("nextPageToken,files(id,name,mimeType,modifiedTime,createdTime,size,md5Checksum,parents,appProperties)")+"&q="+encodeURIComponent(q)+(page?"&pageToken="+encodeURIComponent(page):""),null,"Drive listing");
     (d.files||[]).forEach(function(f){
-      if((f.appProperties&&f.appProperties.pos)||f.id===skipId||/\.(vault|gpx)$/i.test(f.name)||f.name==="master_document_vault.json"||f.name==="reviewed_files_log.json"||f.name===SHEET_NAME||OWN.test(f.name))return;
+      if((f.appProperties&&f.appProperties.pos)||f.id===skipId||/\.(vault|gpx)$/i.test(f.name)||f.name==="master_document_vault.json"||f.name==="reviewed_files_log.json"||isOwnSheet(f.name)||OWN.test(f.name))return;
       if(junkName(f.name)){junk++;return}
       rows.push([f.id,f.name,f.mimeType,f.modifiedTime,f.createdTime||"",Number(f.size||0),f.md5Checksum||"",(f.parents||[])[0]||""])});
     if(progress)progress(rows.length+junk);
@@ -233,10 +270,12 @@ function find(q,opt){opt=opt||{};var out={exact:[],related:[],words:[]};if(!mem)
 async function driveSearch(q,skip){var words=String(q||"").split(/\s+/).filter(function(w){return w.length>=2}).slice(0,6);if(!words.length)return [];
   var qs="trashed=false and 'me' in owners and mimeType!='application/vnd.google-apps.folder' and "+words.map(function(w){return "fullText contains '"+w.replace(/\\/g,"\\\\").replace(/'/g,"\\'")+"'"}).join(" and ");
   var d=await gjson(API+"/files?spaces=drive&pageSize=40&fields="+encodeURIComponent("files(id,name,mimeType,modifiedTime,appProperties)")+"&q="+encodeURIComponent(qs),null,"Drive search");
-  skip=skip||{};return (d.files||[]).filter(function(f){return !skip[f.id]&&!f.appProperties&&!junkName(f.name)&&f.name!==SHEET_NAME&&!OWN.test(f.name)}).slice(0,20)
+  skip=skip||{};return (d.files||[]).filter(function(f){return !skip[f.id]&&!f.appProperties&&!junkName(f.name)&&!isOwnSheet(f.name)&&!OWN.test(f.name)}).slice(0,20)
     .map(function(f){return {id:f.id,t:f.name,u:"https://drive.google.com/file/d/"+encodeURIComponent(f.id)+"/view",m:f.modifiedTime||"",kind:kind(f.mimeType,f.name)}})}
 window.PosVault={find:find,driveSearch:driveSearch,topicOf:topicOf,coverage:coverage,checkedAt:checkedAt,load:load,ensure:ensure,search:search,domainLabel:label,manual:manual,absorb:absorb,save:save,listDrive:listDrive,kind:kind,
-  names:{sheet:SHEET_NAME,ai:T_AI,auto:T_AUTO,queue:T_QUEUE},
-  g:{token:token,gfetch:gfetch,gjson:gjson,fail:fail,findSheet:findSheet,values:values,tabs:tabs,a1:a1,sleep:sleep,API:API,SH:SH},
+  names:{sheet:SHEET_NAME,ai:T_AI,auto:T_AUTO,queue:T_QUEUE,autoSheet:AUTO_NAME},
+  /* {file id: status} for every Gemini row, sheet and archives (vault-scan.js uses it so archived files count as done) */
+  aiStatus:function(){var o={};if(mem&&mem.raw)allAi(mem.raw).forEach(function(e){o[e.id]=e.st||"reviewed"});return o},
+  g:{token:token,gfetch:gfetch,gjson:gjson,fail:fail,findSheet:findSheet,findAuto:findAuto,values:values,tabs:tabs,a1:a1,sleep:sleep,API:API,SH:SH},
   _:{entry:entry,merge:merge}};
 })();

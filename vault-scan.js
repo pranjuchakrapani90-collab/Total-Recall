@@ -1,13 +1,15 @@
 /* Pranju OS · Vault scan (12 Nov 2026): reviews Drive files with code, no AI.
    What Gemini's half-hourly runs did for 15 files at a time, this does in the page for the whole Drive:
      1. lists every PDF, Sheet and Doc you own in Drive and drops the ones that already have a row in the index sheet
-        ("Gemini Vault Index": Gemini's "Index" tab or Pranju OS's "Auto index" tab);
+        (Gemini's "Index" tab, Gemini's archive volumes, or the "Auto index" tab of "Pranju OS Auto Index");
      2. exact copies are found by Drive's own checksum (md5) and written as "duplicate" rows without being opened;
      3. every other file is read as text by Google itself: a Google Doc is exported as text; a PDF or Word file is
         copied into a temporary Google Doc (Drive runs its OCR on scans while converting), read, and the copy deleted;
         a spreadsheet gives its tab names, sizes and first rows through the Sheets API;
      4. vault-rules.js turns that text into the index columns;
-     5. rows go to the "Auto index" tab; files the rules could not read or classify also go to the "Needs review"
+     5. rows go to the "Auto index" tab of the separate spreadsheet "Pranju OS Auto Index" (22 Nov 2026: never into
+        Gemini's sheet, which must stay under 1 MB for Gemini to edit it); files the rules could not read or classify
+        also go to the "Needs review"
         tab, which is the only list Gemini has to work through from now on.
    Nothing in Drive is changed except the temporary copies, which live in "Pranju OS / Vault scan (temporary)" for a
    few seconds and are deleted for good. Stopping is safe at any time: the next scan carries on where this one ended.
@@ -41,14 +43,12 @@ function jpost(body){return {method:"POST",headers:{"Content-Type":"application/
 
 /* ---------- the sheet: make sure the two Pranju OS tabs exist ---------- */
 async function setup(){
-  var f=await G.findSheet(),tb=await G.tabs(f.id),has=function(n){return tb.some(function(t){return t.title===n})},add=[];
-  if(!has(N.auto))add.push({addSheet:{properties:{title:N.auto,gridProperties:{rowCount:1000,columnCount:26,frozenRowCount:1}}}});
-  if(!has(N.queue))add.push({addSheet:{properties:{title:N.queue,gridProperties:{rowCount:500,columnCount:8,frozenRowCount:1}}}});
-  if(add.length){
-    await G.gjson(SH+f.id+":batchUpdate",jpost({requests:add}),"Adding the Pranju OS tabs to the index sheet");
-    var data=[];if(!has(N.auto))data.push({range:G.a1(N.auto,"A1"),values:[HEAD]});if(!has(N.queue))data.push({range:G.a1(N.queue,"A1"),values:[QHEAD]});
-    await G.gjson(SH+f.id+"/values:batchUpdate",jpost({valueInputOption:"RAW",data:data}),"Writing the tab headings")}
-  return f.id}
+  var f=await G.findSheet(),tb=await G.tabs(f.id),has=function(n){return tb.some(function(t){return t.title===n})};
+  if(!has(N.queue)){
+    await G.gjson(SH+f.id+":batchUpdate",jpost({requests:[{addSheet:{properties:{title:N.queue,gridProperties:{rowCount:500,columnCount:8,frozenRowCount:1}}}}]}),"Adding the review list to the index sheet");
+    await G.gjson(SH+f.id+"/values:batchUpdate",jpost({valueInputOption:"RAW",data:[{range:G.a1(N.queue,"A1"),values:[QHEAD]}]}),"Writing the tab headings")}
+  var af=await G.findAuto(true,f);
+  return {sheetId:f.id,autoId:af.id}}
 async function append(sheetId,tab,rows){
   if(!rows.length)return;
   var r=await G.gfetch(SH+sheetId+"/values/"+encodeURIComponent(G.a1(tab,"A1"))+":append?valueInputOption=RAW&insertDataOption=INSERT_ROWS",jpost({values:rows}));
@@ -140,8 +140,10 @@ async function readFile(file,dir){
 /* ---------- plan ---------- */
 async function plan(progress){
   var say=function(s){if(progress)progress(s)};
-  say("Opening the index sheet…");var sheetId=await setup();
-  var ai=await known(sheetId,N.ai),auto=await known(sheetId,N.auto),done={};
+  say("Opening the index sheet…");var ids=await setup(),sheetId=ids.sheetId,autoId=ids.autoId;
+  await V.ensure(true);   /* loads Gemini's archive volumes too */
+  var ai=await known(sheetId,N.ai),auto=await known(autoId,N.auto),done={},arch=V.aiStatus();
+  Object.keys(arch).forEach(function(k){if(!ai.ids[k])ai.ids[k]=arch[k]});
   Object.keys(auto.ids).forEach(function(k){done[k]=auto.ids[k]});Object.keys(ai.ids).forEach(function(k){if(ai.ids[k]==="skipped"&&done[k])return;done[k]=ai.ids[k]});
   say("Listing your Drive…");
   var list=await V.listDrive(function(n){say("Listing your Drive… "+n.toLocaleString("en-IN")+" files")}),pathOf=await folderPaths(),dir=await tmpFolder();
@@ -167,7 +169,7 @@ async function plan(progress){
   var qdone={};Object.keys(done).forEach(function(k){qdone[k]=done[k]});Object.keys(ai.ids).forEach(function(k){qdone[k]=ai.ids[k]});
   var tidied=0;try{tidied=await tidy(sheetId,qdone)}catch(e){}
   var swept=0;try{swept=await sweep()}catch(e){}
-  lastPlan={sheetId:sheetId,dir:dir,todo:todo,dups:dups,counts:counts,autoRows:auto.rows,at:Date.now(),tidied:tidied,swept:swept};
+  lastPlan={sheetId:sheetId,autoId:autoId,dir:dir,todo:todo,dups:dups,counts:counts,autoRows:auto.rows,at:Date.now(),tidied:tidied,swept:swept};
   return lastPlan}
 async function tidy(sheetId,done){
   var rows=await G.values(sheetId,G.a1(N.queue,"A2:H"));if(!rows.length)return 0;
@@ -191,7 +193,7 @@ async function run(opt){
     T.left=todo.length+dups.length;
     var buf=[],qbuf=[],writing=Promise.resolve(),sinceSave=0;
     var flush=function(){var rows=buf,q=qbuf;buf=[];qbuf=[];if(!rows.length)return writing;
-      writing=writing.then(async function(){await append(p.sheetId,N.auto,rows);V.absorb(rows);if(q.length)await append(p.sheetId,N.queue,q);
+      writing=writing.then(async function(){await append(p.autoId,N.auto,rows);V.absorb(rows,p.autoId);if(q.length)await append(p.sheetId,N.queue,q);
         sinceSave+=rows.length;if(sinceSave>=400){sinceSave=0;await V.save()}});return writing};
     /* exact copies first: no reading needed */
     for(var i=0;i<dups.length&&!state.stop;i++){var d=dups[i];

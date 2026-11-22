@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="drive.js?v=20261102t"></script><script src="vault.js?v=20261115b"></script><script src="vault-rules.js?v=20261113a"></script><script src="vault-scan.js?v=20261115b"></script><script src="vault-dupes.js?v=20261115a"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
+<html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="drive.js?v=20261102t"></script><script src="vault.js?v=20261122a"></script><script src="vault-rules.js?v=20261113a"></script><script src="vault-scan.js?v=20261122a"></script><script src="vault-dupes.js?v=20261115a"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#1c1b19">
 <title>Vault · Pranju OS</title>
 <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="stylesheet" href="tr-theme.css?v=20261020">
@@ -84,7 +84,7 @@ function day(iso){if(!iso)return "";var d=new Date(iso);return isNaN(d)?"":d.toL
 function num(n){return Number(n||0).toLocaleString("en-IN")}
 function setData(d){data=d}
 function status(){if(!data){$("st").textContent="Not downloaded yet";return}var m=data.meta;
-  $("st").textContent=num(m.count)+" document"+(m.count===1?"":"s")+" · "+num(m.ai)+" by Gemini, "+num(m.rules+m.manual)+" by rules · sheet changed "+when(m.modified);
+  $("st").textContent=num(m.count)+" document"+(m.count===1?"":"s")+" · "+num(m.ai)+" by Gemini, "+num(m.rules+m.manual)+" by rules"+(m.archives?" · "+num(m.archives)+" archive"+(m.archives===1?"":"s")+" read":"")+" · sheet changed "+when(m.modified);
   $("manageSum").textContent="Manage the vault"+(m.queue?" · "+num(m.queue)+" need review":"");$("revSum").textContent="Needs review ("+num(m.queue)+")";renderQueue()}
 function card(e,w){var o=open[e.id],sum=e.s||e.x||"";
   return '<div class="it"><h3><a href="'+esc(e.u)+'" target="_blank" rel="noopener">'+mark(e.t,w)+'</a></h3>'+
