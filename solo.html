@@ -90,7 +90,7 @@ details.primer summary{cursor:pointer;font-weight:650}
   <a class="backlink" href="studio.html">← Guitar Studio</a>
   <div class="eyebrow">Guitar Studio · section 3</div>
   <h1>Soloing Course</h1>
-  <nav class="studio" aria-label="Guitar Studio sections"><a href="guitar.html">Melodic Lead</a><a href="solo.html" class="on" aria-current="page">Soloing</a><a href="fingerstyle.html">Fingerstyle</a><a href="drills.html">Drills</a></nav>
+  <nav class="studio" aria-label="Guitar Studio sections"><a href="guitar.html">Melodic Lead</a><a href="solo.html" class="on" aria-current="page">Soloing</a><a href="drills.html">Drills</a></nav>
   <p>Learn to solo by doing: short lessons on what and why, hundreds of practice examples with a backing band, and a workshop where you write and save your own solos.</p>
   <div><p id="hTodayS" style="margin:8px 0 0;font-size:13px;opacity:.95">Today in Guitar Studio: <b id="hToday">0</b> min</p></div>
   <p id="syncLine" style="margin-top:8px;font-size:12px;opacity:.9"></p>
@@ -775,6 +775,6 @@ render();setSync(syncCode()?"busy":"off");cloudSync().then(ch=>{if(ch&&!play)ren
 <script>render();</script>
 <script src="metro.js?v=20261101"></script><script>GSMetro.mount({here:"sc",name:"Soloing Course",bar:"#transport",into:".tin",after:".pri",meter:"4",bpm:70,
   credit:(s,fin)=>{const k=dkey(new Date());st.days[k]=(st.days[k]||0)+s;save(!fin);},stopPage:()=>{if(play){stop();render();}}});</script>
-<script src="plan.js?v=20261115"></script><script>GSPlan.watch("sc",{live:()=>(play&&play.sv&&ctx?ctx.currentTime-play.sv:0)+GSMetro.live(),playing:()=>!!play||GSMetro.isOn(),stop:()=>{stop();GSMetro.stop();render();}});
+<script src="plan.js?v=20261122"></script><script>GSPlan.watch("sc",{live:()=>(play&&play.sv&&ctx?ctx.currentTime-play.sv:0)+GSMetro.live(),playing:()=>!!play||GSMetro.isOn(),stop:()=>{stop();GSMetro.stop();render();}});
 setInterval(()=>{const el=document.getElementById("hToday");if(!el)return;const k=dkey(new Date());el.textContent=Math.floor(GSPlan.today().reduce((a,r)=>a+r.sec,0)/60);},2000);</script>
 </body></html>

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><script src="pos-guard.js"></script><script src="kvsync.js?v=20261105a"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<html lang="en"><head><meta charset="utf-8"><script>/* FS_ON: Fingerstyle Solo on hold from 22 Nov 2026 */location.replace("studio.html");</script><script src="pos-guard.js"></script><script src="kvsync.js?v=20261105a"></script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Fingerstyle Solo · Guitar Studio</title>
 <script src="gsync.js?v=20261023"></script>
 <script src="fs-course.js?v=20261117"></script>
@@ -602,5 +602,5 @@ cloudSync();
 </script>
 <script src="metro.js?v=20261101"></script><script>GSMetro.mount({here:"fs",name:"Fingerstyle Solo",bar:"#nowbar",after:"#nbPlay",meter:"6",bpm:60,
   credit:(s,fin)=>{const k=dkey(new Date());st.days[k]=Math.round(((st.days[k]||0)+s)*10)/10;save(!fin);},stopPage:()=>{if(play)stop();}});</script>
-<script src="plan.js?v=20261115"></script><script>GSPlan.watch("fs",{live:()=>(play?(performance.now()-play.lf)/1000:0)+GSMetro.live(),playing:()=>!!play||GSMetro.isOn(),stop:()=>{stop();GSMetro.stop();}});</script>
+<script src="plan.js?v=20261122"></script><script>GSPlan.watch("fs",{live:()=>(play?(performance.now()-play.lf)/1000:0)+GSMetro.live(),playing:()=>!!play||GSMetro.isOn(),stop:()=>{stop();GSMetro.stop();}});</script>
 </body></html>
