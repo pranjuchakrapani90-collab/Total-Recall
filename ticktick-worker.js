@@ -834,11 +834,17 @@ async function handleKite(request,env,origin){
     const b=new Uint8Array(18);crypto.getRandomValues(b);const state=hex(b);await env.SYNC_KV.put('kite:state:'+state,back,{expirationTtl:900});
     return json({url:'https://kite.zerodha.com/connect/login?v=3&api_key='+encodeURIComponent(env.KITE_API_KEY)+'&redirect_params='+encodeURIComponent('state='+state)});}
   if(op==='data'){const s=await kiteSession(env);if(!s)return json({error:'Log in to Kite for today.',code:'login'},409);
-    try{const [m,h,o,g]=await Promise.all([kiteGet(env,'/user/margins/equity',s.tok),kiteGet(env,'/portfolio/holdings',s.tok),kiteGet(env,'/orders',s.tok),kiteGet(env,'/gtt/triggers',s.tok).catch(()=>[])]);
+    try{const [m,h,o,g,p]=await Promise.all([kiteGet(env,'/user/margins/equity',s.tok),kiteGet(env,'/portfolio/holdings',s.tok),kiteGet(env,'/orders',s.tok),kiteGet(env,'/gtt/triggers',s.tok).catch(()=>[]),kiteGet(env,'/portfolio/positions',s.tok).catch(()=>null)]);
       const av=m&&m.available||{};
+      /* Holdings list only settled units: a delivery (CNC) buy made today sits under Positions until tomorrow, and a sale of
+         held units today shows there as a negative CNC position. Add today's net CNC quantity so the units match the Kite app. */
+      const hold=(h||[]).map(x=>({sym:x.tradingsymbol,qty:(x.quantity||0)+(x.t1_quantity||0),t1:x.t1_quantity||0,today:0,avg:x.average_price,ltp:x.last_price}));
+      ((p&&p.net)||[]).filter(x=>x.product==='CNC'&&x.exchange!=='BFO'&&x.exchange!=='NFO'&&x.quantity).forEach(x=>{
+        let e=hold.find(y=>y.sym===x.tradingsymbol);if(!e){e={sym:x.tradingsymbol,qty:0,t1:0,today:0,avg:x.average_price,ltp:x.last_price};hold.push(e);}
+        e.qty+=x.quantity;e.today+=x.quantity;});
       return json({at:Date.now(),user:s.name,
         funds:{net:m&&m.net,cash:av.cash,live:av.live_balance,opening:av.opening_balance,used:m&&m.utilised&&m.utilised.debits},
-        holdings:(h||[]).map(x=>({sym:x.tradingsymbol,qty:(x.quantity||0)+(x.t1_quantity||0),t1:x.t1_quantity||0,avg:x.average_price,ltp:x.last_price})),
+        holdings:hold,
         orders:(o||[]).map(x=>({id:x.order_id,sym:x.tradingsymbol,side:x.transaction_type,variety:x.variety,status:x.status,qty:x.quantity,filled:x.filled_quantity,avg:x.average_price,price:x.price,time:x.order_timestamp,msg:x.status_message||''})),
         gtts:(g||[]).map(x=>({id:x.id,status:x.status,sym:x.condition&&x.condition.tradingsymbol,trig:x.condition&&x.condition.trigger_values,orders:(x.orders||[]).map(y=>({side:y.transaction_type,qty:y.quantity,price:y.price}))}))});}
     catch(e){return json({error:String(e&&e.message||e),code:e&&e.code||''},e&&e.code==='login'?409:502);}}
