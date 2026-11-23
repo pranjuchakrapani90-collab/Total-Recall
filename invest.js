@@ -275,8 +275,11 @@ function kiteCard(st){st=st||{};const d=kiteCache(),e=st.err,F=kiteFund();
   const login=!fresh&&(!e||e.code==="login")?`<button type="button" id="kLogin">Log in to Kite for today</button>`:"";
   if(!d)return `<section class="card kite">${head}${e&&e.code!=="login"?`<p class="small dn">${esc(e.message)}</p>`:`<p class="small muted">Read-only: your cash, holdings, today's orders and GTTs. Kite asks you to log in once a day.</p>`}<div class="acts">${login}</div></section>`;
   const f=d.funds||{},kc=f.live,A=appUnits(),K={};if(F.A&&!(LIQ in A))A[LIQ]=0;(d.holdings||[]).forEach(h=>K[h.sym]=h.qty);
-  const diff=Object.keys(A).filter(c=>(A[c]||0)!==(K[c]||0)).map(c=>`<div class="kfix"><span>${esc(c)} app ${A[c]||0} · Kite ${K[c]||0}</span>${fresh?`<button type="button" class="ghost" data-kfix="${esc(c)}">Fix</button>`:""}</div>`);
-  const other=Object.keys(K).filter(c=>!(c in A)&&K[c]>0).length,lq=K[LIQ]||0;
+  /* today's Kite orders for a symbol, so a mismatch shows why (an AMO still open or rejected leaves Kite at 0) */
+  const ordNote=c=>{if(!fresh)return "";const L=(d.orders||[]).filter(o=>o.sym===c);if(!L.length)return "";
+    return `<div class="small muted">Kite order today: ${L.map(o=>esc(`${o.side==="SELL"?"sell":"buy"} ${o.filled||0}/${o.qty} ${String(o.status||"").toLowerCase()}${ok(o.price)&&o.price>0?" @ ₹"+o.price:""}${o.msg?" — "+o.msg:""}`)).join(" · ")}</div>`;};
+  const diff=Object.keys(A).filter(c=>(A[c]||0)!==(K[c]||0)).map(c=>`<div class="kfix"><span>${esc(c)} app ${A[c]||0} · Kite ${K[c]||0}</span>${fresh?`<button type="button" class="ghost" data-kfix="${esc(c)}">Fix</button>`:""}</div>${ordNote(c)}`);
+  const others=Object.keys(K).filter(c=>!(c in A)&&K[c]>0),other=others.length,lq=K[LIQ]||0;
   const gt=(d.gtts||[]).filter(g=>g.status==="active").length;
   const cashGap=ok(kc)&&F.A?kc-F.cash:NaN,useBtn=ok(kc)&&fresh&&(!F.A||Math.abs(cashGap)>=1||lq!==F.liqUnits);
   return `<section class="card kite">${head}
@@ -284,7 +287,7 @@ function kiteCard(st){st=st||{};const d=kiteCache(),e=st.err,F=kiteFund();
     ${F.A?`<div class="krow sub"><span>App's Kite fund cash</span><span class="mono ${ok(cashGap)&&Math.abs(cashGap)>=1?"warn":""}">${inr(F.cash,2)}${ok(cashGap)&&Math.abs(cashGap)>=1?` · off by ${inr(Math.abs(cashGap),2)}`:""}</span></div>`:""}
     <div class="krow"><span>Holdings</span><span class="${diff.length?"warn":"up"}">${diff.length?diff.length+" differ":"match the app ✓"}</span></div>
     ${diff.length?`<div class="small warn">${diff.join("")}</div>`:""}
-    <div class="krow sub"><span>${other?other+" other holding"+(other>1?"s":"")+" in Kite not tracked here":"Nothing else in Kite"}</span><span>${gt} active GTT${gt===1?"":"s"}</span></div>
+    <div class="krow sub"><span>${other?`Also in Kite, not tracked here: ${others.map(c=>esc(c)+" "+K[c]).join(", ")}`:"Nothing else in Kite"}</span><span>${gt} active GTT${gt===1?"":"s"}</span></div>
     ${useBtn?`<p class="small muted">Tap to set the app's Kite fund to Kite's cash and ${lq} LiquidBees. Do it when today's orders have filled.</p>`:""}
     <div class="acts">${useBtn?`<button type="button" id="kUse">Use Kite's figures</button>`:""}${login||`<button type="button" class="ghost" id="kRef">Refresh</button>`}</div>
     ${e&&e.code!=="login"?`<p class="small dn">${esc(e.message)}</p>`:""}</section>`;}
