@@ -1358,7 +1358,8 @@ function analyzeW(){
   let kk=null,fit=null,how="";
   if(W.group!=="auto"){kk=Math.min(N,Number(W.group));const gs=[];for(let i=0;i+kk<=N;i+=kk)gs.push(ix.slice(i,i+kk));fit=fitGroups(gs);how="you set";}
   else if(blocks.length>1&&blocks.every(b=>b.length===blocks[0].length)){kk=blocks[0].length;fit=fitGroups(blocks.map(b=>b.map(n=>notes.find(x=>x.c===n.c).ix)));how="from the gaps you left";}
-  else{for(let g=2;g<=N/2;g++){if(N%g)continue;const gs=[];for(let i=0;i<N;i+=g)gs.push(ix.slice(i,i+g));const f=fitGroups(gs);if(f&&Math.abs(f.shift)===1){kk=g;fit=f;how="found in your notes";break;}}
+  else{ // straight groups win over "every other group reversed": 1-2-3, 2-3-4 is read as threes, not as alternating pairs
+    for(const want of [0,1]){for(let g=2;g<=N/2;g++){if(N%g)continue;const gs=[];for(let i=0;i<N;i+=g)gs.push(ix.slice(i,i+g));const f=fitGroups(gs);if(f&&f.alt===want&&Math.abs(f.shift)===1){kk=g;fit=f;how="found in your notes";break;}}if(kk)break;}
     if(!kk){kk=N;fit={alt:0,shift:0};how="one cell";}}
   const c=ix.slice(0,kk).map(v=>v-ix[0]);
   const groups=W.group==="auto"&&blocks.length>1&&blocks.every(b=>b.length===kk)?blocks.map(b=>b.map(n=>notes.find(x=>x.c===n.c))):(()=>{const o=[];for(let i=0;i<N;i+=kk)o.push(notes.slice(i,i+kk));return o;})();
