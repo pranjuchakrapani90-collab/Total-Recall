@@ -125,6 +125,15 @@ function topicOf(text,dtype,memos){
   add(BYTYPE[String(dtype||"").trim().toLowerCase()],1.5);
   var best="Other",top=0;Object.keys(sc).forEach(function(k){if(sc[k]>top){top=sc[k];best=k}});
   return best}
+/* words that mean nearly the same thing in APDCL paperwork: a search for one also offers the others as "related" */
+var ALIKE=[["dtr","transformer"],["ptr","power transformer"],["theft","hooking","pilferage","unauthorised","section 135","section 126"],["accident","electrocution","electrocuted","fatal"],
+ ["fir","police"],["bill","invoice","billing"],["receipt","payment"],["estimate","boq","cost abstract"],["non-comm","non comm","non com","non communicating","not working meter"],
+ ["feeder","line"],["substation","sub-station","33/11"],["pole","psc"],["shutdown","ptw","permit to work","outage","interruption"],["complaint","grievance","petition"],
+ ["connection","nsc","load extension"],["solar","rooftop"],["arrear","outstanding","dues","defaulter"],["disconnection","tdc","disconnected"],["railway","rail crossing","track crossing"],
+ ["tree","jungle"],["storm","damage","restoration"],["transfer","posting","office order"],["retirement","superannuation"],["sld","single line diagram"],["ab cable","abc","rdss"],
+ ["indexing","gis"],["energy audit","jmr","at&c"],["smart meter","prepaid","postpaid"],["letter","memo"]];
+function alike(w){var out=[];ALIKE.forEach(function(g){if(g.indexOf(w)>=0)g.forEach(function(x){if(x!==w&&out.indexOf(x)<0)out.push(x)})});
+  if(w.length>3&&/s$/.test(w))out.push(w.slice(0,-1));return out}
 /* ---------- rows -> entries ---------- */
 var LBL=[[9,"consumer nos"],[10,"memo nos"],[11,"receipt / bill nos"],[12,"names"],[13,"places"],[14,"amounts"],[19,"unclear"],[20,"discrepancies"],[21,"note"]];
 function entry(r,src){
