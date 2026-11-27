@@ -56,8 +56,9 @@ details summary{cursor:pointer;font-weight:700}
 
 <div class="card">
   <div class="big">Sync files to Drive</div>
-  <p class="muted" style="font-size:13px;margin:4px 0 12px">Pick WhatsApp files (or any files) on this phone. Anything already in your Drive — same name and size — is skipped; the rest go to Drive › File manager, into the matching WhatsApp folder, keeping their names.</p>
+  <p class="muted" style="font-size:13px;margin:4px 0 12px">Pick WhatsApp files or a folder (or any files) on this phone. Anything already in your Drive (same name and size) is skipped anyway; the rest go to Drive › File manager, into the matching WhatsApp folder, keeping their names.</p>
   <div class="row" style="justify-content:flex-start"><button class="btn pri" id="pick" type="button">Pick files</button><button class="btn" id="pickDir" type="button" hidden>Pick a folder</button></div>
+  <div id="lastPick" class="muted" style="font-size:13px;margin-top:10px"></div>
   <input type="file" id="fi" multiple><input type="file" id="fd" multiple webkitdirectory>
   <div id="run" hidden>
     <div class="prog"><i id="bar"></i></div>
@@ -228,6 +229,7 @@ async function sync(list){
   var files=Array.prototype.slice.call(list),items=files.map(function(f){return {f:f,st:"wait",msg:""}});
   $("run").hidden=false;$("pick").disabled=$("pickDir").disabled=true;$("stop").disabled=false;
   picking=false;wake();
+  savePick({at:new Date().toISOString(),n:files.length,newest:files.reduce(function(m,f){return Math.max(m,f.lastModified||0)},0)});
   var up=0,skip=0,bad=0,bytes=0,tot=items.length,late=0,claimed={};
   var pt=0,pq=null;
   function paint(now){if(now||Date.now()-pt>400){if(pq){clearTimeout(pq);pq=null}pt=Date.now();draw()}else if(!pq)pq=setTimeout(function(){pq=null;pt=Date.now();draw()},400)}
@@ -267,6 +269,7 @@ async function sync(list){
     var h=(await kget(HIST))||[];h=hist.reverse().concat(h).slice(0,500);await kset(HIST,h);
     if(late)$("note").insertAdjacentHTML("beforeend",'<div class="msg err">'+"<b>"+late+"</b> picked files were already in Drive but missing from this phone's saved list of Drive; the second check caught them, so nothing was uploaded twice. Tap Refresh below to rebuild the list."+'</div>');
     try{localStorage.setItem("pos-dsync-last",JSON.stringify({at:new Date().toISOString(),up:up,skip:skip,bad:bad,late:late}))}catch(e){}}
+  savePick({up:up,skip:skip,bad:bad,stopped:!!(stop&&up+skip+bad<tot)});
   paint(true);$("pick").disabled=$("pickDir").disabled=false;$("stop").disabled=true;
   $("fi").value="";$("fd").value="";
   if(up){await ensureIndex().catch(function(){});}
@@ -334,6 +337,20 @@ $("pick").addEventListener("click",function(){startPick($("fi"))});
 $("pickDir").addEventListener("click",function(){startPick($("fd"))});
 ["fi","fd"].forEach(function(id){$(id).addEventListener("cancel",function(){try{sessionStorage.removeItem("pos-dsync-picking")}catch(e){}if(!running){sleep_();$("run").hidden=true}})});
 if("webkitdirectory" in document.createElement("input"))$("pickDir").hidden=false;
+/* ---------- last pick (this phone) ---------- */
+var PICK="pos-dsync-pick";
+function getPick(){try{return JSON.parse(localStorage.getItem(PICK)||"null")}catch(e){return null}}
+function savePick(o){var p=o.at?{}:(getPick()||{});Object.keys(o).forEach(function(k){p[k]=o[k]});try{localStorage.setItem(PICK,JSON.stringify(p))}catch(e){}showPick()}
+function dmy(t){return new Date(t).toLocaleDateString("en-IN",{weekday:"short",day:"numeric",month:"short",year:"numeric"})}
+function showPick(){var p=getPick();
+  if(!p){var l=null;try{l=JSON.parse(localStorage.getItem("pos-dsync-last")||"null")}catch(e){}
+    if(l&&l.at)p={at:l.at,up:l.up,skip:l.skip,bad:l.bad}}
+  if(!p||!p.at){$("lastPick").innerHTML="Last picked: <b>never on this phone</b>";return}
+  var r=p.up!=null?" · "+p.up+" uploaded, "+(p.skip||0)+" skipped"+(p.bad?", "+p.bad+" failed":"")+(p.stopped?" (stopped)":""):"";
+  $("lastPick").innerHTML='Last picked: <b style="color:var(--tr-ink)">'+esc(dmy(p.at))+'</b>, '+esc(new Date(p.at).toLocaleTimeString("en-IN",{hour:"numeric",minute:"2-digit"}))+' ('+ago(p.at)+')'+
+    (p.n?'<br>'+p.n.toLocaleString("en-IN")+' file'+(p.n>1?"s":"")+r:r?"<br>"+r.slice(3):"")+
+    (p.newest?'<br>Newest file in that pick: '+esc(dmy(p.newest))+' — pick files from after this.':'')}
+showPick();
 function picked(inp,folder){try{sessionStorage.removeItem("pos-dsync-picking")}catch(e){}
   if(inp.files.length){sync(inp.files);return}
   sleep_();$("run").hidden=true;
