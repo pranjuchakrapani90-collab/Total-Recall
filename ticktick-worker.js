@@ -836,12 +836,13 @@ async function handleKite(request,env,origin){
   if(op==='data'){const s=await kiteSession(env);if(!s)return json({error:'Log in to Kite for today.',code:'login'},409);
     try{const [m,h,o,g,p]=await Promise.all([kiteGet(env,'/user/margins/equity',s.tok),kiteGet(env,'/portfolio/holdings',s.tok),kiteGet(env,'/orders',s.tok),kiteGet(env,'/gtt/triggers',s.tok).catch(()=>[]),kiteGet(env,'/portfolio/positions',s.tok).catch(()=>null)]);
       const av=m&&m.available||{};
-      /* Holdings list only settled units: a delivery (CNC) buy made today sits under Positions until tomorrow, and a sale of
-         held units today shows there as a negative CNC position. Add today's net CNC quantity so the units match the Kite app. */
+      /* Holdings list only settled units: a delivery (CNC) buy made today sits under Positions until tomorrow, so add today's
+         net CNC buys. A sale of held units today also shows there as a negative CNC position, but Kite has already taken those
+         units off the holdings figure, so adding the negative too would count the sale twice (e.g. 23 held, 24 sold → −1). */
       const hold=(h||[]).map(x=>({sym:x.tradingsymbol,qty:(x.quantity||0)+(x.t1_quantity||0),t1:x.t1_quantity||0,today:0,avg:x.average_price,ltp:x.last_price}));
       ((p&&p.net)||[]).filter(x=>x.product==='CNC'&&x.exchange!=='BFO'&&x.exchange!=='NFO'&&x.quantity).forEach(x=>{
         let e=hold.find(y=>y.sym===x.tradingsymbol);if(!e){e={sym:x.tradingsymbol,qty:0,t1:0,today:0,avg:x.average_price,ltp:x.last_price};hold.push(e);}
-        e.qty+=x.quantity;e.today+=x.quantity;});
+        if(x.quantity>0){e.qty+=x.quantity;e.today+=x.quantity;}});
       return json({at:Date.now(),user:s.name,
         funds:{net:m&&m.net,cash:av.cash,live:av.live_balance,opening:av.opening_balance,used:m&&m.utilised&&m.utilised.debits},
         holdings:hold,
